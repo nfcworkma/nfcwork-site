@@ -35,6 +35,20 @@ function status(inv){
   if(inv.due&&inv.due<today())return["late","En retard"];
   return["sent","Envoyée"];
 }
+/* images produits du site (assets/img/) proposées pour les services */
+const IMAGES=[["assets/img/carte.jpg","Carte de visite NFC"],["assets/img/google.jpg","Plaque avis Google"],["assets/img/menu.jpg","Menu digital NFC + QR"],["assets/img/wifi.jpg","Plaque Wi-Fi"],["assets/img/led.jpg","Caisson LED"],["assets/img/packs.jpg","Packs"]];
+const imgSrc=p=>IMAGES.some(x=>x[0]===p)?"../"+p:"";
+/* commandes */
+const OSTEPS=[["new","Nouvelle"],["confirmed","Confirmée"],["preparing","En préparation"],["ready","Prête"],["delivered","Livrée"]];
+const OLABEL={...Object.fromEntries(OSTEPS),cancelled:"Annulée"};
+const OPILL={new:"new",confirmed:"sent",preparing:"sent",ready:"sent",delivered:"paid",cancelled:"late"};
+const oStep=o=>OSTEPS.findIndex(x=>x[0]===o.status);
+const oNext=o=>{const i=oStep(o);return i>=0&&i<OSTEPS.length-1?OSTEPS[i+1]:null};
+const oTotal=o=>(o.lines||[]).reduce((a,l)=>a+(+l.qty||0)*(+l.price||0),0);
+const oPill=o=>`<span class="pill ${OPILL[o.status]||"draft"}">${esc(OLABEL[o.status]||o.status)}</span>`;
+const fdt=iso=>iso?new Date(iso).toLocaleString("fr-FR",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—";
+function orderNumber(){const a="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return "CMD-"+s}
+function waNumber(p){let d=String(p||"").replace(/\D/g,"");if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("0"))d="212"+d.slice(1);return d.length>=9?d:""}
 const authMsg=e=>({
   "auth/invalid-credential":"E-mail ou mot de passe incorrect.","auth/wrong-password":"E-mail ou mot de passe incorrect.",
   "auth/user-not-found":"Aucun compte avec cet e-mail.","auth/email-already-in-use":"Un compte existe déjà avec cet e-mail : connectez-vous.",
@@ -43,9 +57,10 @@ const authMsg=e=>({
 }[e&&e.code]||"Une erreur est survenue, réessayez.");
 
 /* ---------- state ---------- */
-const S={services:[],clients:[],invoices:[],settings:{}};
-const P={client:null,invoices:[],ready:false};
-let role=null,user=null,tab="home",ptab="inv",invFilter="all",subs=[],confirmKey=null,draft=null;
+const S={services:[],clients:[],invoices:[],orders:[],settings:{}};
+const P={client:null,invoices:[],orders:[],ready:false};
+let role=null,user=null,tab="home",ptab="inv",invFilter="all",ordFilter="open",subs=[],confirmKey=null,draft=null;
+let cart={},cartNote="",sending=false;
 const clientById=id=>S.clients.find(c=>c.id===id);
 const unsubAll=()=>{subs.forEach(u=>{try{u()}catch(e){}});subs=[]};
 const listen=(q,fn)=>subs.push(q.onSnapshot(fn,err=>{console.error(err);toast("Accès refusé ou connexion perdue.")}));
@@ -97,14 +112,16 @@ function startAdmin(){
   listen(fs.collection("services"),s=>{S.services=rows(s).sort((a,b)=>(a.name||"").localeCompare(b.name||""));render()});
   listen(fs.collection("clients"),s=>{S.clients=rows(s).sort((a,b)=>(a.name||"").localeCompare(b.name||""));render()});
   listen(fs.collection("invoices"),s=>{S.invoices=rows(s).sort((a,b)=>(b.number||"").localeCompare(a.number||""));render()});
+  listen(fs.collection("orders"),s=>{S.orders=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   render();
 }
 /* ---------- CLIENT ---------- */
 function startClient(email){
-  role="client";P.ready=false;P.client=null;P.invoices=[];$("#modeLabel").textContent="Espace client";
+  role="client";P.ready=false;P.client=null;P.invoices=[];P.orders=[];$("#modeLabel").textContent="Espace client";
   listen(fs.collection("services"),s=>{S.services=rows(s).sort((a,b)=>(a.name||"").localeCompare(b.name||""));render()});
   listen(fs.collection("clients").where("email","==",email),s=>{P.client=s.empty?null:rows(s)[0];P.ready=true;render()});
   listen(fs.collection("invoices").where("clientEmail","==",email).where("visible","==",true),s=>{P.invoices=rows(s).sort((a,b)=>(b.number||"").localeCompare(a.number||""));render()});
+  listen(fs.collection("orders").where("clientEmail","==",email),s=>{P.orders=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   render();
 }
 
@@ -113,7 +130,9 @@ function render(){
   if(!role)return;
   if(role==="client"){renderPortal();return}
   document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
-  ({home:renderHome,invoices:renderInvoices,clients:renderClients,services:renderServices})[tab]();
+  const n=S.orders.filter(o=>o.status==="new").length,bd=$("#ordBadge");
+  if(bd){bd.textContent=n;bd.hidden=!n}
+  ({home:renderHome,orders:renderOrders,invoices:renderInvoices,clients:renderClients,services:renderServices})[tab]();
 }
 function invRow(inv){
   const c=clientById(inv.clientId);const[st,lab]=status(inv);const t=totals(inv);
@@ -129,6 +148,7 @@ function renderHome(){
   app.innerHTML=`
   <div class="section-head"><div><div class="eyebrow">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</div><h2>Tableau de bord</h2></div>
   <button class="btn primary" data-new-inv>＋ Nouvelle facture</button></div>
+  ${S.orders.some(o=>o.status==="new")?(()=>{const n=S.orders.filter(o=>o.status==="new").length;return `<div class="notice row between" style="margin-bottom:12px"><span><b>${n} nouvelle${n>1?"s":""} commande${n>1?"s":""}</b> à confirmer.</span><button class="btn sm primary" data-goto="orders">Voir</button></div>`})():""}
   ${!all.length&&!S.clients.length?`<div class="notice">Pour démarrer : remplissez les <b>Paramètres</b>, ajoutez vos <b>services</b>, puis vos <b>clients</b> (avec leur e-mail), et créez votre première facture.</div>`:""}
   <div class="kpis">
     <div class="kpi lead"><div class="eyebrow">Encaissé ${y}</div><b>${fmt(paidYear)} <small>DH</small></b></div>
@@ -158,23 +178,134 @@ function renderClients(){
 }
 function renderServices(){
   app.innerHTML=`<div class="section-head"><div><h2>Services</h2><div class="muted" style="font-size:13.5px">Ce catalogue est visible par vos clients connectés.</div></div><button class="btn primary" data-new-service>＋ Service</button></div>
-  ${S.services.length?`<div class="list">${S.services.map(s=>`<button class="item" data-open-service="${esc(s.id)}"><div class="main"><div class="t">${esc(s.name)}</div><div class="s">${esc(s.desc||"")}</div></div><div class="amt num">${dh(s.price)}${s.unit?`<div class="s muted" style="font-size:12px">/ ${esc(s.unit)}</div>`:""}</div></button>`).join("")}</div>`:
+  ${S.services.length?`<div class="list">${S.services.map(s=>`<button class="item" data-open-service="${esc(s.id)}">${imgSrc(s.image)?`<img class="thumb" src="${esc(imgSrc(s.image))}" alt="">`:`<div class="thumb"></div>`}<div class="main"><div class="t">${esc(s.name)}</div><div class="s">${esc(s.desc||"")}</div></div><div class="amt num">${dh(s.price)}${s.unit?`<div class="s muted" style="font-size:12px">/ ${esc(s.unit)}</div>`:""}</div></button>`).join("")}</div>`:
   `<div class="empty"><h3>Catalogue vide</h3><p>Ajoutez ce que vous vendez : carte NFC personnalisée, plaque avis Google…</p><button class="btn primary" data-new-service>Ajouter un service</button></div>`}`;
 }
+function orderCard(o){
+  const c=o.clientId?clientById(o.clientId):null,nx=oNext(o),inv=S.invoices.find(i=>i.orderId===o.id);
+  return `<div class="ocard${o.status==="new"?" is-new":""}">
+    <button class="ocard-main" data-o-open="${esc(o.id)}">
+      <div class="row between"><span class="num" style="font-weight:600">${esc(o.number)}</span>${oPill(o)}</div>
+      <div class="t">${esc(c?c.name:o.clientName||o.clientEmail)}</div>
+      <div class="s">${(o.lines||[]).map(l=>`${esc(l.qty)}× ${esc(l.name)}`).join(", ")}</div>
+      <div class="row between s"><span>${fdt(o.createdAt)}</span><b class="num" style="color:var(--fg)">${dh(oTotal(o))}</b></div>
+      ${o.note?`<div class="onote">« ${esc(o.note)} »</div>`:""}
+    </button>
+    ${nx||inv?`<div class="ocard-act">${nx?`<button class="btn sm primary" data-o-set="${esc(nx[0])}" data-oid="${esc(o.id)}">→ ${nx[1]}</button>`:"<span></span>"}${inv?`<span class="muted" style="font-size:12.5px">Facture ${esc(inv.number)}</span>`:""}</div>`:""}
+  </div>`;
+}
+function renderOrders(){
+  const f={open:"En cours",new:"Nouvelles",delivered:"Livrées",cancelled:"Annulées",all:"Toutes"};
+  const list=S.orders.filter(o=>ordFilter==="all"||(ordFilter==="open"?!["delivered","cancelled"].includes(o.status):o.status===ordFilter));
+  app.innerHTML=`<div class="section-head"><div><h2>Commandes</h2><div class="muted" style="font-size:13.5px">Passées par vos clients depuis leur espace.</div></div></div>
+  <div class="filters">${Object.entries(f).map(([k,v])=>`<button class="chip" data-ofilter="${k}" aria-pressed="${ordFilter===k}">${v}</button>`).join("")}</div>
+  ${list.length?`<div class="stack">${list.map(orderCard).join("")}</div>`:`<div class="empty"><h3>Aucune commande ici</h3><p>${S.orders.length?"Aucune commande avec ce statut.":"Les commandes de vos clients apparaîtront ici."}</p></div>`}`;
+}
+function linesTable(o){
+  return `<div class="tbl"><table><thead><tr><th>Service</th><th class="r">Qté</th><th class="r">P.U.</th><th class="r">Montant</th></tr></thead>
+  <tbody>${(o.lines||[]).map(l=>`<tr><td>${esc(l.name)}</td><td class="r num">${esc(l.qty)}</td><td class="r num">${fmt(l.price)}</td><td class="r num">${fmt(l.qty*l.price)}</td></tr>`).join("")}</tbody></table></div>
+  <div class="totals num" style="margin-top:10px"><div class="grand"><span>Total</span><span>${dh(oTotal(o))}</span></div></div>`;
+}
+function historyHtml(o){
+  return `<ol class="ohist">${(o.history||[]).map(h=>`<li><b>${esc(OLABEL[h.status]||h.status)}</b><span class="muted">${fdt(h.at)}</span></li>`).join("")}</ol>`;
+}
+function orderView(o){
+  const c=o.clientId?clientById(o.clientId):S.clients.find(x=>x.email&&x.email===o.clientEmail),inv=S.invoices.find(i=>i.orderId===o.id);
+  openModal(`${head(esc(o.number),oPill(o))}
+  <div class="muted" style="font-size:14px;margin-bottom:12px">${esc(c?c.name:o.clientName||"Client sans fiche")} · ${esc(o.clientEmail)}${c&&c.phone?" · "+esc(c.phone):""}<br>Commandée le ${fdt(o.createdAt)}</div>
+  <div class="paper">${linesTable(o)}</div>
+  ${o.note?`<div class="notice" style="margin-top:12px;white-space:pre-wrap"><b>Note du client :</b> ${esc(o.note)}</div>`:""}
+  <div class="eyebrow" style="margin:16px 0 8px">Changer le statut</div>
+  <div class="filters" style="flex-wrap:wrap">${[...OSTEPS,["cancelled","Annulée"]].map(([k,v])=>`<button class="chip" data-o-set="${k}" data-oid="${esc(o.id)}" aria-pressed="${o.status===k}">${v}</button>`).join("")}</div>
+  <div class="eyebrow" style="margin:12px 0 6px">Historique</div>${historyHtml(o)}
+  <div class="row" style="margin-top:16px">${inv?`<button class="btn" data-open-inv="${esc(inv.id)}">Voir la facture ${esc(inv.number)}</button>`:`<button class="btn primary" data-o-invoice="${esc(o.id)}">Créer la facture</button>`}</div>`);
+}
+async function setOrderStatus(id,st){
+  const o=S.orders.find(x=>x.id===id);if(!o||o.status===st)return;
+  const upd={status:st,history:[...(o.history||[]),{status:st,at:new Date().toISOString()}]};
+  if(await guard(fs.doc("orders/"+id).update(upd),"Statut : "+OLABEL[st])&&$("#modal").innerHTML)orderView({...o,...upd});
+}
+function invoiceFromOrder(o){
+  const c=(o.clientId&&clientById(o.clientId))||S.clients.find(x=>x.email&&x.email===o.clientEmail);
+  if(!c){toast("Créez d’abord la fiche de ce client, puis recliquez sur « Créer la facture ».");clientForm({name:o.clientName||"",email:o.clientEmail});return}
+  invoiceForm({number:nextNumber(),clientId:c.id,date:today(),due:addDays(today(),15),tva:true,tvaRate:20,status:"sent",notes:"Commande "+o.number,orderId:o.id,
+    lines:(o.lines||[]).map(l=>{const s=S.services.find(x=>x.id===l.serviceId);return {serviceId:s?s.id:"",desc:l.name,qty:+l.qty||1,price:s?+s.price||0:+l.price||0}})});
+}
 function contactHtml(){const b=S.settings;return b.phone||b.email?`<div class="paper" style="margin-top:22px"><div class="eyebrow">Contact ${esc(b.name||"nfcwork.ma")}</div><div style="margin-top:6px" class="num">${esc(b.phone||"")}</div><div>${esc(b.email||"")}</div></div>`:""}
+/* ---------- panier client ---------- */
+const cartLines=()=>Object.entries(cart).map(([id,q])=>{const s=S.services.find(x=>x.id===id);return s&&q>0?{serviceId:s.id,name:s.name,qty:q,price:+s.price||0}:null}).filter(Boolean);
+const cartCount=()=>cartLines().reduce((a,l)=>a+l.qty,0);
+function cartBar(){
+  const ls=cartLines();if(!ls.length)return"";
+  return `<div class="cartbar"><div class="cartbar-in"><div><b>${cartCount()} article${cartCount()>1?"s":""}</b><div class="num muted" style="font-size:13px">${dh(oTotal({lines:ls}))}</div></div><button class="btn primary" data-cart-open>Voir le panier</button></div></div>`;
+}
+const stepper=(id,q)=>`<div class="qty"><button type="button" data-cart-dec="${esc(id)}" aria-label="Moins">−</button><span class="num">${q}</span><button type="button" data-cart-inc="${esc(id)}" aria-label="Plus">+</button></div>`;
+function cartView(){
+  const ls=cartLines();
+  if(!ls.length){closeModal();render();return}
+  openModal(`${head("Mon panier")}
+  <div class="stack">${ls.map(l=>`<div class="cline"><div class="main"><div class="t">${esc(l.name)}</div><div class="s num">${dh(l.price)} · ${dh(l.qty*l.price)}</div></div>${stepper(l.serviceId,l.qty)}</div>`).join("")}</div>
+  <div class="totals num" style="margin-top:12px"><div class="grand"><span>Total</span><span>${dh(oTotal({lines:ls}))}</span></div></div>
+  <form id="orderForm" class="stack" style="margin-top:14px">
+    <label class="f">Précisions pour votre commande<textarea id="o-note" maxlength="1000" placeholder="Nom à imprimer, couleur, logo, adresse de livraison…">${esc(cartNote)}</textarea></label>
+    <p class="muted" style="margin:0;font-size:13px">Les prix sont confirmés par ${esc(S.settings.name||"nfcwork.ma")} avant la préparation.</p>
+    <button class="btn primary" style="width:100%"${sending?" disabled":""}>Valider la commande</button>
+  </form>`);
+  $("#o-note").addEventListener("input",e=>cartNote=e.target.value);
+  $("#orderForm").onsubmit=e=>{e.preventDefault();submitOrder()};
+}
+async function submitOrder(){
+  const lines=cartLines();if(!lines.length||sending)return;
+  sending=true;const btn=$("#orderForm button");if(btn)btn.disabled=true;
+  const now=new Date().toISOString();
+  const data={number:orderNumber(),clientId:P.client?P.client.id:"",clientEmail:(user.email||"").toLowerCase(),clientName:P.client?P.client.name||"":"",
+    lines,note:cartNote.trim().slice(0,1000),status:"new",history:[{status:"new",at:now}],createdAt:now,total:oTotal({lines})};
+  try{await fs.collection("orders").doc().set(data);cart={};cartNote="";orderDone(data);render()}
+  catch(e){console.error(e);toast(e&&e.code==="permission-denied"?"Commande refusée : vérifiez que votre e-mail est confirmé.":"Échec de l’envoi, réessayez.");if(btn)btn.disabled=false}
+  sending=false;
+}
+function orderDone(o){
+  const b=S.settings,wa=waNumber(b.phone);
+  const msg=`Bonjour ${b.name||"nfcwork.ma"}, je viens de passer la commande ${o.number} depuis mon espace client.\n`+o.lines.map(l=>`- ${l.qty}× ${l.name}`).join("\n")+`\nTotal : ${dh(o.total)}`;
+  openModal(`${head("Commande envoyée")}
+  <div class="success-box"><div class="eyebrow">Votre numéro de commande</div><div class="num" style="font-size:24px;font-weight:700;margin:4px 0">${esc(o.number)}</div>
+  <p class="muted" style="margin:0">Nous l’avons bien reçue. Suivez son avancement dans « Mes commandes ».</p></div>
+  <div class="stack" style="margin-top:14px">
+    ${wa?`<a class="btn wa" style="width:100%" href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Prévenir sur WhatsApp</a>`:""}
+    <button class="btn" data-ptab="ord" data-close>Voir mes commandes</button>
+  </div>`);
+}
+function progressHtml(o){
+  if(o.status==="cancelled")return `<div class="oprog cancelled"><span>Commande annulée</span></div>`;
+  const cur=oStep(o);
+  return `<div class="oprog" role="img" aria-label="Étape ${cur+1} sur ${OSTEPS.length} : ${esc(OLABEL[o.status]||"")}"><div class="oprog-bar">${OSTEPS.map((s,i)=>`<i class="${i<=cur?"on":""}"></i>`).join("")}</div>
+  <div class="oprog-lab">${OSTEPS.map((s,i)=>`<span class="${i===cur?"cur":""}">${s[1]}</span>`).join("")}</div></div>`;
+}
+function renderMyOrders(){
+  const os=P.orders;
+  return `<div class="section-head" style="margin-top:6px"><h2>Mes commandes</h2><button class="btn sm primary" data-ptab="svc">＋ Commander</button></div>
+  ${os.length?`<div class="stack">${os.map(o=>`<div class="ocard"><div class="ocard-main" style="cursor:default">
+    <div class="row between"><span class="num" style="font-weight:600">${esc(o.number)}</span>${oPill(o)}</div>
+    <div class="s">${(o.lines||[]).map(l=>`${esc(l.qty)}× ${esc(l.name)}`).join(", ")}</div>
+    <div class="row between s"><span>${fdt(o.createdAt)}</span><b class="num" style="color:var(--fg)">${dh(oTotal(o))}</b></div>
+    ${progressHtml(o)}
+    ${o.note?`<div class="onote">« ${esc(o.note)} »</div>`:""}</div></div>`).join("")}</div>`
+  :`<div class="empty"><h3>Aucune commande</h3><p>Choisissez vos produits dans « Nos services » et commandez en quelques secondes.</p><button class="btn primary" data-ptab="svc">Voir les services</button></div>`}`;
+}
 function renderPortal(){
-  const tabs=`<div class="filters"><button class="chip" data-ptab="inv" aria-pressed="${ptab==="inv"}">Mes factures</button><button class="chip" data-ptab="svc" aria-pressed="${ptab==="svc"}">Nos services</button></div>`;
+  const tabs=`<div class="filters"><button class="chip" data-ptab="inv" aria-pressed="${ptab==="inv"}">Mes factures</button><button class="chip" data-ptab="ord" aria-pressed="${ptab==="ord"}">Mes commandes${P.orders.length?` (${P.orders.length})`:""}</button><button class="chip" data-ptab="svc" aria-pressed="${ptab==="svc"}">Nos services</button></div>`;
+  if(ptab==="ord"){app.innerHTML=tabs+renderMyOrders()+cartBar();return}
   if(ptab==="svc"){
     app.innerHTML=tabs+`<div class="hero-pub"><div class="eyebrow tap-arc">Technologie sans contact</div><h2>Nos services</h2><p>${esc(S.settings.tagline||"Cartes de visite NFC et solutions sans contact pour professionnels au Maroc.")}</p></div>
-    ${S.services.length?`<div class="svc-grid">${S.services.map(s=>`<div class="svc"><h3>${esc(s.name)}</h3><p>${esc(s.desc||"")}</p><div class="price">${dh(s.price)}${s.unit?` <span class="muted" style="font-size:13px">/ ${esc(s.unit)}</span>`:""}</div></div>`).join("")}</div>`:`<div class="empty"><p>Catalogue en préparation.</p></div>`}${contactHtml()}`;return}
+    ${S.services.length?`<div class="svc-grid">${S.services.map(s=>{const q=cart[s.id]||0,src=imgSrc(s.image);return `<div class="svc">${src?`<img class="svc-img" src="${esc(src)}" alt="" loading="lazy">`:""}<div class="svc-body"><h3>${esc(s.name)}</h3><p>${esc(s.desc||"")}</p><div class="svc-foot"><div class="price">${dh(s.price)}${s.unit?` <span class="muted" style="font-size:13px">/ ${esc(s.unit)}</span>`:""}</div>${q?stepper(s.id,q):`<button class="btn sm primary" data-cart-inc="${esc(s.id)}">Ajouter</button>`}</div></div></div>`}).join("")}</div>`:`<div class="empty"><p>Catalogue en préparation.</p></div>`}${contactHtml()}${cartBar()}`;return}
   if(!P.ready){app.innerHTML=tabs+`<div class="empty"><h3>Chargement…</h3></div>`;return}
-  if(!P.client){app.innerHTML=tabs+`<div class="empty"><h3>Compte pas encore relié</h3><p>Votre e-mail <b>${esc(user.email)}</b> n’est pas encore enregistré comme client. Contactez ${esc(S.settings.name||"nfcwork.ma")} pour qu’il l’ajoute à votre fiche.</p></div>${contactHtml()}`;return}
+  if(!P.client){app.innerHTML=tabs+`<div class="empty"><h3>Compte pas encore relié</h3><p>Votre e-mail <b>${esc(user.email)}</b> n’est pas encore enregistré comme client. Contactez ${esc(S.settings.name||"nfcwork.ma")} pour qu’il l’ajoute à votre fiche. Vous pouvez déjà commander dans « Nos services ».</p></div>${contactHtml()}${cartBar()}`;return}
   const inv=P.invoices;
   const due=inv.filter(i=>i.status!=="paid").reduce((a,i)=>a+totals(i).total,0),paid=inv.filter(i=>i.status==="paid").reduce((a,i)=>a+totals(i).total,0);
   app.innerHTML=tabs+`<div class="section-head" style="margin-top:6px"><div><div class="eyebrow">Espace client</div><h2>Bonjour ${esc(P.client.name)}</h2></div></div>
   <div class="kpis" style="margin-top:0"><div class="kpi ${due?"lead":""}"><div class="eyebrow">Reste à payer</div><b>${fmt(due)} <small>DH</small></b></div><div class="kpi"><div class="eyebrow">Déjà payé</div><b>${fmt(paid)} <small>DH</small></b></div></div>
   ${inv.length?`<div class="list">${inv.map(i=>{const[st,lab]=status(i);return `<button class="item" data-popen="${esc(i.id)}"><div class="main"><div class="t num">${esc(i.number)}</div><div class="s">${fdate(i.date)} · échéance ${fdate(i.due)}</div></div><div class="amt"><div class="num">${dh(totals(i).total)}</div><span class="pill ${st}">${lab}</span></div></button>`}).join("")}</div>`:`<div class="empty"><h3>Aucune facture</h3><p>Vos factures apparaîtront ici dès leur émission.</p></div>`}
-  ${contactHtml()}`;
+  ${contactHtml()}${cartBar()}`;
 }
 
 /* ---------- modals ---------- */
@@ -191,10 +322,13 @@ function serviceForm(s){
    <label class="f">Description<textarea id="sv-desc" placeholder="Impression recto-verso + configuration du profil">${esc(s.desc)}</textarea></label>
    <div class="grid2"><label class="f">Prix HT (DH)<input id="sv-price" type="number" min="0" step="0.01" required value="${esc(s.price??"")}"></label>
    <label class="f">Unité<input id="sv-unit" value="${esc(s.unit||"")}" placeholder="carte, mois, pièce…"></label></div>
+   <label class="f">Photo (images du site)<select id="sv-image"><option value="">— Sans photo —</option>${IMAGES.map(([p,n])=>`<option value="${esc(p)}"${s.image===p?" selected":""}>${esc(n)}</option>`).join("")}</select></label>
+   <div class="img-preview" id="sv-prev">${imgSrc(s.image)?`<img src="${esc(imgSrc(s.image))}" alt="">`:`<span class="muted">Aucune photo</span>`}</div>
    <div class="row between">${s.id?`<button type="button" class="btn danger" data-del-service="${esc(s.id)}">Supprimer</button>`:"<span></span>"}<button class="btn primary">Enregistrer</button></div>
   </form>`);
+  $("#sv-image").onchange=e=>{const src=imgSrc(e.target.value);$("#sv-prev").innerHTML=src?`<img src="${esc(src)}" alt="">`:`<span class="muted">Aucune photo</span>`};
   $("#svcForm").onsubmit=async e=>{e.preventDefault();
-    const data={name:$("#sv-name").value.trim(),desc:$("#sv-desc").value.trim(),price:+$("#sv-price").value||0,unit:$("#sv-unit").value.trim()};
+    const data={name:$("#sv-name").value.trim(),desc:$("#sv-desc").value.trim(),price:+$("#sv-price").value||0,unit:$("#sv-unit").value.trim(),image:$("#sv-image").value};
     const ref=s.id?fs.doc("services/"+s.id):fs.collection("services").doc();
     if(await guard(ref.set(data),"Service enregistré"))closeModal();};
 }
@@ -353,7 +487,10 @@ document.addEventListener("click",async e=>{
   if(d.amode){authMode=d.amode;renderAuth();return}
   if(d.verified!=null){await user.reload();if(auth.currentUser.emailVerified){await auth.currentUser.getIdToken(true);location.reload()}else toast("E-mail pas encore vérifié.");return}
   if(d.resend!=null){try{await user.sendEmailVerification();toast("E-mail renvoyé.")}catch(err){toast(authMsg(err))}return}
-  if(d.ptab){ptab=d.ptab;render();return}
+  if(d.ptab){ptab=d.ptab;if(d.close!=null)closeModal();window.scrollTo(0,0);render();return}
+  if(role==="client"&&(d.cartInc||d.cartDec)){const id=d.cartInc||d.cartDec;cart[id]=Math.max(0,(cart[id]||0)+(d.cartInc?1:-1));if(!cart[id])delete cart[id];
+    if($("#orderForm"))cartView();else{const y=window.scrollY;render();window.scrollTo(0,y)}return}
+  if(d.cartOpen!=null){cartView();return}
   if(d.popen){const i=P.invoices.find(x=>x.id===d.popen);if(i)portalInvoiceView(i);return}
   if(d.pprint){const i=P.invoices.find(x=>x.id===d.pprint);if(i)printInvoice(i,P.client||{});return}
   if(d.close!=null){closeModal();return}
@@ -361,6 +498,10 @@ document.addEventListener("click",async e=>{
   if(el.classList.contains("tab")){tab=d.tab;window.scrollTo(0,0);render();return}
   if(d.goto){tab=d.goto;render();return}
   if(d.filter){invFilter=d.filter;render();return}
+  if(d.ofilter){ordFilter=d.ofilter;render();return}
+  if(d.oOpen){const o=S.orders.find(x=>x.id===d.oOpen);if(o)orderView(o);return}
+  if(d.oSet&&d.oid){setOrderStatus(d.oid,d.oSet);return}
+  if(d.oInvoice){const o=S.orders.find(x=>x.id===d.oInvoice);if(o)invoiceFromOrder(o);return}
   if(el.id==="settingsBtn"){settingsForm();return}
   if(d.newInv!=null){invoiceForm(null,d.newInv||null);return}
   if(d.newClient!=null){clientForm();return}
