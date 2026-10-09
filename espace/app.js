@@ -40,15 +40,51 @@ const IMAGES=[["assets/img/carte.jpg","Carte de visite NFC"],["assets/img/google
 const imgSrc=p=>IMAGES.some(x=>x[0]===p)?"../"+p:"";
 /* commandes */
 const OSTEPS=[["new","Nouvelle"],["confirmed","Confirmée"],["preparing","En préparation"],["ready","Prête"],["delivered","Livrée"]];
-const OLABEL={...Object.fromEntries(OSTEPS),cancelled:"Annulée"};
-const OPILL={new:"new",confirmed:"sent",preparing:"sent",ready:"sent",delivered:"paid",cancelled:"late"};
+const OLABEL={quote:"Devis demandé",...Object.fromEntries(OSTEPS),cancelled:"Annulée"};
+const OPILL={quote:"new",new:"new",confirmed:"sent",preparing:"sent",ready:"sent",delivered:"paid",cancelled:"late"};
 const oStep=o=>OSTEPS.findIndex(x=>x[0]===o.status);
-const oNext=o=>{const i=oStep(o);return i>=0&&i<OSTEPS.length-1?OSTEPS[i+1]:null};
+const oNext=o=>{if(o.status==="quote")return OSTEPS[1];const i=oStep(o);return i>=0&&i<OSTEPS.length-1?OSTEPS[i+1]:null};
 const oTotal=o=>(o.lines||[]).reduce((a,l)=>a+(+l.qty||0)*(+l.price||0),0);
+const oAmount=o=>o.status==="quote"&&!oTotal(o)?"Sur devis":dh(oTotal(o));
 const oPill=o=>`<span class="pill ${OPILL[o.status]||"draft"}">${esc(OLABEL[o.status]||o.status)}</span>`;
 const fdt=iso=>iso?new Date(iso).toLocaleString("fr-FR",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—";
-function orderNumber(){const a="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return "CMD-"+s}
+function orderNumber(pre="CMD"){const a="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<5;i++)s+=a[Math.floor(Math.random()*a.length)];return pre+"-"+s}
 function waNumber(p){let d=String(p||"").replace(/\D/g,"");if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("0"))d="212"+d.slice(1);return d.length>=9?d:""}
+/* réclamations */
+const CSTEPS=[["open","Ouverte"],["progress","En cours"],["resolved","Résolue"]];
+const CLABEL=Object.fromEntries(CSTEPS),CPILL={open:"late",progress:"sent",resolved:"paid"};
+const cPill=c=>`<span class="pill ${CPILL[c.status]||"draft"}">${esc(CLABEL[c.status]||c.status)}</span>`;
+const CLAIM_TYPES=["Retard de livraison","Produit cassé / défectueux","NFC ou QR ne fonctionne pas","Erreur de design ou d'informations","Modifier mes informations","Problème de paiement","Autre"];
+/* catalogue du site (../assets/js/catalog.js) : catégories et import */
+const CATS=[["carte","Cartes NFC"],["google","Google Reviews"],["menu","Menus"],["wifi","Wi-Fi"],["led","LED"],["packs","Packs"]];
+const CATLABEL=Object.fromEntries(CATS);
+const CAT_UNIT={carte:"carte",google:"plaque",menu:"",wifi:"plaque",led:"caisson",packs:"pack"};
+const svcSort=(a,b)=>{const ia=CATS.findIndex(c=>c[0]===a.category),ib=CATS.findIndex(c=>c[0]===b.category);return (ia<0?99:ia)-(ib<0?99:ib)||(a.order??99)-(b.order??99)||(a.name||"").localeCompare(b.name||"")};
+const fromPrice=s=>{const ps=(s.options||[]).filter(o=>!o.yearly).map(o=>+o.price||0);return ps.length?Math.min(...ps):+s.price||0};
+const siteConf=()=>typeof CONFIG!=="undefined"?CONFIG:{};
+const optTag=t=>t.rec?"Recommandé":t.best?"Best seller":t.prem?"Premium":t.launch?"Prix de lancement":"";
+function catalogDocs(){
+  if(typeof CATALOG==="undefined")return null;
+  const docs=[];
+  CATALOG.forEach((c,ci)=>{
+    if(c.id==="packs")c.tiers.forEach((t,ti)=>docs.push(["pack-"+t.k,{name:"Pack "+t.n,desc:t.f.fr.join(" · "),price:t.p,oldPrice:t.old||null,unit:CAT_UNIT.packs,category:"packs",image:c.img,tag:optTag(t),options:[],source:"catalog",order:ti}]));
+    else docs.push(["cat-"+c.id,{name:c.name.fr,desc:c.intro.fr,short:c.short.fr,price:Math.min(...c.tiers.filter(t=>!t.yr).map(t=>t.p)),oldPrice:null,unit:CAT_UNIT[c.id]||"",category:c.id,image:c.img,tag:"",source:"catalog",order:ci,
+      options:c.tiers.map(t=>({key:t.k,name:typeof t.n==="string"?t.n:t.n.fr,price:t.p,features:t.f.fr,tag:optTag(t),yearly:!!t.yr}))}]);
+  });
+  return docs;
+}
+/* aide & guides (repris de faq.html, conditions.html, contact.html et du catalogue) */
+const GUIDES=[
+  ["Utiliser votre carte NFC",["<b>iPhone</b> (XR et plus récent) : déverrouillez l’écran et approchez le <b>haut</b> de l’iPhone de la carte. Touchez la notification qui s’affiche.","<b>Android</b> : vérifiez que le NFC est activé (Paramètres → Connexions → NFC), puis approchez le <b>milieu du dos</b> du téléphone de la carte, écran déverrouillé.","Aucune application n’est nécessaire. Sans NFC, scannez simplement le <b>QR code</b> avec l’appareil photo.","Astuce : une coque épaisse ou métallique peut gêner la lecture."]],
+  ["Modifier votre profil digital",["Vos informations (téléphone, réseaux, adresse…) sont modifiables à tout moment, <b>sans changer la carte ou la plaque</b>.","Envoyez-nous les changements sur WhatsApp, ou faites une demande « Modifier mes informations » dans Réclamation / SAV.","Nous mettons à jour et vous confirmons."]],
+  ["Installer la plaque Google Reviews",["La plaque arrive <b>déjà programmée</b> vers votre page d’avis Google.","Placez-la là où le client attend : près de la caisse, sur le comptoir ou sur les tables, bien visible.","Testez avec votre propre téléphone : il doit ouvrir votre page d’avis.","Invitez vos clients : « Approchez votre téléphone pour nous laisser un avis ». Sans NFC, ils scannent le QR."]],
+  ["Plaque Wi-Fi",["Vos clients se connectent au Wi-Fi <b>sans demander le mot de passe</b> : ils approchent leur téléphone ou scannent le QR.","Modèle Standard : un marqueur est offert pour écrire le nom du réseau et le mot de passe.","Vous changez de mot de passe Wi-Fi ? Contactez-nous pour mettre la plaque à jour."]],
+  ["Menu digital NFC + QR",["Placez les supports sur les tables ou au comptoir : le menu s’ouvre d’une touche ou d’un scan.","Changement de prix ou de plats : modification de menu <b>+20 DH</b>, ou <b>abonnement annuel 249 DH</b> (mises à jour illimitées + support toute l’année)."]],
+  ["Livraison et délais",["Nous livrons <b>partout au Maroc</b>.","Casablanca : <b>30 DH</b>. Autres villes : frais confirmés avec vous selon la ville.","Le délai est confirmé selon la ville et le design. Vous suivez chaque étape dans « Mes commandes »."]],
+  ["Paiement",["<b>Virement bancaire</b> ou <b>cash à la livraison</b>.","Le mode de paiement est confirmé avec vous lors de la confirmation de la commande."]],
+  ["Garantie et SAV",["Nous envoyons toujours un <b>aperçu du design</b> et n’imprimons qu’après votre validation.","Produit arrivé défectueux ou qui ne fonctionne pas ? Faites une réclamation : nous trouvons une solution (réparation, reprogrammation ou échange)."]]
+];
+const FAQ=[["Faut-il une application pour le NFC ?","Non. Il suffit d’approcher le téléphone de la carte ou de la plaque. Sans NFC, on scanne le QR code."],["Ça marche avec iPhone et Android ?","Oui, avec la plupart des smartphones récents. Le QR code fonctionne avec tous les téléphones."],["Quel est le délai de livraison ?","Nous livrons partout au Maroc. Le délai est confirmé selon la ville et le design."],["Combien coûte la livraison ?","Casablanca : 30 DH. Autres villes : confirmé avec vous selon la ville."],["Puis-je voir le design avant impression ?","Oui, nous envoyons toujours un aperçu et n’imprimons qu’après votre accord."],["Puis-je modifier les informations plus tard ?","Oui, à tout moment, sans changer la carte ou la plaque. Modification de menu +20 DH, ou abonnement annuel 249 DH."],["Comment payer ?","Par virement bancaire ou cash à la livraison, confirmé avec vous à la confirmation de la commande."],["J’ai un problème avec ma commande ?","Ouvrez une réclamation depuis « Mes commandes » ou l’onglet Aide : nous vous répondons au plus vite."]];
 const authMsg=e=>({
   "auth/invalid-credential":"E-mail ou mot de passe incorrect.","auth/wrong-password":"E-mail ou mot de passe incorrect.",
   "auth/user-not-found":"Aucun compte avec cet e-mail.","auth/email-already-in-use":"Un compte existe déjà avec cet e-mail : connectez-vous.",
@@ -57,9 +93,9 @@ const authMsg=e=>({
 }[e&&e.code]||"Une erreur est survenue, réessayez.");
 
 /* ---------- state ---------- */
-const S={services:[],clients:[],invoices:[],orders:[],settings:{}};
-const P={client:null,invoices:[],orders:[],ready:false};
-let role=null,user=null,tab="home",ptab="inv",invFilter="all",ordFilter="open",subs=[],confirmKey=null,draft=null;
+const S={services:[],clients:[],invoices:[],orders:[],claims:[],settings:{}};
+const P={client:null,invoices:[],orders:[],claims:[],ready:false};
+let role=null,user=null,tab="home",ptab="home",invFilter="all",ordFilter="open",oseg="orders",catFilter="all",subs=[],confirmKey=null,draft=null;
 let cart={},cartNote="",sending=false;
 const clientById=id=>S.clients.find(c=>c.id===id);
 const unsubAll=()=>{subs.forEach(u=>{try{u()}catch(e){}});subs=[]};
@@ -73,7 +109,7 @@ fs.doc("settings/business").onSnapshot(s=>{S.settings=s.exists?s.data():{};$("#b
 let authMode="login";
 auth.onAuthStateChanged(u=>{
   unsubAll();closeModal();user=u;role=null;
-  $("#tabs").hidden=true;$("#settingsBtn").hidden=true;$("#logoutBtn").hidden=!u;
+  $("#tabs").hidden=true;$("#ptabs").hidden=true;$("#settingsBtn").hidden=true;$("#profileBtn").hidden=true;$("#logoutBtn").hidden=!u;
   if(!u){$("#modeLabel").textContent="Espace client";renderAuth();return}
   if(!u.emailVerified){renderVerify();return}
   const email=(u.email||"").toLowerCase();
@@ -109,19 +145,22 @@ function renderVerify(){
 /* ---------- ADMIN ---------- */
 function startAdmin(){
   role="admin";$("#tabs").hidden=false;$("#settingsBtn").hidden=false;$("#modeLabel").textContent="Espace gestion";
-  listen(fs.collection("services"),s=>{S.services=rows(s).sort((a,b)=>(a.name||"").localeCompare(b.name||""));render()});
+  listen(fs.collection("services"),s=>{S.services=rows(s).sort(svcSort);render()});
   listen(fs.collection("clients"),s=>{S.clients=rows(s).sort((a,b)=>(a.name||"").localeCompare(b.name||""));render()});
   listen(fs.collection("invoices"),s=>{S.invoices=rows(s).sort((a,b)=>(b.number||"").localeCompare(a.number||""));render()});
   listen(fs.collection("orders"),s=>{S.orders=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
+  listen(fs.collection("claims"),s=>{S.claims=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   render();
 }
 /* ---------- CLIENT ---------- */
 function startClient(email){
-  role="client";P.ready=false;P.client=null;P.invoices=[];P.orders=[];$("#modeLabel").textContent="Espace client";
-  listen(fs.collection("services"),s=>{S.services=rows(s).sort((a,b)=>(a.name||"").localeCompare(b.name||""));render()});
+  role="client";P.ready=false;P.client=null;P.invoices=[];P.orders=[];P.claims=[];$("#modeLabel").textContent="Espace client";
+  $("#ptabs").hidden=false;$("#profileBtn").hidden=false;
+  listen(fs.collection("services"),s=>{S.services=rows(s).sort(svcSort);render()});
   listen(fs.collection("clients").where("email","==",email),s=>{P.client=s.empty?null:rows(s)[0];P.ready=true;render()});
   listen(fs.collection("invoices").where("clientEmail","==",email).where("visible","==",true),s=>{P.invoices=rows(s).sort((a,b)=>(b.number||"").localeCompare(a.number||""));render()});
   listen(fs.collection("orders").where("clientEmail","==",email),s=>{P.orders=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
+  listen(fs.collection("claims").where("clientEmail","==",email),s=>{P.claims=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   render();
 }
 
@@ -130,7 +169,7 @@ function render(){
   if(!role)return;
   if(role==="client"){renderPortal();return}
   document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
-  const n=S.orders.filter(o=>o.status==="new").length,bd=$("#ordBadge");
+  const n=todo().total,bd=$("#ordBadge");
   if(bd){bd.textContent=n;bd.hidden=!n}
   ({home:renderHome,orders:renderOrders,invoices:renderInvoices,clients:renderClients,services:renderServices})[tab]();
 }
@@ -140,6 +179,14 @@ function invRow(inv){
     <div class="main"><div class="t">${esc(c?c.name:"Client supprimé")}</div><div class="s"><span class="num">${esc(inv.number)}</span> · ${fdate(inv.date)}</div></div>
     <div class="amt"><div class="num">${dh(t.total)}</div><span class="pill ${st}">${lab}</span></div></button>`;
 }
+function todo(){
+  const o=S.orders.filter(x=>x.status==="new").length,q=S.orders.filter(x=>x.status==="quote").length,c=S.claims.filter(x=>x.status==="open").length;
+  return {o,q,c,total:o+q+c};
+}
+function todoTiles(){
+  const t=todo(),tile=(seg,n,lab,sub)=>`<button class="todo${n?" on":""}" data-goseg="${seg}"><span class="todo-n num">${n}</span><span class="todo-l">${lab}</span><span class="todo-s">${sub}</span></button>`;
+  return `<div class="todos">${tile("orders",t.o,"Nouvelles commandes","à confirmer")}${tile("quotes",t.q,"Devis demandés","à chiffrer")}${tile("claims",t.c,"Réclamations","ouvertes")}</div>`;
+}
 function renderHome(){
   const all=S.invoices,y=String(new Date().getFullYear());
   const paidYear=all.filter(i=>i.status==="paid"&&(i.date||"").startsWith(y)).reduce((a,i)=>a+totals(i).total,0);
@@ -148,7 +195,8 @@ function renderHome(){
   app.innerHTML=`
   <div class="section-head"><div><div class="eyebrow">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</div><h2>Tableau de bord</h2></div>
   <button class="btn primary" data-new-inv>＋ Nouvelle facture</button></div>
-  ${S.orders.some(o=>o.status==="new")?(()=>{const n=S.orders.filter(o=>o.status==="new").length;return `<div class="notice row between" style="margin-bottom:12px"><span><b>${n} nouvelle${n>1?"s":""} commande${n>1?"s":""}</b> à confirmer.</span><button class="btn sm primary" data-goto="orders">Voir</button></div>`})():""}
+  <div class="eyebrow" style="margin-bottom:8px">À traiter</div>${todoTiles()}
+  ${!S.services.length?`<div class="notice row between" style="margin-bottom:12px"><span>Votre catalogue est vide : importez les produits du site en un clic.</span><button class="btn sm primary" data-goto="services">Catalogue</button></div>`:""}
   ${!all.length&&!S.clients.length?`<div class="notice">Pour démarrer : remplissez les <b>Paramètres</b>, ajoutez vos <b>services</b>, puis vos <b>clients</b> (avec leur e-mail), et créez votre première facture.</div>`:""}
   <div class="kpis">
     <div class="kpi lead"><div class="eyebrow">Encaissé ${y}</div><b>${fmt(paidYear)} <small>DH</small></b></div>
@@ -177,9 +225,18 @@ function renderClients(){
   `<div class="empty"><h3>Aucun client</h3><p>Ajoutez un client avec son e-mail : il pourra créer son compte et voir ses factures.</p><button class="btn primary" data-new-client>Ajouter un client</button></div>`}`;
 }
 function renderServices(){
+  const n=(catalogDocs()||[]).length;
   app.innerHTML=`<div class="section-head"><div><h2>Services</h2><div class="muted" style="font-size:13.5px">Ce catalogue est visible par vos clients connectés.</div></div><button class="btn primary" data-new-service>＋ Service</button></div>
-  ${S.services.length?`<div class="list">${S.services.map(s=>`<button class="item" data-open-service="${esc(s.id)}">${imgSrc(s.image)?`<img class="thumb" src="${esc(imgSrc(s.image))}" alt="">`:`<div class="thumb"></div>`}<div class="main"><div class="t">${esc(s.name)}</div><div class="s">${esc(s.desc||"")}</div></div><div class="amt num">${dh(s.price)}${s.unit?`<div class="s muted" style="font-size:12px">/ ${esc(s.unit)}</div>`:""}</div></button>`).join("")}</div>`:
-  `<div class="empty"><h3>Catalogue vide</h3><p>Ajoutez ce que vous vendez : carte NFC personnalisée, plaque avis Google…</p><button class="btn primary" data-new-service>Ajouter un service</button></div>`}`;
+  <div class="notice row between" style="margin-bottom:14px"><span>Importer les <b>${n} produits et packs</b> du site (prix de <span class="num">catalog.js</span>). Sans doublon : un 2ᵉ clic met à jour.</span><button class="btn sm primary" data-import-cat>Importer le catalogue du site</button></div>
+  ${S.services.length?`<div class="list">${S.services.map(s=>`<button class="item" data-open-service="${esc(s.id)}">${imgSrc(s.image)?`<img class="thumb" src="${esc(imgSrc(s.image))}" alt="">`:`<div class="thumb"></div>`}<div class="main"><div class="t">${esc(s.name)}</div><div class="s">${esc(CATLABEL[s.category]||"Sans catégorie")}${s.options&&s.options.length?` · ${s.options.length} options`:""}</div></div><div class="amt num">${s.options&&s.options.length?`<div class="s muted" style="font-size:11px">dès</div>`:""}${dh(fromPrice(s))}${s.unit?`<div class="s muted" style="font-size:12px">/ ${esc(s.unit)}</div>`:""}</div></button>`).join("")}</div>`:
+  `<div class="empty"><h3>Catalogue vide</h3><p>Importez les produits du site, ou ajoutez ce que vous vendez à la main.</p><button class="btn primary" data-import-cat>Importer le catalogue du site</button></div>`}`;
+}
+async function importCatalog(btn){
+  const docs=catalogDocs();if(!docs){toast("Catalogue du site introuvable (assets/js/catalog.js).");return}
+  if(btn)btn.disabled=true;
+  const batch=fs.batch();docs.forEach(([id,d])=>batch.set(fs.doc("services/"+id),d,{merge:true}));
+  const ok=await guard(batch.commit(),docs.length+" produits importés / mis à jour");
+  if(btn)btn.disabled=false;return ok;
 }
 function orderCard(o){
   const c=o.clientId?clientById(o.clientId):null,nx=oNext(o),inv=S.invoices.find(i=>i.orderId===o.id);
@@ -188,18 +245,60 @@ function orderCard(o){
       <div class="row between"><span class="num" style="font-weight:600">${esc(o.number)}</span>${oPill(o)}</div>
       <div class="t">${esc(c?c.name:o.clientName||o.clientEmail)}</div>
       <div class="s">${(o.lines||[]).map(l=>`${esc(l.qty)}× ${esc(l.name)}`).join(", ")}</div>
-      <div class="row between s"><span>${fdt(o.createdAt)}</span><b class="num" style="color:var(--fg)">${dh(oTotal(o))}</b></div>
+      <div class="row between s"><span>${fdt(o.createdAt)}</span><b class="num" style="color:var(--fg)">${oAmount(o)}</b></div>
+      ${o.quote&&o.quote.deadline?`<div class="s">Délai souhaité : ${esc(o.quote.deadline)}</div>`:""}
       ${o.note?`<div class="onote">« ${esc(o.note)} »</div>`:""}
     </button>
     ${nx||inv?`<div class="ocard-act">${nx?`<button class="btn sm primary" data-o-set="${esc(nx[0])}" data-oid="${esc(o.id)}">→ ${nx[1]}</button>`:"<span></span>"}${inv?`<span class="muted" style="font-size:12.5px">Facture ${esc(inv.number)}</span>`:""}</div>`:""}
   </div>`;
 }
+function claimCard(c){
+  return `<div class="ocard${c.status==="open"?" is-new":""}"><button class="ocard-main" data-c-open="${esc(c.id)}">
+    <div class="row between"><span class="num" style="font-weight:600">${esc(c.number)}</span>${cPill(c)}</div>
+    <div class="t">${esc(c.type)}</div>
+    <div class="s">${esc(c.clientName||c.clientEmail)}${c.orderNumber?` · commande ${esc(c.orderNumber)}`:""}</div>
+    <div class="onote" style="font-style:normal">${esc((c.description||"").slice(0,140))}${(c.description||"").length>140?"…":""}</div>
+    <div class="s">${fdt(c.createdAt)}</div></button></div>`;
+}
 function renderOrders(){
-  const f={open:"En cours",new:"Nouvelles",delivered:"Livrées",cancelled:"Annulées",all:"Toutes"};
-  const list=S.orders.filter(o=>ordFilter==="all"||(ordFilter==="open"?!["delivered","cancelled"].includes(o.status):o.status===ordFilter));
-  app.innerHTML=`<div class="section-head"><div><h2>Commandes</h2><div class="muted" style="font-size:13.5px">Passées par vos clients depuis leur espace.</div></div></div>
-  <div class="filters">${Object.entries(f).map(([k,v])=>`<button class="chip" data-ofilter="${k}" aria-pressed="${ordFilter===k}">${v}</button>`).join("")}</div>
-  ${list.length?`<div class="stack">${list.map(orderCard).join("")}</div>`:`<div class="empty"><h3>Aucune commande ici</h3><p>${S.orders.length?"Aucune commande avec ce statut.":"Les commandes de vos clients apparaîtront ici."}</p></div>`}`;
+  const t=todo(),seg=(k,lab,n)=>`<button class="seg-b" data-oseg="${k}" aria-pressed="${oseg===k}">${lab}${n?` <span class="badge-i">${n}</span>`:""}</button>`;
+  let body;
+  if(oseg==="claims"){
+    const list=S.claims;
+    body=list.length?`<div class="stack">${list.map(claimCard).join("")}</div>`:`<div class="empty"><h3>Aucune réclamation</h3><p>Les réclamations de vos clients apparaîtront ici.</p></div>`;
+  }else if(oseg==="quotes"){
+    const list=S.orders.filter(o=>o.status==="quote");
+    body=list.length?`<div class="stack">${list.map(orderCard).join("")}</div>`:`<div class="empty"><h3>Aucun devis en attente</h3><p>Les demandes de devis apparaîtront ici. Une fois le prix accepté, passez-les en « Confirmée ».</p></div>`;
+  }else{
+    const f={open:"En cours",new:"Nouvelles",delivered:"Livrées",cancelled:"Annulées",all:"Toutes"};
+    const base=S.orders.filter(o=>o.status!=="quote");
+    const list=base.filter(o=>ordFilter==="all"||(ordFilter==="open"?!["delivered","cancelled"].includes(o.status):o.status===ordFilter));
+    body=`<div class="filters">${Object.entries(f).map(([k,v])=>`<button class="chip" data-ofilter="${k}" aria-pressed="${ordFilter===k}">${v}</button>`).join("")}</div>
+    ${list.length?`<div class="stack">${list.map(orderCard).join("")}</div>`:`<div class="empty"><h3>Aucune commande ici</h3><p>${base.length?"Aucune commande avec ce statut.":"Les commandes de vos clients apparaîtront ici."}</p></div>`}`;
+  }
+  app.innerHTML=`<div class="section-head"><div><h2>Suivi clients</h2><div class="muted" style="font-size:13.5px">Commandes, devis et réclamations envoyés depuis l’espace client.</div></div></div>
+  <div class="seg">${seg("orders","Commandes",t.o)}${seg("quotes","Devis",t.q)}${seg("claims","Réclamations",t.c)}</div>${body}`;
+}
+function quoteHtml(q){
+  if(!q)return"";
+  return `<div class="paper" style="margin-top:12px"><div class="eyebrow">Demande de devis</div><dl class="kv">
+    <dt>Produit</dt><dd>${esc(q.product)}</dd><dt>Quantité</dt><dd class="num">${esc(q.qty)}</dd>
+    ${q.need?`<dt>Besoin</dt><dd>${esc(q.need)}</dd>`:""}${q.print?`<dt>À imprimer</dt><dd>${esc(q.print)}</dd>`:""}<dt>Délai souhaité</dt><dd>${esc(q.deadline||"—")}</dd></dl></div>`;
+}
+function claimView(c){
+  openModal(`${head(esc(c.number),cPill(c))}
+  <div class="muted" style="font-size:14px;margin-bottom:12px">${esc(c.clientName||"Client")} · ${esc(c.clientEmail)}<br>Envoyée le ${fdt(c.createdAt)}${c.orderNumber?` · commande <b>${esc(c.orderNumber)}</b>`:""}</div>
+  <div class="paper"><div class="eyebrow">${esc(c.type)}</div><p style="margin:6px 0 0;white-space:pre-wrap">${esc(c.description)}</p></div>
+  <div class="eyebrow" style="margin:16px 0 8px">Statut</div>
+  <div class="filters" style="flex-wrap:wrap">${CSTEPS.map(([k,v])=>`<button class="chip" data-c-set="${k}" data-cid="${esc(c.id)}" aria-pressed="${c.status===k}">${v}</button>`).join("")}</div>
+  <form id="replyForm" class="stack" style="margin-top:12px"><label class="f">Réponse au client (visible dans son espace)<textarea id="c-reply" maxlength="1000">${esc(c.reply||"")}</textarea></label>
+  <div class="row between"><span class="muted" style="font-size:12.5px">${(c.history||[]).map(h=>`${esc(CLABEL[h.status]||h.status)} ${fdt(h.at)}`).join(" → ")}</span><button class="btn primary">Enregistrer la réponse</button></div></form>`);
+  $("#replyForm").onsubmit=async e=>{e.preventDefault();await guard(fs.doc("claims/"+c.id).update({reply:$("#c-reply").value.trim()}),"Réponse enregistrée")};
+}
+async function setClaimStatus(id,st){
+  const c=S.claims.find(x=>x.id===id);if(!c||c.status===st)return;
+  const upd={status:st,history:[...(c.history||[]),{status:st,at:new Date().toISOString()}]};
+  if(await guard(fs.doc("claims/"+id).update(upd),"Réclamation : "+CLABEL[st])&&$("#modal").innerHTML)claimView({...c,...upd,reply:$("#c-reply")?$("#c-reply").value:c.reply});
 }
 function linesTable(o){
   return `<div class="tbl"><table><thead><tr><th>Service</th><th class="r">Qté</th><th class="r">P.U.</th><th class="r">Montant</th></tr></thead>
@@ -212,11 +311,11 @@ function historyHtml(o){
 function orderView(o){
   const c=o.clientId?clientById(o.clientId):S.clients.find(x=>x.email&&x.email===o.clientEmail),inv=S.invoices.find(i=>i.orderId===o.id);
   openModal(`${head(esc(o.number),oPill(o))}
-  <div class="muted" style="font-size:14px;margin-bottom:12px">${esc(c?c.name:o.clientName||"Client sans fiche")} · ${esc(o.clientEmail)}${c&&c.phone?" · "+esc(c.phone):""}<br>Commandée le ${fdt(o.createdAt)}</div>
-  <div class="paper">${linesTable(o)}</div>
-  ${o.note?`<div class="notice" style="margin-top:12px;white-space:pre-wrap"><b>Note du client :</b> ${esc(o.note)}</div>`:""}
+  <div class="muted" style="font-size:14px;margin-bottom:12px">${esc(c?c.name:o.clientName||"Client sans fiche")} · ${esc(o.clientEmail)}${c&&c.phone?" · "+esc(c.phone):""}<br>${o.status==="quote"?"Demandé":"Commandée"} le ${fdt(o.createdAt)}${c&&(c.delivery||c.city)?`<br>Livraison : ${esc([c.delivery,c.city].filter(Boolean).join(", "))}`:""}</div>
+  ${o.quote?quoteHtml(o.quote):`<div class="paper">${linesTable(o)}</div>`}
+  ${o.note&&!o.quote?`<div class="notice" style="margin-top:12px;white-space:pre-wrap"><b>Note du client :</b> ${esc(o.note)}</div>`:""}
   <div class="eyebrow" style="margin:16px 0 8px">Changer le statut</div>
-  <div class="filters" style="flex-wrap:wrap">${[...OSTEPS,["cancelled","Annulée"]].map(([k,v])=>`<button class="chip" data-o-set="${k}" data-oid="${esc(o.id)}" aria-pressed="${o.status===k}">${v}</button>`).join("")}</div>
+  <div class="filters" style="flex-wrap:wrap">${[...(o.status==="quote"||o.quote?[["quote","Devis demandé"]]:[]),...OSTEPS,["cancelled","Annulée"]].map(([k,v])=>`<button class="chip" data-o-set="${k}" data-oid="${esc(o.id)}" aria-pressed="${o.status===k}">${v}</button>`).join("")}</div>
   <div class="eyebrow" style="margin:12px 0 6px">Historique</div>${historyHtml(o)}
   <div class="row" style="margin-top:16px">${inv?`<button class="btn" data-open-inv="${esc(inv.id)}">Voir la facture ${esc(inv.number)}</button>`:`<button class="btn primary" data-o-invoice="${esc(o.id)}">Créer la facture</button>`}</div>`);
 }
@@ -229,83 +328,251 @@ function invoiceFromOrder(o){
   const c=(o.clientId&&clientById(o.clientId))||S.clients.find(x=>x.email&&x.email===o.clientEmail);
   if(!c){toast("Créez d’abord la fiche de ce client, puis recliquez sur « Créer la facture ».");clientForm({name:o.clientName||"",email:o.clientEmail});return}
   invoiceForm({number:nextNumber(),clientId:c.id,date:today(),due:addDays(today(),15),tva:true,tvaRate:20,status:"sent",notes:"Commande "+o.number,orderId:o.id,
-    lines:(o.lines||[]).map(l=>{const s=S.services.find(x=>x.id===l.serviceId);return {serviceId:s?s.id:"",desc:l.name,qty:+l.qty||1,price:s?+s.price||0:+l.price||0}})});
+    lines:(o.lines||[]).map(l=>{const s=S.services.find(x=>x.id===l.serviceId),op=s&&l.option?(s.options||[]).find(x=>x.key===l.option):null;
+      return {serviceId:s&&!op?s.id:"",desc:l.name,qty:+l.qty||1,price:op?+op.price||0:s?+s.price||0:+l.price||0}})});
 }
 function contactHtml(){const b=S.settings;return b.phone||b.email?`<div class="paper" style="margin-top:22px"><div class="eyebrow">Contact ${esc(b.name||"nfcwork.ma")}</div><div style="margin-top:6px" class="num">${esc(b.phone||"")}</div><div>${esc(b.email||"")}</div></div>`:""}
 /* ---------- panier client ---------- */
-const cartLines=()=>Object.entries(cart).map(([id,q])=>{const s=S.services.find(x=>x.id===id);return s&&q>0?{serviceId:s.id,name:s.name,qty:q,price:+s.price||0}:null}).filter(Boolean);
+/* clé du panier : "idService" ou "idService|option" */
+const svcById=id=>S.services.find(x=>x.id===id);
+function cartItem(key){
+  const [id,ok]=key.split("|"),s=svcById(id);if(!s)return null;
+  const op=ok?(s.options||[]).find(o=>o.key===ok):null;if(ok&&!op)return null;
+  return {serviceId:s.id,option:op?op.key:"",name:op?`${s.name} — ${op.name}`:s.name,price:op?+op.price||0:+s.price||0};
+}
+const lineKey=l=>l.serviceId+(l.option?"|"+l.option:"");
+const cartLines=()=>Object.entries(cart).map(([k,q])=>{const it=cartItem(k);return it&&q>0?{...it,qty:q}:null}).filter(Boolean);
 const cartCount=()=>cartLines().reduce((a,l)=>a+l.qty,0);
 function cartBar(){
   const ls=cartLines();if(!ls.length)return"";
-  return `<div class="cartbar"><div class="cartbar-in"><div><b>${cartCount()} article${cartCount()>1?"s":""}</b><div class="num muted" style="font-size:13px">${dh(oTotal({lines:ls}))}</div></div><button class="btn primary" data-cart-open>Voir le panier</button></div></div>`;
+  return `<div style="height:64px"></div><div class="cartbar"><div class="cartbar-in"><div><b>${cartCount()} article${cartCount()>1?"s":""}</b><div class="num muted" style="font-size:13px">${dh(oTotal({lines:ls}))}</div></div><button class="btn primary" data-cart-open>Voir le panier</button></div></div>`;
 }
-const stepper=(id,q)=>`<div class="qty"><button type="button" data-cart-dec="${esc(id)}" aria-label="Moins">−</button><span class="num">${q}</span><button type="button" data-cart-inc="${esc(id)}" aria-label="Plus">+</button></div>`;
+const stepper=(key,q)=>`<div class="qty"><button type="button" data-cart-dec="${esc(key)}" aria-label="Moins">−</button><span class="num">${q}</span><button type="button" data-cart-inc="${esc(key)}" aria-label="Plus">+</button></div>`;
+async function clientWrite(p){
+  try{await p;return true}
+  catch(e){console.error(e);toast(e&&e.code==="permission-denied"?"Action refusée : vérifiez que votre e-mail est confirmé.":"Échec de l’envoi, réessayez.");return false}
+}
 function cartView(){
   const ls=cartLines();
   if(!ls.length){closeModal();render();return}
   openModal(`${head("Mon panier")}
-  <div class="stack">${ls.map(l=>`<div class="cline"><div class="main"><div class="t">${esc(l.name)}</div><div class="s num">${dh(l.price)} · ${dh(l.qty*l.price)}</div></div>${stepper(l.serviceId,l.qty)}</div>`).join("")}</div>
+  <div class="stack">${ls.map(l=>`<div class="cline"><div class="main"><div class="t">${esc(l.name)}</div><div class="s num">${dh(l.price)} · ${dh(l.qty*l.price)}</div></div>${stepper(lineKey(l),l.qty)}</div>`).join("")}</div>
   <div class="totals num" style="margin-top:12px"><div class="grand"><span>Total</span><span>${dh(oTotal({lines:ls}))}</span></div></div>
   <form id="orderForm" class="stack" style="margin-top:14px">
     <label class="f">Précisions pour votre commande<textarea id="o-note" maxlength="1000" placeholder="Nom à imprimer, couleur, logo, adresse de livraison…">${esc(cartNote)}</textarea></label>
-    <p class="muted" style="margin:0;font-size:13px">Les prix sont confirmés par ${esc(S.settings.name||"nfcwork.ma")} avant la préparation.</p>
+    ${P.client&&(P.client.delivery||P.client.city)?`<p class="muted" style="margin:0;font-size:13px">Livraison : ${esc([P.client.delivery,P.client.city].filter(Boolean).join(", "))} · <button type="button" class="linkbtn" data-profile>modifier</button></p>`:`<p class="muted" style="margin:0;font-size:13px">Pensez à indiquer votre adresse dans <button type="button" class="linkbtn" data-profile>Mon profil</button>.</p>`}
+    <p class="muted" style="margin:0;font-size:13px">Les prix sont confirmés par ${esc(S.settings.name||"nfcwork.ma")} avant la préparation. Paiement par virement ou cash à la livraison.</p>
     <button class="btn primary" style="width:100%"${sending?" disabled":""}>Valider la commande</button>
   </form>`);
   $("#o-note").addEventListener("input",e=>cartNote=e.target.value);
   $("#orderForm").onsubmit=e=>{e.preventDefault();submitOrder()};
 }
+function baseOrder(status,pre){
+  const now=new Date().toISOString();
+  return {number:orderNumber(pre),clientId:P.client?P.client.id:"",clientEmail:(user.email||"").toLowerCase(),clientName:P.client?P.client.name||"":"",
+    status,history:[{status,at:now}],createdAt:now};
+}
 async function submitOrder(){
   const lines=cartLines();if(!lines.length||sending)return;
-  sending=true;const btn=$("#orderForm button");if(btn)btn.disabled=true;
-  const now=new Date().toISOString();
-  const data={number:orderNumber(),clientId:P.client?P.client.id:"",clientEmail:(user.email||"").toLowerCase(),clientName:P.client?P.client.name||"":"",
-    lines,note:cartNote.trim().slice(0,1000),status:"new",history:[{status:"new",at:now}],createdAt:now,total:oTotal({lines})};
-  try{await fs.collection("orders").doc().set(data);cart={};cartNote="";orderDone(data);render()}
-  catch(e){console.error(e);toast(e&&e.code==="permission-denied"?"Commande refusée : vérifiez que votre e-mail est confirmé.":"Échec de l’envoi, réessayez.");if(btn)btn.disabled=false}
+  sending=true;const btn=$("#orderForm button:last-child");if(btn)btn.disabled=true;
+  const data={...baseOrder("new","CMD"),lines,note:cartNote.trim().slice(0,1000),total:oTotal({lines})};
+  if(await clientWrite(fs.collection("orders").doc().set(data))){cart={};cartNote="";orderDone(data);render()}
+  else if(btn)btn.disabled=false;
   sending=false;
 }
+function waLink(text){const wa=waNumber(S.settings.phone)||siteConf().whatsapp||"";return wa?`https://wa.me/${wa}?text=${encodeURIComponent(text)}`:""}
 function orderDone(o){
-  const b=S.settings,wa=waNumber(b.phone);
-  const msg=`Bonjour ${b.name||"nfcwork.ma"}, je viens de passer la commande ${o.number} depuis mon espace client.\n`+o.lines.map(l=>`- ${l.qty}× ${l.name}`).join("\n")+`\nTotal : ${dh(o.total)}`;
-  openModal(`${head("Commande envoyée")}
-  <div class="success-box"><div class="eyebrow">Votre numéro de commande</div><div class="num" style="font-size:24px;font-weight:700;margin:4px 0">${esc(o.number)}</div>
-  <p class="muted" style="margin:0">Nous l’avons bien reçue. Suivez son avancement dans « Mes commandes ».</p></div>
+  const b=S.settings,isQ=o.status==="quote";
+  const msg=isQ?`Bonjour ${b.name||"nfcwork.ma"}, je viens de demander le devis ${o.number} (${o.quote.qty}× ${o.quote.product}). Je vous envoie mon logo ici.`
+    :`Bonjour ${b.name||"nfcwork.ma"}, je viens de passer la commande ${o.number} depuis mon espace client.\n`+o.lines.map(l=>`- ${l.qty}× ${l.name}`).join("\n")+`\nTotal : ${dh(o.total)}`;
+  const wa=waLink(msg);
+  openModal(`${head(isQ?"Demande envoyée":"Commande envoyée")}
+  <div class="success-box"><div class="eyebrow">${isQ?"Votre numéro de devis":"Votre numéro de commande"}</div><div class="num" style="font-size:24px;font-weight:700;margin:4px 0">${esc(o.number)}</div>
+  <p class="muted" style="margin:0">${isQ?"Nous étudions votre demande et revenons vers vous avec un prix.":"Nous l’avons bien reçue. Suivez son avancement dans « Mes commandes »."}</p></div>
   <div class="stack" style="margin-top:14px">
-    ${wa?`<a class="btn wa" style="width:100%" href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Prévenir sur WhatsApp</a>`:""}
+    ${wa?`<a class="btn wa" style="width:100%" href="${esc(wa)}" target="_blank" rel="noopener">${isQ?"Envoyer mon logo sur WhatsApp":"Prévenir sur WhatsApp"}</a>`:""}
     <button class="btn" data-ptab="ord" data-close>Voir mes commandes</button>
   </div>`);
 }
 function progressHtml(o){
   if(o.status==="cancelled")return `<div class="oprog cancelled"><span>Commande annulée</span></div>`;
+  if(o.status==="quote")return `<div class="oprog quote"><span>Nous préparons votre devis</span></div>`;
   const cur=oStep(o);
   return `<div class="oprog" role="img" aria-label="Étape ${cur+1} sur ${OSTEPS.length} : ${esc(OLABEL[o.status]||"")}"><div class="oprog-bar">${OSTEPS.map((s,i)=>`<i class="${i<=cur?"on":""}"></i>`).join("")}</div>
   <div class="oprog-lab">${OSTEPS.map((s,i)=>`<span class="${i===cur?"cur":""}">${s[1]}</span>`).join("")}</div></div>`;
 }
-function renderMyOrders(){
-  const os=P.orders;
-  return `<div class="section-head" style="margin-top:6px"><h2>Mes commandes</h2><button class="btn sm primary" data-ptab="svc">＋ Commander</button></div>
-  ${os.length?`<div class="stack">${os.map(o=>`<div class="ocard"><div class="ocard-main" style="cursor:default">
+function myOrderCard(o,withActions){
+  return `<div class="ocard"><div class="ocard-main" style="cursor:default">
     <div class="row between"><span class="num" style="font-weight:600">${esc(o.number)}</span>${oPill(o)}</div>
     <div class="s">${(o.lines||[]).map(l=>`${esc(l.qty)}× ${esc(l.name)}`).join(", ")}</div>
-    <div class="row between s"><span>${fdt(o.createdAt)}</span><b class="num" style="color:var(--fg)">${dh(oTotal(o))}</b></div>
+    <div class="row between s"><span>${fdt(o.createdAt)}</span><b class="num" style="color:var(--fg)">${oAmount(o)}</b></div>
     ${progressHtml(o)}
-    ${o.note?`<div class="onote">« ${esc(o.note)} »</div>`:""}</div></div>`).join("")}</div>`
-  :`<div class="empty"><h3>Aucune commande</h3><p>Choisissez vos produits dans « Nos services » et commandez en quelques secondes.</p><button class="btn primary" data-ptab="svc">Voir les services</button></div>`}`;
+    ${o.note?`<div class="onote">« ${esc(o.note)} »</div>`:""}</div>
+    ${withActions&&o.status!=="quote"?`<div class="ocard-act"><span></span><button class="btn sm ghost" data-claim="${esc(o.id)}">Signaler un problème</button></div>`:""}</div>`;
 }
-function renderPortal(){
-  const tabs=`<div class="filters"><button class="chip" data-ptab="inv" aria-pressed="${ptab==="inv"}">Mes factures</button><button class="chip" data-ptab="ord" aria-pressed="${ptab==="ord"}">Mes commandes${P.orders.length?` (${P.orders.length})`:""}</button><button class="chip" data-ptab="svc" aria-pressed="${ptab==="svc"}">Nos services</button></div>`;
-  if(ptab==="ord"){app.innerHTML=tabs+renderMyOrders()+cartBar();return}
-  if(ptab==="svc"){
-    app.innerHTML=tabs+`<div class="hero-pub"><div class="eyebrow tap-arc">Technologie sans contact</div><h2>Nos services</h2><p>${esc(S.settings.tagline||"Cartes de visite NFC et solutions sans contact pour professionnels au Maroc.")}</p></div>
-    ${S.services.length?`<div class="svc-grid">${S.services.map(s=>{const q=cart[s.id]||0,src=imgSrc(s.image);return `<div class="svc">${src?`<img class="svc-img" src="${esc(src)}" alt="" loading="lazy">`:""}<div class="svc-body"><h3>${esc(s.name)}</h3><p>${esc(s.desc||"")}</p><div class="svc-foot"><div class="price">${dh(s.price)}${s.unit?` <span class="muted" style="font-size:13px">/ ${esc(s.unit)}</span>`:""}</div>${q?stepper(s.id,q):`<button class="btn sm primary" data-cart-inc="${esc(s.id)}">Ajouter</button>`}</div></div></div>`}).join("")}</div>`:`<div class="empty"><p>Catalogue en préparation.</p></div>`}${contactHtml()}${cartBar()}`;return}
-  if(!P.ready){app.innerHTML=tabs+`<div class="empty"><h3>Chargement…</h3></div>`;return}
-  if(!P.client){app.innerHTML=tabs+`<div class="empty"><h3>Compte pas encore relié</h3><p>Votre e-mail <b>${esc(user.email)}</b> n’est pas encore enregistré comme client. Contactez ${esc(S.settings.name||"nfcwork.ma")} pour qu’il l’ajoute à votre fiche. Vous pouvez déjà commander dans « Nos services ».</p></div>${contactHtml()}${cartBar()}`;return}
+function myClaimCard(c){
+  return `<div class="ocard"><div class="ocard-main" style="cursor:default">
+    <div class="row between"><span class="num" style="font-weight:600">${esc(c.number)}</span>${cPill(c)}</div>
+    <div class="t">${esc(c.type)}</div><div class="s">${c.orderNumber?`Commande ${esc(c.orderNumber)} · `:""}${fdt(c.createdAt)}</div>
+    <div class="onote" style="font-style:normal">${esc(c.description)}</div>
+    ${c.reply?`<div class="reply"><b>Réponse de ${esc(S.settings.name||"nfcwork.ma")} :</b> ${esc(c.reply)}</div>`:""}</div></div>`;
+}
+
+/* ---------- vues client ---------- */
+const ICON={
+  cart:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16l-1.5 12.5a1.5 1.5 0 0 1-1.5 1.5H7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>`,
+  quote:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h6M9 16h4"/></svg>`,
+  help:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.5V14M12 17.5v.01"/></svg>`
+};
+function renderPHome(){
+  const name=P.client&&P.client.name?P.client.name:(user.email||"").split("@")[0];
+  const cur=P.orders.filter(o=>!["delivered","cancelled","quote"].includes(o.status));
+  const quotes=P.orders.filter(o=>o.status==="quote"),claims=P.claims.filter(c=>c.status!=="resolved");
+  const due=P.invoices.filter(i=>i.status!=="paid").reduce((a,i)=>a+totals(i).total,0),last=P.invoices[0];
+  const missing=P.client&&(!P.client.phone||!P.client.delivery);
+  return `<div class="hello"><div class="eyebrow tap-arc">Espace client</div><h2>Bonjour ${esc(name)} 👋</h2><p class="muted" style="margin:4px 0 0">Suivez vos commandes, vos factures et trouvez de l’aide à tout moment.</p></div>
+  <div class="quick">
+    <button class="qa" data-ptab="cat">${ICON.cart}<b>Commander</b><span>Catalogue</span></button>
+    <button class="qa" data-quote>${ICON.quote}<b>Demander un devis</b><span>Sur mesure</span></button>
+    <button class="qa" data-ptab="help">${ICON.help}<b>Aide</b><span>Guides & SAV</span></button>
+  </div>
+  ${P.ready&&!P.client?`<div class="notice" style="margin-bottom:14px">Votre e-mail <b>${esc(user.email)}</b> n’est pas encore relié à une fiche client. Vous pouvez déjà commander ; ${esc(S.settings.name||"nfcwork.ma")} créera votre fiche.</div>`:""}
+  ${missing?`<div class="notice row between" style="margin-bottom:14px"><span>Complétez votre profil (téléphone, adresse de livraison) pour être livré plus vite.</span><button class="btn sm primary" data-profile>Mon profil</button></div>`:""}
+  <div class="section-head" style="margin-top:4px"><h3>Commande en cours</h3>${P.orders.length?`<button class="btn sm ghost" data-ptab="ord">Tout voir</button>`:""}</div>
+  ${cur.length?`<div class="stack">${cur.slice(0,2).map(o=>myOrderCard(o,false)).join("")}</div>`:`<div class="empty" style="padding:18px"><p>Aucune commande en cours.</p><button class="btn primary" data-ptab="cat">Voir le catalogue</button></div>`}
+  ${quotes.length?`<div class="section-head" style="margin-top:18px"><h3>Devis en attente</h3></div><div class="stack">${quotes.map(o=>myOrderCard(o,false)).join("")}</div>`:""}
+  <div class="kpis" style="margin-top:18px">
+    <div class="kpi ${due?"lead":""}"><div class="eyebrow">Reste à payer</div><b>${fmt(due)} <small>DH</small></b></div>
+    ${last?`<button class="kpi kpi-btn" data-popen="${esc(last.id)}"><div class="eyebrow">Dernière facture</div><b>${dh(totals(last).total)}</b><div class="row between" style="margin-top:4px"><span class="num muted" style="font-size:12px">${esc(last.number)}</span><span class="pill ${status(last)[0]}">${status(last)[1]}</span></div></button>`
+      :`<div class="kpi"><div class="eyebrow">Dernière facture</div><b style="font-size:15px" class="muted">Aucune</b></div>`}
+  </div>
+  ${claims.length?`<div class="section-head"><h3>Réclamations en cours</h3></div><div class="stack">${claims.map(myClaimCard).join("")}</div>`:""}
+  ${contactHtml()}`;
+}
+function renderCatalog(){
+  const cats=CATS.filter(c=>S.services.some(s=>s.category===c[0]));
+  const list=S.services.filter(s=>catFilter==="all"||s.category===catFilter);
+  return `<div class="hero-pub"><div class="eyebrow tap-arc">Technologie sans contact</div><h2>Catalogue</h2><p>${esc(S.settings.tagline||"Cartes de visite NFC et solutions sans contact pour professionnels au Maroc.")}</p></div>
+  ${cats.length?`<div class="filters"><button class="chip" data-catf="all" aria-pressed="${catFilter==="all"}">Tout</button>${cats.map(([k,v])=>`<button class="chip" data-catf="${k}" aria-pressed="${catFilter===k}">${v}</button>`).join("")}</div>`:""}
+  ${list.length?`<div class="svc-grid">${list.map(s=>{const src=imgSrc(s.image),hasOpt=s.options&&s.options.length,q=hasOpt?0:cart[s.id]||0;
+    return `<div class="svc">${src?`<div class="svc-ph"><img class="svc-img" src="${esc(src)}" alt="" loading="lazy">${s.tag?`<span class="svc-tag">${esc(s.tag)}</span>`:""}</div>`:""}<div class="svc-body">
+      ${s.category?`<div class="eyebrow">${esc(CATLABEL[s.category]||"")}</div>`:""}<h3>${esc(s.name)}</h3><p>${esc(s.short||s.desc||"")}</p>
+      <div class="svc-foot"><div class="price">${hasOpt?`<small class="from">à partir de</small>`:""}${dh(fromPrice(s))}${s.oldPrice?` <s class="muted" style="font-size:13px;font-weight:400">${dh(s.oldPrice)}</s>`:""}</div>
+      ${hasOpt?`<button class="btn sm primary" data-svc-pick="${esc(s.id)}">Ajouter</button>`:q?stepper(s.id,q):`<button class="btn sm primary" data-cart-inc="${esc(s.id)}">Ajouter</button>`}</div></div></div>`}).join("")}</div>`
+  :`<div class="empty"><p>Catalogue en préparation.</p></div>`}
+  <div class="notice row between" style="margin-top:18px"><span>Besoin d’une grande quantité ou d’un produit sur mesure ?</span><button class="btn sm primary" data-quote>Demander un devis</button></div>`;
+}
+let pick=null;
+function drawPicker(){
+  const s=svcById(pick.id);if(!s){closeModal();return}
+  const op=(s.options||[]).find(o=>o.key===pick.opt)||s.options[0];pick.opt=op.key;
+  openModal(`${head(esc(s.name))}
+  <p class="muted" style="margin:0 0 12px;font-size:14px">${esc(s.desc||"")}</p>
+  <div class="stack" role="radiogroup" aria-label="Formule">${s.options.map(o=>`<button type="button" class="opt" role="radio" aria-checked="${o.key===op.key}" data-pick-opt="${esc(o.key)}">
+    <div class="row between"><b>${esc(o.name)}${o.tag?` <span class="pill new" style="margin-left:4px">${esc(o.tag)}</span>`:""}</b><span class="num" style="font-weight:700">${dh(o.price)}${o.yearly?` <small class="muted">/ an</small>`:""}</span></div>
+    ${o.key===op.key&&o.features&&o.features.length?`<ul class="feat">${o.features.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>`:""}</button>`).join("")}</div>
+  <div class="row between" style="margin-top:14px"><span class="muted">Quantité</span><div class="qty"><button type="button" data-pick-q="-1" aria-label="Moins">−</button><span class="num">${pick.qty}</span><button type="button" data-pick-q="1" aria-label="Plus">+</button></div></div>
+  <button class="btn primary" style="width:100%;margin-top:14px" data-pick-add>Ajouter au panier · ${dh(op.price*pick.qty)}</button>`);
+}
+function renderMyOrders(){
+  const os=P.orders;
+  return `<div class="section-head" style="margin-top:6px"><h2>Mes commandes</h2><button class="btn sm primary" data-ptab="cat">＋ Commander</button></div>
+  ${os.length?`<div class="stack">${os.map(o=>myOrderCard(o,true)).join("")}</div>`
+  :`<div class="empty"><h3>Aucune commande</h3><p>Choisissez vos produits dans le catalogue et commandez en quelques secondes.</p><button class="btn primary" data-ptab="cat">Voir le catalogue</button></div>`}
+  <div class="section-head" style="margin-top:22px"><h3>Réclamations / SAV</h3><button class="btn sm" data-claim="">＋ Nouvelle</button></div>
+  ${P.claims.length?`<div class="stack">${P.claims.map(myClaimCard).join("")}</div>`:`<p class="muted" style="margin:0;font-size:14px">Aucune réclamation. Un souci avec un produit ? Signalez-le ici, nous trouvons une solution.</p>`}`;
+}
+function renderMyInvoices(){
+  if(!P.ready)return `<div class="empty"><h3>Chargement…</h3></div>`;
+  if(!P.client)return `<div class="empty"><h3>Compte pas encore relié</h3><p>Votre e-mail <b>${esc(user.email)}</b> n’est pas encore enregistré comme client. ${esc(S.settings.name||"nfcwork.ma")} l’ajoutera à votre fiche ; vous pouvez déjà commander dans le catalogue.</p></div>${contactHtml()}`;
   const inv=P.invoices;
   const due=inv.filter(i=>i.status!=="paid").reduce((a,i)=>a+totals(i).total,0),paid=inv.filter(i=>i.status==="paid").reduce((a,i)=>a+totals(i).total,0);
-  app.innerHTML=tabs+`<div class="section-head" style="margin-top:6px"><div><div class="eyebrow">Espace client</div><h2>Bonjour ${esc(P.client.name)}</h2></div></div>
+  return `<div class="section-head" style="margin-top:6px"><h2>Mes factures</h2></div>
   <div class="kpis" style="margin-top:0"><div class="kpi ${due?"lead":""}"><div class="eyebrow">Reste à payer</div><b>${fmt(due)} <small>DH</small></b></div><div class="kpi"><div class="eyebrow">Déjà payé</div><b>${fmt(paid)} <small>DH</small></b></div></div>
   ${inv.length?`<div class="list">${inv.map(i=>{const[st,lab]=status(i);return `<button class="item" data-popen="${esc(i.id)}"><div class="main"><div class="t num">${esc(i.number)}</div><div class="s">${fdate(i.date)} · échéance ${fdate(i.due)}</div></div><div class="amt"><div class="num">${dh(totals(i).total)}</div><span class="pill ${st}">${lab}</span></div></button>`}).join("")}</div>`:`<div class="empty"><h3>Aucune facture</h3><p>Vos factures apparaîtront ici dès leur émission.</p></div>`}
-  ${contactHtml()}${cartBar()}`;
+  ${contactHtml()}`;
+}
+function renderHelp(){
+  const c=siteConf(),b=S.settings,wa=waLink("Bonjour, j’ai une question.");
+  const phone=b.phone||c.phoneDisplay||"",email=b.email||c.email||"";
+  return `<div class="section-head" style="margin-top:6px"><div><h2>Aide & guides</h2><div class="muted" style="font-size:13.5px">Tout pour bien utiliser vos produits NFC.</div></div></div>
+  <div class="eyebrow" style="margin-bottom:8px">Guides pas à pas</div>
+  ${GUIDES.map(([t,steps],i)=>`<details class="acc"${i===0?" open":""}><summary>${esc(t)}</summary><ol class="guide">${steps.map(s=>`<li>${s}</li>`).join("")}</ol></details>`).join("")}
+  <div class="eyebrow" style="margin:18px 0 8px">Questions fréquentes</div>
+  ${FAQ.map(([q,a])=>`<details class="acc"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}
+  <div class="paper" style="margin-top:18px"><div class="eyebrow">Une question ? Un problème ?</div>
+    <div class="stack" style="margin-top:10px">
+      ${wa?`<a class="btn wa" href="${esc(wa)}" target="_blank" rel="noopener">Écrire sur WhatsApp</a>`:""}
+      <button class="btn" data-claim="">Faire une réclamation / SAV</button>
+      <button class="btn" data-quote>Demander un devis</button>
+    </div>
+    <dl class="kv" style="margin-top:12px">${phone?`<dt>Téléphone</dt><dd class="num"><a href="tel:${esc(String(phone).replace(/[^\d+]/g,""))}">${esc(phone)}</a></dd>`:""}${email?`<dt>E-mail</dt><dd><a href="mailto:${esc(email)}">${esc(email)}</a></dd>`:""}${c.instagram?`<dt>Instagram</dt><dd><a href="https://instagram.com/${esc(c.instagram)}" target="_blank" rel="noopener">@${esc(c.instagram)}</a></dd>`:""}<dt>Zone</dt><dd>Tout le Maroc</dd></dl>
+  </div>`;
+}
+
+/* ---------- formulaires client ---------- */
+function quoteForm(){
+  const prods=S.services.map(s=>s.name);
+  openModal(`${head("Demander un devis")}
+  <form id="quoteForm" class="stack">
+    <p class="muted" style="margin:0;font-size:13.5px">Grande quantité, design spécial, produit sur mesure : décrivez votre besoin, nous revenons vers vous avec un prix.</p>
+    <div class="grid2"><label class="f">Produit<select id="q-prod">${prods.map(n=>`<option>${esc(n)}</option>`).join("")}<option>Autre / sur mesure</option></select></label>
+    <label class="f">Quantité<input id="q-qty" type="number" min="1" max="10000" step="1" value="1" class="num" required></label></div>
+    <label class="f">Votre besoin<textarea id="q-need" maxlength="1000" required placeholder="Ex. 50 cartes NFC pour mon équipe, avec le logo de l’entreprise"></textarea></label>
+    <label class="f">Logo / infos à imprimer<textarea id="q-print" maxlength="500" placeholder="Noms, fonctions, slogan, couleurs… (le logo s’envoie sur WhatsApp après la demande)"></textarea></label>
+    <label class="f">Délai souhaité<select id="q-dl"><option>Dès que possible</option><option>Sous une semaine</option><option>Sous deux semaines</option><option>Ce mois-ci</option><option>Pas pressé</option></select></label>
+    <button class="btn primary" style="width:100%">Envoyer la demande</button>
+  </form>`);
+  $("#quoteForm").onsubmit=async e=>{e.preventDefault();if(sending)return;sending=true;const btn=e.target.querySelector("button");btn.disabled=true;
+    const q={product:$("#q-prod").value,qty:Math.max(1,parseInt($("#q-qty").value,10)||1),need:$("#q-need").value.trim(),print:$("#q-print").value.trim(),deadline:$("#q-dl").value};
+    const s=S.services.find(x=>x.name===q.product);
+    const data={...baseOrder("quote","DEV"),lines:[{serviceId:s?s.id:"",option:"",name:q.product,qty:q.qty,price:0}],note:"",quote:q,total:0};
+    if(await clientWrite(fs.collection("orders").doc().set(data))){orderDone(data);render()}else btn.disabled=false;
+    sending=false};
+}
+function claimForm(orderId){
+  const os=P.orders.filter(o=>o.status!=="quote");
+  openModal(`${head("Réclamation / SAV")}
+  <form id="claimForm" class="stack">
+    <label class="f">Commande concernée<select id="r-order">${os.map(o=>`<option value="${esc(o.id)}"${o.id===orderId?" selected":""}>${esc(o.number)} · ${fdt(o.createdAt)}</option>`).join("")}<option value=""${!orderId?" selected":""}>Sans commande / autre</option></select></label>
+    <label class="f">Problème<select id="r-type">${CLAIM_TYPES.map(t=>`<option>${esc(t)}</option>`).join("")}</select></label>
+    <label class="f">Description<textarea id="r-desc" maxlength="2000" required placeholder="Expliquez ce qui se passe : depuis quand, sur quel produit, ce que vous avez déjà essayé…"></textarea></label>
+    <p class="muted" style="margin:0;font-size:13px">Nous vous répondons ici, dans « Mes commandes », et si besoin sur WhatsApp.</p>
+    <button class="btn primary" style="width:100%">Envoyer la réclamation</button>
+  </form>`);
+  $("#claimForm").onsubmit=async e=>{e.preventDefault();if(sending)return;sending=true;const btn=e.target.querySelector("button");btn.disabled=true;
+    const o=P.orders.find(x=>x.id===$("#r-order").value),now=new Date().toISOString();
+    const data={number:orderNumber("RC"),orderId:o?o.id:"",orderNumber:o?o.number:"",clientEmail:(user.email||"").toLowerCase(),clientName:P.client?P.client.name||"":"",
+      type:$("#r-type").value,description:$("#r-desc").value.trim(),status:"open",history:[{status:"open",at:now}],createdAt:now};
+    if(await clientWrite(fs.collection("claims").doc().set(data))){closeModal();ptab="ord";render();toast("Réclamation "+data.number+" envoyée")}else btn.disabled=false;
+    sending=false};
+}
+function profileForm(){
+  if(!P.client){openModal(`${head("Mon profil")}<div class="notice">Votre e-mail <b>${esc(user.email)}</b> n’est pas encore relié à une fiche client. ${esc(S.settings.name||"nfcwork.ma")} la crée lors de votre première commande ; vous pourrez ensuite compléter votre profil ici.</div>`);return}
+  const c=P.client,cities=typeof CITIES!=="undefined"?CITIES:[];
+  openModal(`${head("Mon profil")}
+  <form id="profForm" class="stack">
+    <label class="f">E-mail (identifiant, non modifiable)<input value="${esc(c.email)}" disabled></label>
+    <label class="f">Nom ou société<input id="p-name" maxlength="100" required value="${esc(c.name)}"></label>
+    <div class="grid2"><label class="f">Téléphone<input id="p-phone" type="tel" inputmode="tel" maxlength="30" value="${esc(c.phone)}" placeholder="06 …"></label>
+    <label class="f">Ville<input id="p-city" list="p-cities" maxlength="60" value="${esc(c.city)}"></label></div>
+    <datalist id="p-cities">${cities.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
+    <label class="f">Adresse de livraison<textarea id="p-deliv" maxlength="300" placeholder="Rue, numéro, quartier, repère…">${esc(c.delivery)}</textarea></label>
+    <label class="f">ICE (si société)<input id="p-ice" inputmode="numeric" maxlength="20" value="${esc(c.ice)}" placeholder="15 chiffres"></label>
+    <button class="btn primary" style="width:100%">Enregistrer</button>
+  </form>`);
+  $("#profForm").onsubmit=async e=>{e.preventDefault();
+    const v={name:$("#p-name").value.trim(),phone:$("#p-phone").value.trim(),city:$("#p-city").value.trim(),delivery:$("#p-deliv").value.trim(),ice:$("#p-ice").value.trim()};
+    const upd={};Object.keys(v).forEach(k=>{if((c[k]||"")!==v[k])upd[k]=v[k]});
+    if(!Object.keys(upd).length){closeModal();return}
+    if(await clientWrite(fs.doc("clients/"+c.id).update(upd))){closeModal();toast("Profil enregistré")}};
+}
+function renderPortal(){
+  document.querySelectorAll("#ptabs .tab").forEach(b=>b.setAttribute("aria-current",b.dataset.ptab===ptab?"page":"false"));
+  const n=P.orders.filter(o=>!["delivered","cancelled"].includes(o.status)).length,bd=$("#pordBadge");
+  if(bd){bd.textContent=n;bd.hidden=!n}
+  const v={home:renderPHome,cat:renderCatalog,ord:renderMyOrders,inv:renderMyInvoices,help:renderHelp}[ptab]||renderPHome;
+  app.innerHTML=v()+cartBar();
 }
 
 /* ---------- modals ---------- */
@@ -322,15 +589,17 @@ function serviceForm(s){
    <label class="f">Description<textarea id="sv-desc" placeholder="Impression recto-verso + configuration du profil">${esc(s.desc)}</textarea></label>
    <div class="grid2"><label class="f">Prix HT (DH)<input id="sv-price" type="number" min="0" step="0.01" required value="${esc(s.price??"")}"></label>
    <label class="f">Unité<input id="sv-unit" value="${esc(s.unit||"")}" placeholder="carte, mois, pièce…"></label></div>
+   <label class="f">Catégorie<select id="sv-cat"><option value="">— Aucune —</option>${CATS.map(([k,v])=>`<option value="${k}"${s.category===k?" selected":""}>${v}</option>`).join("")}</select></label>
+   ${s.options&&s.options.length?`<div class="paper" style="padding:12px 14px"><div class="eyebrow">Options importées du site</div>${s.options.map(o=>`<div class="row between" style="font-size:14px;margin-top:4px"><span>${esc(o.name)}${o.tag?` <span class="muted">· ${esc(o.tag)}</span>`:""}</span><span class="num">${dh(o.price)}${o.yearly?" / an":""}</span></div>`).join("")}<p class="muted" style="margin:8px 0 0;font-size:12.5px">Pour changer ces prix : modifiez <span class="num">assets/js/catalog.js</span>, puis « Importer le catalogue du site ».</p></div>`:""}
    <label class="f">Photo (images du site)<select id="sv-image"><option value="">— Sans photo —</option>${IMAGES.map(([p,n])=>`<option value="${esc(p)}"${s.image===p?" selected":""}>${esc(n)}</option>`).join("")}</select></label>
    <div class="img-preview" id="sv-prev">${imgSrc(s.image)?`<img src="${esc(imgSrc(s.image))}" alt="">`:`<span class="muted">Aucune photo</span>`}</div>
    <div class="row between">${s.id?`<button type="button" class="btn danger" data-del-service="${esc(s.id)}">Supprimer</button>`:"<span></span>"}<button class="btn primary">Enregistrer</button></div>
   </form>`);
   $("#sv-image").onchange=e=>{const src=imgSrc(e.target.value);$("#sv-prev").innerHTML=src?`<img src="${esc(src)}" alt="">`:`<span class="muted">Aucune photo</span>`};
   $("#svcForm").onsubmit=async e=>{e.preventDefault();
-    const data={name:$("#sv-name").value.trim(),desc:$("#sv-desc").value.trim(),price:+$("#sv-price").value||0,unit:$("#sv-unit").value.trim(),image:$("#sv-image").value};
+    const data={name:$("#sv-name").value.trim(),desc:$("#sv-desc").value.trim(),price:+$("#sv-price").value||0,unit:$("#sv-unit").value.trim(),image:$("#sv-image").value,category:$("#sv-cat").value};
     const ref=s.id?fs.doc("services/"+s.id):fs.collection("services").doc();
-    if(await guard(ref.set(data),"Service enregistré"))closeModal();};
+    if(await guard(ref.set(data,{merge:true}),"Service enregistré"))closeModal();};
 }
 function clientForm(c){
   c=c||{};
@@ -342,16 +611,19 @@ function clientForm(c){
    <label class="f">Ville<input id="cl-city" value="${esc(c.city)}"></label></div>
    <div class="grid2"><label class="f">ICE<input id="cl-ice" inputmode="numeric" value="${esc(c.ice)}" placeholder="15 chiffres"></label>
    <label class="f">Adresse<input id="cl-addr" value="${esc(c.address)}"></label></div>
+   <label class="f">Adresse de livraison<input id="cl-deliv" value="${esc(c.delivery)}"></label>
    <div class="row between">${c.id?`<button type="button" class="btn danger" data-del-client="${esc(c.id)}">Supprimer</button>`:"<span></span>"}<button class="btn primary">Enregistrer</button></div>
   </form>`);
   $("#cliForm").onsubmit=async e=>{e.preventDefault();
     const email=$("#cl-email").value.trim().toLowerCase();
     if(email&&email===ADMIN){toast("Cet e-mail est celui de l’administrateur.");return}
     if(email&&S.clients.some(x=>x.email===email&&x.id!==c.id)){toast("Cet e-mail est déjà utilisé par un autre client.");return}
-    const data={name:$("#cl-name").value.trim(),email,phone:$("#cl-phone").value.trim(),city:$("#cl-city").value.trim(),ice:$("#cl-ice").value.trim(),address:$("#cl-addr").value.trim()};
+    const data={name:$("#cl-name").value.trim(),email,phone:$("#cl-phone").value.trim(),city:$("#cl-city").value.trim(),ice:$("#cl-ice").value.trim(),address:$("#cl-addr").value.trim(),delivery:$("#cl-deliv").value.trim()};
     const ref=c.id?fs.doc("clients/"+c.id):fs.collection("clients").doc();
     const batch=fs.batch();batch.set(ref,data);
-    if(c.id&&c.email!==email)S.invoices.filter(i=>i.clientId===c.id).slice(0,450).forEach(i=>batch.update(fs.doc("invoices/"+i.id),{clientEmail:email}));
+    if(c.id&&c.email!==email){
+      S.invoices.filter(i=>i.clientId===c.id).slice(0,200).forEach(i=>batch.update(fs.doc("invoices/"+i.id),{clientEmail:email}));
+      S.orders.filter(o=>o.clientId===c.id).slice(0,200).forEach(o=>batch.update(fs.doc("orders/"+o.id),{clientEmail:email}));}
     if(await guard(batch.commit(),"Client enregistré"))closeModal();};
 }
 function clientView(c){
@@ -490,13 +762,28 @@ document.addEventListener("click",async e=>{
   if(d.ptab){ptab=d.ptab;if(d.close!=null)closeModal();window.scrollTo(0,0);render();return}
   if(role==="client"&&(d.cartInc||d.cartDec)){const id=d.cartInc||d.cartDec;cart[id]=Math.max(0,(cart[id]||0)+(d.cartInc?1:-1));if(!cart[id])delete cart[id];
     if($("#orderForm"))cartView();else{const y=window.scrollY;render();window.scrollTo(0,y)}return}
-  if(d.cartOpen!=null){cartView();return}
+  if(role==="client"){
+    if(d.cartOpen!=null){cartView();return}
+    if(d.catf){catFilter=d.catf;render();return}
+    if(d.svcPick){pick={id:d.svcPick,opt:"",qty:1};const s=svcById(d.svcPick);if(s){const r=(s.options||[]).find(o=>o.tag==="Recommandé");pick.opt=(r||s.options[0]).key}drawPicker();return}
+    if(d.pickOpt){pick.opt=d.pickOpt;drawPicker();return}
+    if(d.pickQ){pick.qty=Math.max(1,pick.qty+(+d.pickQ));drawPicker();return}
+    if(d.pickAdd!=null){const k=pick.id+"|"+pick.opt;cart[k]=(cart[k]||0)+pick.qty;closeModal();const y=window.scrollY;render();window.scrollTo(0,y);toast("Ajouté au panier");return}
+    if(d.quote!=null){quoteForm();return}
+    if(d.claim!=null){claimForm(d.claim);return}
+    if(d.profile!=null||el.id==="profileBtn"){profileForm();return}
+  }
   if(d.popen){const i=P.invoices.find(x=>x.id===d.popen);if(i)portalInvoiceView(i);return}
   if(d.pprint){const i=P.invoices.find(x=>x.id===d.pprint);if(i)printInvoice(i,P.client||{});return}
   if(d.close!=null){closeModal();return}
   if(role!=="admin")return;
   if(el.classList.contains("tab")){tab=d.tab;window.scrollTo(0,0);render();return}
   if(d.goto){tab=d.goto;render();return}
+  if(d.goseg){tab="orders";oseg=d.goseg;if(oseg==="orders")ordFilter="new";window.scrollTo(0,0);render();return}
+  if(d.oseg){oseg=d.oseg;render();return}
+  if(d.importCat!=null){importCatalog(el);return}
+  if(d.cOpen){const c=S.claims.find(x=>x.id===d.cOpen);if(c)claimView(c);return}
+  if(d.cSet&&d.cid){setClaimStatus(d.cid,d.cSet);return}
   if(d.filter){invFilter=d.filter;render();return}
   if(d.ofilter){ordFilter=d.ofilter;render();return}
   if(d.oOpen){const o=S.orders.find(x=>x.id===d.oOpen);if(o)orderView(o);return}

@@ -166,6 +166,51 @@ body{margin:0;min-height:100vh;padding-top:env(safe-area-inset-top,0px)}
 .oprog-lab{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:5px;font-size:10.5px;color:var(--muted);line-height:1.25}
 .oprog-lab .cur{color:var(--accent-2);font-weight:600}
 .oprog.cancelled{color:var(--bad);font-size:13px;font-weight:600}
+/* espace client enrichi */
+.cartbar{bottom:calc(58px + env(safe-area-inset-bottom,0px));padding-bottom:10px}
+.badge-n.info{background:var(--accent)}
+.hello{padding:4px 0 16px}
+.hello h2{font-size:26px}
+.quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.qa{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);text-align:left;cursor:pointer;min-width:0}
+.qa:hover{border-color:var(--accent)}
+.qa svg{width:24px;height:24px;color:var(--accent-2);margin-bottom:6px}
+.qa b{font-family:var(--display);font-size:14px;line-height:1.2}
+.qa span{font-size:12px;color:var(--muted)}
+.kpi-btn{text-align:left;cursor:pointer;font:inherit;color:inherit}
+.kpi-btn:hover{border-color:var(--accent)}
+.svc-ph{position:relative}
+.svc-tag{position:absolute;top:10px;left:10px;background:var(--accent);color:#fff;font-size:11px;font-weight:600;padding:2px 10px;border-radius:999px}
+.price .from{display:block;font-family:var(--body);font-size:11.5px;font-weight:500;color:var(--muted);letter-spacing:.02em}
+.opt{display:block;width:100%;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+.opt[aria-checked="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);background:var(--accent-soft)}
+.feat{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:3px;font-size:13px;color:var(--muted)}
+.feat li::before{content:"✓";color:var(--accent-2);margin-inline-end:8px}
+.acc{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-bottom:8px}
+.acc summary{cursor:pointer;padding:13px 14px;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+.acc summary::-webkit-details-marker{display:none}
+.acc summary::after{content:"+";color:var(--accent-2);font-size:20px;line-height:1}
+.acc[open] summary::after{content:"−"}
+.acc p{margin:0;padding:0 14px 14px;color:var(--muted);font-size:14px}
+.guide{margin:0;padding:0 14px 14px 34px;display:grid;gap:8px;font-size:14px;color:var(--muted)}
+.guide b{color:var(--fg)}
+.guide li::marker{color:var(--accent-2);font-weight:700}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:8px 0 0;font-size:14px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.kv a{color:var(--accent-2);text-decoration:none;font-weight:600}
+.reply{margin-top:6px;font-size:13.5px;background:var(--accent-soft);border-radius:10px;padding:8px 10px}
+.oprog.quote{color:var(--accent-2);font-size:13px;font-weight:600}
+.todos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.todo{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);text-align:left;cursor:pointer;min-width:0}
+.todo.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.todo-n{font-size:24px;font-weight:700;font-family:var(--display)}
+.todo.on .todo-n{color:var(--accent-2)}
+.todo-l{font-size:13px;font-weight:600;line-height:1.25}
+.todo-s{font-size:11.5px;color:var(--muted)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:14px}
+.seg-b{background:none;border:0;border-radius:9px;padding:8px 4px;font-weight:600;font-size:13.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.seg-b[aria-pressed="true"]{background:var(--sunk);color:var(--fg)}
+.badge-i{display:inline-block;min-width:18px;padding:0 5px;border-radius:999px;background:var(--bad);color:#fff;font-size:11px;line-height:18px;text-align:center}
 .success-box{border:1px solid var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--surface));border-radius:var(--r);padding:16px}
 </style>
 </head>
@@ -176,6 +221,7 @@ body{margin:0;min-height:100vh;padding-top:env(safe-area-inset-top,0px)}
     <div style="min-width:0"><h1 id="bizName">nfcwork.ma</h1><small id="modeLabel">Espace client</small></div>
   </div>
   <button class="btn sm ghost" id="settingsBtn" hidden>Paramètres</button>
+  <button class="btn sm ghost" id="profileBtn" hidden>Mon profil</button>
   <button class="btn sm ghost" id="logoutBtn" hidden>Déconnexion</button>
 </div></header>
 
@@ -189,10 +235,20 @@ body{margin:0;min-height:100vh;padding-top:env(safe-area-inset-top,0px)}
   <button class="tab" data-tab="services"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M14 10.2a2.6 2.6 0 0 1 0 3.6M16.5 8.6a5 5 0 0 1 0 6.8"/></svg>Services</button>
 </div></nav>
 
+<nav class="tabs" id="ptabs" hidden><div class="tabs-in">
+  <button class="tab" data-ptab="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg>Accueil</button>
+  <button class="tab" data-ptab="cat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>Catalogue</button>
+  <button class="tab" data-ptab="ord"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16l-1.5 12.5a1.5 1.5 0 0 1-1.5 1.5H7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>Commandes<span class="badge-n info" id="pordBadge" hidden>0</span></button>
+  <button class="tab" data-ptab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/></svg>Factures</button>
+  <button class="tab" data-ptab="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.5V14M12 17.5v.01"/></svg>Aide</button>
+</div></nav>
+
 <div id="modal"></div>
 <div id="toast" class="toast" hidden></div>
 
 <script src="config.js"></script>
+<script src="../assets/js/config.js"></script>
+<script src="../assets/js/catalog.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
