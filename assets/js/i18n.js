@@ -1,0 +1,112 @@
+/* =========================================================
+   NFCWORK — TEXTES DU SITE (Arabe / Français)
+   Kol texte f s-site kayn hna. Bdel li bghiti.
+   ========================================================= */
+const T = {
+ ar: {
+  // Navigation
+  nav_home:"الرئيسية", nav_products:"المنتجات", nav_order:"الطلب", nav_about:"من نحن", nav_faq:"الأسئلة", nav_contact:"اتصل بنا", nav_claim:"شكاية", nav_cond:"الشروط",
+  menu:"القائمة", cart:"السلة",
+  // Common
+  dh:"درهم", yr:"/ السنة", addBtn:"زيد للسلة", inCart:"فالسلة ✓", added:"تزاد للسلة",
+  rec:"الموصى به", best:"الأكثر طلباً", launch:"سعر الإطلاق",
+  choose:"اختار", other:"مدينة أخرى", copy:"نسخ الرسالة", copied:"تنسخت الرسالة",
+  slogan:"أفكارك. المزيد من الاتصال.",
+  fallback:"إلا ما تحلش الواتساب، نسخ الرسالة وصيفطها لـ",
+  eName:"دخل الاسم ديالك", ePhone:"دخل رقم صحيح (مثلا 0612345678)", eCity:"اختار المدينة", eMsg:"كتب الرسالة ديالك", eCart:"زيد شي منتوج للسلة أولا", eType:"اختار نوع المشكل", eDesc:"شرح لينا المشكل",
+  footerLinks:"روابط", footerContact:"تواصل", footerAbout:"حلول NFC و QR للمحلات، المطاعم والمهنيين فجميع أنحاء المغرب.",
+  // Home
+  heroH:"حلول <em>NFC</em> لتطوير نشاطكم",
+  heroP:"بطاقات أعمال ذكية، لوحات تقييمات Google، منيو رقمي، لوحات واي فاي وصناديق LED. لمسة وحدة بالتيليفون وكلشي واجد.",
+  shopNow:"تصفح المنتجات", t1:"توصيل لجميع أنحاء المغرب", t2:"إعداد كامل وجاهز", t3:"تصميم مخصص", t4:"دعم ما بعد البيع",
+  catsH:"منتجاتنا", catsP:"اختار الحل اللي كيناسب نشاطك", from:"ابتداءً من", see:"شوف الباقات",
+  galH:"معرض الصور", galP:"اضغط على أي صورة باش تكبرها",
+  install:"ثبت التطبيق", iosHint:"ضغط على Partager ومن بعد Sur l'écran d'accueil",
+  packsH:"الباقات الأكثر طلباً", packsP:"كلشي فباقة وحدة بثمن أحسن", allPacks:"جميع الباقات",
+  howH:"طريقة عملنا",
+  steps:[["تواصلو معنا","واتساب، اتصال أو إنستغرام"],["نصممو ليكم","تصميم حسب الطلب والهوية ديالكم"],["تأكيد التصميم","كنصيفطو ليكم المعاينة قبل الطباعة"],["الإعداد والتجهيز","برمجة الرابط، المحتوى والاختبار"],["التوصيل أو التركيب","توصيل سريع أو تركيب فالمحل"]],
+  whyH:"علاش NFCWORK؟",
+  why:[["حلول عصرية","أدوات رقمية كتفرق على المنافسين"],["زيادة التقييمات والظهور","الزبناء كيوصلو ليكم بسهولة"],["تجربة أحسن للزبون","خدمة سريعة ومريحة"],["تركيب سريع وسهل","جاهز للاستعمال بلا تعقيد"],["دعم ومواكبة","فريق متجاوب قبل وبعد البيع"],["مناسب لجميع المحلات","مطاعم، مقاهي، فنادق، صالونات، عيادات..."]],
+  ctaH:"جاهزين لتطوير نشاطكم؟", ctaP:"تواصلو معنا اليوم وخذو حل رقمي متكامل.",
+  // Products
+  shopH:"المنتجات والأثمنة", shopP:"اختار الباقة اللي كتناسبك وزيدها للسلة", zoom:"اضغط باش تكبر الصورة",
+  extrasH:"الخيارات والخدمات",
+  extras:[["تصميم احترافي مخصص","حسب نشاطكم وهويتكم","+50 درهم"],["تعديل المنيو","لكل تعديل","+20 درهم"],["اشتراك سنوي للمنيو","تحديثات غير محدودة + دعم","249 درهم / سنة"],["التوصيل","الدار البيضاء 30 درهم، مدن أخرى حسب الطلب","ابتداءً من 30 درهم"],["التركيب في عين المكان","صناديق LED والكميات الكبيرة","حسب الطلب"]],
+  // Order
+  orderH:"دوز الكوموند ديالك", orderP:"عمّر المعلومات وصيفط الطلب مباشرة فالواتساب. غنأكدو معاك قبل الطباعة.",
+  yourCart:"السلة ديالك", yourInfo:"المعلومات ديالك", empty:"السلة خاوية.", browse:"تصفح المنتجات",
+  sub:"المجموع الفرعي", ship:"التوصيل", design:"تصميم احترافي", total:"المجموع", quote:"للتأكيد حسب المدينة",
+  fName:"الاسم الكامل *", fPhone:"رقم الهاتف *", fCity:"المدينة *", fOther:"سمية المدينة *", fAddr:"العنوان", fBiz:"سمية المحل / الشركة (اختياري)", fDesign:"تصميم احترافي مخصص (+50 درهم)", fNote:"ملاحظة (اختياري)",
+  send:"صيفط الطلب فالواتساب", sendNote:"غيتحل ليك الواتساب بالطلب واجد، غير ضغط إرسال.",
+  doneH:"شكراً! الطلب ديالك واجد", doneP:"إلا صيفطتي الرسالة فالواتساب، غنتواصلو معاك قريب باش نأكدو الطلب. احتفظ برقم الطلب:", newOrder:"طلب جديد",
+  // About
+  aboutH:"من نحن", aboutP:"NFCWORK كتساعد المحلات والمهنيين فالمغرب يتحولو للرقمي بأدوات بسيطة: لمسة بالتيليفون ولا سكان QR.",
+  about:[["شنو كنديرو","كنصممو وكنبرمجو بطاقات NFC، لوحات تقييمات Google، منيوهات رقمية، لوحات واي فاي وصناديق LED، وكنوصلوهم جاهزين للاستعمال."],["كيفاش كتخدم NFC","NFC هي تقنية كتخلي التيليفون يقرا المعلومات غير بالتقريب. ما كتحتاجش تطبيق، وكتخدم مع أغلب الهواتف الحديثة. وكل منتوج فيه حتى QR للهواتف اللي ما فيهاش NFC."],["الالتزام ديالنا","تصميم كتأكدو عليه قبل الطباعة، إعداد واختبار كامل، توصيل لجميع المدن ودعم بعد البيع."]],
+  sectorsH:"مناسب لـ", sectors:["مطاعم","مقاهي","فنادق","مكاتب","محلات تجارية","صالونات","صالات رياضية","عيادات","وكلاء عقاريين","مهن حرة"],
+  // FAQ
+  faqH:"الأسئلة الشائعة", faqP:"ما لقيتيش الجواب؟ تواصل معنا فالواتساب.",
+  faq:[["واش خاص تطبيق باش تخدم NFC؟","لا. كيكفي تقرب التيليفون من البطاقة ولا اللوحة. وإلا كان التيليفون ما فيهش NFC، كيسكاني QR اللي فيها."],["واش كتخدم مع الآيفون والأندرويد؟","إيه، كتخدم مع أغلب الهواتف الحديثة. QR كيخدم مع جميع الهواتف."],["شحال كياخذ التوصيل؟","التوصيل لجميع أنحاء المغرب. كنأكدو معاك المدة فالواتساب حسب المدينة وحسب التصميم."],["شحال ثمن التوصيل؟","الدار البيضاء 30 درهم. المدن الأخرى كنأكدوها معاك حسب المدينة."],["واش نقدر نشوف التصميم قبل الطباعة؟","إيه، ديما كنصيفطو ليك المعاينة وما كنطبعو حتى توافق."],["واش نقدر نبدل المعلومات من بعد؟","إيه. المعلومات قابلة للتعديل فأي وقت بلا ما تبدل البطاقة ولا اللوحة. تعديل المنيو +20 درهم، ولا اشتراك سنوي بـ 249 درهم."],["كيفاش نخلص؟","كنتافقو على طريقة الدفع فالواتساب ملي كنأكدو الطلب."],["عندي مشكل فالطلب، شنو ندير؟","دخل لصفحة الشكاية، عمر المعلومات ورقم الطلب، وغنجاوبوك فأقرب وقت."]],
+  // Contact
+  contactH:"اتصل بنا", contactP:"عندك سؤال ولا بغيتي عرض خاص؟ كتب لينا وغنجاوبوك فالواتساب.",
+  cName:"الاسم *", cPhone:"رقم الهاتف *", cSubject:"الموضوع", subjects:["سؤال على منتوج","طلب عرض ثمن","كمية كبيرة / شركة","تركيب صندوق LED","شي حاجة أخرى"], cMsg:"الرسالة *", cSend:"صيفط فالواتساب",
+  directH:"تواصل مباشر", waLbl:"واتساب", telLbl:"اتصل بنا", igLbl:"إنستغرام", emailLbl:"الإيميل", zoneLbl:"منطقة الخدمة", zone:"جميع أنحاء المغرب",
+  // Claim
+  claimH:"شكاية / ريكلاماسيون", claimP:"عندك مشكل مع طلب؟ عمّر هاد الفورمولير وغنتكلفو بيه فأقرب وقت.",
+  rName:"الاسم الكامل *", rPhone:"رقم الهاتف *", rOrder:"رقم الطلب", rOrderHint:"مثلا NW-AB12C (كاين فرسالة الطلب)", rType:"نوع المشكل *",
+  types:["تأخر فالتوصيل","المنتوج وصل مكسور / فيه عيب","NFC ولا QR ما خدامش","غلط فالتصميم ولا المعلومات","بغيت نبدل المعلومات","مشكل فالدفع","شي حاجة أخرى"],
+  rDesc:"شرح المشكل *", rWant:"شنو بغيتي نديرو ليك؟", wants:["إصلاح / إعادة البرمجة","تبديل المنتوج","إعادة الطباعة","استرجاع الفلوس","غير نتواصلو"],
+  rSend:"صيفط الشكاية فالواتساب", rNote:"إلا عندك تصويرة ديال المشكل، صيفطها فنفس المحادثة فالواتساب من بعد الرسالة.",
+  rDoneH:"توصلنا بالشكاية ديالك", rDoneP:"رقم الشكاية:",
+  // Conditions
+  condH:"شروط البيع والتوصيل", condP:"آخر تحديث: أكتوبر 2026",
+  cond:[["الطلب","كيتسجل الطلب ملي كيتأكد معاك فالواتساب. الأثمنة المعروضة بالدرهم."],["التصميم","كنصيفطو ليك معاينة التصميم قبل الطباعة. الطباعة كتبدا غير من بعد الموافقة ديالك."],["التوصيل","التوصيل لجميع أنحاء المغرب. الدار البيضاء 30 درهم، المدن الأخرى حسب الطلب. المدة كتأكد معاك حسب المدينة."],["الدفع","طريقة الدفع كتحدد معاك ملي كيتأكد الطلب."],["الضمان والشكايات","إلا وصلك منتوج فيه عيب ولا ما خدامش، دير شكاية من صفحة الشكاية وغنلقاو ليك حل (إصلاح، إعادة برمجة ولا تبديل)."],["تعديل المعلومات","المعلومات المبرمجة قابلة للتعديل. تعديل المنيو +20 درهم للتعديل ولا اشتراك سنوي 249 درهم."]]
+ },
+ fr: {
+  nav_home:"Accueil", nav_products:"Produits", nav_order:"Commande", nav_about:"À propos", nav_faq:"FAQ", nav_contact:"Contact", nav_claim:"Réclamation", nav_cond:"Conditions",
+  menu:"Menu", cart:"Panier",
+  dh:"DH", yr:"/ an", addBtn:"Ajouter au panier", inCart:"Dans le panier ✓", added:"Ajouté au panier",
+  rec:"Recommandé", best:"Best seller", launch:"Prix de lancement",
+  choose:"Choisir", other:"Autre ville", copy:"Copier le message", copied:"Message copié",
+  slogan:"Vos idées. Plus de connexions.",
+  fallback:"Si WhatsApp ne s'ouvre pas, copiez le message et envoyez-le au",
+  eName:"Entrez votre nom", ePhone:"Entrez un numéro valide (ex. 0612345678)", eCity:"Choisissez une ville", eMsg:"Écrivez votre message", eCart:"Ajoutez d'abord un produit au panier", eType:"Choisissez le type de problème", eDesc:"Décrivez le problème",
+  footerLinks:"Liens", footerContact:"Contact", footerAbout:"Solutions NFC et QR pour commerces, restaurants et professionnels partout au Maroc.",
+  heroH:"Solutions <em>NFC</em> pour votre business",
+  heroP:"Cartes de visite NFC, plaques Google Reviews, menus digitaux, plaques Wi-Fi et caissons LED. Un geste avec le téléphone, et tout est prêt.",
+  shopNow:"Voir les produits", t1:"Livraison partout au Maroc", t2:"Configuration incluse", t3:"Design personnalisé", t4:"Support après-vente",
+  catsH:"Nos produits", catsP:"Choisissez la solution adaptée à votre activité", from:"À partir de", see:"Voir les formules",
+  galH:"Galerie", galP:"Touchez une affiche pour l'agrandir",
+  install:"Installer l'application", iosHint:"Appuyez sur Partager puis Sur l'écran d'accueil",
+  packsH:"Les packs les plus demandés", packsP:"Tout en un, à meilleur prix", allPacks:"Tous les packs",
+  howH:"Notre processus",
+  steps:[["Vous nous contactez","WhatsApp, appel ou réseaux sociaux"],["Nous créons votre design","Selon vos besoins et votre identité"],["Validation du design","Vous validez avant impression"],["Configuration et test","Nous programmons et testons tout"],["Livraison ou installation","Rapide et sécurisée"]],
+  whyH:"Pourquoi NFCWORK ?",
+  why:[["Solutions modernes","Des outils digitaux qui font la différence"],["Plus d'avis et de visibilité","Vos clients vous trouvent facilement"],["Meilleure expérience client","Un service fluide et rapide"],["Installation rapide","Prêt à l'emploi, sans complication"],["Support et accompagnement","Une équipe à votre écoute"],["Pour tous les commerces","Restaurants, cafés, hôtels, salons, cliniques..."]],
+  ctaH:"Prêt à moderniser votre business ?", ctaP:"Contactez NFCWORK dès aujourd'hui.",
+  shopH:"Produits et tarifs", shopP:"Choisissez votre formule et ajoutez-la au panier", zoom:"Touchez pour agrandir",
+  extrasH:"Options et services",
+  extras:[["Design premium","Design personnalisé et professionnel","+50 DH"],["Modification de menu","Par modification","+20 DH"],["Abonnement annuel menu","Mises à jour et support inclus","249 DH / an"],["Livraison","Casablanca 30 DH, autres villes sur devis","Dès 30 DH"],["Installation sur place","Caissons LED et grandes quantités","Sur devis"]],
+  orderH:"Passer commande", orderP:"Remplissez vos infos et envoyez la commande sur WhatsApp. Nous confirmons avec vous avant impression.",
+  yourCart:"Votre panier", yourInfo:"Vos informations", empty:"Votre panier est vide.", browse:"Voir les produits",
+  sub:"Sous-total", ship:"Livraison", design:"Design premium", total:"Total", quote:"À confirmer selon la ville",
+  fName:"Nom complet *", fPhone:"Téléphone *", fCity:"Ville *", fOther:"Nom de la ville *", fAddr:"Adresse", fBiz:"Commerce / entreprise (optionnel)", fDesign:"Design premium personnalisé (+50 DH)", fNote:"Remarque (optionnel)",
+  send:"Envoyer la commande sur WhatsApp", sendNote:"WhatsApp s'ouvre avec votre commande prête : appuyez sur Envoyer.",
+  doneH:"Merci ! Votre commande est prête", doneP:"Si vous avez envoyé le message WhatsApp, nous vous contactons rapidement pour confirmer. Gardez votre numéro de commande :", newOrder:"Nouvelle commande",
+  aboutH:"À propos", aboutP:"NFCWORK aide les commerces et professionnels au Maroc à passer au digital avec des outils simples : un geste avec le téléphone ou un scan QR.",
+  about:[["Ce que nous faisons","Nous concevons et programmons des cartes NFC, plaques Google Reviews, menus digitaux, plaques Wi-Fi et caissons LED, livrés prêts à l'emploi."],["Comment fonctionne le NFC","Le NFC permet au téléphone de lire une information par simple rapprochement. Aucune application n'est nécessaire et la plupart des smartphones récents sont compatibles. Chaque produit a aussi un QR code pour les autres téléphones."],["Notre engagement","Design validé avant impression, configuration et test complets, livraison dans tout le Maroc et support après-vente."]],
+  sectorsH:"Idéal pour", sectors:["Restaurants","Cafés","Hôtels","Bureaux","Commerces","Salons","Salles de sport","Cliniques","Agents immobiliers","Professions libérales"],
+  faqH:"Questions fréquentes", faqP:"Vous ne trouvez pas la réponse ? Écrivez-nous sur WhatsApp.",
+  faq:[["Faut-il une application pour le NFC ?","Non. Il suffit d'approcher le téléphone de la carte ou de la plaque. Sans NFC, on scanne le QR code."],["Ça marche avec iPhone et Android ?","Oui, avec la plupart des smartphones récents. Le QR code fonctionne avec tous les téléphones."],["Quel est le délai de livraison ?","Nous livrons partout au Maroc. Le délai est confirmé sur WhatsApp selon la ville et le design."],["Combien coûte la livraison ?","Casablanca : 30 DH. Autres villes : confirmé avec vous selon la ville."],["Puis-je voir le design avant impression ?","Oui, nous envoyons toujours un aperçu et n'imprimons qu'après votre accord."],["Puis-je modifier les informations plus tard ?","Oui, à tout moment, sans changer la carte ou la plaque. Modification de menu +20 DH, ou abonnement annuel 249 DH."],["Comment payer ?","Le mode de paiement est convenu sur WhatsApp lors de la confirmation de la commande."],["J'ai un problème avec ma commande ?","Allez sur la page Réclamation, indiquez votre numéro de commande et nous vous répondons au plus vite."]],
+  contactH:"Contact", contactP:"Une question ou besoin d'un devis ? Écrivez-nous, nous répondons sur WhatsApp.",
+  cName:"Nom *", cPhone:"Téléphone *", cSubject:"Sujet", subjects:["Question sur un produit","Demande de devis","Grande quantité / entreprise","Installation caisson LED","Autre"], cMsg:"Message *", cSend:"Envoyer sur WhatsApp",
+  directH:"Contact direct", waLbl:"WhatsApp", telLbl:"Appelez-nous", igLbl:"Instagram", emailLbl:"E-mail", zoneLbl:"Zone de service", zone:"Tout le Maroc",
+  claimH:"Réclamation", claimP:"Un problème avec une commande ? Remplissez ce formulaire et nous le traitons au plus vite.",
+  rName:"Nom complet *", rPhone:"Téléphone *", rOrder:"N° de commande", rOrderHint:"ex. NW-AB12C (dans le message de commande)", rType:"Type de problème *",
+  types:["Retard de livraison","Produit cassé / défectueux","NFC ou QR ne fonctionne pas","Erreur de design ou d'informations","Modifier mes informations","Problème de paiement","Autre"],
+  rDesc:"Décrivez le problème *", rWant:"Que souhaitez-vous ?", wants:["Réparation / reprogrammation","Échange du produit","Réimpression","Remboursement","Être rappelé"],
+  rSend:"Envoyer la réclamation sur WhatsApp", rNote:"Si vous avez une photo du problème, envoyez-la dans la même conversation WhatsApp après le message.",
+  rDoneH:"Réclamation prête", rDoneP:"N° de réclamation :",
+  condH:"Conditions de vente et livraison", condP:"Dernière mise à jour : octobre 2026",
+  cond:[["Commande","La commande est enregistrée après confirmation avec vous sur WhatsApp. Les prix sont en dirhams."],["Design","Nous envoyons un aperçu du design avant impression. L'impression commence uniquement après votre validation."],["Livraison","Livraison partout au Maroc. Casablanca 30 DH, autres villes sur devis. Le délai est confirmé selon la ville."],["Paiement","Le mode de paiement est convenu lors de la confirmation de la commande."],["Garantie et réclamations","Si un produit arrive défectueux ou ne fonctionne pas, faites une réclamation via la page dédiée et nous trouvons une solution (réparation, reprogrammation ou échange)."],["Modification des informations","Les informations programmées sont modifiables. Modification de menu +20 DH, ou abonnement annuel 249 DH."]]
+ }
+};

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-title="nav_claim">NFCWORK</title>
+  <meta name="description" content="NFCWORK — Solutions NFC pour votre business au Maroc : cartes NFC, plaques Google Reviews, menus digitaux, plaques Wi-Fi, caissons LED.">
+  <meta name="theme-color" content="#05080f">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+  <link rel="icon" href="assets/img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="claim">
+  <header id="site-header"></header>
+
+  <main>
+    <section class="wrap page-head">
+      <h1 data-t="claimH"></h1>
+      <p data-t="claimP"></p>
+    </section>
+
+    <section class="wrap">
+      <div class="box prose">
+        <form id="claimForm" novalidate>
+          <label for="r-name"><span data-t="rName"></span><input id="r-name" autocomplete="name"><span class="err" id="e-r-name"></span></label>
+          <label for="r-phone"><span data-t="rPhone"></span><input id="r-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="06XXXXXXXX" dir="ltr"><span class="err" id="e-r-phone"></span></label>
+          <label for="r-order"><span data-t="rOrder"></span><input id="r-order" dir="ltr" placeholder="NW-XXXXX"><span class="hint" data-t="rOrderHint"></span></label>
+          <label for="r-type"><span data-t="rType"></span><select id="r-type"></select><span class="err" id="e-r-type"></span></label>
+          <label for="r-desc"><span data-t="rDesc"></span><textarea id="r-desc"></textarea><span class="err" id="e-r-desc"></span></label>
+          <div><p class="note" data-t="rWant" style="margin-bottom:8px"></p><div class="chips" id="r-wants"></div></div>
+          <a class="btn wa block" id="r-send" href="#" target="_blank" rel="noopener" data-t="rSend"></a>
+          <p class="note" data-t="rNote"></p>
+          <div class="copyrow"><span data-t="fallback"></span><code dir="ltr" class="phone-num"></code><button type="button" id="r-copy" data-t="copy"></button></div>
+        </form>
+        <div class="success" id="rDone" hidden style="margin-top:16px">
+          <h3 data-t="rDoneH"></h3>
+          <p class="note" data-t="rDoneP"></p>
+          <code id="rDoneRef" dir="ltr"></code>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/catalog.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

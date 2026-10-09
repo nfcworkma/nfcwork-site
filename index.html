@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-title="nav_home">NFCWORK</title>
+  <meta name="description" content="NFCWORK — Solutions NFC pour votre business au Maroc : cartes NFC, plaques Google Reviews, menus digitaux, plaques Wi-Fi, caissons LED.">
+  <meta name="theme-color" content="#05080f">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+  <link rel="icon" href="assets/img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="home">
+  <header id="site-header"></header>
+
+  <main>
+    <!-- HERO -->
+    <section class="wrap hero">
+      <div>
+        <h1 data-t="heroH" data-html></h1>
+        <p data-t="heroP"></p>
+        <div class="cta">
+          <a class="btn primary" href="produits.html" data-t="shopNow"></a>
+          <a class="btn wa wa-link" href="#" target="_blank" rel="noopener">WhatsApp</a>
+          <button type="button" class="btn" id="installBtn" hidden data-t="install"></button>
+        </div>
+        <p class="note install-hint" id="iosHint" hidden data-t="iosHint"></p>
+        <div class="trust"><span data-t="t1"></span><span data-t="t2"></span><span data-t="t3"></span><span data-t="t4"></span></div>
+      </div>
+      <div class="tap" aria-hidden="true"><i></i><i></i><i></i><img src="assets/img/logo.png" alt=""></div>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section class="wrap section">
+      <div class="sec-h"><h2 data-t="catsH"></h2><p data-t="catsP"></p></div>
+      <div class="cats" id="cats"></div>
+    </section>
+
+    <!-- PACKS -->
+    <section class="wrap section">
+      <div class="sec-h"><h2 data-t="packsH"></h2><a class="btn" href="produits.html#packs" data-t="allPacks"></a></div>
+      <div class="tiers" id="packs"></div>
+    </section>
+
+    <!-- PROCESS -->
+    <section class="band section">
+      <div class="wrap">
+        <div class="sec-h"><h2 data-t="howH"></h2></div>
+        <ol class="steps" id="steps"></ol>
+      </div>
+    </section>
+
+    <!-- WHY -->
+    <section class="wrap section">
+      <div class="sec-h"><h2 data-t="whyH"></h2></div>
+      <div class="whys" id="why"></div>
+    </section>
+
+    <!-- GALERIE -->
+    <section class="wrap section" id="galerie">
+      <div class="sec-h"><h2 data-t="galH"></h2><p data-t="galP"></p></div>
+      <div class="gallery" id="gallery"></div>
+    </section>
+
+    <!-- CTA -->
+    <section class="wrap section">
+      <div class="ctabox">
+        <div><h2 data-t="ctaH"></h2><p data-t="ctaP"></p></div>
+        <a class="btn wa wa-link" href="#" target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+    </section>
+
+    <div class="lb" id="lb" hidden><button type="button" aria-label="Fermer">×</button><img id="lbImg" alt=""></div>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/catalog.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

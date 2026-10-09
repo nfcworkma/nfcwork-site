@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-title="nav_order">NFCWORK</title>
+  <meta name="description" content="NFCWORK — Solutions NFC pour votre business au Maroc : cartes NFC, plaques Google Reviews, menus digitaux, plaques Wi-Fi, caissons LED.">
+  <meta name="theme-color" content="#05080f">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
+  <link rel="icon" href="assets/img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="order">
+  <header id="site-header"></header>
+
+  <main>
+    <section class="wrap page-head">
+      <h1 data-t="orderH"></h1>
+      <p data-t="orderP"></p>
+    </section>
+
+    <section class="wrap">
+      <div class="two">
+        <!-- PANIER -->
+        <div class="box">
+          <h2 data-t="yourCart"></h2>
+          <div id="lines"></div>
+          <div class="tot" id="tot"></div>
+        </div>
+
+        <!-- FORMULAIRE -->
+        <div class="box">
+          <h2 data-t="yourInfo"></h2>
+          <form id="orderForm" novalidate>
+            <label for="f-name"><span data-t="fName"></span><input id="f-name" autocomplete="name"><span class="err" id="e-f-name"></span></label>
+            <label for="f-phone"><span data-t="fPhone"></span><input id="f-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="06XXXXXXXX" dir="ltr"><span class="err" id="e-f-phone"></span></label>
+            <label for="f-city"><span data-t="fCity"></span><select id="f-city"></select><span class="err" id="e-f-city"></span></label>
+            <label for="f-other" id="otherWrap" hidden><span data-t="fOther"></span><input id="f-other"></label>
+            <label for="f-addr"><span data-t="fAddr"></span><input id="f-addr" autocomplete="street-address"></label>
+            <label for="f-biz"><span data-t="fBiz"></span><input id="f-biz" autocomplete="organization"></label>
+            <label class="check" for="f-design"><input type="checkbox" id="f-design"><span data-t="fDesign"></span></label>
+            <label for="f-note"><span data-t="fNote"></span><textarea id="f-note"></textarea></label>
+            <a class="btn wa block" id="send" href="#" target="_blank" rel="noopener" data-t="send"></a>
+            <p class="note" data-t="sendNote"></p>
+            <div class="copyrow"><span data-t="fallback"></span><code dir="ltr" class="phone-num"></code><button type="button" id="copyOrder" data-t="copy"></button></div>
+          </form>
+          <div class="success" id="done" hidden>
+            <h3 data-t="doneH"></h3>
+            <p class="note" data-t="doneP"></p>
+            <code id="doneRef" dir="ltr"></code>
+            <button type="button" class="btn" id="newOrder" data-t="newOrder"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/catalog.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
