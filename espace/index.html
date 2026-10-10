@@ -79,7 +79,7 @@ h3{font-family:var(--display);font-size:17px;font-weight:600;margin:0;line-heigh
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;white-space:nowrap;color:var(--muted)}
 .chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-.tabs-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.tabs-in{max-width:620px;margin:0 auto;display:grid;grid-template-columns:repeat(6,minmax(0,1fr))}
 .tab{background:none;border:0;padding:9px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;color:var(--muted);cursor:pointer;font-weight:500;position:relative}
 .tab svg{width:22px;height:22px}
 .tab .badge-n{position:absolute;top:4px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
@@ -211,6 +211,30 @@ body{margin:0;min-height:100vh;padding-top:env(safe-area-inset-top,0px)}
 .seg-b{background:none;border:0;border-radius:9px;padding:8px 4px;font-weight:600;font-size:13.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
 .seg-b[aria-pressed="true"]{background:var(--sunk);color:var(--fg)}
 .badge-i{display:inline-block;min-width:18px;padding:0 5px;border-radius:999px;background:var(--bad);color:#fff;font-size:11px;line-height:18px;text-align:center}
+
+/* produits NFC */
+a.btn{text-decoration:none;color:var(--fg)}.req{color:var(--accent-2)}
+.tab{font-size:11px;min-width:0}
+.tchips{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0}
+.tchip{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--accent-2);white-space:nowrap}
+.tchip.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
+.qbox{border:1px solid var(--accent);border-radius:14px;padding:12px;background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.qbox summary{cursor:pointer;font-weight:700;list-style:none}.qbox summary::-webkit-details-marker{display:none}
+.nfc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
+.ncard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:12px;min-width:0;overflow:hidden}
+.ncard-top{display:flex;gap:12px;align-items:center;min-width:0}.ncard-top .main{flex:1;min-width:0}
+.ncard .t{font-weight:700;font-family:var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ncard .s{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.nlien{color:var(--accent-2)!important;text-decoration:none}
+.nqr{width:64px;height:64px;border-radius:10px;background:#fff;padding:4px;flex:none;display:block}
+.ncard .row .btn{flex:1 1 auto}
+.nfc-sum{display:grid;gap:6px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;cursor:pointer;color:var(--fg);font:inherit}
+.nfc-sum-l{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13.5px;color:var(--muted)}.nfc-sum-l b{color:var(--fg)}
+.nfc-mini{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:8px}
+.nmini{display:grid;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-decoration:none;color:var(--fg);min-width:0}
+.nmini span{font-size:20px}.nmini b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nmini small{color:var(--muted);font-size:12px}
+.seg.seg4{grid-template-columns:repeat(4,minmax(0,1fr))}.seg4 .seg-b{font-size:12.5px;padding:8px 2px}
+.todos{grid-template-columns:repeat(4,minmax(0,1fr))}@media(max-width:620px){.todos{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .success-box{border:1px solid var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--surface));border-radius:var(--r);padding:16px}
 </style>
 </head>
@@ -230,6 +254,7 @@ body{margin:0;min-height:100vh;padding-top:env(safe-area-inset-top,0px)}
 <nav class="tabs" id="tabs" hidden><div class="tabs-in">
   <button class="tab" data-tab="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg>Accueil</button>
   <button class="tab" data-tab="orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16l-1.5 12.5a1.5 1.5 0 0 1-1.5 1.5H7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>Commandes<span class="badge-n" id="ordBadge" hidden>0</span></button>
+  <button class="tab" data-tab="nfc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 9.5a4 4 0 0 1 0 5M12 7.5a7 7 0 0 1 0 9"/></svg>NFC</button>
   <button class="tab" data-tab="invoices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/></svg>Factures</button>
   <button class="tab" data-tab="clients"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.2 2.4 3.5 5.2"/></svg>Clients</button>
   <button class="tab" data-tab="services"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M14 10.2a2.6 2.6 0 0 1 0 3.6M16.5 8.6a5 5 0 0 1 0 6.8"/></svg>Services</button>
@@ -239,6 +264,7 @@ body{margin:0;min-height:100vh;padding-top:env(safe-area-inset-top,0px)}
   <button class="tab" data-ptab="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg>Accueil</button>
   <button class="tab" data-ptab="cat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>Catalogue</button>
   <button class="tab" data-ptab="ord"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16l-1.5 12.5a1.5 1.5 0 0 1-1.5 1.5H7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>Commandes<span class="badge-n info" id="pordBadge" hidden>0</span></button>
+  <button class="tab" data-ptab="nfc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M9 9.5a4 4 0 0 1 0 5M12 7.5a7 7 0 0 1 0 9"/></svg>Mes NFC</button>
   <button class="tab" data-ptab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/></svg>Factures</button>
   <button class="tab" data-ptab="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.5V14M12 17.5v.01"/></svg>Aide</button>
 </div></nav>

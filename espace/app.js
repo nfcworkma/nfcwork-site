@@ -93,13 +93,15 @@ const authMsg=e=>({
 }[e&&e.code]||"Une erreur est survenue, réessayez.");
 
 /* ---------- state ---------- */
-const S={services:[],clients:[],invoices:[],orders:[],claims:[],settings:{}};
-const P={client:null,invoices:[],orders:[],claims:[],ready:false};
+const S={services:[],clients:[],invoices:[],orders:[],claims:[],creations:[],mods:[],settings:{}};
+const P={client:null,invoices:[],orders:[],claims:[],creations:[],mods:[],ready:false};
 let role=null,user=null,tab="home",ptab="home",invFilter="all",ordFilter="open",oseg="orders",catFilter="all",subs=[],confirmKey=null,draft=null;
 let cart={},cartNote="",sending=false;
 const clientById=id=>S.clients.find(c=>c.id===id);
 const unsubAll=()=>{subs.forEach(u=>{try{u()}catch(e){}});subs=[]};
 const listen=(q,fn)=>subs.push(q.onSnapshot(fn,err=>{console.error(err);toast("Accès refusé ou connexion perdue.")}));
+/* collections récentes (produits NFC, demandes) : si les règles Firestore ne sont pas encore à jour, on reste silencieux */
+const listenDiscret=(q,fn)=>subs.push(q.onSnapshot(fn,err=>console.warn("Firestore :",err&&err.code)));
 const rows=s=>s.docs.map(d=>({id:d.id,...d.data()}));
 
 /* public settings (name on login screen) */
@@ -150,17 +152,21 @@ function startAdmin(){
   listen(fs.collection("invoices"),s=>{S.invoices=rows(s).sort((a,b)=>(b.number||"").localeCompare(a.number||""));render()});
   listen(fs.collection("orders"),s=>{S.orders=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   listen(fs.collection("claims"),s=>{S.claims=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
+  listenDiscret(fs.collection("creations"),s=>{S.creations=rows(s).sort((a,b)=>(tsDate(b.modifieLe)||0)-(tsDate(a.modifieLe)||0));render()});
+  listenDiscret(fs.collection("modifications"),s=>{S.mods=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   render();
 }
 /* ---------- CLIENT ---------- */
 function startClient(email){
-  role="client";P.ready=false;P.client=null;P.invoices=[];P.orders=[];P.claims=[];$("#modeLabel").textContent="Espace client";
+  role="client";P.ready=false;P.client=null;P.invoices=[];P.orders=[];P.claims=[];P.creations=[];P.mods=[];$("#modeLabel").textContent="Espace client";
   $("#ptabs").hidden=false;$("#profileBtn").hidden=false;
   listen(fs.collection("services"),s=>{S.services=rows(s).sort(svcSort);render()});
   listen(fs.collection("clients").where("email","==",email),s=>{P.client=s.empty?null:rows(s)[0];P.ready=true;render()});
   listen(fs.collection("invoices").where("clientEmail","==",email).where("visible","==",true),s=>{P.invoices=rows(s).sort((a,b)=>(b.number||"").localeCompare(a.number||""));render()});
   listen(fs.collection("orders").where("clientEmail","==",email),s=>{P.orders=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   listen(fs.collection("claims").where("clientEmail","==",email),s=>{P.claims=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
+  listenDiscret(fs.collection("creations").where("clientEmail","==",email),s=>{P.creations=rows(s).filter(c=>c.statut!=="desactivee").sort((a,b)=>(tsDate(b.modifieLe)||0)-(tsDate(a.modifieLe)||0));render()});
+  listenDiscret(fs.collection("modifications").where("clientEmail","==",email),s=>{P.mods=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   render();
 }
 
@@ -171,7 +177,7 @@ function render(){
   document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
   const n=todo().total,bd=$("#ordBadge");
   if(bd){bd.textContent=n;bd.hidden=!n}
-  ({home:renderHome,orders:renderOrders,invoices:renderInvoices,clients:renderClients,services:renderServices})[tab]();
+  ({home:renderHome,orders:renderOrders,nfc:renderNfc,invoices:renderInvoices,clients:renderClients,services:renderServices})[tab]();
 }
 function invRow(inv){
   const c=clientById(inv.clientId);const[st,lab]=status(inv);const t=totals(inv);
@@ -180,12 +186,12 @@ function invRow(inv){
     <div class="amt"><div class="num">${dh(t.total)}</div><span class="pill ${st}">${lab}</span></div></button>`;
 }
 function todo(){
-  const o=S.orders.filter(x=>x.status==="new").length,q=S.orders.filter(x=>x.status==="quote").length,c=S.claims.filter(x=>x.status==="open").length;
-  return {o,q,c,total:o+q+c};
+  const o=S.orders.filter(x=>x.status==="new").length,q=S.orders.filter(x=>x.status==="quote").length,c=S.claims.filter(x=>x.status==="open").length,m=S.mods.filter(x=>x.status==="new").length;
+  return {o,q,c,m,total:o+q+c+m};
 }
 function todoTiles(){
   const t=todo(),tile=(seg,n,lab,sub)=>`<button class="todo${n?" on":""}" data-goseg="${seg}"><span class="todo-n num">${n}</span><span class="todo-l">${lab}</span><span class="todo-s">${sub}</span></button>`;
-  return `<div class="todos">${tile("orders",t.o,"Nouvelles commandes","à confirmer")}${tile("quotes",t.q,"Devis demandés","à chiffrer")}${tile("claims",t.c,"Réclamations","ouvertes")}</div>`;
+  return `<div class="todos">${tile("orders",t.o,"Nouvelles commandes","à confirmer")}${tile("quotes",t.q,"Devis demandés","à chiffrer")}${tile("claims",t.c,"Réclamations","ouvertes")}${tile("mods",t.m,"Demandes de modif.","nouvelles")}</div>${nfcActifsHtml()}`;
 }
 function renderHome(){
   const all=S.invoices,y=String(new Date().getFullYear());
@@ -245,6 +251,7 @@ function orderCard(o){
       <div class="row between"><span class="num" style="font-weight:600">${esc(o.number)}</span>${oPill(o)}</div>
       <div class="t">${esc(c?c.name:o.clientName||o.clientEmail)}</div>
       <div class="s">${(o.lines||[]).map(l=>`${esc(l.qty)}× ${esc(l.name)}`).join(", ")}</div>
+      ${typesCommande(o).length?`<div class="tchips">${typeChips(typesCommande(o))}${o.infos&&Object.keys(o.infos).length?'<span class="tchip ok">📝 infos reçues</span>':""}</div>`:""}
       <div class="row between s"><span>${fdt(o.createdAt)}</span><b class="num" style="color:var(--fg)">${oAmount(o)}</b></div>
       ${o.quote&&o.quote.deadline?`<div class="s">Délai souhaité : ${esc(o.quote.deadline)}</div>`:""}
       ${o.note?`<div class="onote">« ${esc(o.note)} »</div>`:""}
@@ -263,7 +270,10 @@ function claimCard(c){
 function renderOrders(){
   const t=todo(),seg=(k,lab,n)=>`<button class="seg-b" data-oseg="${k}" aria-pressed="${oseg===k}">${lab}${n?` <span class="badge-i">${n}</span>`:""}</button>`;
   let body;
-  if(oseg==="claims"){
+  if(oseg==="mods"){
+    const list=S.mods;
+    body=list.length?`<div class="stack">${list.map(modCard).join("")}</div>`:`<div class="empty"><h3>Aucune demande de modification</h3><p>Quand un client demande un changement (prix, numéro, mot de passe…), il apparaît ici.</p></div>`;
+  }else if(oseg==="claims"){
     const list=S.claims;
     body=list.length?`<div class="stack">${list.map(claimCard).join("")}</div>`:`<div class="empty"><h3>Aucune réclamation</h3><p>Les réclamations de vos clients apparaîtront ici.</p></div>`;
   }else if(oseg==="quotes"){
@@ -276,8 +286,8 @@ function renderOrders(){
     body=`<div class="filters">${Object.entries(f).map(([k,v])=>`<button class="chip" data-ofilter="${k}" aria-pressed="${ordFilter===k}">${v}</button>`).join("")}</div>
     ${list.length?`<div class="stack">${list.map(orderCard).join("")}</div>`:`<div class="empty"><h3>Aucune commande ici</h3><p>${base.length?"Aucune commande avec ce statut.":"Les commandes de vos clients apparaîtront ici."}</p></div>`}`;
   }
-  app.innerHTML=`<div class="section-head"><div><h2>Suivi clients</h2><div class="muted" style="font-size:13.5px">Commandes, devis et réclamations envoyés depuis l’espace client.</div></div></div>
-  <div class="seg">${seg("orders","Commandes",t.o)}${seg("quotes","Devis",t.q)}${seg("claims","Réclamations",t.c)}</div>${body}`;
+  app.innerHTML=`<div class="section-head"><div><h2>Suivi clients</h2><div class="muted" style="font-size:13.5px">Commandes, devis, réclamations et demandes de modification envoyés depuis l’espace client.</div></div></div>
+  <div class="seg seg4">${seg("orders","Commandes",t.o)}${seg("quotes","Devis",t.q)}${seg("claims","Réclam.",t.c)}${seg("mods","Modifs",t.m)}</div>${body}`;
 }
 function quoteHtml(q){
   if(!q)return"";
@@ -314,6 +324,7 @@ function orderView(o){
   <div class="muted" style="font-size:14px;margin-bottom:12px">${esc(c?c.name:o.clientName||"Client sans fiche")} · ${esc(o.clientEmail)}${c&&c.phone?" · "+esc(c.phone):""}<br>${o.status==="quote"?"Demandé":"Commandée"} le ${fdt(o.createdAt)}${c&&(c.delivery||c.city)?`<br>Livraison : ${esc([c.delivery,c.city].filter(Boolean).join(", "))}`:""}</div>
   ${o.quote?quoteHtml(o.quote):`<div class="paper">${linesTable(o)}</div>`}
   ${o.note&&!o.quote?`<div class="notice" style="margin-top:12px;white-space:pre-wrap"><b>Note du client :</b> ${esc(o.note)}</div>`:""}
+  ${infosHtml(o)}
   <div class="eyebrow" style="margin:16px 0 8px">Changer le statut</div>
   <div class="filters" style="flex-wrap:wrap">${[...(o.status==="quote"||o.quote?[["quote","Devis demandé"]]:[]),...OSTEPS,["cancelled","Annulée"]].map(([k,v])=>`<button class="chip" data-o-set="${k}" data-oid="${esc(o.id)}" aria-pressed="${o.status===k}">${v}</button>`).join("")}</div>
   <div class="eyebrow" style="margin:12px 0 6px">Historique</div>${historyHtml(o)}
@@ -343,6 +354,7 @@ function cartItem(key){
 const lineKey=l=>l.serviceId+(l.option?"|"+l.option:"");
 const cartLines=()=>Object.entries(cart).map(([k,q])=>{const it=cartItem(k);return it&&q>0?{...it,qty:q}:null}).filter(Boolean);
 const cartCount=()=>cartLines().reduce((a,l)=>a+l.qty,0);
+const typesPanier=()=>{const t=new Set();for(const l of cartLines())typesDeLigne(l).forEach(x=>t.add(x));return [...t]};
 function cartBar(){
   const ls=cartLines();if(!ls.length)return"";
   return `<div style="height:64px"></div><div class="cartbar"><div class="cartbar-in"><div><b>${cartCount()} article${cartCount()>1?"s":""}</b><div class="num muted" style="font-size:13px">${dh(oTotal({lines:ls}))}</div></div><button class="btn primary" data-cart-open>Voir le panier</button></div></div>`;
@@ -359,12 +371,15 @@ function cartView(){
   <div class="stack">${ls.map(l=>`<div class="cline"><div class="main"><div class="t">${esc(l.name)}</div><div class="s num">${dh(l.price)} · ${dh(l.qty*l.price)}</div></div>${stepper(lineKey(l),l.qty)}</div>`).join("")}</div>
   <div class="totals num" style="margin-top:12px"><div class="grand"><span>Total</span><span>${dh(oTotal({lines:ls}))}</span></div></div>
   <form id="orderForm" class="stack" style="margin-top:14px">
+    ${typesPanier().map(questionnaire).join("")}
     <label class="f">Précisions pour votre commande<textarea id="o-note" maxlength="1000" placeholder="Nom à imprimer, couleur, logo, adresse de livraison…">${esc(cartNote)}</textarea></label>
     ${P.client&&(P.client.delivery||P.client.city)?`<p class="muted" style="margin:0;font-size:13px">Livraison : ${esc([P.client.delivery,P.client.city].filter(Boolean).join(", "))} · <button type="button" class="linkbtn" data-profile>modifier</button></p>`:`<p class="muted" style="margin:0;font-size:13px">Pensez à indiquer votre adresse dans <button type="button" class="linkbtn" data-profile>Mon profil</button>.</p>`}
     <p class="muted" style="margin:0;font-size:13px">Les prix sont confirmés par ${esc(S.settings.name||"nfcwork.ma")} avant la préparation. Paiement par virement ou cash à la livraison.</p>
     <button class="btn primary" style="width:100%"${sending?" disabled":""}>Valider la commande</button>
   </form>`);
   $("#o-note").addEventListener("input",e=>cartNote=e.target.value);
+  $("#orderForm").addEventListener("input",e=>{const q=e.target.dataset.q;if(!q)return;const [t,k]=q.split(".");(qInfos[t]=qInfos[t]||{})[k]=e.target.type==="checkbox"?e.target.checked:e.target.value});
+  $("#orderForm").addEventListener("change",e=>{const q=e.target.dataset.q;if(!q)return;const [t,k]=q.split(".");(qInfos[t]=qInfos[t]||{})[k]=e.target.type==="checkbox"?e.target.checked:e.target.value});
   $("#orderForm").onsubmit=e=>{e.preventDefault();submitOrder()};
 }
 function baseOrder(status,pre){
@@ -375,8 +390,19 @@ function baseOrder(status,pre){
 async function submitOrder(){
   const lines=cartLines();if(!lines.length||sending)return;
   sending=true;const btn=$("#orderForm button:last-child");if(btn)btn.disabled=true;
-  const data={...baseOrder("new","CMD"),lines,note:cartNote.trim().slice(0,1000),total:oTotal({lines})};
-  if(await clientWrite(fs.collection("orders").doc().set(data))){cart={};cartNote="";orderDone(data);render()}
+  const ts=typesPanier(),miss=manquants(ts);
+  if(miss.length&&!confirm("Il manque : "+miss.join(", ")+".\nEnvoyer quand même ? (vous pourrez compléter sur WhatsApp)")){sending=false;if(btn)btn.disabled=false;return}
+  const data={...baseOrder("new","CMD"),lines,note:cartNote.trim().slice(0,1000),total:oTotal({lines})},infos=infosPanier(ts);
+  if(Object.keys(infos).length)data.infos=infos;
+  let ok=false;
+  try{await fs.collection("orders").doc().set(data);ok=true}
+  catch(e){console.error(e);
+    if(data.infos&&e&&e.code==="permission-denied"){   /* règles pas encore à jour : on garde les réponses dans la note */
+      const txt=Object.entries(data.infos).map(([t,o])=>"["+NFC_TYPES[t][1]+"] "+Object.entries(o).map(([k,v])=>(NOMS_CHAMPS[k]||k)+" : "+(v===true?"oui":v)).join(" · ")).join("\n");
+      delete data.infos;data.note=((data.note?data.note+"\n":"")+txt).slice(0,1000);
+      ok=await clientWrite(fs.collection("orders").doc().set(data))}
+    else toast(e&&e.code==="permission-denied"?"Action refusée : vérifiez que votre e-mail est confirmé.":"Échec de l’envoi, réessayez.")}
+  if(ok){cart={};cartNote="";qInfos={};orderDone(data);render()}
   else if(btn)btn.disabled=false;
   sending=false;
 }
@@ -436,6 +462,9 @@ function renderPHome(){
     <button class="qa" data-quote>${ICON.quote}<b>Demander un devis</b><span>Sur mesure</span></button>
     <button class="qa" data-ptab="help">${ICON.help}<b>Aide</b><span>Guides & SAV</span></button>
   </div>
+  ${P.creations.length?`<div class="section-head" style="margin-top:4px"><h3>Mes produits NFC</h3><button class="btn sm ghost" data-ptab="nfc">Tout voir</button></div>
+  <div class="nfc-mini">${P.creations.slice(0,3).map(c=>`<a class="nmini" href="${esc(c.lien)}" target="_blank" rel="noopener"><span>${(NFC_TYPES[c.type]||["❔"])[0]}</span><b>${esc(c.titre||c.slug)}</b><small>${(NFC_TYPES[c.type]||["",""])[1]}</small></a>`).join("")}</div>
+  <button class="btn block" data-modreq="" style="margin:10px 0 16px">✏️ Demander une modification</button>`:""}
   ${P.ready&&!P.client?`<div class="notice" style="margin-bottom:14px">Votre e-mail <b>${esc(user.email)}</b> n’est pas encore relié à une fiche client. Vous pouvez déjà commander ; ${esc(S.settings.name||"nfcwork.ma")} créera votre fiche.</div>`:""}
   ${missing?`<div class="notice row between" style="margin-bottom:14px"><span>Complétez votre profil (téléphone, adresse de livraison) pour être livré plus vite.</span><button class="btn sm primary" data-profile>Mon profil</button></div>`:""}
   <div class="section-head" style="margin-top:4px"><h3>Commande en cours</h3>${P.orders.length?`<button class="btn sm ghost" data-ptab="ord">Tout voir</button>`:""}</div>
@@ -571,9 +600,136 @@ function renderPortal(){
   document.querySelectorAll("#ptabs .tab").forEach(b=>b.setAttribute("aria-current",b.dataset.ptab===ptab?"page":"false"));
   const n=P.orders.filter(o=>!["delivered","cancelled"].includes(o.status)).length,bd=$("#pordBadge");
   if(bd){bd.textContent=n;bd.hidden=!n}
-  const v={home:renderPHome,cat:renderCatalog,ord:renderMyOrders,inv:renderMyInvoices,help:renderHelp}[ptab]||renderPHome;
+  const v={home:renderPHome,cat:renderCatalog,ord:renderMyOrders,nfc:renderMyNfc,inv:renderMyInvoices,help:renderHelp}[ptab]||renderPHome;
   app.innerHTML=v()+cartBar();
 }
+
+/* ---------- Produits NFC (créations de l’outil) & demandes de modification ---------- */
+const OUTIL_URL="http://localhost:8765/";
+const NFC_TYPES={profil:["👤","Carte NFC"],avis:["⭐","Google Reviews"],wifi:["📶","Wi-Fi"],menu:["🍽️","Menu digital"],liens:["🔗","Page liens"]};
+const NFC_STATUT={active:["paid","Active"],attente:["sent","En attente"],desactivee:["draft","Désactivée"]};
+const MSTEPS=[["new","Nouvelle"],["progress","En cours"],["done","Faite"]];
+const MLABEL=Object.fromEntries(MSTEPS),MPILL={new:"late",progress:"sent",done:"paid"};
+const mPill=m=>`<span class="pill ${MPILL[m.status]||"draft"}">${esc(MLABEL[m.status]||m.status)}</span>`;
+const nPill=c=>{const s=NFC_STATUT[c.statut]||NFC_STATUT.active;return `<span class="pill ${s[0]}">${s[1]}</span>`};
+const tsDate=v=>v&&v.toDate?v.toDate():v?new Date(v):null;
+const fts=v=>{const d=tsDate(v);return d&&!isNaN(d)?d.toLocaleString("fr-FR",{day:"2-digit",month:"short",year:"numeric"}):"—"};
+const PACK_TYPES={starter:["profil","avis"],professional:["profil"],cafe:["menu","avis","wifi"],business:["menu","avis","wifi"],restaurant:["menu","avis","wifi"],premium:["profil","menu","avis","wifi"]};
+const CAT_TYPE={carte:"profil",google:"avis",wifi:"wifi",menu:"menu",led:"liens"};
+function typesDeLigne(l){const id=l.serviceId||"";if(id.startsWith("pack-"))return PACK_TYPES[id.slice(5)]||[];
+  const s=S.services.find(x=>x.id===id),cat=s?s.category:(id.startsWith("cat-")?id.slice(4):"");return CAT_TYPE[cat]?[CAT_TYPE[cat]]:[]}
+function typesCommande(o){const t=new Set(Object.keys(o.infos||{}).filter(k=>NFC_TYPES[k]));for(const l of o.lines||[])typesDeLigne(l).forEach(x=>t.add(x));return [...t]}
+const typeChips=ts=>ts.map(t=>`<span class="tchip">${NFC_TYPES[t][0]} ${NFC_TYPES[t][1]}</span>`).join("");
+/* questionnaires (mêmes champs que l’outil) */
+const QFORMS={
+ profil:[["nom","Nom complet",1],["entreprise","Entreprise"],["metiers","Métiers (un par ligne)",0,"area"],["telephone","Téléphone",1,"tel"],["whatsapp","WhatsApp (si différent)",0,"tel"],["email","E-mail",0,"email"],["instagram","Instagram"],["facebook","Facebook"],["linkedin","LinkedIn"],["tiktok","TikTok"],["site","Site web"],["adresse","Adresse"]],
+ avis:[["commerce","Nom du commerce",1],["lien_google","Lien Google Maps de votre commerce"]],
+ wifi:[["commerce","Nom du commerce",1],["ssid","Nom du réseau Wi-Fi",1],["motdepasse","Mot de passe Wi-Fi"],["securite","Sécurité",0,"select"],["cache","Réseau caché (invisible dans la liste)",0,"check"]],
+ menu:[["nom","Nom du restaurant",1],["horaires","Horaires"],["whatsapp","WhatsApp",0,"tel"],["instagram","Instagram"],["adresse","Adresse"],["menu","Votre menu",0,"area","## Boissons\nCafé noir - 12\nJus d’orange - 18\n## Petit-déjeuner\nOmelette - 25"]],
+ liens:[["nom","Nom",1],["slogan","Slogan"],["whatsapp","WhatsApp",0,"tel"],["localisation","Localisation (adresse ou lien Maps)"],["boutons_texte","Vos boutons (un par ligne : « Nom - lien »)",0,"area","Boutique - https://…\nCatalogue - https://…"]]};
+let qInfos={};
+function questionnaire(t){const v=qInfos[t]||{};
+  const champ=([k,lab,req,kind,ph])=>{const val=v[k]??(kind==="select"?"WPA":"");
+    if(kind==="check")return `<label class="check"><input type="checkbox" data-q="${t}.${k}"${val?" checked":""}> ${esc(lab)}</label>`;
+    if(kind==="select")return `<label class="f">${esc(lab)}<select data-q="${t}.${k}">${[["WPA","WPA / WPA2 (le plus courant)"],["WEP","WEP (ancien)"],["nopass","Ouvert (sans mot de passe)"]].map(([a,b])=>`<option value="${a}"${val===a?" selected":""}>${b}</option>`).join("")}</select></label>`;
+    const inp=kind==="area"?`<textarea data-q="${t}.${k}" maxlength="${k==="menu"?6000:1000}" placeholder="${esc(ph||"")}">${esc(val)}</textarea>`
+      :`<input data-q="${t}.${k}" value="${esc(val)}" maxlength="300"${kind==="tel"?' type="tel" inputmode="tel"':kind==="email"?' type="email" inputmode="email" autocapitalize="off"':""}${/insta|face|link|tik|site|lien|ssid|motdepasse/.test(k)?' autocapitalize="off" autocorrect="off" spellcheck="false"':""}>`;
+    return `<label class="f"><span>${esc(lab)}${req?' <span class="req">*</span>':""}</span>${inp}</label>`};
+  return `<details class="qbox" open><summary>${NFC_TYPES[t][0]} Infos pour votre ${NFC_TYPES[t][1]}</summary><div class="stack" style="margin-top:10px">
+    ${t==="wifi"?`<div class="notice" style="background:color-mix(in srgb,var(--warn) 14%,var(--surface))">⚠️ Le mot de passe sera visible par toute personne qui scanne la plaque. Conseil : un réseau « invités ».</div>`:""}
+    ${QFORMS[t].map(champ).join("")}<p class="muted" style="margin:0;font-size:12.5px">Photo / logo : envoyez-les sur WhatsApp après la commande. Une case vide n’apparaîtra pas.</p></div></details>`}
+function infosPanier(types){const out={};
+  for(const t of types){const v=qInfos[t]||{},o={};for(const [k,,,kind] of QFORMS[t]){const x=v[k];if(kind==="check"){if(x)o[k]=true}else if(x!=null&&String(x).trim())o[k]=String(x).trim().slice(0,k==="menu"?6000:1000)}
+    if(Object.keys(o).length)out[t]=o}
+  return out}
+function manquants(types){const m=[];for(const t of types)for(const [k,lab,req] of QFORMS[t])if(req&&!String((qInfos[t]||{})[k]||"").trim())m.push(NFC_TYPES[t][1]+" : "+lab);return m}
+/* admin : lien vers l’outil, pré-rempli */
+function b64(x){return btoa(unescape(encodeURIComponent(JSON.stringify(x)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+function lienOutil(o,t){const i=(o.infos||{})[t]||{},c=(o.clientId&&clientById(o.clientId))||S.clients.find(x=>x.email&&x.email===o.clientEmail)||{};let p={...i};
+  if(t==="profil"){p.nom=p.nom||c.name||o.clientName||"";p.telephone=p.telephone||c.phone||"";p.wa_meme=!p.whatsapp||waNumber(p.whatsapp)===waNumber(p.telephone);if(p.wa_meme)delete p.whatsapp;p.email=p.email||"";p.adresse=p.adresse||[c.delivery,c.city].filter(Boolean).join(", ")}
+  if((t==="avis"||t==="wifi")&&!p.commerce)p.commerce=c.name||o.clientName||"";
+  if((t==="menu"||t==="liens")&&!p.nom)p.nom=c.name||o.clientName||"";
+  return OUTIL_URL+"#creer="+t+"&p="+b64(p)+"&commande="+encodeURIComponent(o.id)+"&client="+encodeURIComponent(o.clientEmail||"")}
+const NOMS_CHAMPS={nom:"Nom",entreprise:"Entreprise",metiers:"Métiers",telephone:"Téléphone",whatsapp:"WhatsApp",email:"E-mail",instagram:"Instagram",facebook:"Facebook",linkedin:"LinkedIn",tiktok:"TikTok",site:"Site web",adresse:"Adresse",commerce:"Commerce",lien_google:"Lien Google",ssid:"Réseau Wi-Fi",motdepasse:"Mot de passe",securite:"Sécurité",cache:"Réseau caché",horaires:"Horaires",menu:"Menu",slogan:"Slogan",localisation:"Localisation",boutons_texte:"Boutons"};
+function infosHtml(o){const ts=typesCommande(o);if(!ts.length)return"";
+  return `<div class="eyebrow" style="margin:16px 0 8px">Produits NFC à créer</div><div class="stack">${ts.map(t=>{const i=(o.infos||{})[t]||{};
+    return `<div class="paper"><div class="row between"><b>${NFC_TYPES[t][0]} ${NFC_TYPES[t][1]}</b><a class="btn sm primary" href="${esc(lienOutil(o,t))}" target="_blank" rel="noopener">Créer dans l’outil</a></div>
+    ${Object.keys(i).length?`<dl class="kv">${Object.entries(i).map(([k,v])=>`<dt>${esc(NOMS_CHAMPS[k]||k)}</dt><dd style="white-space:pre-wrap">${esc(v===true?"oui":v)}</dd>`).join("")}</dl>`:`<p class="muted" style="margin:6px 0 0;font-size:13px">Pas encore d’infos : le formulaire de l’outil s’ouvrira avec le nom et le téléphone du client.</p>`}</div>`}).join("")}</div>
+    <p class="muted" style="font-size:12.5px;margin:6px 0 0">« Créer dans l’outil » ouvre l’outil NFCWORK (sur le Mac, ou sur l’iPhone si l’outil est ouvert à l’adresse du Mac).</p>`}
+/* admin : onglet Produits NFC */
+let nfcFiltre="";
+function renderNfc(){
+  const nb={};for(const c of S.creations)nb[c.type]=(nb[c.type]||0)+1;
+  const list=S.creations.filter(c=>!nfcFiltre||c.type===nfcFiltre);
+  const cl=e=>{const c=S.clients.find(x=>x.email&&x.email===e);return c?c.name:e};
+  app.innerHTML=`<div class="section-head"><div><h2>Produits NFC</h2><div class="muted" style="font-size:13.5px">Toutes les créations de l’outil (cartes, avis, Wi-Fi, menus, pages liens).</div></div><a class="btn primary" href="${OUTIL_URL}" target="_blank" rel="noopener">＋ Créer dans l’outil</a></div>
+  <div class="filters"><button class="chip" data-nfcf="" aria-pressed="${!nfcFiltre}">Tout (${S.creations.length})</button>${Object.entries(NFC_TYPES).map(([k,[i,n]])=>`<button class="chip" data-nfcf="${k}" aria-pressed="${nfcFiltre===k}">${i} ${n}${nb[k]?" ("+nb[k]+")":""}</button>`).join("")}</div>
+  ${list.length?`<div class="nfc-grid">${list.map(c=>`<div class="ncard"><div class="ncard-top">${c.qr?`<a href="${esc(c.qr)}" target="_blank" rel="noopener"><img class="nqr" src="${esc(c.qr)}" alt="QR" loading="lazy"></a>`:""}
+    <div class="main"><div class="t">${(NFC_TYPES[c.type]||["❔"])[0]} ${esc(c.titre||c.slug)}</div><div class="s">${esc((NFC_TYPES[c.type]||["",c.type])[1])} · ${c.clientEmail?esc(cl(c.clientEmail)):"<i>sans client</i>"}</div>
+    <a class="s nlien" href="${esc(c.lien)}" target="_blank" rel="noopener">${esc((c.lien||"").replace(/^https:\/\//,""))}</a><div class="s">Modifié le ${fts(c.modifieLe)} ${nPill(c)}</div></div></div>
+    <div class="row"><a class="btn sm" href="${esc(c.lien)}" target="_blank" rel="noopener">Ouvrir</a><a class="btn sm" href="${OUTIL_URL}#modifier=${encodeURIComponent(c.slug||c.id)}" target="_blank" rel="noopener">Modifier dans l’outil</a></div></div>`).join("")}</div>`
+  :`<div class="empty"><h3>Aucun produit NFC ${nfcFiltre?"de ce type":"pour l’instant"}</h3><p>Les créations de l’outil apparaissent ici dès que l’outil est relié à Firebase (clé du compte de service).</p></div>`}`}
+/* admin : demandes de modification */
+function modCard(m){return `<div class="ocard${m.status==="new"?" is-new":""}"><button class="ocard-main" data-m-open="${esc(m.id)}">
+  <div class="row between"><span class="num" style="font-weight:600">${esc(m.number)}</span>${mPill(m)}</div>
+  <div class="t">${(NFC_TYPES[m.type]||["❔"])[0]} ${esc(m.creationTitre||m.creationId)} · ${esc(m.quoi||"")}</div>
+  <div class="s">${esc(m.clientName||m.clientEmail)} · ${fdt(m.createdAt)}</div>
+  <div class="onote" style="font-style:normal">${esc((m.description||"").slice(0,140))}${(m.description||"").length>140?"…":""}</div></button></div>`}
+function modView(m){const c=S.creations.find(x=>x.id===m.creationId||x.slug===m.creationId);
+  openModal(`${head(esc(m.number),mPill(m))}
+  <div class="muted" style="font-size:14px;margin-bottom:12px">${esc(m.clientName||"Client")} · ${esc(m.clientEmail)}<br>Envoyée le ${fdt(m.createdAt)}</div>
+  <div class="paper"><div class="eyebrow">${(NFC_TYPES[m.type]||["❔"])[0]} ${esc(m.creationTitre||m.creationId)} · ${esc(m.quoi||"")}</div><p style="margin:6px 0 0;white-space:pre-wrap">${esc(m.description)}</p>
+  ${m.nouveau?`<div class="eyebrow" style="margin-top:10px">Nouveau texte / prix / mot de passe</div><p style="margin:4px 0 0;white-space:pre-wrap">${esc(m.nouveau)}</p>`:""}</div>
+  <div class="row" style="margin-top:12px">${c?`<a class="btn" href="${esc(c.lien)}" target="_blank" rel="noopener">Voir la page</a>`:""}<a class="btn primary" href="${OUTIL_URL}#modifier=${encodeURIComponent(m.creationId)}" target="_blank" rel="noopener">Modifier dans l’outil</a></div>
+  <div class="eyebrow" style="margin:16px 0 8px">Statut</div>
+  <div class="filters" style="flex-wrap:wrap">${MSTEPS.map(([k,v])=>`<button class="chip" data-m-set="${k}" data-mid="${esc(m.id)}" aria-pressed="${m.status===k}">${v}</button>`).join("")}</div>
+  <form id="mReplyForm" class="stack" style="margin-top:12px"><label class="f">Réponse au client (visible dans son espace)<textarea id="m-reply" maxlength="1000">${esc(m.reply||"")}</textarea></label>
+  <div class="row between"><span class="muted" style="font-size:12.5px">${(m.history||[]).map(h=>`${esc(MLABEL[h.status]||h.status)} ${fdt(h.at)}`).join(" → ")}</span><button class="btn primary">Enregistrer la réponse</button></div></form>`);
+  $("#mReplyForm").onsubmit=async e=>{e.preventDefault();await guard(fs.doc("modifications/"+m.id).update({reply:$("#m-reply").value.trim()}),"Réponse enregistrée")}}
+async function setModStatus(id,st){const m=S.mods.find(x=>x.id===id);if(!m||m.status===st)return;
+  const upd={status:st,history:[...(m.history||[]),{status:st,at:new Date().toISOString()}]};
+  if(await guard(fs.doc("modifications/"+id).update(upd),"Demande : "+MLABEL[st])&&$("#modal").innerHTML)modView({...m,...upd,reply:$("#m-reply")?$("#m-reply").value:m.reply})}
+function nfcActifsHtml(){const act=S.creations.filter(c=>(c.statut||"active")==="active"),nb={};for(const c of act)nb[c.type]=(nb[c.type]||0)+1;
+  return `<button class="nfc-sum" data-goto="nfc"><span class="eyebrow">Produits NFC actifs</span><span class="nfc-sum-l">${Object.entries(NFC_TYPES).map(([k,[i,n]])=>`<span>${i} <b class="num">${nb[k]||0}</b> ${n}</span>`).join("")}</span></button>`}
+/* client : mes produits NFC */
+const GUIDE_NFC=`<details class="acc"><summary>📲 Activer ma carte avec NFC Tools</summary><ol class="guide">
+  <li>Installez l’application gratuite <b>NFC Tools</b> (App Store ou Google Play).</li><li>Ouvrez-la et touchez <b>Écrire</b>.</li>
+  <li>Touchez <b>Ajouter un enregistrement</b>, puis <b>URL / URI</b>.</li><li>Collez le lien de votre produit (bouton « Copier le lien »), puis <b>OK</b>.</li>
+  <li>Touchez <b>Écrire</b> et approchez la carte ou la plaque du <b>haut du téléphone</b> (iPhone) ou du <b>milieu du dos</b> (Android).</li>
+  <li>« Écriture réussie » ✅ : testez en approchant un autre téléphone.</li></ol></details>`;
+function myNfcCard(c){const t=NFC_TYPES[c.type]||["❔",c.type];
+  return `<div class="ncard"><div class="ncard-top">${c.qr?`<a href="${esc(c.qr)}" target="_blank" rel="noopener" download><img class="nqr" src="${esc(c.qr)}" alt="QR de ${esc(c.titre)}" loading="lazy"></a>`:""}
+  <div class="main"><div class="t">${t[0]} ${esc(c.titre||c.slug)}</div><div class="s">${t[1]} · mis à jour le ${fts(c.modifieLe)}</div><a class="s nlien" href="${esc(c.lien)}" target="_blank" rel="noopener">${esc((c.lien||"").replace(/^https:\/\//,""))}</a></div></div>
+  <div class="row"><a class="btn sm primary" href="${esc(c.lien)}" target="_blank" rel="noopener">Voir</a><button class="btn sm" data-copylien="${esc(c.lien)}">Copier le lien</button>${c.qr?`<a class="btn sm" href="${esc(c.qr)}" target="_blank" rel="noopener" download>QR code</a>`:""}<button class="btn sm" data-modreq="${esc(c.id)}">Demander une modification</button></div></div>`}
+function myModCard(m){return `<div class="ocard"><div class="ocard-main" style="cursor:default"><div class="row between"><span class="num" style="font-weight:600">${esc(m.number)}</span>${mPill(m)}</div>
+  <div class="t">${(NFC_TYPES[m.type]||["❔"])[0]} ${esc(m.creationTitre||"")} · ${esc(m.quoi||"")}</div><div class="s">${fdt(m.createdAt)}</div>
+  <div class="onote" style="font-style:normal">${esc(m.description)}</div>${m.reply?`<div class="reply"><b>Réponse de ${esc(S.settings.name||"nfcwork.ma")} :</b> ${esc(m.reply)}</div>`:""}</div></div>`}
+function renderMyNfc(){const cs=P.creations;
+  return `<div class="section-head" style="margin-top:6px"><div><h2>Mes produits NFC</h2><div class="muted" style="font-size:13.5px">Vos cartes, plaques et pages : lien, QR code et modifications.</div></div></div>
+  ${cs.length?`<div class="nfc-grid">${cs.map(myNfcCard).join("")}</div>${GUIDE_NFC}`:`<div class="empty"><h3>Aucun produit NFC pour l’instant</h3><p>Vos produits apparaîtront ici dès qu’ils seront prêts.</p><button class="btn primary" data-ptab="cat">Voir le catalogue</button></div>`}
+  <div class="section-head" style="margin-top:22px"><h3>Demandes de modification</h3>${cs.length?`<button class="btn sm" data-modreq="">＋ Nouvelle</button>`:""}</div>
+  ${P.mods.length?`<div class="stack">${P.mods.map(myModCard).join("")}</div>`:`<p class="muted" style="margin:0;font-size:14px">Aucune demande. Un prix, un numéro ou un mot de passe à changer ? Demandez-le ici, rien à refaire sur votre carte.</p>`}`}
+const QUOI={profil:["Téléphone / WhatsApp","E-mail","Réseaux sociaux","Photo","Entreprise / métiers","Adresse","Autre"],avis:["Lien Google","Logo","Autre"],
+  wifi:["Mot de passe Wi-Fi","Nom du réseau","Autre"],menu:["Prix","Plats (ajout / retrait)","Disponibilité d’un plat","Horaires","Photos","Autre"],liens:["Boutons / liens","Logo","Slogan","Autre"]};
+function modForm(id){const cs=P.creations;if(!cs.length){toast("Aucun produit NFC pour l’instant.");return}
+  const c0=cs.find(c=>c.id===id)||cs[0];
+  openModal(`${head("Demander une modification")}
+  <form id="modForm" class="stack">
+    <label class="f">Produit<select id="md-crea">${cs.map(c=>`<option value="${esc(c.id)}"${c.id===c0.id?" selected":""}>${(NFC_TYPES[c.type]||["❔"])[0]} ${esc(c.titre||c.slug)}</option>`).join("")}</select></label>
+    <label class="f">Quoi changer ?<select id="md-quoi"></select></label>
+    <label class="f">Description<textarea id="md-desc" maxlength="2000" required placeholder="Ex. mon numéro a changé, le café passe à 14 DH…"></textarea></label>
+    <label class="f">Nouveau texte / prix / mot de passe (facultatif)<textarea id="md-nouveau" maxlength="2000" placeholder="Ex. 06 12 34 56 78"></textarea></label>
+    <p class="muted" style="margin:0;font-size:13px">Pas besoin de reprogrammer votre carte : le lien reste le même.</p>
+    <button class="btn primary" style="width:100%">Envoyer la demande</button></form>`);
+  const majQuoi=()=>{const c=cs.find(x=>x.id===$("#md-crea").value);$("#md-quoi").innerHTML=(QUOI[c&&c.type]||["Autre"]).map(q=>`<option>${esc(q)}</option>`).join("")};
+  majQuoi();$("#md-crea").onchange=majQuoi;
+  $("#modForm").onsubmit=async e=>{e.preventDefault();if(sending)return;const desc=$("#md-desc").value.trim();if(!desc){toast("Décrivez la modification.");return}
+    sending=true;const btn=e.target.querySelector("button:last-child");btn.disabled=true;
+    const c=cs.find(x=>x.id===$("#md-crea").value),now=new Date().toISOString();
+    const data={number:orderNumber("MOD"),creationId:c.id,creationTitre:(c.titre||c.slug||"").slice(0,200),type:c.type,quoi:$("#md-quoi").value,description:desc,
+      nouveau:$("#md-nouveau").value.trim(),clientEmail:(user.email||"").toLowerCase(),clientName:P.client?P.client.name||"":"",status:"new",history:[{status:"new",at:now}],createdAt:now};
+    if(await clientWrite(fs.collection("modifications").doc().set(data))){closeModal();ptab="nfc";render();toast("Demande "+data.number+" envoyée")}else btn.disabled=false;
+    sending=false}}
 
 /* ---------- modals ---------- */
 function openModal(html){$("#modal").innerHTML=`<div class="scrim" data-scrim><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;const f=$("#modal input,#modal select");if(f)f.focus()}
@@ -770,6 +926,8 @@ document.addEventListener("click",async e=>{
     if(d.pickQ){pick.qty=Math.max(1,pick.qty+(+d.pickQ));drawPicker();return}
     if(d.pickAdd!=null){const k=pick.id+"|"+pick.opt;cart[k]=(cart[k]||0)+pick.qty;closeModal();const y=window.scrollY;render();window.scrollTo(0,y);toast("Ajouté au panier");return}
     if(d.quote!=null){quoteForm();return}
+    if(d.modreq!=null){modForm(d.modreq);return}
+    if(d.copylien){navigator.clipboard&&window.isSecureContext?navigator.clipboard.writeText(d.copylien).then(()=>toast("Lien copié ✓"),()=>prompt("Copiez :",d.copylien)):prompt("Copiez :",d.copylien);return}
     if(d.claim!=null){claimForm(d.claim);return}
     if(d.profile!=null||el.id==="profileBtn"){profileForm();return}
   }
@@ -783,6 +941,9 @@ document.addEventListener("click",async e=>{
   if(d.oseg){oseg=d.oseg;render();return}
   if(d.importCat!=null){importCatalog(el);return}
   if(d.cOpen){const c=S.claims.find(x=>x.id===d.cOpen);if(c)claimView(c);return}
+  if(d.mOpen){const m=S.mods.find(x=>x.id===d.mOpen);if(m)modView(m);return}
+  if(d.mSet&&d.mid){setModStatus(d.mid,d.mSet);return}
+  if(d.nfcf!=null){nfcFiltre=d.nfcf;render();return}
   if(d.cSet&&d.cid){setClaimStatus(d.cid,d.cSet);return}
   if(d.filter){invFilter=d.filter;render();return}
   if(d.ofilter){ordFilter=d.ofilter;render();return}
