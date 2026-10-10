@@ -6,7 +6,7 @@ const T = {
  ar: {
   // Navigation
   nav_home:"الرئيسية", nav_products:"المنتجات", nav_order:"الطلب", nav_about:"من نحن", nav_faq:"الأسئلة", nav_contact:"اتصل بنا", nav_claim:"شكاية", nav_cond:"الشروط",
-  menu:"القائمة", cart:"السلة",
+  menu:"القائمة", cart:"السلة", account:"فضاء الزبون", accountFoot:"فضاء الزبون · تسجيل الدخول", clientH:"ديجا زبون عندنا؟", clientP:"تبّع الطلبات والفواتير ديالك من فضاء الزبون.", clientBtn:"دخل لفضائك",
   // Common
   dh:"درهم", yr:"/ السنة", addBtn:"زيد للسلة", inCart:"فالسلة ✓", added:"تزاد للسلة",
   rec:"الموصى به", best:"الأكثر طلباً", launch:"سعر الإطلاق",
@@ -63,7 +63,7 @@ const T = {
  },
  fr: {
   nav_home:"Accueil", nav_products:"Produits", nav_order:"Commande", nav_about:"À propos", nav_faq:"FAQ", nav_contact:"Contact", nav_claim:"Réclamation", nav_cond:"Conditions",
-  menu:"Menu", cart:"Panier",
+  menu:"Menu", cart:"Panier", account:"Espace client", accountFoot:"Espace client · Se connecter", clientH:"Déjà client ?", clientP:"Suivez vos commandes et factures dans votre espace client.", clientBtn:"Accéder à mon espace",
   dh:"DH", yr:"/ an", addBtn:"Ajouter au panier", inCart:"Dans le panier ✓", added:"Ajouté au panier",
   rec:"Recommandé", best:"Best seller", launch:"Prix de lancement",
   choose:"Choisir", other:"Autre ville", copy:"Copier le message", copied:"Message copié",

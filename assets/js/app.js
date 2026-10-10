@@ -60,6 +60,7 @@
     ["home", "index.html"], ["products", "produits.html"], ["about", "a-propos.html"],
     ["faq", "faq.html"], ["contact", "contact.html"], ["claim", "reclamation.html"]
   ];
+  const USER_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4 4-6 8-6s7.2 2 8 6"/></svg>`;
   function renderHeader() {
     const h = $("#site-header"); if (!h) return;
     h.className = "bar";
@@ -68,12 +69,14 @@
         <a class="brand" href="index.html"><img src="assets/img/logo.png" alt="NFCWORK" width="40" height="40"><b>NFC<span>WORK</span></b></a>
         <nav class="nav" id="nav" aria-label="Menu">
           ${NAV.map(([k, href]) => `<a href="${href}" ${PAGE === k ? 'aria-current="page"' : ""}>${t("nav_" + k)}</a>`).join("")}
+          <a class="nav-acct" href="espace/">${USER_ICON}${t("account")}</a>
         </nav>
         <div class="bar-tools">
           <div class="lang" role="group" aria-label="Langue">
-            <button type="button" data-l="ar" aria-pressed="${lang === "ar"}">عربي</button>
-            <button type="button" data-l="fr" aria-pressed="${lang === "fr"}">FR</button>
+            <button type="button" data-l="fr" lang="fr" aria-pressed="${lang === "fr"}" aria-label="Français">FR</button>
+            <button type="button" data-l="ar" lang="ar" aria-pressed="${lang === "ar"}" aria-label="العربية">AR</button>
           </div>
+          <a class="acctbtn" href="espace/" aria-label="${t("account")}">${USER_ICON}<span>${t("account")}</span></a>
           <a class="cartbtn" href="commande.html" ${PAGE === "order" ? 'aria-current="page"' : ""}><span>${t("cart")}</span><span class="c num">${cartCount()}</span></a>
           <button type="button" class="burger" id="burger" aria-expanded="false" aria-controls="nav" aria-label="${t("menu")}"><span></span><span></span><span></span></button>
         </div>
@@ -94,6 +97,7 @@
         <div><a class="brand" href="index.html"><img src="assets/img/logo.png" alt="" width="36" height="36"><b>NFC<span>WORK</span></b></a><p>${t("footerAbout")}</p></div>
         <div><h4>${t("footerLinks")}</h4>
           ${[["products","produits.html"],["order","commande.html"],["faq","faq.html"],["claim","reclamation.html"],["cond","conditions.html"]].map(([k,h])=>`<a href="${h}">${t("nav_"+k)}</a>`).join("")}
+          <a class="foot-acct" href="espace/">${t("accountFoot")}</a>
         </div>
         <div><h4>${t("footerContact")}</h4>
           <a href="${waLink()}" target="_blank" rel="noopener">WhatsApp <span dir="ltr">${CONFIG.phoneDisplay}</span></a>
