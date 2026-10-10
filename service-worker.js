@@ -5,7 +5,7 @@
    - Images : cache, puis mise à jour en arrière-plan.
    Après une grosse modification, change VERSION (ex. "v2").
    ========================================================= */
-const VERSION = "v4";
+const VERSION = "v5";
 const CACHE = "nfcwork-" + VERSION;
 const CORE = [
   "./", "index.html", "produits.html", "commande.html", "contact.html",
