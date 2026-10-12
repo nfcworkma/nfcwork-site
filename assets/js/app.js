@@ -66,7 +66,7 @@
     h.className = "bar";
     h.innerHTML = `
       <div class="wrap bar-in">
-        <a class="brand" href="index.html"><img src="assets/img/logo.png" alt="NFCWORK" width="40" height="40"><b>NFC<span>WORK</span></b></a>
+        <a class="brand" href="index.html" aria-label="NFCWORK — ${t("nav_home")}"><img class="brand-logo" src="assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></a>
         <nav class="nav" id="nav" aria-label="Menu">
           ${NAV.map(([k, href]) => `<a href="${href}" ${PAGE === k ? 'aria-current="page"' : ""}>${t("nav_" + k)}</a>`).join("")}
           <a class="nav-acct" href="espace/">${USER_ICON}${t("account")}</a>
@@ -94,7 +94,7 @@
     f.className = "foot";
     f.innerHTML = `
       <div class="wrap foot-grid">
-        <div><a class="brand" href="index.html"><img src="assets/img/logo.png" alt="" width="36" height="36"><b>NFC<span>WORK</span></b></a><p>${t("footerAbout")}</p></div>
+        <div><a class="brand" href="index.html"><img class="brand-logo" src="assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></a><p>${t("footerAbout")}</p></div>
         <div><h4>${t("footerLinks")}</h4>
           ${[["products","produits.html"],["order","commande.html"],["faq","faq.html"],["claim","reclamation.html"],["cond","conditions.html"]].map(([k,h])=>`<a href="${h}">${t("nav_"+k)}</a>`).join("")}
           <a class="foot-acct" href="espace/">${t("accountFoot")}</a>
@@ -195,33 +195,45 @@
   const asText = s => (s ? "'" + s : "");
   const nowText = () => { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 
+  // Photo d'un produit ou pack : coins arrondis, dégradé sombre, lueur bleue, badge nom + prix « à partir de »
+  const minPrice = C => Math.min(...C.tiers.map(x => x.p));
+  const shotBadge = C => `<b>${esc(L(C.name))}<small>${esc(L(C.short))}</small></b><em class="num"><small>${t("from")}</small>${minPrice(C)} ${t("dh")}</em>`;
+  const shot = (C, href) => `<a class="shot reveal" href="${href}" data-cat="${C.id}"><img src="${C.img}" alt="${esc(L(C.name))}" loading="lazy" width="800" height="1200"><span class="shot-badge">${shotBadge(C)}</span></a>`;
+
+  /* ---------- Apparition au défilement ---------- */
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const io = !reduceMotion && "IntersectionObserver" in window
+    ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -8% 0px" })
+    : null;
+  if (io) document.documentElement.classList.add("js-reveal");
+  function reveal() { if (io) $$(".reveal:not(.in)").forEach(el => io.observe(el)); }
+
   /* ---------- Pages ---------- */
   const pages = {};
 
+  const HOW_ICONS = [
+    '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16l-1.5 12.5a1.5 1.5 0 0 1-1.5 1.5H7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg>',
+    '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+    '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="2" fill="currentColor"/><path d="M11 8a6 6 0 0 1 0 8M15 5a10 10 0 0 1 0 14"/></svg>'];
   pages.home = function () {
-    $("#cats").innerHTML = CATALOG.filter(c => c.id !== "packs").map(C => {
-      const min = Math.min(...C.tiers.map(x => x.p));
-      return `<a class="catcard" href="produits.html#${C.id}">
-        <img src="${C.img}" alt="" loading="lazy">
-        <div><h3>${esc(L(C.name))}</h3><p>${esc(L(C.short))}</p>
-        <span class="from">${t("from")} <b class="num">${min} ${t("dh")}</b></span></div></a>`;
-    }).join("");
+    $("#cats").innerHTML = CATALOG.map(C => shot(C, "produits.html#" + C.id)).join("");
     const P = CATALOG.find(c => c.id === "packs");
+    $("#packShot").innerHTML = shot(P, "produits.html#packs");
     const pick = ["starter", "business", "premium"].map(k => P.tiers.find(x => x.k === k));
     $("#packs").innerHTML = pick.map(Ti => tierCard(P, Ti)).join("");
-    $("#steps").innerHTML = t("steps").map(s => `<li><b>${esc(s[0])}</b><span>${esc(s[1])}</span></li>`).join("");
-    $("#why").innerHTML = t("why").map(s => `<div class="why"><b>${esc(s[0])}</b><span>${esc(s[1])}</span></div>`).join("");
+    $("#how").innerHTML = t("steps3").map((s, i) => `<li class="reveal"><span class="ic" aria-hidden="true">${HOW_ICONS[i]}</span><b>${esc(s[0])}</b><span>${esc(s[1])}</span></li>`).join("");
+    // Avis clients : uniquement de vrais avis (CONFIG.reviews). Sinon, invitation à laisser un avis.
+    const R = (CONFIG.reviews || []).filter(r => r && r.text);
+    $("#reviews").innerHTML = R.length
+      ? `<div class="reviews">${R.map(r => `<figure class="review reveal" style="margin:0"><div class="stars" aria-label="${r.stars || 5}/5">${"★".repeat(r.stars || 5)}${"☆".repeat(5 - (r.stars || 5))}</div>
+          <p>${esc(L(r.text))}</p><footer><span class="av" aria-hidden="true">${esc((r.name || "?").trim()[0] || "?")}</span><div><b>${esc(r.name || "")}</b>${esc(L(r.role || ""))}</div></footer></figure>`).join("")}</div>`
+      : `<div class="review-cta reveal"><div><b style="font-family:var(--display);font-size:18px">${t("revEmptyH")}</b><p>${t("revEmptyP")}</p></div>
+          <a class="btn primary" href="${waLink(t("revMsg"))}" target="_blank" rel="noopener">${t("revBtn")}</a></div>`;
+    $("#faqShort").innerHTML = t("faq").slice(0, 4).map(q => `<details class="reveal"><summary>${esc(q[0])}</summary><p>${esc(q[1])}</p></details>`).join("");
     $$(".wa-link").forEach(a => (a.href = waLink()));
-    $("#gallery").innerHTML = GALLERY.map(g =>
-      `<button type="button" data-full="assets/img/affiches/${g.f}.jpg"><img src="assets/img/galerie/${g.f}.jpg" alt="${esc(L(g.n))}" loading="lazy"></button>`
-    ).join("");
   };
   pages.home.bind = function () {
-    bindAdd($("#packs"), () => pages.home());
-    $("#gallery").addEventListener("click", e => {
-      const b = e.target.closest("button"); if (!b) return;
-      $("#lbImg").src = b.dataset.full; $("#lbImg").alt = b.firstChild.alt; $("#lb").hidden = false;
-    });
+    bindAdd($("#packs"), () => { pages.home(); reveal(); });
     bindLightbox();
     // Bouton « Installer l'application » (Android / ordinateur) ou conseil iPhone
     const btn = $("#installBtn");
@@ -241,25 +253,13 @@
     $("#lb").addEventListener("click", e => { if (e.target.id !== "lbImg") $("#lb").hidden = true; });
     document.addEventListener("keydown", e => { if (e.key === "Escape") $("#lb").hidden = true; });
   }
-  // Affiches de la galerie (en français uniquement): originaux dans assets/img/affiches/,
-  // miniatures dans assets/img/galerie/. f = nom du fichier sans ".jpg"
-  // Retirées: services-processus-fr (ancien numéro) et caisson-led-intro (texte en arabe).
-  const GALLERY = [
-    { f: "carte-nfc-prix-fr", n: { ar: "أثمنة بطاقة NFC", fr: "Tarifs Carte NFC" } },
-    { f: "google-reviews-intro-fr", n: { ar: "لوحة تقييمات Google", fr: "Plaque Google Reviews" } },
-    { f: "google-reviews-prix-fr", n: { ar: "أثمنة لوحة Google", fr: "Tarifs Google Reviews" } },
-    { f: "menu-prix-fr", n: { ar: "أثمنة المنيو الرقمي", fr: "Tarifs Menu digital" } },
-    { f: "wifi-prix-fr", n: { ar: "أثمنة لوحة واي فاي", fr: "Tarifs Plaque Wi-Fi" } },
-    { f: "caisson-led-prix-fr", n: { ar: "أثمنة صندوق LED", fr: "Tarifs Caisson LED" } },
-    { f: "packs-fr", n: { ar: "الباقات", fr: "Packs" } }
-  ];
 
   let cat = (location.hash || "").slice(1);
   pages.products = function () {
     if (!CATALOG.some(c => c.id === cat)) cat = CATALOG[0].id;
     const C = CATALOG.find(c => c.id === cat);
     $("#tabs").innerHTML = CATALOG.map(c => `<button type="button" role="tab" aria-selected="${c.id === cat}" data-c="${c.id}">${esc(L(c.name))}</button>`).join("");
-    $("#posterImg").src = C.img; $("#posterImg").alt = L(C.name);
+    $("#posterImg").src = C.img; $("#posterImg").alt = L(C.name); $("#posterBadge").innerHTML = shotBadge(C);
     $("#catIntro").textContent = L(C.intro);
     $("#tiers").innerHTML = C.tiers.map(Ti => tierCard(C, Ti)).join("");
     $("#extras").innerHTML = t("extras").map(e => `<div class="extra"><div><b>${esc(e[0])}</b><span>${esc(e[1])}</span></div><em>${esc(e[2])}</em></div>`).join("");
@@ -284,6 +284,16 @@
     const ship = CONFIG.shipping[city] !== undefined ? CONFIG.shipping[city] : null;
     return { sub, design, ship, city, total: sub + design + (ship || 0) };
   }
+  // Infos de la carte digitale (seulement si le panier contient une carte NFC ou un pack qui en contient une)
+  const CARD_FIELDS = [["nom", "cdNom"], ["job", "cdJob"], ["instagram", "Instagram"], ["facebook", "Facebook"], ["linkedin", "LinkedIn"],
+    ["tiktok", "TikTok"], ["snapchat", "Snapchat"], ["youtube", "YouTube"], ["site", "cdSite"], ["maps", "cdMaps"]];
+  const cartHasCard = () => cart.some(l => l.key.startsWith("carte:") || ["packs:starter", "packs:professional", "packs:premium"].includes(l.key));
+  function cardLines(fr) {
+    if (!cartHasCard()) return [];
+    const lab = k => (/^cd/.test(k) ? T[fr ? "fr" : "ar"][k] : k);
+    const rows = CARD_FIELDS.map(([id, k]) => [lab(k), $("#cd-" + id).value.trim()]).filter(r => r[1]);
+    return rows.length ? ["", "🪪 " + T[fr ? "fr" : "ar"].cardMsg + " :", ...rows.map(r => `• ${r[0]} : ${r[1]}`)] : [];
+  }
   function orderMessage() {
     const x = totals(), fr = lang === "fr";
     const city = x.city === "other" ? $("#f-other").value.trim() : x.city;
@@ -301,7 +311,8 @@
       (fr ? "Ville : " : "المدينة: ") + city,
       v("f-addr") ? (fr ? "Adresse : " : "العنوان: ") + v("f-addr") : null,
       v("f-biz") ? (fr ? "Commerce : " : "المحل: ") + v("f-biz") : null,
-      v("f-note") ? (fr ? "Remarque : " : "ملاحظة: ") + v("f-note") : null
+      v("f-note") ? (fr ? "Remarque : " : "ملاحظة: ") + v("f-note") : null,
+      ...cardLines(fr)
     ].filter(l => l !== null).join("\n");
   }
   // Ligne envoyée au Google Sheet (onglet « Commandes »), appelée juste après orderMessage()
@@ -315,7 +326,7 @@
       produits: cart.map(l => { const { C, Ti } = findItem(l.key); return `${l.q} × ${C.name.fr} — ${typeof Ti.n === "string" ? Ti.n : Ti.n.fr} (${Ti.p * l.q} DH)`; }).join(" ; "),
       sousTotal: x.sub, designPremium: x.design,
       livraison: x.ship !== null ? x.ship : "à confirmer",
-      total: x.total, remarque: v("f-note"), langue: lang
+      total: x.total, remarque: [v("f-note"), cardLines(true).slice(1).join(" ")].filter(Boolean).join(" | "), langue: lang
     };
   }
   function validateOrder() {
@@ -330,6 +341,7 @@
   pages.order = function () {
     citySelect($("#f-city"));
     $("#otherWrap").hidden = $("#f-city").value !== "other";
+    $("#cardBox").hidden = !cartHasCard();
     const lines = $("#lines"), tot = $("#tot");
     if (!cart.length) {
       lines.innerHTML = `<div class="empty"><p>${t("empty")}</p><a class="btn" href="produits.html">${t("browse")}</a></div>`;
@@ -467,9 +479,20 @@
   function render() {
     renderHeader(); renderFooter(); applyStatic();
     if (pages[PAGE]) pages[PAGE]();
+    reveal();
+    if (window.NFCWORK_APRES) window.NFCWORK_APRES();   // mode édition : remet les crayons ✏️
   }
+  // Pour le mode édition (assets/js/admin.js) et les modifications chargées par contenu.js
+  window.NFCWORK = { render, page: PAGE, get lang() { return lang; }, get cat() { return cat; }, esc };
   render();
   if (pages[PAGE] && pages[PAGE].bind) pages[PAGE].bind();
+  // Mode édition : chargé seulement sur l'appareil où l'admin s'est connecté (indice posé par l'espace client).
+  // La vraie vérification se fait avec Firebase (compte admin) ; les visiteurs ne chargent rien de plus.
+  try {
+    if (localStorage.getItem("nfcwork-admin") === "1" || /[?&]edition=1/.test(location.search)) {
+      const sc = document.createElement("script"); sc.src = "assets/js/admin.js"; sc.defer = true; document.head.appendChild(sc);
+    }
+  } catch (e) {}
   // Panier synchronisé entre onglets
   window.addEventListener("storage", e => {
     if (e.key !== "nfcwork") return;

@@ -111,7 +111,9 @@ fs.doc("settings/business").onSnapshot(s=>{S.settings=s.exists?s.data():{};$("#b
 let authMode="login";
 auth.onAuthStateChanged(u=>{
   unsubAll();closeModal();user=u;role=null;
-  $("#tabs").hidden=true;$("#ptabs").hidden=true;$("#settingsBtn").hidden=true;$("#profileBtn").hidden=true;$("#logoutBtn").hidden=!u;
+  $("#tabs").hidden=true;$("#ptabs").hidden=true;$("#settingsBtn").hidden=true;$("#profileBtn").hidden=true;$("#logoutBtn").hidden=!u;$("#editSiteBtn").hidden=true;
+  // indice pour le site : « mode édition » proposé seulement sur l'appareil où l'admin est connecté (vérifié ensuite par Firebase)
+  try{if(!(u&&u.emailVerified&&(u.email||"").toLowerCase()===ADMIN))localStorage.removeItem("nfcwork-admin")}catch(e){}
   if(!u){$("#modeLabel").textContent="Espace client";renderAuth();return}
   if(!u.emailVerified){renderVerify();return}
   const email=(u.email||"").toLowerCase();
@@ -146,7 +148,8 @@ function renderVerify(){
 
 /* ---------- ADMIN ---------- */
 function startAdmin(){
-  role="admin";$("#tabs").hidden=false;$("#settingsBtn").hidden=false;$("#modeLabel").textContent="Espace gestion";
+  role="admin";$("#tabs").hidden=false;$("#settingsBtn").hidden=false;$("#editSiteBtn").hidden=false;$("#modeLabel").textContent="Espace gestion";
+  try{localStorage.setItem("nfcwork-admin","1")}catch(e){}
   listen(fs.collection("services"),s=>{S.services=rows(s).sort(svcSort);render()});
   listen(fs.collection("clients"),s=>{S.clients=rows(s).sort((a,b)=>(a.name||"").localeCompare(b.name||""));render()});
   listen(fs.collection("invoices"),s=>{S.invoices=rows(s).sort((a,b)=>(b.number||"").localeCompare(a.number||""));render()});
@@ -622,7 +625,7 @@ function typesCommande(o){const t=new Set(Object.keys(o.infos||{}).filter(k=>NFC
 const typeChips=ts=>ts.map(t=>`<span class="tchip">${NFC_TYPES[t][0]} ${NFC_TYPES[t][1]}</span>`).join("");
 /* questionnaires (mêmes champs que l’outil) */
 const QFORMS={
- profil:[["nom","Nom complet",1],["entreprise","Entreprise"],["metiers","Métiers (un par ligne)",0,"area"],["telephone","Téléphone",1,"tel"],["whatsapp","WhatsApp (si différent)",0,"tel"],["email","E-mail",0,"email"],["instagram","Instagram"],["facebook","Facebook"],["linkedin","LinkedIn"],["tiktok","TikTok"],["site","Site web"],["adresse","Adresse"]],
+ profil:[["nom","Nom complet",1],["entreprise","Entreprise"],["metiers","Métiers (un par ligne)",0,"area"],["telephone","Téléphone",1,"tel"],["whatsapp","WhatsApp (si différent)",0,"tel"],["email","E-mail",0,"email"],["instagram","Instagram"],["facebook","Facebook"],["linkedin","LinkedIn"],["tiktok","TikTok"],["snapchat","Snapchat"],["youtube","YouTube"],["site","Site web"],["adresse","Adresse"],["maps","Google Maps (lien de localisation)"]],
  avis:[["commerce","Nom du commerce",1],["lien_google","Lien Google Maps de votre commerce"]],
  wifi:[["commerce","Nom du commerce",1],["ssid","Nom du réseau Wi-Fi",1],["motdepasse","Mot de passe Wi-Fi"],["securite","Sécurité",0,"select"],["cache","Réseau caché (invisible dans la liste)",0,"check"]],
  menu:[["nom","Nom du restaurant",1],["horaires","Horaires"],["whatsapp","WhatsApp",0,"tel"],["instagram","Instagram"],["adresse","Adresse"],["menu","Votre menu",0,"area","## Boissons\nCafé noir - 12\nJus d’orange - 18\n## Petit-déjeuner\nOmelette - 25"]],
@@ -633,7 +636,7 @@ function questionnaire(t){const v=qInfos[t]||{};
     if(kind==="check")return `<label class="check"><input type="checkbox" data-q="${t}.${k}"${val?" checked":""}> ${esc(lab)}</label>`;
     if(kind==="select")return `<label class="f">${esc(lab)}<select data-q="${t}.${k}">${[["WPA","WPA / WPA2 (le plus courant)"],["WEP","WEP (ancien)"],["nopass","Ouvert (sans mot de passe)"]].map(([a,b])=>`<option value="${a}"${val===a?" selected":""}>${b}</option>`).join("")}</select></label>`;
     const inp=kind==="area"?`<textarea data-q="${t}.${k}" maxlength="${k==="menu"?6000:1000}" placeholder="${esc(ph||"")}">${esc(val)}</textarea>`
-      :`<input data-q="${t}.${k}" value="${esc(val)}" maxlength="300"${kind==="tel"?' type="tel" inputmode="tel"':kind==="email"?' type="email" inputmode="email" autocapitalize="off"':""}${/insta|face|link|tik|site|lien|ssid|motdepasse/.test(k)?' autocapitalize="off" autocorrect="off" spellcheck="false"':""}>`;
+      :`<input data-q="${t}.${k}" value="${esc(val)}" maxlength="300"${kind==="tel"?' type="tel" inputmode="tel"':kind==="email"?' type="email" inputmode="email" autocapitalize="off"':""}${/insta|face|link|tik|snap|youtube|maps|site|lien|ssid|motdepasse/.test(k)?' autocapitalize="off" autocorrect="off" spellcheck="false"':""}>`;
     return `<label class="f"><span>${esc(lab)}${req?' <span class="req">*</span>':""}</span>${inp}</label>`};
   return `<details class="qbox" open><summary>${NFC_TYPES[t][0]} Infos pour votre ${NFC_TYPES[t][1]}</summary><div class="stack" style="margin-top:10px">
     ${t==="wifi"?`<div class="notice" style="background:color-mix(in srgb,var(--warn) 14%,var(--surface))">⚠️ Le mot de passe sera visible par toute personne qui scanne la plaque. Conseil : un réseau « invités ».</div>`:""}
@@ -650,7 +653,7 @@ function lienOutil(o,t){const i=(o.infos||{})[t]||{},c=(o.clientId&&clientById(o
   if((t==="avis"||t==="wifi")&&!p.commerce)p.commerce=c.name||o.clientName||"";
   if((t==="menu"||t==="liens")&&!p.nom)p.nom=c.name||o.clientName||"";
   return OUTIL_URL+"#creer="+t+"&p="+b64(p)+"&commande="+encodeURIComponent(o.id)+"&client="+encodeURIComponent(o.clientEmail||"")}
-const NOMS_CHAMPS={nom:"Nom",entreprise:"Entreprise",metiers:"Métiers",telephone:"Téléphone",whatsapp:"WhatsApp",email:"E-mail",instagram:"Instagram",facebook:"Facebook",linkedin:"LinkedIn",tiktok:"TikTok",site:"Site web",adresse:"Adresse",commerce:"Commerce",lien_google:"Lien Google",ssid:"Réseau Wi-Fi",motdepasse:"Mot de passe",securite:"Sécurité",cache:"Réseau caché",horaires:"Horaires",menu:"Menu",slogan:"Slogan",localisation:"Localisation",boutons_texte:"Boutons"};
+const NOMS_CHAMPS={nom:"Nom",entreprise:"Entreprise",metiers:"Métiers",telephone:"Téléphone",whatsapp:"WhatsApp",email:"E-mail",instagram:"Instagram",facebook:"Facebook",linkedin:"LinkedIn",tiktok:"TikTok",snapchat:"Snapchat",youtube:"YouTube",maps:"Google Maps",site:"Site web",adresse:"Adresse",commerce:"Commerce",lien_google:"Lien Google",ssid:"Réseau Wi-Fi",motdepasse:"Mot de passe",securite:"Sécurité",cache:"Réseau caché",horaires:"Horaires",menu:"Menu",slogan:"Slogan",localisation:"Localisation",boutons_texte:"Boutons"};
 function infosHtml(o){const ts=typesCommande(o);if(!ts.length)return"";
   return `<div class="eyebrow" style="margin:16px 0 8px">Produits NFC à créer</div><div class="stack">${ts.map(t=>{const i=(o.infos||{})[t]||{};
     return `<div class="paper"><div class="row between"><b>${NFC_TYPES[t][0]} ${NFC_TYPES[t][1]}</b><a class="btn sm primary" href="${esc(lienOutil(o,t))}" target="_blank" rel="noopener">Créer dans l’outil</a></div>

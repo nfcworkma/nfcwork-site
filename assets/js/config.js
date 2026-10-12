@@ -22,6 +22,12 @@ const CONFIG = {
   // Prix dyal l-option "Design premium"
   designPremium: 50,
 
+  // Avis clients affichés sur l'accueil : UNIQUEMENT de vrais avis (copiés depuis Google, Instagram, WhatsApp...).
+  // Khawi = l'accueil affiche une invitation « Laissez-nous votre avis ».
+  // Exemple : { name: "Karim B.", role: { fr: "Café, Casablanca", ar: "مقهى، الدار البيضاء" }, stars: 5,
+  //            text: { fr: "Texte de l'avis…", ar: "نص التقييم…" } },
+  reviews: [],
+
   // Préfixes dyal numéros
   orderPrefix: "NW",
   claimPrefix: "RC"
