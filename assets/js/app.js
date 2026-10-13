@@ -344,6 +344,10 @@
     ["tiktok", "TikTok"], ["snapchat", "Snapchat"], ["youtube", "YouTube"], ["site", "cdSite"], ["maps", "cdMaps"]];
   // Designs des clés NFC présents dans le panier (wifi, contact, menu, google, barber)
   const keyTypes = () => new Set(cart.filter(l => l.key.startsWith("cle:")).flatMap(l => l.d || []));
+  // Wi-Fi : clé NFC design Wi-Fi, plaque Wi-Fi, ou pack qui contient le Wi-Fi
+  const WIFI_PACKS = ["packs:cafe", "packs:business", "packs:restaurant", "packs:premium"];
+  const wifiPlaque = () => cart.some(l => l.key.startsWith("wifi:") || WIFI_PACKS.includes(l.key));
+  const infoTypes = () => { const s = keyTypes(); if (wifiPlaque()) s.add("wifi"); return s; };
   const cartHasCard = () => cart.some(l => l.key.startsWith("carte:") || ["packs:starter", "packs:professional", "packs:premium"].includes(l.key)) || keyTypes().has("contact");
   function cardLines(fr) {
     if (!cartHasCard()) return [];
@@ -357,7 +361,7 @@
   const IMG_TYPES = { "image/png": 1, "image/jpeg": 1, "image/webp": 1, "image/svg+xml": 1 };
   const IMG_EXT = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" };
   const IMG_MAX = 5 * 1024 * 1024;
-  const uploads = { "k-logo": [], "k-menu-ph": [] };   // [{ nom, etat: "up"|"ok"|"err", url }]
+  const uploads = { "k-logo": [], "k-menu-ph": [], "k-wifi-qr": [] };   // [{ nom, etat: "up"|"ok"|"err", url }]
   const imgType = f => (IMG_TYPES[f.type] ? f.type : IMG_EXT[(f.name.split(".").pop() || "").toLowerCase()] || "");
   function uploadImage(file, dossier) {
     return new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = ko; r.readAsDataURL(file); })
@@ -378,20 +382,69 @@
     if (bad) { input.value = ""; setErr(id, t(bad)); if (bad === "kNameFirst") $("#f-name").focus(); return uploadStatus(id); }
     const lot = uploads[id] = files.map(f => ({ nom: f.name, etat: "up", url: "" }));
     uploadStatus(id);
-    files.forEach((f, i) => uploadImage(f, id === "k-logo" ? "logo" : "menu")
+    if (id === "k-wifi-qr") wifiFromQR(files[0]);
+    files.forEach((f, i) => uploadImage(f, id === "k-logo" ? "logo" : id === "k-wifi-qr" ? "wifi" : "menu")
       .then(url => { lot[i].etat = "ok"; lot[i].url = url; }, () => { lot[i].etat = "err"; })
       .then(() => { if (uploads[id] === lot) { uploadStatus(id); orderRef = null; } }));
   }
+  /* Capture du QR Wi-Fi : on essaie de la lire (jsQR, chargé seulement ici) pour remplir réseau et mot de passe.
+     Si la lecture échoue, la capture part quand même avec la commande. */
+  let jsqr = null;
+  const loadJsQR = () => jsqr || (jsqr = new Promise((ok, ko) => {
+    const s = document.createElement("script"); s.src = "assets/js/jsQR.js"; s.onload = ok; s.onerror = () => { jsqr = null; ko(); };
+    document.head.appendChild(s);
+  }));
+  async function readQR(file) {
+    await loadJsQR();
+    const url = URL.createObjectURL(file);
+    try {
+      const im = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = url; });
+      const W = im.naturalWidth, H = im.naturalHeight, max = Math.max(W, H);
+      const c = document.createElement("canvas"), ctx = c.getContext("2d", { willReadFrequently: true });
+      for (const size of [1200, 800, 1600, 500, max]) {
+        const k = Math.min(1, size / max);
+        c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(H * k));
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(im, 0, 0, c.width, c.height);
+        const d = ctx.getImageData(0, 0, c.width, c.height), r = jsQR(d.data, d.width, d.height, { inversionAttempts: "attemptBoth" });
+        if (r && r.data) return r.data;
+      }
+      return null;
+    } finally { URL.revokeObjectURL(url); }
+  }
+  // WIFI:T:WPA;S:nom;P:mot-de-passe;;  (\ échappe ; , : " \)
+  function parseWifi(txt) {
+    if (!/^WIFI:/i.test(txt || "")) return null;
+    const o = {}, b = txt.slice(5); let k = "", v = "", key = true;
+    for (let i = 0; i < b.length; i++) {
+      let ch = b[i];
+      if (ch === "\\" && i + 1 < b.length) { ch = b[++i]; key ? (k += ch) : (v += ch); continue; }
+      if (key && ch === ":") { key = false; continue; }
+      if (ch === ";") { if (k) o[k.toUpperCase()] = v; k = ""; v = ""; key = true; continue; }
+      key ? (k += ch) : (v += ch);
+    }
+    if (k) o[k.toUpperCase()] = v;
+    return o.S ? { ssid: o.S, pass: o.P || "" } : null;
+  }
+  function wifiFromQR(file) {
+    const note = $("#qr-k-wifi-qr"); note.textContent = "";
+    readQR(file).then(parseWifi, () => null).then(w => {
+      if (!w) { note.textContent = t("kWifiQrNo"); return; }
+      if (!$("#k-ssid").value.trim()) $("#k-ssid").value = w.ssid;
+      if (w.pass && !$("#k-pass").value.trim()) $("#k-pass").value = w.pass;
+      note.textContent = t("kWifiQrRead"); orderRef = null;
+    });
+  }
   function keyLines(fr) {
-    const types = keyTypes(); if (!types.size) return [];
+    const types = infoTypes(); if (!types.size) return [];
     const T2 = T[fr ? "fr" : "ar"], v = id => $("#" + id).value.trim();
     const links = id => uploads[id].filter(u => u.etat === "ok").map(u => u.url).join(" , ");
     const rows = [
       types.has("wifi") ? [T2.kSsid, v("k-ssid")] : null, types.has("wifi") ? [T2.kPass, v("k-pass")] : null,
+      types.has("wifi") ? [T2.kWifiQrLbl, links("k-wifi-qr")] : null,
       types.has("menu") ? [T2.kMenu, v("k-menu")] : null, types.has("menu") ? [T2.kMenuPhLbl, links("k-menu-ph")] : null,
       types.has("google") ? [T2.kGoogle, v("k-google")] : null, [T2.kLogoLbl, links("k-logo")]
     ].filter(r => r && r[1]);
-    return rows.length ? ["", T2.kMsg + " :", ...rows.map(r => `• ${r[0].replace(/\s*\(.*\)$/, "")} : ${r[1]}`)] : [];
+    return rows.length ? ["", (keyTypes().size ? T2.kMsg : T2.kMsgWifi) + " :", ...rows.map(r => `• ${r[0].replace(/\s*\(.*\)$/, "")} : ${r[1]}`)] : [];
   }
   function orderMessage() {
     const x = totals(), fr = lang === "fr";
@@ -445,7 +498,8 @@
     citySelect($("#f-city"));
     $("#otherWrap").hidden = $("#f-city").value !== "other";
     $("#cardBox").hidden = !cartHasCard();
-    const kt = keyTypes();
+    const kt = infoTypes(), lg = $("#keyBox legend");
+    lg.dataset.t = keyTypes().size ? "kH" : "kHWifi"; lg.textContent = t(lg.dataset.t);
     $("#keyBox").hidden = !kt.size || !CONFIG.sheetsUrl && !kt.has("wifi") && !kt.has("menu") && !kt.has("google");
     $$("#keyBox [data-k]").forEach(el => (el.hidden = !kt.has(el.dataset.k)));
     $$("#keyBox .upl").forEach(el => { if (!CONFIG.sheetsUrl) el.hidden = true; });
