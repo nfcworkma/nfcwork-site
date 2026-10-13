@@ -36,7 +36,7 @@ function status(inv){
   return["sent","Envoyée"];
 }
 /* images produits du site (assets/img/) proposées pour les services */
-const IMAGES=[["assets/img/carte.jpg","Carte de visite NFC"],["assets/img/google.jpg","Plaque avis Google"],["assets/img/menu.jpg","Menu digital NFC + QR"],["assets/img/wifi.jpg","Plaque Wi-Fi"],["assets/img/led.jpg","Caisson LED"],["assets/img/packs.jpg","Packs"]];
+const IMAGES=[["assets/img/carte.jpg","Carte de visite NFC"],["assets/img/google.jpg","Plaque avis Google"],["assets/img/menu.jpg","Menu digital NFC + QR"],["assets/img/wifi.jpg","Plaque Wi-Fi"],["assets/img/produits/cle-nfc-cover.webp","Clé NFC"],["assets/img/led.jpg","Caisson LED"],["assets/img/packs.jpg","Packs"]];
 const imgSrc=p=>IMAGES.some(x=>x[0]===p)?"../"+p:"";
 /* commandes */
 const OSTEPS=[["new","Nouvelle"],["confirmed","Confirmée"],["preparing","En préparation"],["ready","Prête"],["delivered","Livrée"]];
@@ -56,9 +56,9 @@ const CLABEL=Object.fromEntries(CSTEPS),CPILL={open:"late",progress:"sent",resol
 const cPill=c=>`<span class="pill ${CPILL[c.status]||"draft"}">${esc(CLABEL[c.status]||c.status)}</span>`;
 const CLAIM_TYPES=["Retard de livraison","Produit cassé / défectueux","NFC ou QR ne fonctionne pas","Erreur de design ou d'informations","Modifier mes informations","Problème de paiement","Autre"];
 /* catalogue du site (../assets/js/catalog.js) : catégories et import */
-const CATS=[["carte","Cartes NFC"],["google","Google Reviews"],["menu","Menus"],["wifi","Wi-Fi"],["led","LED"],["packs","Packs"]];
+const CATS=[["carte","Cartes NFC"],["google","Google Reviews"],["menu","Menus"],["wifi","Wi-Fi"],["cle","Clés NFC"],["led","LED"],["packs","Packs"]];
 const CATLABEL=Object.fromEntries(CATS);
-const CAT_UNIT={carte:"carte",google:"plaque",menu:"",wifi:"plaque",led:"caisson",packs:"pack"};
+const CAT_UNIT={carte:"carte",google:"plaque",menu:"",wifi:"plaque",cle:"clé",led:"caisson",packs:"pack"};
 const svcSort=(a,b)=>{const ia=CATS.findIndex(c=>c[0]===a.category),ib=CATS.findIndex(c=>c[0]===b.category);return (ia<0?99:ia)-(ib<0?99:ib)||(a.order??99)-(b.order??99)||(a.name||"").localeCompare(b.name||"")};
 const fromPrice=s=>{const ps=(s.options||[]).filter(o=>!o.yearly).map(o=>+o.price||0);return ps.length?Math.min(...ps):+s.price||0};
 const siteConf=()=>typeof CONFIG!=="undefined"?CONFIG:{};
@@ -254,7 +254,7 @@ function orderCard(o){
       <div class="row between"><span class="num" style="font-weight:600">${esc(o.number)}</span>${oPill(o)}</div>
       <div class="t">${esc(c?c.name:o.clientName||o.clientEmail)}</div>
       <div class="s">${(o.lines||[]).map(l=>`${esc(l.qty)}× ${esc(l.name)}`).join(", ")}</div>
-      ${typesCommande(o).length?`<div class="tchips">${typeChips(typesCommande(o))}${o.infos&&Object.keys(o.infos).length?'<span class="tchip ok">📝 infos reçues</span>':""}</div>`:""}
+      ${typesCommande(o).length?`<div class="tchips">${typeChips(typesCommande(o))}${o.infos&&Object.keys(o.infos).length?'<span class="tchip ok"><i class=\"ico ico-file-text\" aria-hidden=\"true\"></i> infos reçues</span>':""}</div>`:""}
       <div class="row between s"><span>${fdt(o.createdAt)}</span><b class="num" style="color:var(--fg)">${oAmount(o)}</b></div>
       ${o.quote&&o.quote.deadline?`<div class="s">Délai souhaité : ${esc(o.quote.deadline)}</div>`:""}
       ${o.note?`<div class="onote">« ${esc(o.note)} »</div>`:""}
@@ -459,15 +459,15 @@ function renderPHome(){
   const quotes=P.orders.filter(o=>o.status==="quote"),claims=P.claims.filter(c=>c.status!=="resolved");
   const due=P.invoices.filter(i=>i.status!=="paid").reduce((a,i)=>a+totals(i).total,0),last=P.invoices[0];
   const missing=P.client&&(!P.client.phone||!P.client.delivery);
-  return `<div class="hello"><div class="eyebrow tap-arc">Espace client</div><h2>Bonjour ${esc(name)} 👋</h2><p class="muted" style="margin:4px 0 0">Suivez vos commandes, vos factures et trouvez de l’aide à tout moment.</p></div>
+  return `<div class="hello"><div class="eyebrow tap-arc">Espace client</div><h2>Bonjour ${esc(name)}</h2><p class="muted" style="margin:4px 0 0">Suivez vos commandes, vos factures et trouvez de l’aide à tout moment.</p></div>
   <div class="quick">
     <button class="qa" data-ptab="cat">${ICON.cart}<b>Commander</b><span>Catalogue</span></button>
     <button class="qa" data-quote>${ICON.quote}<b>Demander un devis</b><span>Sur mesure</span></button>
     <button class="qa" data-ptab="help">${ICON.help}<b>Aide</b><span>Guides & SAV</span></button>
   </div>
   ${P.creations.length?`<div class="section-head" style="margin-top:4px"><h3>Mes produits NFC</h3><button class="btn sm ghost" data-ptab="nfc">Tout voir</button></div>
-  <div class="nfc-mini">${P.creations.slice(0,3).map(c=>`<a class="nmini" href="${esc(c.lien)}" target="_blank" rel="noopener"><span>${(NFC_TYPES[c.type]||["❔"])[0]}</span><b>${esc(c.titre||c.slug)}</b><small>${(NFC_TYPES[c.type]||["",""])[1]}</small></a>`).join("")}</div>
-  <button class="btn block" data-modreq="" style="margin:10px 0 16px">✏️ Demander une modification</button>`:""}
+  <div class="nfc-mini">${P.creations.slice(0,3).map(c=>`<a class="nmini" href="${esc(c.lien)}" target="_blank" rel="noopener"><span>${(NFC_TYPES[c.type]||[ico("help-circle")])[0]}</span><b>${esc(c.titre||c.slug)}</b><small>${(NFC_TYPES[c.type]||["",""])[1]}</small></a>`).join("")}</div>
+  <button class="btn block" data-modreq="" style="margin:10px 0 16px"><i class="ico ico-pencil" aria-hidden="true"></i> Demander une modification</button>`:""}
   ${P.ready&&!P.client?`<div class="notice" style="margin-bottom:14px">Votre e-mail <b>${esc(user.email)}</b> n’est pas encore relié à une fiche client. Vous pouvez déjà commander ; ${esc(S.settings.name||"nfcwork.ma")} créera votre fiche.</div>`:""}
   ${missing?`<div class="notice row between" style="margin-bottom:14px"><span>Complétez votre profil (téléphone, adresse de livraison) pour être livré plus vite.</span><button class="btn sm primary" data-profile>Mon profil</button></div>`:""}
   <div class="section-head" style="margin-top:4px"><h3>Commande en cours</h3>${P.orders.length?`<button class="btn sm ghost" data-ptab="ord">Tout voir</button>`:""}</div>
@@ -609,7 +609,8 @@ function renderPortal(){
 
 /* ---------- Produits NFC (créations de l’outil) & demandes de modification ---------- */
 const OUTIL_URL="http://localhost:8765/";
-const NFC_TYPES={profil:["👤","Carte NFC"],avis:["⭐","Google Reviews"],wifi:["📶","Wi-Fi"],menu:["🍽️","Menu digital"],liens:["🔗","Page liens"]};
+const ico=n=>`<i class="ico ico-${n}" aria-hidden="true"></i>`;
+const NFC_TYPES={profil:[ico("user"),"Carte NFC"],avis:[ico("star"),"Google Reviews"],wifi:[ico("wifi"),"Wi-Fi"],menu:[ico("tools-kitchen-2"),"Menu digital"],liens:[ico("link"),"Page liens"]};
 const NFC_STATUT={active:["paid","Active"],attente:["sent","En attente"],desactivee:["draft","Désactivée"]};
 const MSTEPS=[["new","Nouvelle"],["progress","En cours"],["done","Faite"]];
 const MLABEL=Object.fromEntries(MSTEPS),MPILL={new:"late",progress:"sent",done:"paid"};
@@ -639,7 +640,7 @@ function questionnaire(t){const v=qInfos[t]||{};
       :`<input data-q="${t}.${k}" value="${esc(val)}" maxlength="300"${kind==="tel"?' type="tel" inputmode="tel"':kind==="email"?' type="email" inputmode="email" autocapitalize="off"':""}${/insta|face|link|tik|snap|youtube|maps|site|lien|ssid|motdepasse/.test(k)?' autocapitalize="off" autocorrect="off" spellcheck="false"':""}>`;
     return `<label class="f"><span>${esc(lab)}${req?' <span class="req">*</span>':""}</span>${inp}</label>`};
   return `<details class="qbox" open><summary>${NFC_TYPES[t][0]} Infos pour votre ${NFC_TYPES[t][1]}</summary><div class="stack" style="margin-top:10px">
-    ${t==="wifi"?`<div class="notice" style="background:color-mix(in srgb,var(--warn) 14%,var(--surface))">⚠️ Le mot de passe sera visible par toute personne qui scanne la plaque. Conseil : un réseau « invités ».</div>`:""}
+    ${t==="wifi"?`<div class="notice" style="background:color-mix(in srgb,var(--warn) 14%,var(--surface))"><i class="ico ico-alert-triangle" aria-hidden="true"></i> Le mot de passe sera visible par toute personne qui scanne la plaque. Conseil : un réseau « invités ».</div>`:""}
     ${QFORMS[t].map(champ).join("")}<p class="muted" style="margin:0;font-size:12.5px">Photo / logo : envoyez-les sur WhatsApp après la commande. Une case vide n’apparaîtra pas.</p></div></details>`}
 function infosPanier(types){const out={};
   for(const t of types){const v=qInfos[t]||{},o={};for(const [k,,,kind] of QFORMS[t]){const x=v[k];if(kind==="check"){if(x)o[k]=true}else if(x!=null&&String(x).trim())o[k]=String(x).trim().slice(0,k==="menu"?6000:1000)}
@@ -668,20 +669,20 @@ function renderNfc(){
   app.innerHTML=`<div class="section-head"><div><h2>Produits NFC</h2><div class="muted" style="font-size:13.5px">Toutes les créations de l’outil (cartes, avis, Wi-Fi, menus, pages liens).</div></div><a class="btn primary" href="${OUTIL_URL}" target="_blank" rel="noopener">＋ Créer dans l’outil</a></div>
   <div class="filters"><button class="chip" data-nfcf="" aria-pressed="${!nfcFiltre}">Tout (${S.creations.length})</button>${Object.entries(NFC_TYPES).map(([k,[i,n]])=>`<button class="chip" data-nfcf="${k}" aria-pressed="${nfcFiltre===k}">${i} ${n}${nb[k]?" ("+nb[k]+")":""}</button>`).join("")}</div>
   ${list.length?`<div class="nfc-grid">${list.map(c=>`<div class="ncard"><div class="ncard-top">${c.qr?`<a href="${esc(c.qr)}" target="_blank" rel="noopener"><img class="nqr" src="${esc(c.qr)}" alt="QR" loading="lazy"></a>`:""}
-    <div class="main"><div class="t">${(NFC_TYPES[c.type]||["❔"])[0]} ${esc(c.titre||c.slug)}</div><div class="s">${esc((NFC_TYPES[c.type]||["",c.type])[1])} · ${c.clientEmail?esc(cl(c.clientEmail)):"<i>sans client</i>"}</div>
+    <div class="main"><div class="t">${(NFC_TYPES[c.type]||[ico("help-circle")])[0]} ${esc(c.titre||c.slug)}</div><div class="s">${esc((NFC_TYPES[c.type]||["",c.type])[1])} · ${c.clientEmail?esc(cl(c.clientEmail)):"<i>sans client</i>"}</div>
     <a class="s nlien" href="${esc(c.lien)}" target="_blank" rel="noopener">${esc((c.lien||"").replace(/^https:\/\//,""))}</a><div class="s">Modifié le ${fts(c.modifieLe)} ${nPill(c)}</div></div></div>
     <div class="row"><a class="btn sm" href="${esc(c.lien)}" target="_blank" rel="noopener">Ouvrir</a><a class="btn sm" href="${OUTIL_URL}#modifier=${encodeURIComponent(c.slug||c.id)}" target="_blank" rel="noopener">Modifier dans l’outil</a></div></div>`).join("")}</div>`
   :`<div class="empty"><h3>Aucun produit NFC ${nfcFiltre?"de ce type":"pour l’instant"}</h3><p>Les créations de l’outil apparaissent ici dès que l’outil est relié à Firebase (clé du compte de service).</p></div>`}`}
 /* admin : demandes de modification */
 function modCard(m){return `<div class="ocard${m.status==="new"?" is-new":""}"><button class="ocard-main" data-m-open="${esc(m.id)}">
   <div class="row between"><span class="num" style="font-weight:600">${esc(m.number)}</span>${mPill(m)}</div>
-  <div class="t">${(NFC_TYPES[m.type]||["❔"])[0]} ${esc(m.creationTitre||m.creationId)} · ${esc(m.quoi||"")}</div>
+  <div class="t">${(NFC_TYPES[m.type]||[ico("help-circle")])[0]} ${esc(m.creationTitre||m.creationId)} · ${esc(m.quoi||"")}</div>
   <div class="s">${esc(m.clientName||m.clientEmail)} · ${fdt(m.createdAt)}</div>
   <div class="onote" style="font-style:normal">${esc((m.description||"").slice(0,140))}${(m.description||"").length>140?"…":""}</div></button></div>`}
 function modView(m){const c=S.creations.find(x=>x.id===m.creationId||x.slug===m.creationId);
   openModal(`${head(esc(m.number),mPill(m))}
   <div class="muted" style="font-size:14px;margin-bottom:12px">${esc(m.clientName||"Client")} · ${esc(m.clientEmail)}<br>Envoyée le ${fdt(m.createdAt)}</div>
-  <div class="paper"><div class="eyebrow">${(NFC_TYPES[m.type]||["❔"])[0]} ${esc(m.creationTitre||m.creationId)} · ${esc(m.quoi||"")}</div><p style="margin:6px 0 0;white-space:pre-wrap">${esc(m.description)}</p>
+  <div class="paper"><div class="eyebrow">${(NFC_TYPES[m.type]||[ico("help-circle")])[0]} ${esc(m.creationTitre||m.creationId)} · ${esc(m.quoi||"")}</div><p style="margin:6px 0 0;white-space:pre-wrap">${esc(m.description)}</p>
   ${m.nouveau?`<div class="eyebrow" style="margin-top:10px">Nouveau texte / prix / mot de passe</div><p style="margin:4px 0 0;white-space:pre-wrap">${esc(m.nouveau)}</p>`:""}</div>
   <div class="row" style="margin-top:12px">${c?`<a class="btn" href="${esc(c.lien)}" target="_blank" rel="noopener">Voir la page</a>`:""}<a class="btn primary" href="${OUTIL_URL}#modifier=${encodeURIComponent(m.creationId)}" target="_blank" rel="noopener">Modifier dans l’outil</a></div>
   <div class="eyebrow" style="margin:16px 0 8px">Statut</div>
@@ -695,17 +696,17 @@ async function setModStatus(id,st){const m=S.mods.find(x=>x.id===id);if(!m||m.st
 function nfcActifsHtml(){const act=S.creations.filter(c=>(c.statut||"active")==="active"),nb={};for(const c of act)nb[c.type]=(nb[c.type]||0)+1;
   return `<button class="nfc-sum" data-goto="nfc"><span class="eyebrow">Produits NFC actifs</span><span class="nfc-sum-l">${Object.entries(NFC_TYPES).map(([k,[i,n]])=>`<span>${i} <b class="num">${nb[k]||0}</b> ${n}</span>`).join("")}</span></button>`}
 /* client : mes produits NFC */
-const GUIDE_NFC=`<details class="acc"><summary>📲 Activer ma carte avec NFC Tools</summary><ol class="guide">
+const GUIDE_NFC=`<details class="acc"><summary><i class="ico ico-nfc" aria-hidden="true"></i> Activer ma carte avec NFC Tools</summary><ol class="guide">
   <li>Installez l’application gratuite <b>NFC Tools</b> (App Store ou Google Play).</li><li>Ouvrez-la et touchez <b>Écrire</b>.</li>
   <li>Touchez <b>Ajouter un enregistrement</b>, puis <b>URL / URI</b>.</li><li>Collez le lien de votre produit (bouton « Copier le lien »), puis <b>OK</b>.</li>
   <li>Touchez <b>Écrire</b> et approchez la carte ou la plaque du <b>haut du téléphone</b> (iPhone) ou du <b>milieu du dos</b> (Android).</li>
-  <li>« Écriture réussie » ✅ : testez en approchant un autre téléphone.</li></ol></details>`;
-function myNfcCard(c){const t=NFC_TYPES[c.type]||["❔",c.type];
+  <li>« Écriture réussie » <i class="ico ico-circle-check" aria-hidden="true"></i> : testez en approchant un autre téléphone.</li></ol></details>`;
+function myNfcCard(c){const t=NFC_TYPES[c.type]||[ico("help-circle"),c.type];
   return `<div class="ncard"><div class="ncard-top">${c.qr?`<a href="${esc(c.qr)}" target="_blank" rel="noopener" download><img class="nqr" src="${esc(c.qr)}" alt="QR de ${esc(c.titre)}" loading="lazy"></a>`:""}
   <div class="main"><div class="t">${t[0]} ${esc(c.titre||c.slug)}</div><div class="s">${t[1]} · mis à jour le ${fts(c.modifieLe)}</div><a class="s nlien" href="${esc(c.lien)}" target="_blank" rel="noopener">${esc((c.lien||"").replace(/^https:\/\//,""))}</a></div></div>
   <div class="row"><a class="btn sm primary" href="${esc(c.lien)}" target="_blank" rel="noopener">Voir</a><button class="btn sm" data-copylien="${esc(c.lien)}">Copier le lien</button>${c.qr?`<a class="btn sm" href="${esc(c.qr)}" target="_blank" rel="noopener" download>QR code</a>`:""}<button class="btn sm" data-modreq="${esc(c.id)}">Demander une modification</button></div></div>`}
 function myModCard(m){return `<div class="ocard"><div class="ocard-main" style="cursor:default"><div class="row between"><span class="num" style="font-weight:600">${esc(m.number)}</span>${mPill(m)}</div>
-  <div class="t">${(NFC_TYPES[m.type]||["❔"])[0]} ${esc(m.creationTitre||"")} · ${esc(m.quoi||"")}</div><div class="s">${fdt(m.createdAt)}</div>
+  <div class="t">${(NFC_TYPES[m.type]||[ico("help-circle")])[0]} ${esc(m.creationTitre||"")} · ${esc(m.quoi||"")}</div><div class="s">${fdt(m.createdAt)}</div>
   <div class="onote" style="font-style:normal">${esc(m.description)}</div>${m.reply?`<div class="reply"><b>Réponse de ${esc(S.settings.name||"nfcwork.ma")} :</b> ${esc(m.reply)}</div>`:""}</div></div>`}
 function renderMyNfc(){const cs=P.creations;
   return `<div class="section-head" style="margin-top:6px"><div><h2>Mes produits NFC</h2><div class="muted" style="font-size:13.5px">Vos cartes, plaques et pages : lien, QR code et modifications.</div></div></div>
@@ -718,7 +719,7 @@ function modForm(id){const cs=P.creations;if(!cs.length){toast("Aucun produit NF
   const c0=cs.find(c=>c.id===id)||cs[0];
   openModal(`${head("Demander une modification")}
   <form id="modForm" class="stack">
-    <label class="f">Produit<select id="md-crea">${cs.map(c=>`<option value="${esc(c.id)}"${c.id===c0.id?" selected":""}>${(NFC_TYPES[c.type]||["❔"])[0]} ${esc(c.titre||c.slug)}</option>`).join("")}</select></label>
+    <label class="f">Produit<select id="md-crea">${cs.map(c=>`<option value="${esc(c.id)}"${c.id===c0.id?" selected":""}>${esc(c.titre||c.slug)}</option>`).join("")}</select></label>
     <label class="f">Quoi changer ?<select id="md-quoi"></select></label>
     <label class="f">Description<textarea id="md-desc" maxlength="2000" required placeholder="Ex. mon numéro a changé, le café passe à 14 DH…"></textarea></label>
     <label class="f">Nouveau texte / prix / mot de passe (facultatif)<textarea id="md-nouveau" maxlength="2000" placeholder="Ex. 06 12 34 56 78"></textarea></label>
@@ -822,7 +823,7 @@ function drawInvoiceForm(){
      <label class="f">Désignation<input data-l-desc="${i}" value="${esc(l.desc)}"></label>
      <label class="f">Qté<input data-l-qty="${i}" type="number" min="0" step="1" class="num" value="${esc(l.qty)}"></label>
      <label class="f">P.U. HT<input data-l-price="${i}" type="number" min="0" step="0.01" class="num" value="${esc(l.price)}"></label>
-     <button type="button" class="iconbtn" data-l-del="${i}" aria-label="Supprimer la ligne">✕</button></div>`).join("")}
+     <button type="button" class="iconbtn" data-l-del="${i}" aria-label="Supprimer la ligne"><i class="ico ico-x" aria-hidden="true"></i></button></div>`).join("")}
    <button type="button" class="btn sm" data-l-add style="align-self:flex-start">＋ Ajouter une ligne</button>
    <div class="row between">
     <label class="check"><input type="checkbox" id="iv-tva"${d.tva?" checked":""}> Appliquer la TVA</label>
@@ -930,7 +931,7 @@ document.addEventListener("click",async e=>{
     if(d.pickAdd!=null){const k=pick.id+"|"+pick.opt;cart[k]=(cart[k]||0)+pick.qty;closeModal();const y=window.scrollY;render();window.scrollTo(0,y);toast("Ajouté au panier");return}
     if(d.quote!=null){quoteForm();return}
     if(d.modreq!=null){modForm(d.modreq);return}
-    if(d.copylien){navigator.clipboard&&window.isSecureContext?navigator.clipboard.writeText(d.copylien).then(()=>toast("Lien copié ✓"),()=>prompt("Copiez :",d.copylien)):prompt("Copiez :",d.copylien);return}
+    if(d.copylien){navigator.clipboard&&window.isSecureContext?navigator.clipboard.writeText(d.copylien).then(()=>toast("Lien copié"),()=>prompt("Copiez :",d.copylien)):prompt("Copiez :",d.copylien);return}
     if(d.claim!=null){claimForm(d.claim);return}
     if(d.profile!=null||el.id==="profileBtn"){profileForm();return}
   }

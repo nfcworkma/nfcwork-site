@@ -8,7 +8,7 @@ const T = {
   nav_home:"الرئيسية", nav_products:"المنتجات", nav_order:"الطلب", nav_about:"من نحن", nav_faq:"الأسئلة", nav_contact:"اتصل بنا", nav_claim:"شكاية", nav_cond:"الشروط",
   menu:"القائمة", cart:"السلة", account:"فضاء الزبون", accountFoot:"فضاء الزبون · تسجيل الدخول", clientH:"ديجا زبون عندنا؟", clientP:"تبّع الطلبات والفواتير ديالك من فضاء الزبون.", clientBtn:"دخل لفضائك",
   // Common
-  dh:"درهم", yr:"/ السنة", addBtn:"زيد للسلة", inCart:"فالسلة ✓", added:"تزاد للسلة",
+  dh:"درهم", yr:"/ السنة", addBtn:"زيد للسلة", inCart:"فالسلة", added:"تزاد للسلة",
   rec:"الموصى به", best:"الأكثر طلباً", launch:"سعر الإطلاق",
   choose:"اختار", other:"مدينة أخرى", copy:"نسخ الرسالة", copied:"تنسخت الرسالة",
   slogan:"أفكارك. المزيد من الاتصال.",
@@ -36,6 +36,8 @@ const T = {
   ctaH:"جاهزين لتطوير نشاطكم؟", ctaP:"تواصلو معنا اليوم وخذو حل رقمي متكامل.",
   // Products
   shopH:"المنتجات والأثمنة", shopP:"اختار الباقة اللي كتناسبك وزيدها للسلة", zoom:"اضغط باش تكبر الصورة",
+  cleStep1:"1. اختار الديزاين", cleStep2:"2. اختار العرض", cleStep3:"3. ديزاين كل مفتاح", cleKey:"مفتاح", clePick:"اختار هاد العرض", clePicked:"العرض المختار", cleAdd:"زيد للسلة", cleDesigns:"الديزاين",
+  kH:"معلومات المفاتيح NFC", kP:"عمر غير اللي عندك دابا، والباقي نكملوه معاك فالواتساب.", kSsid:"اسم شبكة الواي فاي", kPass:"كلمة السر ديال الواي فاي", kMenu:"رابط المنيو (إلا كان)", kMenuPh:"صور المنيو", kGoogle:"رابط الصفحة ديالكم فـ Google", kLogo:"اللوغو ديالكم (اختياري)", kImgHint:"PNG، JPG، WEBP ولا SVG · 5 ميغا على الأكثر", kUp:"كيتصيفط…", kOk:"تصيفط", kErr:"ما تصيفطش. عاود جرب.", kBadType:"هاد النوع ما مقبولش (PNG، JPG، WEBP ولا SVG)", kBig:"الملف كبير بزاف (5 ميغا على الأكثر)", kNameFirst:"دخل الاسم ديالك قبل", kWait:"تسنا شوية، الصور باقي كيتصيفطو…", kMsg:"معلومات المفاتيح NFC", kLogoLbl:"اللوغو", kMenuPhLbl:"صور المنيو",
   extrasH:"الخيارات والخدمات",
   extras:[["تصميم احترافي مخصص","حسب نشاطكم وهويتكم","+50 درهم"],["تعديل المنيو","لكل تعديل","+20 درهم"],["اشتراك سنوي للمنيو","تحديثات غير محدودة + دعم","249 درهم / سنة"],["التوصيل","الدار البيضاء 30 درهم، مدن أخرى حسب الطلب","ابتداءً من 30 درهم"],["التركيب في عين المكان","صناديق LED والكميات الكبيرة","حسب الطلب"]],
   cardH:"معلومات البطاقة الرقمية (اختياري)", cardP:"خلي خاوي اللي ما بغيتيش يبان فالبروفايل ديالك. الصورة ولا اللوغو صيفطهم فالواتساب.", cdNom:"الاسم اللي غيبان", cdJob:"المهنة / الشركة", cdSite:"الموقع الإلكتروني", cdMaps:"Google Maps (رابط الموقع)", cardMsg:"البطاقة الرقمية",
@@ -71,7 +73,7 @@ const T = {
  fr: {
   nav_home:"Accueil", nav_products:"Produits", nav_order:"Commande", nav_about:"À propos", nav_faq:"FAQ", nav_contact:"Contact", nav_claim:"Réclamation", nav_cond:"Conditions",
   menu:"Menu", cart:"Panier", account:"Espace client", accountFoot:"Espace client · Se connecter", clientH:"Déjà client ?", clientP:"Suivez vos commandes et factures dans votre espace client.", clientBtn:"Accéder à mon espace",
-  dh:"DH", yr:"/ an", addBtn:"Ajouter au panier", inCart:"Dans le panier ✓", added:"Ajouté au panier",
+  dh:"DH", yr:"/ an", addBtn:"Ajouter au panier", inCart:"Dans le panier", added:"Ajouté au panier",
   rec:"Recommandé", best:"Best seller", launch:"Prix de lancement",
   choose:"Choisir", other:"Autre ville", copy:"Copier le message", copied:"Message copié",
   slogan:"Vos idées. Plus de connexions.",
@@ -97,6 +99,8 @@ const T = {
   why:[["Solutions modernes","Des outils digitaux qui font la différence"],["Plus d'avis et de visibilité","Vos clients vous trouvent facilement"],["Meilleure expérience client","Un service fluide et rapide"],["Installation rapide","Prêt à l'emploi, sans complication"],["Support et accompagnement","Une équipe à votre écoute"],["Pour tous les commerces","Restaurants, cafés, hôtels, salons, cliniques..."]],
   ctaH:"Prêt à moderniser votre business ?", ctaP:"Contactez NFCWORK dès aujourd'hui.",
   shopH:"Produits et tarifs", shopP:"Choisissez votre formule et ajoutez-la au panier", zoom:"Touchez pour agrandir",
+  cleStep1:"1. Choisissez votre design", cleStep2:"2. Choisissez votre offre", cleStep3:"3. Design de chaque clé", cleKey:"Clé", clePick:"Choisir cette offre", clePicked:"Offre choisie", cleAdd:"Ajouter au panier", cleDesigns:"Design",
+  kH:"Infos de vos clés NFC", kP:"Remplissez ce que vous avez déjà ; on complète le reste avec vous sur WhatsApp.", kSsid:"Nom du réseau Wi-Fi", kPass:"Mot de passe Wi-Fi", kMenu:"Lien du menu (si vous en avez un)", kMenuPh:"Photos du menu", kGoogle:"Lien de votre fiche Google", kLogo:"Votre logo (facultatif)", kImgHint:"PNG, JPG, WEBP ou SVG · 5 Mo max", kUp:"Envoi en cours…", kOk:"Envoyé", kErr:"Échec de l'envoi. Réessayez.", kBadType:"Format non accepté (PNG, JPG, WEBP ou SVG)", kBig:"Fichier trop lourd (5 Mo max)", kNameFirst:"Entrez d'abord votre nom", kWait:"Patientez, les images sont en cours d'envoi…", kMsg:"Infos des clés NFC", kLogoLbl:"Logo", kMenuPhLbl:"Photos du menu",
   extrasH:"Options et services",
   extras:[["Design premium","Design personnalisé et professionnel","+50 DH"],["Modification de menu","Par modification","+20 DH"],["Abonnement annuel menu","Mises à jour et support inclus","249 DH / an"],["Livraison","Casablanca 30 DH, autres villes sur devis","Dès 30 DH"],["Installation sur place","Caissons LED et grandes quantités","Sur devis"]],
   cardH:"Infos de votre carte digitale (facultatif)", cardP:"Laissez vide ce que vous ne voulez pas afficher sur votre profil. Photo ou logo : envoyez-les sur WhatsApp.", cdNom:"Nom à afficher", cdJob:"Fonction / entreprise", cdSite:"Site web", cdMaps:"Google Maps (lien de localisation)", cardMsg:"Carte digitale",

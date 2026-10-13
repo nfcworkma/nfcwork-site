@@ -30,8 +30,17 @@
   };
   cart = cart.filter(l => findItem(l.key));
   const cartCount = () => cart.reduce((s, l) => s + l.q, 0);
+  // Clé NFC : designs choisis (un par clé), regroupés : « 2 × Wi-Fi, 1 × Menu »
+  const designText = (C, d, lg) => {
+    if (!C.designs || !Array.isArray(d) || !d.length) return "";
+    const nom = k => { const D = C.designs.find(x => x.k === k); return D ? (lg ? D.n[lg] : L(D.n)) : k; };
+    if (d.length === 1) return nom(d[0]);
+    const n = {}; d.forEach(k => (n[k] = (n[k] || 0) + 1));
+    return Object.keys(n).map(k => `${n[k]} × ${nom(k)}`).join(", ");
+  };
   const waLink = text => `https://wa.me/${CONFIG.whatsapp}${text ? "?text=" + encodeURIComponent(text) : ""}`;
   const telLink = "tel:+" + CONFIG.whatsapp;
+  const CHECK = '<i class="ico ico-check" aria-hidden="true"></i> ';
 
   /* ---------- Application installable (PWA) ---------- */
   let installPrompt = null;
@@ -135,7 +144,7 @@
       <h3>${esc(L(Ti.n))}</h3>
       <div class="price num">${Ti.p} <small>${t("dh")}${Ti.yr ? " " + t("yr") : ""}</small>${Ti.old ? `<s>${Ti.old} ${t("dh")}</s>` : ""}</div>
       <ul>${L(Ti.f).map(x => `<li>${esc(x)}</li>`).join("")}</ul>
-      <button type="button" class="add ${inC ? "done" : ""}" data-k="${key}">${inC ? t("inCart") : t("addBtn")}</button>
+      <button type="button" class="add ${inC ? "done" : ""}" data-k="${key}">${inC ? CHECK + t("inCart") : t("addBtn")}</button>
     </article>`;
   }
   function bindAdd(root, after) {
@@ -225,7 +234,7 @@
     // Avis clients : uniquement de vrais avis (CONFIG.reviews). Sinon, invitation à laisser un avis.
     const R = (CONFIG.reviews || []).filter(r => r && r.text);
     $("#reviews").innerHTML = R.length
-      ? `<div class="reviews">${R.map(r => `<figure class="review reveal" style="margin:0"><div class="stars" aria-label="${r.stars || 5}/5">${"★".repeat(r.stars || 5)}${"☆".repeat(5 - (r.stars || 5))}</div>
+      ? `<div class="reviews">${R.map(r => `<figure class="review reveal" style="margin:0"><div class="stars" aria-label="${r.stars || 5}/5">${'<i class="ico ico-star-filled"></i>'.repeat(r.stars || 5)}${'<i class="ico ico-star"></i>'.repeat(5 - (r.stars || 5))}</div>
           <p>${esc(L(r.text))}</p><footer><span class="av" aria-hidden="true">${esc((r.name || "?").trim()[0] || "?")}</span><div><b>${esc(r.name || "")}</b>${esc(L(r.role || ""))}</div></footer></figure>`).join("")}</div>`
       : `<div class="review-cta reveal"><div><b style="font-family:var(--display);font-size:18px">${t("revEmptyH")}</b><p>${t("revEmptyP")}</p></div>
           <a class="btn primary" href="${waLink(t("revMsg"))}" target="_blank" rel="noopener">${t("revBtn")}</a></div>`;
@@ -261,10 +270,54 @@
     $("#tabs").innerHTML = CATALOG.map(c => `<button type="button" role="tab" aria-selected="${c.id === cat}" data-c="${c.id}">${esc(L(c.name))}</button>`).join("");
     $("#posterImg").src = C.img; $("#posterImg").alt = L(C.name); $("#posterBadge").innerHTML = shotBadge(C);
     $("#catIntro").textContent = L(C.intro);
-    $("#tiers").innerHTML = C.tiers.map(Ti => tierCard(C, Ti)).join("");
+    if (C.designs) cleRender(C);
+    else { $("#designs").innerHTML = $("#cleBox").innerHTML = ""; $("#tiers").innerHTML = C.tiers.map(Ti => tierCard(C, Ti)).join(""); }
     $("#extras").innerHTML = t("extras").map(e => `<div class="extra"><div><b>${esc(e[0])}</b><span>${esc(e[1])}</span></div><em>${esc(e[2])}</em></div>`).join("");
   };
+  // Clé NFC : 1) design (entouré en bleu) 2) offre 3) pour les packs, un design par clé → panier { key, q, d:[designs] }
+  const cle = { main: "", t: "", d: [] };
+  function cleRender(C) {
+    if (!C.designs.some(D => D.k === cle.main)) cle.main = C.designs[0].k;
+    if (!C.tiers.some(Ti => Ti.k === cle.t)) cle.t = C.tiers[0].k;
+    const Ti = C.tiers.find(x => x.k === cle.t), nb = Ti.nb || 1;
+    cle.d = Array.from({ length: nb }, (_, i) => cle.d[i] || cle.main);
+    const pic = (D, on, attrs, small) => `<button type="button" class="design${small ? " mini" : ""}" ${attrs} aria-pressed="${on}" title="${esc(L(D.n))}"><img src="${D.img}" alt="${esc(L(D.n))}" loading="lazy" width="1080" height="1080">${on ? '<i class="ico ico-check design-ok" aria-hidden="true"></i>' : ""}${small ? "" : `<span>${esc(L(D.n))}</span>`}</button>`;
+    $("#designs").innerHTML = `<h3 class="step-h">${t("cleStep1")}</h3>
+      <div class="designs">${C.designs.map(D => pic(D, D.k === cle.main, `data-main="${D.k}"`)).join("")}</div>
+      <h3 class="step-h">${t("cleStep2")}</h3>`;
+    $("#tiers").innerHTML = C.tiers.map(x => {
+      const on = x.k === cle.t;
+      return tierCard(C, x).replace(/<button type="button" class="add[^"]*" data-k="[^"]*">[^<]*<\/button>/,
+        `<button type="button" class="add pick" data-tier="${x.k}" aria-pressed="${on}">${on ? t("clePicked") : t("clePick")}</button>`)
+        .replace('<article class="tier', `<article data-tier="${x.k}" class="tier pickable ${on ? "sel" : ""}`);
+    }).join("");
+    const key = C.id + ":" + Ti.k, inC = cart.some(l => l.key === key && (l.d || []).join() === cle.d.join());
+    $("#cleBox").innerHTML = (nb > 1 ? `<h3 class="step-h">${t("cleStep3")}</h3><div class="kslots">${cle.d.map((k, i) =>
+        `<div class="kslot"><b>${t("cleKey")} ${i + 1}</b><div class="kmini">${C.designs.map(D => pic(D, D.k === k, `data-slot="${i}" data-d="${D.k}"`, true)).join("")}</div></div>`).join("")}</div>` : "") +
+      `<div class="cle-sum"><div><b>${esc(L(C.name))} — ${esc(L(Ti.n))}</b><span>${t("cleDesigns")} : ${esc(designText(C, cle.d))}</span></div>
+        <button type="button" class="btn primary" id="cleAdd">${inC ? CHECK + t("inCart") : t("cleAdd")} · <span class="num">${Ti.p} ${t("dh")}</span></button></div>`;
+  }
+  function cleBind() {
+    const C = () => CATALOG.find(c => c.id === cat);
+    $("#designs").addEventListener("click", e => {
+      const b = e.target.closest("[data-main]"); if (!b) return;
+      cle.main = b.dataset.main; cle.d = cle.d.map(() => cle.main); cleRender(C());
+    });
+    $("#tiers").addEventListener("click", e => {
+      const b = e.target.closest("[data-tier]"); if (!b || !C().designs) return;
+      cle.t = b.dataset.tier; cleRender(C());
+    });
+    $("#cleBox").addEventListener("click", e => {
+      const m = e.target.closest("[data-slot]");
+      if (m) { cle.d[+m.dataset.slot] = m.dataset.d; cleRender(C()); return; }
+      if (!e.target.closest("#cleAdd")) return;
+      const key = cat + ":" + cle.t, d = cle.d.slice();
+      if (!cart.some(l => l.key === key && (l.d || []).join() === d.join())) { cart.push({ key, q: 1, d }); save(); }
+      toast(t("added")); updateCartBadge(); cleRender(C());
+    });
+  }
   pages.products.bind = function () {
+    cleBind();
     $("#tabs").addEventListener("click", e => {
       const b = e.target.closest("button"); if (!b) return;
       cat = b.dataset.c; history.replaceState(null, "", "#" + cat); pages.products();
@@ -287,12 +340,56 @@
   // Infos de la carte digitale (seulement si le panier contient une carte NFC ou un pack qui en contient une)
   const CARD_FIELDS = [["nom", "cdNom"], ["job", "cdJob"], ["instagram", "Instagram"], ["facebook", "Facebook"], ["linkedin", "LinkedIn"],
     ["tiktok", "TikTok"], ["snapchat", "Snapchat"], ["youtube", "YouTube"], ["site", "cdSite"], ["maps", "cdMaps"]];
-  const cartHasCard = () => cart.some(l => l.key.startsWith("carte:") || ["packs:starter", "packs:professional", "packs:premium"].includes(l.key));
+  // Designs des clés NFC présents dans le panier (wifi, contact, menu, google, barber)
+  const keyTypes = () => new Set(cart.filter(l => l.key.startsWith("cle:")).flatMap(l => l.d || []));
+  const cartHasCard = () => cart.some(l => l.key.startsWith("carte:") || ["packs:starter", "packs:professional", "packs:premium"].includes(l.key)) || keyTypes().has("contact");
   function cardLines(fr) {
     if (!cartHasCard()) return [];
     const lab = k => (/^cd/.test(k) ? T[fr ? "fr" : "ar"][k] : k);
     const rows = CARD_FIELDS.map(([id, k]) => [lab(k), $("#cd-" + id).value.trim()]).filter(r => r[1]);
     return rows.length ? ["", "🪪 " + T[fr ? "fr" : "ar"].cardMsg + " :", ...rows.map(r => `• ${r[0]} : ${r[1]}`)] : [];
+  }
+  /* --- Clé NFC : infos selon le design + images (logo, photos du menu) enregistrées dans Google Drive ---
+     L'image part dès qu'elle est choisie vers le script Google (CONFIG.sheetsUrl, action « upload »),
+     qui renvoie le lien Drive ; ce lien est ensuite écrit dans le message WhatsApp. */
+  const IMG_TYPES = { "image/png": 1, "image/jpeg": 1, "image/webp": 1, "image/svg+xml": 1 };
+  const IMG_EXT = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" };
+  const IMG_MAX = 5 * 1024 * 1024;
+  const uploads = { "k-logo": [], "k-menu-ph": [] };   // [{ nom, etat: "up"|"ok"|"err", url }]
+  const imgType = f => (IMG_TYPES[f.type] ? f.type : IMG_EXT[(f.name.split(".").pop() || "").toLowerCase()] || "");
+  function uploadImage(file, dossier) {
+    return new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = ko; r.readAsDataURL(file); })
+      .then(data => fetch(CONFIG.sheetsUrl, { method: "POST", headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ type: "upload", dossier, client: $("#f-name").value.trim(), fichier: file.name, mime: imgType(file), data }) }))
+      .then(r => r.json()).then(j => { if (!j.ok) throw new Error(j.erreur || "upload"); return j.url; });
+  }
+  function uploadStatus(id) {
+    const st = $("#st-" + id); if (!st) return;
+    st.innerHTML = uploads[id].map(u => `<span class="${u.etat}"><i class="ico ico-${u.etat === "ok" ? "circle-check" : u.etat === "err" ? "alert-triangle" : "file-text"}" aria-hidden="true"></i> ${esc(u.nom)} · ${t(u.etat === "ok" ? "kOk" : u.etat === "err" ? "kErr" : "kUp")}</span>`).join("");
+  }
+  function onImages(input) {
+    const id = input.id, files = [...input.files];
+    setErr(id, "");
+    uploads[id] = [];
+    if (!files.length) return uploadStatus(id);
+    const bad = files.find(f => !imgType(f)) ? "kBadType" : files.find(f => f.size > IMG_MAX) ? "kBig" : !$("#f-name").value.trim() ? "kNameFirst" : "";
+    if (bad) { input.value = ""; setErr(id, t(bad)); if (bad === "kNameFirst") $("#f-name").focus(); return uploadStatus(id); }
+    const lot = uploads[id] = files.map(f => ({ nom: f.name, etat: "up", url: "" }));
+    uploadStatus(id);
+    files.forEach((f, i) => uploadImage(f, id === "k-logo" ? "logo" : "menu")
+      .then(url => { lot[i].etat = "ok"; lot[i].url = url; }, () => { lot[i].etat = "err"; })
+      .then(() => { if (uploads[id] === lot) { uploadStatus(id); orderRef = null; } }));
+  }
+  function keyLines(fr) {
+    const types = keyTypes(); if (!types.size) return [];
+    const T2 = T[fr ? "fr" : "ar"], v = id => $("#" + id).value.trim();
+    const links = id => uploads[id].filter(u => u.etat === "ok").map(u => u.url).join(" , ");
+    const rows = [
+      types.has("wifi") ? [T2.kSsid, v("k-ssid")] : null, types.has("wifi") ? [T2.kPass, v("k-pass")] : null,
+      types.has("menu") ? [T2.kMenu, v("k-menu")] : null, types.has("menu") ? [T2.kMenuPhLbl, links("k-menu-ph")] : null,
+      types.has("google") ? [T2.kGoogle, v("k-google")] : null, [T2.kLogoLbl, links("k-logo")]
+    ].filter(r => r && r[1]);
+    return rows.length ? ["", T2.kMsg + " :", ...rows.map(r => `• ${r[0].replace(/\s*\(.*\)$/, "")} : ${r[1]}`)] : [];
   }
   function orderMessage() {
     const x = totals(), fr = lang === "fr";
@@ -301,7 +398,7 @@
     const v = id => $("#" + id).value.trim();
     return [
       (fr ? "🛒 Nouvelle commande NFCWORK" : "🛒 طلب جديد NFCWORK") + ` (${orderRef})`, "",
-      ...cart.map(l => { const { C, Ti } = findItem(l.key); return `• ${l.q} × ${L(C.name)} — ${L(Ti.n)} = ${Ti.p * l.q} DH`; }),
+      ...cart.map(l => { const { C, Ti } = findItem(l.key), d = designText(C, l.d); return `• ${l.q} × ${L(C.name)} — ${L(Ti.n)} = ${Ti.p * l.q} DH` + (d ? `\n   ${t("cleDesigns")} : ${d}` : ""); }),
       x.design ? (fr ? "• Design premium" : "• تصميم احترافي") + ` = ${x.design} DH` : null, "",
       (fr ? "Sous-total : " : "المجموع الفرعي: ") + (x.sub + x.design) + " DH",
       (fr ? "Livraison : " : "التوصيل: ") + (x.ship !== null ? x.ship + " DH" : (fr ? "à confirmer" : "للتأكيد")),
@@ -312,7 +409,7 @@
       v("f-addr") ? (fr ? "Adresse : " : "العنوان: ") + v("f-addr") : null,
       v("f-biz") ? (fr ? "Commerce : " : "المحل: ") + v("f-biz") : null,
       v("f-note") ? (fr ? "Remarque : " : "ملاحظة: ") + v("f-note") : null,
-      ...cardLines(fr)
+      ...cardLines(fr), ...keyLines(fr)
     ].filter(l => l !== null).join("\n");
   }
   // Ligne envoyée au Google Sheet (onglet « Commandes »), appelée juste après orderMessage()
@@ -323,14 +420,18 @@
       nom: v("f-name"), telephone: asText(v("f-phone")),
       ville: x.city === "other" ? v("f-other") : x.city,
       adresse: v("f-addr"), commerce: v("f-biz"),
-      produits: cart.map(l => { const { C, Ti } = findItem(l.key); return `${l.q} × ${C.name.fr} — ${typeof Ti.n === "string" ? Ti.n : Ti.n.fr} (${Ti.p * l.q} DH)`; }).join(" ; "),
+      produits: cart.map(l => { const { C, Ti } = findItem(l.key), d = designText(C, l.d, "fr"); return `${l.q} × ${C.name.fr} — ${typeof Ti.n === "string" ? Ti.n : Ti.n.fr} (${Ti.p * l.q} DH)` + (d ? ` [Design : ${d}]` : ""); }).join(" ; "),
       sousTotal: x.sub, designPremium: x.design,
       livraison: x.ship !== null ? x.ship : "à confirmer",
-      total: x.total, remarque: [v("f-note"), cardLines(true).slice(1).join(" ")].filter(Boolean).join(" | "), langue: lang
+      total: x.total, remarque: [v("f-note"), cardLines(true).slice(1).join(" "), keyLines(true).slice(1).join(" ")].filter(Boolean).join(" | "), langue: lang
     };
   }
   function validateOrder() {
     if (!cart.length) { toast(t("eCart")); return false; }
+    const up = Object.values(uploads).flat();
+    if (up.some(u => u.etat === "up")) { toast(t("kWait")); return false; }
+    const ko = Object.keys(uploads).find(id => uploads[id].some(u => u.etat === "err"));
+    if (ko) { setErr(ko, t("kErr")); $("#" + ko).focus(); return false; }
     const city = $("#f-city").value;
     const a = setErr("f-name", $("#f-name").value.trim() ? "" : t("eName"));
     const b = setErr("f-phone", phoneOk($("#f-phone").value) ? "" : t("ePhone"));
@@ -342,6 +443,11 @@
     citySelect($("#f-city"));
     $("#otherWrap").hidden = $("#f-city").value !== "other";
     $("#cardBox").hidden = !cartHasCard();
+    const kt = keyTypes();
+    $("#keyBox").hidden = !kt.size || !CONFIG.sheetsUrl && !kt.has("wifi") && !kt.has("menu") && !kt.has("google");
+    $$("#keyBox [data-k]").forEach(el => (el.hidden = !kt.has(el.dataset.k)));
+    $$("#keyBox .upl").forEach(el => { if (!CONFIG.sheetsUrl) el.hidden = true; });
+    Object.keys(uploads).forEach(uploadStatus);
     const lines = $("#lines"), tot = $("#tot");
     if (!cart.length) {
       lines.innerHTML = `<div class="empty"><p>${t("empty")}</p><a class="btn" href="produits.html">${t("browse")}</a></div>`;
@@ -350,7 +456,7 @@
     lines.innerHTML = cart.map((l, i) => {
       const { C, Ti } = findItem(l.key);
       return `<div class="line">
-        <div><div class="n">${esc(L(C.name))}</div><div class="t">${esc(L(Ti.n))} · <span class="num">${Ti.p} ${t("dh")}</span></div></div>
+        <div><div class="n">${esc(L(C.name))}</div><div class="t">${esc(L(Ti.n))} · <span class="num">${Ti.p} ${t("dh")}</span></div>${designText(C, l.d) ? `<div class="t">${t("cleDesigns")} : ${esc(designText(C, l.d))}</div>` : ""}</div>
         <div class="p num">${Ti.p * l.q} ${t("dh")}</div>
         <div class="qty"><button type="button" data-i="${i}" data-d="-1" aria-label="-">−</button><span class="num">${l.q}</span><button type="button" data-i="${i}" data-d="1" aria-label="+">+</button></div>
       </div>`;
@@ -371,13 +477,14 @@
     $("#orderForm").addEventListener("input", () => { orderRef = null; pages.order(); });
     $("#orderForm").addEventListener("change", () => pages.order());
     $("#orderForm").addEventListener("submit", e => e.preventDefault());
+    $$("#keyBox input[type=file]").forEach(inp => inp.addEventListener("change", () => onImages(inp)));
     bindWaButton($("#send"), orderMessage, validateOrder, () => {
       $("#doneRef").textContent = orderRef; $("#done").hidden = false; $("#done").scrollIntoView({ behavior: "smooth", block: "center" });
     }, orderData);
     $("#copyOrder").addEventListener("click", () => { if (validateOrder()) copyText(orderMessage()); });
     $("#newOrder").addEventListener("click", () => {
       cart = []; orderRef = null; save(); updateCartBadge();
-      $("#orderForm").reset(); $("#done").hidden = true; pages.order();
+      $("#orderForm").reset(); Object.keys(uploads).forEach(id => (uploads[id] = [])); $("#done").hidden = true; pages.order();
     });
   };
 
@@ -480,7 +587,7 @@
     renderHeader(); renderFooter(); applyStatic();
     if (pages[PAGE]) pages[PAGE]();
     reveal();
-    if (window.NFCWORK_APRES) window.NFCWORK_APRES();   // mode édition : remet les crayons ✏️
+    if (window.NFCWORK_APRES) window.NFCWORK_APRES();   // mode édition : remet les crayons
   }
   // Pour le mode édition (assets/js/admin.js) et les modifications chargées par contenu.js
   window.NFCWORK = { render, page: PAGE, get lang() { return lang; }, get cat() { return cat; }, esc };

@@ -2,7 +2,7 @@
    NFCWORK — MODE ÉDITION (admin uniquement)
    Chargé par app.js seulement si l'admin s'est connecté à l'espace client sur cet appareil.
    1. Vérifie avec Firebase que la personne connectée est bien l'admin (e-mail vérifié de firestore.rules).
-   2. Affiche un bouton « ✏️ Mode édition » ; une fois activé, un crayon apparaît à côté de chaque élément modifiable :
+   2. Affiche un bouton « Mode édition » (icône crayon) ; une fois activé, un crayon apparaît à côté de chaque élément modifiable :
       textes, noms / descriptions / photos des produits et packs, prix et contenu des formules, options.
    3. Enregistre dans Firestore (settings/site et settings/site-img-<produit>) → visible par tous les visiteurs.
       Les visiteurs ne chargent jamais ce fichier ; et même s'ils le chargeaient, les règles Firestore refusent
@@ -87,16 +87,16 @@
         if (b.dataset.a === "toggle") { actif = !actif; try { sessionStorage.setItem("nfcwork-edition", actif ? "1" : "0"); } catch (x) {} installer(); }
       });
     }
-    bar.innerHTML = `<button type="button" data-a="toggle" class="${actif ? "on" : ""}" aria-pressed="${actif}">✏️ ${actif ? "Mode édition : activé" : "Mode édition"}</button>`;
+    bar.innerHTML = `<button type="button" data-a="toggle" class="${actif ? "on" : ""}" aria-pressed="${actif}"><i class="ico ico-pencil" aria-hidden="true"></i> ${actif ? "Mode édition : activé" : "Mode édition"}</button>`;
     window.NFCWORK_APRES = decorer;
     decorer();
   }
   function retirerBarre() { const b = $("#ed-bar"); if (b) b.remove(); window.NFCWORK_APRES = null; $$(".ed-pen").forEach(x => x.remove()); document.documentElement.classList.remove("ed-on"); }
 
-  /* ---------- Crayons ✏️ à côté de ce qui est modifiable ---------- */
+  /* ---------- Crayons à côté de ce qui est modifiable ---------- */
   function crayon(titre, action, coin) {
     const b = document.createElement("button");
-    b.type = "button"; b.className = "ed-pen" + (coin ? " coin" : ""); b.textContent = "✏️"; b.title = titre; b.setAttribute("aria-label", titre);
+    b.type = "button"; b.className = "ed-pen" + (coin ? " coin" : ""); b.innerHTML = '<i class="ico ico-pencil" aria-hidden="true"></i>'; b.title = titre; b.setAttribute("aria-label", titre);
     b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); action(); }, true);
     return b;
   }
@@ -122,7 +122,7 @@
     });
     // options & services (page Produits)
     const ex = $("#extras");
-    if (ex) { const b = crayon("Modifier les options et leurs prix", editerOptions); b.classList.add("ed-opt"); b.textContent = "✏️ Options & prix"; ex.before(b); }
+    if (ex) { const b = crayon("Modifier les options et leurs prix", editerOptions); b.classList.add("ed-opt"); b.innerHTML = '<i class="ico ico-pencil" aria-hidden="true"></i> Options &amp; prix'; ex.before(b); }
   }
 
   /* ---------- Fenêtre d'édition ---------- */
@@ -139,7 +139,7 @@
     d.addEventListener("cancel", () => setTimeout(() => d.remove(), 0));
     const lancer = async fn => {
       const btns = $$("button", d); btns.forEach(b => (b.disabled = true)); err.textContent = "";
-      try { await fn(f, d); fermer(); toast("Enregistré ✓ — visible par tous les visiteurs"); }
+      try { await fn(f, d); fermer(); toast("Enregistré — visible par tous les visiteurs"); }
       catch (x) { err.textContent = x && x.code === "permission-denied" ? "Refusé : reconnectez-vous à l’espace client avec le compte admin." : (x.message || String(x)); btns.forEach(b => (b.disabled = false)); }
     };
     f.addEventListener("submit", e => { e.preventDefault(); lancer(enregistrer); });
@@ -194,7 +194,7 @@
     let nouvellePhoto = null;
     const d = fenetre("Modifier : " + C.name.fr, "La photo garde le même format (2:3) dans le site.",
       `<div class="ed-img"><img id="ed-apercu" src="${esc(C.img)}" alt=""><div style="display:grid;gap:8px">
-         <span class="btn" style="position:relative;overflow:hidden">📷 Changer la photo<input type="file" accept="image/*" id="ed-photo" style="position:absolute;inset:0;opacity:0;cursor:pointer"></span>
+         <span class="btn" style="position:relative;overflow:hidden"><i class="ico ico-camera" aria-hidden="true"></i> Changer la photo<input type="file" accept="image/*" id="ed-photo" style="position:absolute;inset:0;opacity:0;cursor:pointer"></span>
          ${C.img !== B.img ? `<label class="check" style="flex-direction:row"><input type="checkbox" name="photoOrig" style="width:auto"> Remettre la photo d’origine</label>` : ""}</div></div>
        <div class="ed-2">${champ("nfr", "Nom (français)", C.name.fr, { orig: B.name.fr })}${champ("nar", "الاسم (عربية)", C.name.ar, { ar: true, orig: B.name.ar })}</div>
        <div class="ed-2">${champ("sfr", "Phrase courte (français)", C.short.fr, { orig: B.short.fr })}${champ("sar", "الجملة القصيرة (عربية)", C.short.ar, { ar: true, orig: B.short.ar })}</div>

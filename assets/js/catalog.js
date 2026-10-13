@@ -43,6 +43,22 @@ const CATALOG = [
    {k:"pro",n:"Pro",p:99,rec:1,f:{ar:["كل مميزات الأساسية","تصميم مخصص","الشعار وألوان العلامة","QR Code","اختبار الاتصال"],fr:["Tout le Standard","Design personnalisé","Logo et couleurs de la marque","QR Code","Test de connexion"]}},
    {k:"prem",n:"Premium",p:149,prem:1,f:{ar:["كل مميزات برو","NFC + QR","تصميم فاخر حسب الطلب","رسالة مخصصة","دعم ما بعد البيع"],fr:["Tout le Pro","NFC + QR Code","Design premium sur mesure","Message personnalisé","Support après-vente"]}}]},
 
+ // Clé NFC : designs = modèles au choix (un par clé) · nb = nombre de clés dans l'offre
+ {id:"cle", img:"assets/img/produits/cle-nfc-cover.webp",
+  name:{ar:"مفتاح NFC",fr:"Clé NFC"},
+  short:{ar:"الواي فاي، البروفايل، المنيو ولا التقييمات فلمسة",fr:"Wi-Fi, profil, menu ou avis en un tap"},
+  intro:{ar:"شاركو الواي فاي ديالكم فلمسة وحدة. ولا البروفايل، المنيو ولا تقييمات Google. 5 ديزاينات للاختيار.",fr:"Partagez votre Wi-Fi en un seul tap. Profil, menu ou avis Google aussi. 5 designs au choix."},
+  designs:[
+   {k:"wifi",n:{ar:"واي فاي",fr:"Wi-Fi"},img:"assets/img/produits/cle-nfc-wifi.webp"},
+   {k:"contact",n:{ar:"جهة الاتصال",fr:"Contact"},img:"assets/img/produits/cle-nfc-contact.webp"},
+   {k:"menu",n:{ar:"منيو",fr:"Menu"},img:"assets/img/produits/cle-nfc-menu.webp"},
+   {k:"google",n:{ar:"تقييمات Google",fr:"Avis Google"},img:"assets/img/produits/cle-nfc-google.webp"},
+   {k:"barber",n:{ar:"حلاق",fr:"Barber"},img:"assets/img/produits/cle-nfc-barber.webp"}],
+  tiers:[
+   {k:"x1",n:{ar:"مفتاح واحد",fr:"1 clé"},p:99,nb:1,f:{ar:["مفتاح NFC واحد","ديزاين من اختيارك","واجد للاستعمال"],fr:["1 clé NFC","Design au choix","Prête à l'emploi"]}},
+   {k:"x3",n:{ar:"باقة 3 مفاتيح",fr:"Pack 3 clés"},p:249,nb:3,rec:1,f:{ar:["3 مفاتيح NFC","ديزاين مختلف لكل مفتاح","واجدين للاستعمال"],fr:["3 clés NFC","Un design différent par clé","Prêtes à l'emploi"]}},
+   {k:"x5",n:{ar:"باقة 5 مفاتيح",fr:"Pack 5 clés"},p:399,nb:5,f:{ar:["5 مفاتيح NFC","ديزاين مختلف لكل مفتاح","واجدين للاستعمال"],fr:["5 clés NFC","Un design différent par clé","Prêtes à l'emploi"]}}]},
+
  {id:"led", img:"assets/img/led.jpg",
   name:{ar:"صندوق LED مضيء",fr:"Caisson LED"},
   short:{ar:"اجذبوا الانتباه نهاراً وليلاً",fr:"Attirez l'attention jour et nuit"},

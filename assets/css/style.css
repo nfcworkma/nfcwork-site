@@ -100,7 +100,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .cta{display:flex;flex-wrap:wrap;gap:12px}
 .trust{display:flex;flex-wrap:wrap;gap:8px}
 .trust span{font-size:13px;color:#c9d4e8;border:1px solid var(--glass-line);background:var(--glass);border-radius:999px;padding:5px 12px}
-.trust span::before{content:"✓ ";color:var(--accent-2);font-weight:700}
+.trust span::before{content:"";display:inline-block;width:1em;height:1em;vertical-align:-.15em;margin-inline-end:.3em;background:var(--accent-2);-webkit-mask:url("../icons/ui/check.svg") center/contain no-repeat;mask:url("../icons/ui/check.svg") center/contain no-repeat}
 
 /* Maquette : téléphone + carte NFC */
 .mock{position:relative;width:100%;max-width:480px;aspect-ratio:1/1.02;justify-self:center}
@@ -190,6 +190,30 @@ button{font:inherit;color:inherit;cursor:pointer}
 .poster .shot{width:100%}
 .poster small{display:block;color:var(--muted);text-align:center;font-size:12px}
 .cat-intro{color:var(--muted);margin:0 0 22px;font-size:16px}
+/* Clé NFC : choix du design (entouré en bleu), de l'offre et d'un design par clé */
+.step-h{font-size:17px;margin:0 0 12px}
+.designs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:26px}
+.design{position:relative;display:grid;gap:6px;padding:6px;border:2px solid var(--glass-line);border-radius:var(--radius-s);background:var(--glass);color:var(--muted);font-size:13px;text-align:center;transition:border-color .2s,box-shadow .2s}
+.design img{width:100%;height:auto;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}
+.design:hover{border-color:var(--line-2)}
+.design[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%,transparent),var(--glow);color:var(--fg);font-weight:600}
+.design .design-ok{position:absolute;top:10px;inset-inline-end:10px;width:22px;height:22px;padding:4px;box-sizing:content-box;border-radius:50%;background:#fff;-webkit-mask:none;mask:none}
+.design .design-ok::before{content:"";position:absolute;inset:4px;background:var(--accent);-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat}
+.design.mini .design-ok{top:-4px;inset-inline-end:-4px;width:12px;height:12px;padding:2px}
+.design.mini .design-ok::before{inset:2px}
+.design.mini{width:46px;padding:2px;border-radius:10px}
+.design.mini img{border-radius:7px}
+.tier.pickable{cursor:pointer}
+.tier.sel{outline:2px solid var(--accent);outline-offset:2px}
+.tier.pickable .add{background:transparent;border-color:color-mix(in srgb,var(--accent) 70%,transparent);color:var(--fg)}
+.tier.pickable.sel .add{background:var(--grad);border-color:transparent;color:#fff}
+.kslots{display:grid;gap:10px;margin-bottom:6px}
+.kslot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--glass);border:1px solid var(--glass-line);border-radius:var(--radius-s);padding:8px 12px}
+.kslot b{min-width:52px;font-size:14px}
+.kmini{display:flex;gap:6px;flex-wrap:wrap}
+.cle-sum{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:22px;padding:16px 18px;border-radius:var(--radius);background:var(--glass);border:1px solid color-mix(in srgb,var(--accent) 50%,transparent)}
+.cle-sum div span{display:block;color:var(--muted);font-size:14px;margin-top:3px}
+#tiers + #cleBox:not(:empty){margin-top:26px}
 .extras{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
 .extra{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--glass-line);border-radius:var(--radius-s);padding:13px 15px;background:var(--glass)}
 .extra b{font-size:14px}.extra span{color:var(--muted);font-size:12.5px;display:block}
@@ -217,6 +241,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .reviews{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
 .review{padding:22px;border-radius:var(--radius);background:var(--glass);border:1px solid var(--glass-line);display:grid;gap:12px;align-content:start;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .stars{color:var(--gold);letter-spacing:2px;font-size:15px}
+.stars .ico{margin-inline-end:2px}
 .review p{margin:0;color:#d5def0}
 .review footer{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--muted)}
 .review footer b{color:var(--fg);display:block;font-size:14.5px}
@@ -247,6 +272,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 textarea{min-height:110px;resize:vertical}
 input[aria-invalid="true"],select[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--err)}
 .err{color:var(--err);font-size:12px}
+.upl input[type=file]{padding:10px;cursor:pointer}
+.upl-st{display:grid;gap:4px;font-size:13px}
+.upl-st .ok{color:var(--ok)}.upl-st .err{color:var(--err)}.upl-st .up{color:var(--muted)}
 .err:empty{display:none}
 .check{display:flex;gap:10px;align-items:center;color:var(--fg);font-size:14px}
 .check input{width:auto}
@@ -373,6 +401,8 @@ details p{margin:0;padding:0 18px 16px;color:#c9d4e8}
   .shot-badge b{font-size:13.5px}
   .shot-badge em{font-size:12.5px;padding:4px 9px}
   .grid2{grid-template-columns:1fr}
+  .designs{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cle-sum .btn{flex:1 1 100%}
   .btn.lg{padding:14px 20px;font-size:16px}
 }
 @media (max-width:440px){
@@ -392,3 +422,10 @@ details p{margin:0;padding:0 18px 16px;color:#c9d4e8}
   .js-reveal .reveal{opacity:1;translate:none}
   .ping i{opacity:.3}
 }
+/* Icônes SVG locales (assets/icons/ui, Tabler Icons — voir assets/icons/SOURCES.md) : <i class="ico ico-nom"></i>
+   La couleur suit le texte (currentColor), la taille suit la police (1em), comme un emoji. */
+.ico{display:inline-block;width:1.1em;height:1.1em;vertical-align:-.18em;flex:none;background:currentColor;-webkit-mask:var(--i) center/contain no-repeat;mask:var(--i) center/contain no-repeat}
+.ico-check{--i:url("../icons/ui/check.svg")}.ico-pencil{--i:url("../icons/ui/pencil.svg")}.ico-camera{--i:url("../icons/ui/camera.svg")}.ico-star{--i:url("../icons/ui/star.svg")}
+.ico-star-filled{--i:url("../icons/ui/star-filled.svg")}.ico-user{--i:url("../icons/ui/user.svg")}.ico-wifi{--i:url("../icons/ui/wifi.svg")}.ico-tools-kitchen-2{--i:url("../icons/ui/tools-kitchen-2.svg")}
+.ico-link{--i:url("../icons/ui/link.svg")}.ico-alert-triangle{--i:url("../icons/ui/alert-triangle.svg")}.ico-nfc{--i:url("../icons/ui/nfc.svg")}.ico-help-circle{--i:url("../icons/ui/help-circle.svg")}
+.ico-file-text{--i:url("../icons/ui/file-text.svg")}.ico-circle-check{--i:url("../icons/ui/circle-check.svg")}.ico-x{--i:url("../icons/ui/x.svg")}
