@@ -23,12 +23,14 @@
   const L = o => (typeof o === "string" ? o : o[lang]);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const findItem = key => {
+    if (typeof key !== "string") return null; // ligne de panier abîmée / ancien format
     const [c, k] = key.split(":");
     const C = CATALOG.find(x => x.id === c);
     const Ti = C && C.tiers.find(x => x.k === k);
     return C && Ti ? { C, Ti } : null;
   };
-  cart = cart.filter(l => findItem(l.key));
+  const okLine = l => l && findItem(l.key) && l.q > 0;
+  cart = cart.filter(okLine);
   const cartCount = () => cart.reduce((s, l) => s + l.q, 0);
   // Clé NFC : designs choisis (un par clé), regroupés : « 2 × Wi-Fi, 1 × Menu »
   const designText = (C, d, lg) => {
@@ -603,7 +605,7 @@
   // Panier synchronisé entre onglets
   window.addEventListener("storage", e => {
     if (e.key !== "nfcwork") return;
-    try { cart = (JSON.parse(e.newValue || "{}").cart || []).filter(l => findItem(l.key)); } catch (_) {}
+    try { cart = (JSON.parse(e.newValue || "{}").cart || []).filter(okLine); } catch (_) {}
     updateCartBadge(); if (pages[PAGE]) pages[PAGE]();
   });
 })();
