@@ -111,7 +111,7 @@ fs.doc("settings/business").onSnapshot(s=>{S.settings=s.exists?s.data():{};$("#b
 let authMode="login";
 auth.onAuthStateChanged(u=>{
   unsubAll();closeModal();user=u;role=null;
-  $("#tabs").hidden=true;$("#ptabs").hidden=true;$("#settingsBtn").hidden=true;$("#profileBtn").hidden=true;$("#logoutBtn").hidden=!u;$("#editSiteBtn").hidden=true;
+  $("#tabs").hidden=true;$("#ptabs").hidden=true;$("#settingsBtn").hidden=true;$("#profileBtn").hidden=true;$("#logoutBtn").hidden=!u;$("#editSiteBtn").hidden=true;$("#menusBtn").hidden=true;
   // indice pour le site : « mode édition » proposé seulement sur l'appareil où l'admin est connecté (vérifié ensuite par Firebase)
   try{if(!(u&&u.emailVerified&&(u.email||"").toLowerCase()===ADMIN))localStorage.removeItem("nfcwork-admin")}catch(e){}
   if(!u){$("#modeLabel").textContent="Espace client";renderAuth();return}
@@ -148,7 +148,7 @@ function renderVerify(){
 
 /* ---------- ADMIN ---------- */
 function startAdmin(){
-  role="admin";$("#tabs").hidden=false;$("#settingsBtn").hidden=false;$("#editSiteBtn").hidden=false;$("#modeLabel").textContent="Espace gestion";
+  role="admin";$("#tabs").hidden=false;$("#settingsBtn").hidden=false;$("#editSiteBtn").hidden=false;$("#menusBtn").hidden=false;$("#modeLabel").textContent="Espace gestion";
   try{localStorage.setItem("nfcwork-admin","1")}catch(e){}
   listen(fs.collection("services"),s=>{S.services=rows(s).sort(svcSort);render()});
   listen(fs.collection("clients"),s=>{S.clients=rows(s).sort((a,b)=>(a.name||"").localeCompare(b.name||""));render()});
