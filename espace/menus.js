@@ -89,10 +89,9 @@
 
   async function chargerImg(id) {
     if (!id || IMG[id]) return IMG[id];
-    if (id.startsWith("u:")) return (IMG[id] = window.BANQUE_URL(id.slice(2), 400));
-    if (id.startsWith("o:")) return (IMG[id] = window.PHOTO_AUTO.url(id, 400));
-    if (id.startsWith("/")) return (IMG[id] = id);
-    try {
+    const direct = id.startsWith("u:") ? window.BANQUE_URL(id.slice(2), 400) : id.startsWith("o:") ? window.PHOTO_AUTO.url(id, 400) : id.startsWith("/") ? id : "";
+    if (direct) IMG[id] = direct;
+    else try {
       const d = await db.doc("settings/mimg-" + id).get();
       if (d.exists) IMG[id] = d.data().data;
     } catch (e) { console.error(e); }

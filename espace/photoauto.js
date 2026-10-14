@@ -14,7 +14,7 @@
   const MARQUES = [
     ["coca cola zero", /coca.*(zero|0)/], ["coca cola light", /coca.*light/], ["coca cola", /coca|coke/], ["pepsi", /pepsi/], ["fanta", /fanta/], ["sprite", /sprite/],
     ["7up", /7 ?up|seven ?up/], ["schweppes", /schweppes|tonic/], ["orangina", /orangina/], ["oasis", /oasis/],
-    ["hawai tropical", /hawa[iï]/], ["poms", /\bpoms?\b/], ["mirinda", /mirinda/],
+    ["hawai tropical", /hawa[iï]/], ["poms", /\bpom'?s?\b/], ["mirinda", /mirinda/],
     ["sidi ali", /sidi ?ali/], ["oulmes", /oulm[eè]s/], ["sidi harazem", /harazem/], ["ain saiss", /a[iï]n ?sa[iï]s/],
     ["ain ifrane", /ifrane/], ["bahia eau", /bahia/], ["perrier", /perrier/], ["san pellegrino", /pellegrino/], ["evian", /evian/],
     ["red bull", /red ?bull/], ["monster energy", /monster/], ["lipton ice tea", /lipton|ice ?tea/], ["nestea", /nestea/],
@@ -107,9 +107,15 @@
     const n = sansAccent(nom);
     const q = mq + (/zero|0 ?%/.test(n) && !/zero|light/.test(mq) ? " zero" : "");
     const l = await chercherOFF(q).catch(() => []);
-    return (l[0] && l[0].id) || banqueMeilleure(nom, deja);
+    // on ne garde la photo du produit que si elle s'affiche vraiment (sinon : photo de la banque)
+    for (const x of l.slice(0, 3)) if (await charge(url(x.id, 400))) return x.id;
+    return banqueMeilleure(nom, deja);
   }
 
+  const charge = src => typeof Image === "undefined" ? Promise.resolve(true) : new Promise(ok => {
+    const i = new Image(), t = setTimeout(() => ok(false), 8000);
+    i.onload = () => { clearTimeout(t); ok(i.naturalWidth > 20); }; i.onerror = () => { clearTimeout(t); ok(false); }; i.src = src;
+  });
   const url = (id, w) => OFF_IMG + id.slice(2) + ((w || 400) > 500 ? ".full.jpg" : ".400.jpg");
   window.PHOTO_AUTO = { trouver, chercherOFF, marque, url, banqueMeilleure };
 })();
