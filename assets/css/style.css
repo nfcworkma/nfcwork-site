@@ -207,6 +207,13 @@ button{font:inherit;color:inherit;cursor:pointer}
 .tier.sel{outline:2px solid var(--accent);outline-offset:2px}
 .tier.pickable .add{background:transparent;border-color:color-mix(in srgb,var(--accent) 70%,transparent);color:var(--fg)}
 .tier.pickable.sel .add{background:var(--grad);border-color:transparent;color:#fff}
+.fmenu{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:26px;width:100%}
+.fmenu button{display:grid;gap:2px;text-align:center;padding:10px 8px;border:2px solid var(--glass-line);border-radius:var(--radius-s);background:var(--glass);color:var(--fg);cursor:pointer;font:inherit}
+.fmenu button b{font-size:15px}
+.fmenu button .num{font-weight:700;color:var(--accent,#1e90ff)}
+.fmenu button small{color:var(--muted);font-size:12px;line-height:1.3}
+.fmenu button[aria-pressed="true"]{border-color:var(--accent,#1e90ff);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#1e90ff) 25%,transparent)}
+.kslot .fmenu{margin:4px 0 0}
 .kslots{display:grid;gap:10px;margin-bottom:6px}
 .kslot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--glass);border:1px solid var(--glass-line);border-radius:var(--radius-s);padding:8px 12px}
 .kslot b{min-width:52px;font-size:14px}

@@ -30,8 +30,8 @@ const CATALOG = [
   intro:{ar:"منيو عصري ديما محدّث، بالصور والأسعار، كيتفتح فالتيليفون بلمسة ولا سكان.",fr:"Un menu moderne, toujours à jour, avec photos et prix, ouvert d'une touche ou d'un scan."},
   tiers:[
    {k:"std",n:"Standard",p:199,f:{ar:["لوحة / حامل NFC","QR + منيو رقمي","التصنيفات، المنتجات، الأسعار","الصور","إعداد أولي + برمجة NFC"],fr:["Plaque / support NFC","QR Code + menu digital","Catégories, produits, prix","Photos","Configuration initiale + NFC"]}},
-   {k:"pro",n:"Pro",p:299,rec:1,f:{ar:["كل مميزات الأساسية","تصميم مخصص بشعار المطعم","صور الأطباق والأوصاف","عدة لغات FR / AR / EN","سهولة التعديل"],fr:["Tout le Standard","Design personnalisé + logo","Photos et descriptions des plats","Plusieurs langues FR / AR / EN","Modifications faciles"]}},
-   {k:"prem",n:"Premium",p:399,prem:1,f:{ar:["كل مميزات برو","تصميم فاخر حسب الطلب","منيو رقمي متطور","معرض صور","هوية كاملة + دعم"],fr:["Tout le Pro","Design premium sur mesure","Menu digital avancé","Galerie photos","Branding complet + support"]}},
+   {k:"pro",n:"Pro",p:299,rec:1,f:{ar:["كل مميزات الأساسية","تصميم مخصص بشعار المطعم","صور الأطباق والأوصاف","4 ديال الثيمات للاختيار","سهولة التعديل"],fr:["Tout le Standard","Design personnalisé + logo","Photos et descriptions des plats","4 thèmes au choix","Modifications faciles"]}},
+   {k:"prem",n:"Premium",p:399,prem:1,f:{ar:["كل مميزات برو","تصميم فاخر حسب الطلب","الطلب عبر واتساب","صور كبيرة للأطباق","هوية كاملة + دعم"],fr:["Tout le Pro","Design premium sur mesure","Commande des clients sur WhatsApp","Grandes photos des plats","Branding complet + support"]}},
    {k:"sub",n:{ar:"اشتراك سنوي للمنيو",fr:"Abonnement annuel menu"},p:249,yr:1,f:{ar:["تحديثات غير محدودة","دعم تقني طول العام"],fr:["Mises à jour illimitées","Support technique toute l'année"]}}]},
 
  {id:"wifi", img:"assets/img/wifi.jpg",
@@ -51,7 +51,11 @@ const CATALOG = [
   designs:[
    {k:"wifi",n:{ar:"واي فاي",fr:"Wi-Fi"},img:"assets/img/produits/cle-nfc-wifi.webp"},
    {k:"contact",n:{ar:"جهة الاتصال",fr:"Contact"},img:"assets/img/produits/cle-nfc-contact.webp"},
-   {k:"menu",n:{ar:"منيو",fr:"Menu"},img:"assets/img/produits/cle-nfc-menu.webp"},
+   {k:"menu",n:{ar:"منيو",fr:"Menu"},img:"assets/img/produits/cle-nfc-menu.webp",
+    // formule du menu digital (prix d'une clé Menu = prix de l'offre + plus) — c'est NFCWORK qui remplit le menu
+    formules:[{k:"",n:"Standard",plus:0,i:{ar:"صور المنيو ديالكم",fr:"Photos de votre carte"}},
+              {k:"pro",n:"Pro",plus:50,i:{ar:"منيو مصمم بالصور والأثمنة",fr:"Menu designé, photos et prix"}},
+              {k:"premium",n:"Premium",plus:150,i:{ar:"تصميم فاخر + الطلب عبر واتساب",fr:"Design premium + commande WhatsApp"}}]},
    {k:"google",n:{ar:"تقييمات Google",fr:"Avis Google"},img:"assets/img/produits/cle-nfc-google.webp"},
    {k:"barber",n:{ar:"حلاق",fr:"Barber"},img:"assets/img/produits/cle-nfc-barber.webp"}],
   tiers:[

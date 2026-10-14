@@ -35,11 +35,15 @@
   // Clé NFC : designs choisis (un par clé), regroupés : « 2 × Wi-Fi, 1 × Menu »
   const designText = (C, d, lg) => {
     if (!C.designs || !Array.isArray(d) || !d.length) return "";
-    const nom = k => { const D = C.designs.find(x => x.k === k); return D ? (lg ? D.n[lg] : L(D.n)) : k; };
+    const nom = k => { const D = C.designs.find(x => x.k === baseD(k)), f = formuleD(C, k); return D ? (lg ? D.n[lg] : L(D.n)) + (f ? " " + f.n : "") : k; };
     if (d.length === 1) return nom(d[0]);
     const n = {}; d.forEach(k => (n[k] = (n[k] || 0) + 1));
     return Object.keys(n).map(k => `${n[k]} × ${nom(k)}`).join(", ");
   };
+  // Clé Menu : formule dans le design (« menu », « menu+pro », « menu+premium »)
+  const baseD = k => String(k || "").split("+")[0];
+  const formuleD = (C, k) => { const D = C && C.designs && C.designs.find(x => x.k === baseD(k)); return D && D.formules ? D.formules.find(f => f.k === (String(k).split("+")[1] || "")) || D.formules[0] : null; };
+  const unitPrice = l => { const { C, Ti } = findItem(l.key); return Ti.p + (l.d || []).reduce((s, k) => s + ((formuleD(C, k) || {}).plus || 0), 0); };
   const waLink = text => `https://wa.me/${CONFIG.whatsapp}${text ? "?text=" + encodeURIComponent(text) : ""}`;
   const telLink = "tel:+" + CONFIG.whatsapp;
   const CHECK = '<i class="ico ico-check" aria-hidden="true"></i> ';
@@ -279,13 +283,19 @@
   // Clé NFC : 1) design (entouré en bleu) 2) offre 3) pour les packs, un design par clé → panier { key, q, d:[designs] }
   const cle = { main: "", t: "", d: [] };
   function cleRender(C) {
-    if (!C.designs.some(D => D.k === cle.main)) cle.main = C.designs[0].k;
+    if (!C.designs.some(D => D.k === baseD(cle.main))) cle.main = C.designs[0].k;
     if (!C.tiers.some(Ti => Ti.k === cle.t)) cle.t = C.tiers[0].k;
     const Ti = C.tiers.find(x => x.k === cle.t), nb = Ti.nb || 1;
     cle.d = Array.from({ length: nb }, (_, i) => cle.d[i] || cle.main);
+    const prixCle = Ti.p + cle.d.reduce((s, k) => s + ((formuleD(C, k) || {}).plus || 0), 0);
+    // Clé Menu : choix de la formule (Standard / Pro / Premium) pour chaque clé Menu
+    const fsel = (k, attr) => { const D = C.designs.find(x => x.k === baseD(k)); if (!D || !D.formules) return "";
+      const cur = (formuleD(C, k) || {}).k;
+      return `<div class="fmenu">${D.formules.map(f => `<button type="button" ${attr}="${D.k}${f.k ? "+" + f.k : ""}" aria-pressed="${f.k === cur}"><b>${f.n}</b><span class="num">${nb > 1 ? (f.plus ? "+" + f.plus + " " + t("dh") : t("cleInclus")) : Ti.p + f.plus + " " + t("dh")}</span><small>${esc(L(f.i))}</small></button>`).join("")}</div>`; };
     const pic = (D, on, attrs, small) => `<button type="button" class="design${small ? " mini" : ""}" ${attrs} aria-pressed="${on}" title="${esc(L(D.n))}"><img src="${D.img}" alt="${esc(L(D.n))}" loading="lazy" width="1080" height="1080">${on ? '<i class="ico ico-check design-ok" aria-hidden="true"></i>' : ""}${small ? "" : `<span>${esc(L(D.n))}</span>`}</button>`;
     $("#designs").innerHTML = `<h3 class="step-h">${t("cleStep1")}</h3>
-      <div class="designs">${C.designs.map(D => pic(D, D.k === cle.main, `data-main="${D.k}"`)).join("")}</div>
+      <div class="designs">${C.designs.map(D => pic(D, D.k === baseD(cle.main), `data-main="${D.k}"`)).join("")}</div>
+      ${nb === 1 && formuleD(C, cle.main) ? `<h3 class="step-h">${t("cleFormule")}</h3>${fsel(cle.main, "data-fmain")}` : ""}
       <h3 class="step-h">${t("cleStep2")}</h3>`;
     $("#tiers").innerHTML = C.tiers.map(x => {
       const on = x.k === cle.t;
@@ -295,15 +305,19 @@
     }).join("");
     const key = C.id + ":" + Ti.k, inC = cart.some(l => l.key === key && (l.d || []).join() === cle.d.join());
     $("#cleBox").innerHTML = (nb > 1 ? `<h3 class="step-h">${t("cleStep3")}</h3><div class="kslots">${cle.d.map((k, i) =>
-        `<div class="kslot"><b>${t("cleKey")} ${i + 1}</b><div class="kmini">${C.designs.map(D => pic(D, D.k === k, `data-slot="${i}" data-d="${D.k}"`, true)).join("")}</div></div>`).join("")}</div>` : "") +
+        `<div class="kslot"><b>${t("cleKey")} ${i + 1}</b><div class="kmini">${C.designs.map(D => pic(D, D.k === baseD(k), `data-slot="${i}" data-d="${D.k}"`, true)).join("")}</div>${formuleD(C, k) ? fsel(k, `data-slot="${i}" data-d`) : ""}</div>`).join("")}</div>` : "") +
       `<div class="cle-sum"><div><b>${esc(L(C.name))} — ${esc(L(Ti.n))}</b><span>${t("cleDesigns")} : ${esc(designText(C, cle.d))}</span></div>
-        <button type="button" class="btn primary" id="cleAdd">${inC ? CHECK + t("inCart") : t("cleAdd")} · <span class="num">${Ti.p} ${t("dh")}</span></button></div>`;
+        <button type="button" class="btn primary" id="cleAdd">${inC ? CHECK + t("inCart") : t("cleAdd")} · <span class="num">${prixCle} ${t("dh")}</span></button></div>`;
   }
   function cleBind() {
     const C = () => CATALOG.find(c => c.id === cat);
     $("#designs").addEventListener("click", e => {
       const b = e.target.closest("[data-main]"); if (!b) return;
       cle.main = b.dataset.main; cle.d = cle.d.map(() => cle.main); cleRender(C());
+    });
+    $("#designs").addEventListener("click", e => {
+      const f = e.target.closest("[data-fmain]"); if (!f) return;
+      cle.main = f.dataset.fmain; cle.d = cle.d.map(() => cle.main); cleRender(C());
     });
     $("#tiers").addEventListener("click", e => {
       const b = e.target.closest("[data-tier]"); if (!b || !C().designs) return;
@@ -333,7 +347,7 @@
   /* --- Commande --- */
   let orderRef = null;
   function totals() {
-    const sub = cart.reduce((s, l) => s + findItem(l.key).Ti.p * l.q, 0);
+    const sub = cart.reduce((s, l) => s + unitPrice(l) * l.q, 0);
     const design = $("#f-design").checked && cart.length ? CONFIG.designPremium : 0;
     const city = $("#f-city").value;
     const ship = CONFIG.shipping[city] !== undefined ? CONFIG.shipping[city] : null;
@@ -343,7 +357,7 @@
   const CARD_FIELDS = [["nom", "cdNom"], ["job", "cdJob"], ["instagram", "Instagram"], ["facebook", "Facebook"], ["linkedin", "LinkedIn"],
     ["tiktok", "TikTok"], ["snapchat", "Snapchat"], ["youtube", "YouTube"], ["site", "cdSite"], ["maps", "cdMaps"]];
   // Designs des clés NFC présents dans le panier (wifi, contact, menu, google, barber)
-  const keyTypes = () => new Set(cart.filter(l => l.key.startsWith("cle:")).flatMap(l => l.d || []));
+  const keyTypes = () => new Set(cart.filter(l => l.key.startsWith("cle:")).flatMap(l => (l.d || []).map(baseD)));
   // Wi-Fi : clé NFC design Wi-Fi, plaque Wi-Fi, ou pack qui contient le Wi-Fi
   const WIFI_PACKS = ["packs:cafe", "packs:business", "packs:restaurant", "packs:premium"];
   const wifiPlaque = () => cart.some(l => l.key.startsWith("wifi:") || WIFI_PACKS.includes(l.key));
@@ -441,7 +455,6 @@
     const rows = [
       types.has("wifi") ? [T2.kSsid, v("k-ssid")] : null, types.has("wifi") ? [T2.kPass, v("k-pass")] : null,
       types.has("wifi") ? [T2.kWifiQrLbl, links("k-wifi-qr")] : null,
-      types.has("menu") ? [T2.kMenu, v("k-menu")] : null, types.has("menu") ? [T2.kMenuPhLbl, links("k-menu-ph")] : null,
       types.has("google") ? [T2.kGoogle, v("k-google")] : null, [T2.kLogoLbl, links("k-logo")]
     ].filter(r => r && r[1]);
     return rows.length ? ["", (keyTypes().size ? T2.kMsg : T2.kMsgWifi) + " :", ...rows.map(r => `• ${r[0].replace(/\s*\(.*\)$/, "")} : ${r[1]}`)] : [];
@@ -453,7 +466,7 @@
     const v = id => $("#" + id).value.trim();
     return [
       (fr ? "🛒 Nouvelle commande NFCWORK" : "🛒 طلب جديد NFCWORK") + ` (${orderRef})`, "",
-      ...cart.map(l => { const { C, Ti } = findItem(l.key), d = designText(C, l.d); return `• ${l.q} × ${L(C.name)} — ${L(Ti.n)} = ${Ti.p * l.q} DH` + (d ? `\n   ${t("cleDesigns")} : ${d}` : ""); }),
+      ...cart.map(l => { const { C, Ti } = findItem(l.key), d = designText(C, l.d); return `• ${l.q} × ${L(C.name)} — ${L(Ti.n)} = ${unitPrice(l) * l.q} DH` + (d ? `\n   ${t("cleDesigns")} : ${d}` : ""); }),
       x.design ? (fr ? "• Design premium" : "• تصميم احترافي") + ` = ${x.design} DH` : null, "",
       (fr ? "Sous-total : " : "المجموع الفرعي: ") + (x.sub + x.design) + " DH",
       (fr ? "Livraison : " : "التوصيل: ") + (x.ship !== null ? x.ship + " DH" : (fr ? "à confirmer" : "للتأكيد")),
@@ -475,7 +488,7 @@
       nom: v("f-name"), telephone: asText(v("f-phone")),
       ville: x.city === "other" ? v("f-other") : x.city,
       adresse: v("f-addr"), commerce: v("f-biz"),
-      produits: cart.map(l => { const { C, Ti } = findItem(l.key), d = designText(C, l.d, "fr"); return `${l.q} × ${C.name.fr} — ${typeof Ti.n === "string" ? Ti.n : Ti.n.fr} (${Ti.p * l.q} DH)` + (d ? ` [Design : ${d}]` : ""); }).join(" ; "),
+      produits: cart.map(l => { const { C, Ti } = findItem(l.key), d = designText(C, l.d, "fr"); return `${l.q} × ${C.name.fr} — ${typeof Ti.n === "string" ? Ti.n : Ti.n.fr} (${unitPrice(l) * l.q} DH)` + (d ? ` [Design : ${d}]` : ""); }).join(" ; "),
       sousTotal: x.sub, designPremium: x.design,
       livraison: x.ship !== null ? x.ship : "à confirmer",
       total: x.total, remarque: [v("f-note"), cardLines(true).slice(1).join(" "), keyLines(true).slice(1).join(" ")].filter(Boolean).join(" | "), langue: lang
@@ -512,8 +525,8 @@
     lines.innerHTML = cart.map((l, i) => {
       const { C, Ti } = findItem(l.key);
       return `<div class="line">
-        <div><div class="n">${esc(L(C.name))}</div><div class="t">${esc(L(Ti.n))} · <span class="num">${Ti.p} ${t("dh")}</span></div>${designText(C, l.d) ? `<div class="t">${t("cleDesigns")} : ${esc(designText(C, l.d))}</div>` : ""}</div>
-        <div class="p num">${Ti.p * l.q} ${t("dh")}</div>
+        <div><div class="n">${esc(L(C.name))}</div><div class="t">${esc(L(Ti.n))} · <span class="num">${unitPrice(l)} ${t("dh")}</span></div>${designText(C, l.d) ? `<div class="t">${t("cleDesigns")} : ${esc(designText(C, l.d))}</div>` : ""}</div>
+        <div class="p num">${unitPrice(l) * l.q} ${t("dh")}</div>
         <div class="qty"><button type="button" data-i="${i}" data-d="-1" aria-label="-">−</button><span class="num">${l.q}</span><button type="button" data-i="${i}" data-d="1" aria-label="+">+</button></div>
       </div>`;
     }).join("");
