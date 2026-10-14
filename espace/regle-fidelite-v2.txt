@@ -1,0 +1,26 @@
+    // ---------- Fidélité v2 : le point d'un employé vient toujours d'une vraie visite ----------
+    // À AJOUTER (sans rien effacer) juste avant « // Tout le reste est fermé », puis « Publier ».
+    function fidCarteAvant(cid) { return get(/databases/$(database)/documents/fidCartes/$(cid)).data; }
+    function fidCarteApres(cid) { return getAfter(/databases/$(database)/documents/fidCartes/$(cid)).data; }
+    function fidEmpApres(eid) { return getAfter(/databases/$(database)/documents/fidEmployes/$(eid)).data; }
+    match /fidCartes/{cid} {
+      allow update: if verified() && resource.data.ownerEmail == myEmail()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['points', 'total', 'recompenses', 'lastAt', 'nom', 'tel', 'voteDispo', 'voteJusqua', 'voteChoix', 'voteEmp']);
+      allow update: if resource.data.get('voteDispo', false) == true
+        && request.time < resource.data.voteJusqua
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voteDispo', 'voteEmp'])
+        && request.resource.data.voteDispo == false
+        && fidEmpApres(request.resource.data.voteEmp).pid == resource.data.pid
+        && fidEmpApres(request.resource.data.voteEmp).lastCarte == cid;
+    }
+    match /fidEmployes/{eid} {
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['m', 'lastAt', 'lastCarte'])
+        && request.resource.data.m.diff(resource.data.m).affectedKeys().hasOnly([moisCle()])
+        && request.resource.data.m[moisCle()] == resource.data.m.get(moisCle(), 0) + 1
+        && request.resource.data.lastAt == request.time
+        && fidCarteAvant(request.resource.data.lastCarte).pid == resource.data.pid
+        && fidCarteAvant(request.resource.data.lastCarte).get('voteDispo', false) == true
+        && request.time < fidCarteAvant(request.resource.data.lastCarte).voteJusqua
+        && fidCarteApres(request.resource.data.lastCarte).voteDispo == false
+        && fidCarteApres(request.resource.data.lastCarte).voteEmp == eid;
+    }

@@ -1,12 +1,12 @@
 /* =========================================================
    NFCWORK — CARTE FIDÉLITÉ (pages publiques, sans application)
      /f/?p=<programme>            inscription du client (QR d'inscription, NFC…)
-     /f/?p=<programme>&j=<jeton>  QR de la caisse : inscription + 1 point (si le commerce l'autorise)
-     /f/?c=<carte>                la carte du client (à ajouter à l'écran d'accueil)
-     /f/?e=<employé>              QR d'un employé : le client donne +1 (si le commerce l'autorise)
+     /f/?c=<carte>                la carte du client (à ajouter à l'écran d'accueil) ; après une visite
+                                  enregistrée par le commerçant, le client peut dire qui l'a servi (une fois)
+     /f/?e=<employé>              QR d'un employé : il voit ses points du mois (lecture seule, aucun gain possible)
+   Anti-triche : seuls le commerçant (son compte) ou une visite réelle donnent des points.
    Firestore (lecture/écriture par l'API REST, règles « Fidélité » dans firestore.rules) :
      fidProgrammes/{pid}  réglages du commerce (écrits par l'admin NFCWORK)
-     fidSecrets/{pid}     jeton du QR caisse (jamais lisible par le public)
      fidCartes/{cid}      cartes clients
      fidEmployes/{eid}    employés, points par mois { m: { "202610": 12 } }
    ========================================================= */
@@ -47,9 +47,9 @@
     for (const k in f) o[k] = dec(f[k]);
     return o;
   }
-  async function commit(write) {
+  async function commit(writes) {
     const r = await fetch(API + P.replace(/\/documents$/, "/documents:commit") + "?key=" + KEY,
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ writes: [write] }) });
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ writes: Array.isArray(writes) ? writes : [writes] }) });
     if (!r.ok) { const t = await r.text().catch(() => ""); const e = new Error("écriture " + r.status); e.status = r.status; e.body = t; throw e; }
     return r.json();
   }
@@ -66,15 +66,16 @@
     document.title = (p.nom || "Carte") + " · Fidélité";
     const m = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (m) m.content = p.nom || "Fidélité";
   }
-  const brand = p => `<div class="brand">${p.logo && /^https?:\/\//.test(p.logo) ? `<img class="lg" src="${esc(p.logo)}" alt="">` : `<div class="ini">${esc((p.nom || "?").trim()[0].toUpperCase())}</div>`}
+  const logoSrc = p => /^data:image\//.test(p.logoData || "") ? p.logoData : /^https?:\/\//.test(p.logo || "") ? p.logo : "";
+  const brand = p => `<div class="brand">${logoSrc(p) ? `<img class="lg" src="${esc(logoSrc(p))}" alt="">` : `<div class="ini">${esc((p.nom || "?").trim()[0].toUpperCase())}</div>`}
     <div><b>${esc(p.nom || "Commerce")}</b><small>Carte fidélité</small></div></div>`;
   const pied = `<div class="foot">Carte fidélité par <a href="${SITE}" target="_blank" rel="noopener"><b>NFCWORK</b></a></div>`;
   function etat(titre, texte, spin) { app.innerHTML = `<div class="state"><div>${spin ? '<div class="spin"></div>' : ""}${titre ? `<h1>${esc(titre)}</h1>` : ""}<div>${esc(texte || "")}</div></div></div>`; }
-  const unite = p => p.type === "montant" ? "points" : p.type === "articles" ? "articles" : "visites";
+  const unite = p => p.unite || (p.type === "montant" ? "points" : p.type === "articles" ? "articles" : "visites");
   const regle = p => p.type === "montant" ? `${p.dhParPoint || 10} DH = 1 point · ${p.objectif} points = ${p.recompense}`
     : `${p.objectif} ${unite(p)} = ${p.recompense}`;
-  const clientScan = p => p.modeClient === "client" || p.modeClient === "deux";
-  const voteClient = p => p.modeEmploye === "client" || p.modeEmploye === "deux";
+  const confirmeClient = p => p.employes && (p.modeEmploye === "confirme" || p.modeEmploye === "les2");
+  const tsMs = v => v ? Date.parse(v) : 0;
 
   /* ---------- carte ---------- */
   let carte = null, prog = null, minuteur = null;
@@ -84,6 +85,7 @@
     const reste = Math.max(0, obj - pts);
     app.innerHTML = `${brand(p)}
       ${msg ? `<div class="msg ${msg[0]}">${msg[1]}</div>` : ""}
+      ${voteBloc()}
       ${pret ? `<div class="msg win">🎁 Bravo ! Votre récompense est prête : ${esc(p.recompense)}. Montrez cette carte à la caisse.</div>` : ""}
       <section class="card" aria-label="Carte fidélité">
         <div class="top"><div><div class="lbl">Membre</div><div class="who">${esc(c.nom)}</div></div><div class="lbl">${esc(p.nom)}</div></div>
@@ -92,20 +94,42 @@
         <div class="reward">🎁 <b>${esc(p.recompense)}</b> · ${pret ? "prête !" : `encore ${reste} ${unite(p)}`}${c.recompenses ? ` · déjà ${c.recompenses} gagnée${c.recompenses > 1 ? "s" : ""}` : ""}</div>
       </section>
       <div class="qrbox">${window.QRGEN.svg(SITE + "/f/?c=" + c.id, { marge: 1 })}<small>Montrez ce code à la caisse</small></div>
-      <p class="tip">${esc(regle(p))}${clientScan(p) ? "<br>À chaque visite, scannez aussi le QR de la caisse." : ""}</p>
+      <p class="tip">${esc(regle(p))}</p>
       <p class="tip">📲 Gardez votre carte : <b>Partager</b> → <b>Sur l’écran d’accueil</b> (iPhone) ou <b>⋮</b> → <b>Ajouter à l’écran d’accueil</b> (Android).</p>
       ${pro ? `<div class="pro"><b>Espace commerçant</b><a class="btn primary" href="/espace/fidelite.html#c=${esc(c.id)}">Ouvrir cette carte (ajouter des points)</a></div>` : ""}
       ${pied}`;
   }
+  // après une visite enregistrée par le commerçant : le client dit qui l'a servi (une seule fois)
+  function voteBloc() {
+    const c = carte;
+    if (!confirmeClient(prog) || !c.voteDispo || tsMs(c.voteJusqua) < Date.now() || !Array.isArray(c.voteChoix) || !c.voteChoix.length) return "";
+    return `<div class="paper" style="margin-bottom:14px"><h2 style="font-size:19px">Qui vous a servi ?</h2><p style="margin-bottom:12px">Un petit 👍 pour l’employé qui s’est occupé de vous.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${c.voteChoix.map(e => `<button class="btn" data-vote="${esc(e.id)}">👍 ${esc(e.nom)}</button>`).join("")}</div></div>`;
+  }
+  async function voter(eid) {
+    const em = (carte.voteChoix || []).find(x => x.id === eid); if (!em) return;
+    document.querySelectorAll("[data-vote]").forEach(b => (b.disabled = true));
+    try {
+      await commit([
+        { update: { name: nomDoc("fidCartes/" + carte.id), fields: { voteDispo: enc(false), voteEmp: enc(eid) } }, updateMask: { fieldPaths: ["voteDispo", "voteEmp"] }, currentDocument: { exists: true } },
+        { update: { name: nomDoc("fidEmployes/" + eid), fields: { lastCarte: enc(carte.id) } }, updateMask: { fieldPaths: ["lastCarte"] },
+          updateTransforms: [{ fieldPath: "m.`" + moisCle() + "`", increment: { integerValue: "1" } }, { fieldPath: "lastAt", setToServerValue: "REQUEST_TIME" }], currentDocument: { exists: true } }]);
+      carte.voteDispo = false; rendreCarte(["ok", `Merci ! +1 pour ${esc(em.nom)} 👍`]);
+    } catch (e) {
+      console.error(e); carte.voteDispo = false; rendreCarte(["info", "Merci ! Votre avis a déjà été pris en compte."]);
+    }
+  }
+  document.addEventListener("click", e => { const b = e.target.closest("[data-vote]"); if (b && !b.disabled) voter(b.dataset.vote); });
   async function suivre() {
     clearInterval(minuteur);
     minuteur = setInterval(async () => {
       if (document.hidden) return;
       try {
         const n = await lire("fidCartes/" + carte.id); if (!n) return;
-        const avant = carte.points || 0; carte = n;
+        const avant = carte.points || 0, voteAvant = carte.voteDispo; carte = n;
         if ((n.points || 0) > avant) rendreCarte(["ok", `✓ +${n.points - avant} ${n.points - avant > 1 ? unite(prog) : "point"} ajouté${n.points - avant > 1 ? "s" : ""}`], true);
         else if ((n.points || 0) < avant) rendreCarte(["ok", "🎁 Récompense utilisée. Merci et à bientôt !"]);
+        else if (n.voteDispo !== voteAvant) rendreCarte();
       } catch (e) {}
     }, 8000);
   }
@@ -119,20 +143,8 @@
     rendreCarte(msg, nouveau); suivre();
   }
 
-  /* ---------- 1 point en scannant le QR de la caisse ---------- */
-  async function pointCaisse(cid, jeton) {
-    try {
-      await commit({ update: { name: nomDoc("fidCartes/" + cid), fields: { jeton: enc(jeton) } }, updateMask: { fieldPaths: ["jeton"] },
-        updateTransforms: [{ fieldPath: "points", increment: { integerValue: "1" } }, { fieldPath: "total", increment: { integerValue: "1" } }, { fieldPath: "lastAt", setToServerValue: "REQUEST_TIME" }],
-        currentDocument: { exists: true } });
-      return ["ok", "✓ +1 point ajouté. Merci de votre visite !"];
-    } catch (e) {
-      return ["info", `Point déjà compté pour cette visite. Revenez dans ${prog.delaiH || 4} h pour le prochain.`];
-    }
-  }
-
   /* ---------- inscription ---------- */
-  async function inscription(pid, jeton) {
+  async function inscription(pid) {
     prog = await lire("fidProgrammes/" + pid);
     if (!prog || prog.actif === false) { etat("Programme indisponible", "Ce programme de fidélité n’est pas actif pour l’instant."); return; }
     theme(prog);
@@ -140,8 +152,7 @@
     if (deja) {
       const c = await lire("fidCartes/" + deja).catch(() => null);
       if (c) {
-        const msg = jeton && clientScan(prog) ? await pointCaisse(deja, jeton) : null;
-        await ouvrirCarte(deja, msg, msg && msg[0] === "ok"); return;
+        await ouvrirCarte(deja); return;
       }
     }
     app.innerHTML = `${brand(prog)}
@@ -163,8 +174,7 @@
             points: enc(0), total: enc(0), recompenses: enc(0), lastAt: enc({ ts: "1970-01-01T00:00:00Z" }) } },
           updateTransforms: [{ fieldPath: "createdAt", setToServerValue: "REQUEST_TIME" }], currentDocument: { exists: false } });
         lsSet("nfcwork-fid-" + pid, cid);
-        const msg = jeton && clientScan(prog) ? await pointCaisse(cid, jeton) : ["ok", "✓ Carte créée ! Ajoutez-la à votre écran d’accueil."];
-        await ouvrirCarte(cid, msg, msg[0] === "ok" && jeton);
+        await ouvrirCarte(cid, ["ok", "✓ Carte créée ! Montrez-la à la caisse à chaque visite."]);
       } catch (x) {
         console.error(x); b.disabled = false; b.textContent = "Créer ma carte";
         document.getElementById("je").textContent = "Impossible de créer la carte. Vérifiez la connexion et réessayez.";
@@ -172,44 +182,27 @@
     };
   }
 
-  /* ---------- employé ---------- */
+  /* ---------- employé : ses points du mois (lecture seule) ---------- */
   async function employe(eid) {
     const em = await lire("fidEmployes/" + eid);
     if (!em) { etat("Code inconnu", "Ce code employé n’existe pas."); return; }
     prog = await lire("fidProgrammes/" + em.pid);
     if (!prog) { etat("Programme introuvable", ""); return; }
     theme(prog);
-    const k = moisCle(), pts = (em.m || {})[k] || 0, peutVoter = voteClient(prog) && prog.actif !== false && em.actif !== false;
-    const dejaVote = lsGet("nfcwork-vote-" + eid) && Date.now() - Number(lsGet("nfcwork-vote-" + eid)) < (prog.delaiVoteMin || 30) * 60000;
+    const d = new Date(), k = moisCle(d); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1);
+    const kp = moisCle(d), pts = (em.m || {})[k] || 0, prec = (em.m || {})[kp] || 0;
+    const nom = kk => new Date(Date.UTC(+kk.slice(0, 4), +kk.slice(4) - 1, 1)).toLocaleDateString("fr-FR", { month: "long" });
     app.innerHTML = `${brand(prog)}
       <div class="paper emp"><div class="av">${esc((em.nom || "?").trim()[0].toUpperCase())}</div>
         <h2>${esc(em.nom)}</h2><p>${esc(prog.nom)}${prog.primeEmploye ? `<br>🏆 ${esc(prog.primeEmploye)}` : ""}</p>
-        <div id="vmsg"></div>
-        ${peutVoter ? `<button class="btn primary" id="vote" ${dejaVote ? "disabled" : ""}>${dejaVote ? "✓ Merci pour votre avis !" : `👍 Bien servi(e) · +1 pour ${esc(em.nom)}`}</button>`
-          : `<p>Montrez ce code à votre responsable.</p>`}
-        <p class="tip">Ce mois-ci : <b id="vpts">${pts}</b> point${pts > 1 ? "s" : ""}</p></div>
-      ${pro ? `<div class="pro"><b>Espace commerçant</b><a class="btn primary" href="/espace/fidelite.html#e=${esc(eid)}">Ajouter un point à ${esc(em.nom)}</a></div>` : ""}
+        <div class="card" style="text-align:center"><div class="lbl">Mes points · ${esc(nom(k))}</div><div class="big" style="margin-top:8px">${pts}</div></div>
+        <p class="tip">${prec ? `${esc(nom(kp))} : ${prec} points<br>` : ""}Un point par client servi, enregistré à la caisse ou confirmé par le client.</p></div>
+      ${pro ? `<div class="pro"><b>Espace commerçant</b><a class="btn primary" href="/espace/fidelite.html#e=${esc(eid)}">Voir dans l’Espace</a></div>` : ""}
       ${pied}`;
-    const v = document.getElementById("vote");
-    if (v && !dejaVote) v.onclick = async () => {
-      v.disabled = true;
-      try {
-        await commit({ update: { name: nomDoc("fidEmployes/" + eid), fields: {} }, updateMask: { fieldPaths: [] },
-          updateTransforms: [{ fieldPath: "m.`" + k + "`", increment: { integerValue: "1" } }, { fieldPath: "lastAt", setToServerValue: "REQUEST_TIME" }],
-          currentDocument: { exists: true } });
-        lsSet("nfcwork-vote-" + eid, String(Date.now()));
-        const vp = document.getElementById("vpts"); if (vp) vp.textContent = pts + 1;
-        v.textContent = "✓ Merci pour votre avis !";
-        document.getElementById("vmsg").innerHTML = `<div class="msg ok">Merci ! +1 pour ${esc(em.nom)}.</div>`;
-      } catch (e) {
-        v.textContent = "✓ Merci !";
-        document.getElementById("vmsg").innerHTML = `<div class="msg info">Merci ! Un avis vient déjà d’être donné, réessayez un peu plus tard.</div>`;
-      }
-    };
   }
 
   /* ---------- aiguillage ---------- */
-  const c = clean(qs.get("c")), p = clean(qs.get("p")), j = clean(qs.get("j"), 60), e = clean(qs.get("e"));
-  (c ? ouvrirCarte(c) : p ? inscription(p, j) : e ? employe(e) : Promise.resolve(etat("Carte fidélité", "Scannez le QR de votre commerce pour obtenir votre carte.")))
+  const c = clean(qs.get("c")), p = clean(qs.get("p")), e = clean(qs.get("e"));
+  (c ? ouvrirCarte(c) : p ? inscription(p) : e ? employe(e) : Promise.resolve(etat("Carte fidélité", "Scannez le QR de votre commerce pour obtenir votre carte.")))
     .catch(err => { console.error(err); etat("Connexion impossible", "Vérifiez votre connexion Internet et réessayez."); });
 })();
