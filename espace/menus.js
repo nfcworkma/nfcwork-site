@@ -91,6 +91,7 @@
     if (!id || IMG[id]) return IMG[id];
     if (id.startsWith("u:")) return (IMG[id] = window.BANQUE_URL(id.slice(2), 400));
     if (id.startsWith("o:")) return (IMG[id] = window.PHOTO_AUTO.url(id, 400));
+    if (id.startsWith("/")) return (IMG[id] = id);
     try {
       const d = await db.doc("settings/mimg-" + id).get();
       if (d.exists) IMG[id] = d.data().data;
@@ -587,7 +588,7 @@
   function importer() {
     const IM = window.IMPORT_MENU;
     const d = fenetre(`<div class="row between"><h2>Importer un menu</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
-      <p class="muted" style="margin:4px 0 12px;font-size:13.5px">Collez le <b>lien</b> du resto sur Glovo, Jumia ou son site — ou tout le <b>texte</b> de la page copié — ou le <b>code</b> préparé pour vous. Les catégories, produits, descriptions et prix se remplissent tout seuls.</p>
+      <p class="muted" style="margin:4px 0 12px;font-size:13.5px">Collez le <b>lien</b> du resto sur Glovo, Jumia ou son site — ou tout le <b>texte</b> de la page copié — ou le <b>nom du menu préparé</b> pour vous (ex. lartisan). Les catégories, produits, descriptions et prix se remplissent tout seuls.</p>
       <form class="stack" id="imf">
         <label class="f">Lien, texte ou code<textarea id="im-t" rows="5" placeholder="https://glovoapp.com/fr/ma/kenitra/stores/…" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></label>
         <div class="row" style="gap:10px;flex-wrap:wrap">
@@ -626,6 +627,10 @@
             err.innerHTML = "La page n’a pas pu être lue automatiquement.<br>• Sur ordinateur : ouvrez le lien, sélectionnez tout (Ctrl+A / ⌘A), copiez et collez le texte ici.<br>• Ou envoyez le lien à l’assistant NFCWORK : il vous prépare un code à coller ici.";
             return;
           }
+        } else if (/^[a-z0-9-]{3,40}$/i.test(t)) {
+          go.textContent = "Lecture…";
+          cats = (await IM.lirePrepare(t.toLowerCase())) || [];
+          if (!cats.length) { go.disabled = false; go.textContent = "Lire le menu"; err.textContent = `Aucun menu préparé ne s’appelle « ${t} ».`; return; }
         } else cats = IM.lire(t);
         go.disabled = false;
         if (!cats.length) { go.textContent = "Lire le menu"; err.textContent = "Aucun produit avec un prix n’a été trouvé dans ce texte."; return; }
@@ -641,8 +646,14 @@
       for (const c of lu) {
         let cible = M.categories.find(x => (T(x.nom, l0) || "").trim().toLowerCase() === c.nom.trim().toLowerCase());
         if (!cible) { cible = { id: rid(6), nom: { [l0]: c.nom }, items: [] }; M.categories.push(cible); }
-        for (const i of c.items) cible.items.push({ id: rid(6), nom: { [l0]: i.nom }, desc: { [l0]: i.desc || "" }, prix: IM.arrondir(i.prix, pct, pas), photo: "", dispo: true });
+        for (const i of c.items) cible.items.push(Object.assign({ id: rid(6), nom: { [l0]: i.nom }, desc: { [l0]: i.desc || "" }, prix: IM.arrondir(i.prix, pct, pas), photo: i.photo || "", dispo: true }, i.vedette && M.formule === "premium" ? { vedette: true } : {}));
       }
+      const meta = lu.meta || {};
+      if (meta.slogan && !T(M.slogan, l0)) M.slogan = Object.assign({}, typeof M.slogan === "object" ? M.slogan : {}, { [l0]: meta.slogan });
+      if (meta.theme) M.theme = meta.theme;
+      if (meta.couleur) M.couleur = meta.couleur;
+      if (meta.couverture && !M.couverture) M.couverture = meta.couverture;
+      if (meta.logo && !M.logo) M.logo = meta.logo;
       const ph = $("#im-ph", d).checked;
       d.remove(); renderEdit();
       toast("Menu importé ✓ Vérifiez puis « Enregistrer ».");

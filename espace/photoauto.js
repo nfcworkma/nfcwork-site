@@ -34,7 +34,7 @@
     harira: "soupe", chicken: "poulet", beef: "boeuf", cheese: "fromage", classic: "classique", crispy: "crispy", "jus": "ju", omelet: "omelette", kefta: "kefta", kafta: "kefta", poisson: "poisson", fish: "poisson", crevette: "crevette" };
   const norm = w => SYN[w] || w;
   // le mot qui dit « ce que c'est » pèse le plus (Classic Burger → burger, Chicken Burger → burger, pas les ailes de poulet)
-  const TETES = new Set("burger cheeseburger pizza taco tacos crepe gaufre pancake sandwich panini chawarma wrap quesadilla hot dog ju jus smoothie milkshake frappe mojito limonade citronnade the cafe espresso cappuccino latte chocolat eau soda soupe salade pate lasagne couscous tajine omelette croissant frite nugget wing brochette steak poisson crevette tiramisu brownie donut glace cheesecake gateau".split(" "));
+  const TETES = new Set("burger cheeseburger pizza taco tacos crepe gaufre pancake sandwich panini chawarma wrap quesadilla hot dog ju jus smoothie milkshake frappe mojito limonade citronnade the cafe espresso cappuccino latte chocolat eau soda soupe salade pate lasagne couscous tajine omelette croissant frite nugget wing brochette steak poisson crevette tiramisu brownie donut glace cheesecake gateau sushi maki nigiri roll poke temaki rouleau tarte".split(" "));
   function banqueMeilleure(nom, deja) {
     const ws = mots(nom).map(norm); if (!ws.length) return "";
     let bs = 0, tous = [];
@@ -43,7 +43,7 @@
       const t = " " + tl.join(" ") + " ";
       // le 1er mot (« Pizza … », « Crêpe … », « Jus … ») compte double ; bonus si la photo commence pareil
       let s = 0;
-      ws.forEach((w, i) => { if (t.includes(" " + w)) s += TETES.has(w) ? 3 : i === 0 ? 2 : 1; });
+      ws.forEach((w, i) => { if (t.includes(" " + w + (w.length < 4 ? " " : ""))) s += TETES.has(w) ? 3 : i === 0 ? 2 : 1; });
       if (s && ws.includes(tl[0])) s += tl[0] === ws[0] ? 0.6 : 0.5;
       if (s) tous.push([x, s]);
       if (s > bs) bs = s;

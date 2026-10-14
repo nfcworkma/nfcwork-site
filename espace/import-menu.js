@@ -50,9 +50,13 @@
       const j = JSON.parse(t);
       const cs = Array.isArray(j) ? j : j.categories;
       if (!Array.isArray(cs)) return null;
-      return cs.map(c => ({ nom: String(c.nom || c.name || "Menu").slice(0, 60),
-        items: (c.items || c.produits || []).map(i => ({ nom: String(i.nom || i.name || "").slice(0, 80), desc: String(i.desc || i.description || "").slice(0, 240), prix: parseFloat(String(i.prix ?? i.price ?? "").replace(",", ".")) })).filter(i => i.nom) }))
+      const okPhoto = v => (/^u:\d{10,13}-[0-9a-f]{12}$/.test(v || "") || /^o:[0-9/]{4,40}\/front_[a-z]{2}\.\d{1,4}$/.test(v || "") ? v : "");
+      const r = cs.map(c => ({ nom: String(c.nom || c.name || "Menu").slice(0, 60),
+        items: (c.items || c.produits || []).map(i => ({ nom: String(i.nom || i.name || "").slice(0, 80), desc: String(i.desc || i.description || "").slice(0, 240), prix: parseFloat(String(i.prix ?? i.price ?? "").replace(",", ".")), photo: okPhoto(i.photo), vedette: i.vedette === true })).filter(i => i.nom) }))
         .filter(c => c.items.length);
+      // réglages du menu proposés avec le code (phrase, thème, couleur)
+      if (!Array.isArray(j)) r.meta = { slogan: typeof j.slogan === "string" ? j.slogan.slice(0, 140) : "", theme: ["nuit", "creme", "cafe", "lagon"].includes(j.theme) ? j.theme : "", couleur: /^#[0-9a-f]{6}$/i.test(j.couleur || "") ? j.couleur : "", couverture: okPhoto(j.couverture), logo: /^\/menu\/import\/[a-z0-9-]+\.(png|jpe?g|webp)$/.test(j.logo || "") ? j.logo : "" };
+      return r;
     } catch (e) { return null; }
   }
 
@@ -77,6 +81,14 @@
     return null;
   }
 
+  // menu préparé par NFCWORK et rangé sur le site : il suffit de taper son nom (ex. « lartisan »)
+  async function lirePrepare(nom) {
+    try {
+      const r = await fetch("/menu/import/" + encodeURIComponent(nom) + ".json", { cache: "no-cache" });
+      if (!r.ok) return null;
+      return lireCode(await r.text());
+    } catch (e) { return null; }
+  }
   function lire(entree) {
     const t = String(entree || "").trim();
     if (/^[\[{]/.test(t)) return lireCode(t) || [];
@@ -88,5 +100,5 @@
     v = pas ? Math.round(v / pas) * pas : Math.round(v * 100) / 100;
     return String(Number(v.toFixed(2))).replace(".", ",");
   };
-  window.IMPORT_MENU = { lire, lireTexte, lireCode, lirePage, htmlVersTexte, arrondir };
+  window.IMPORT_MENU = { lire, lirePrepare, lireTexte, lireCode, lirePage, htmlVersTexte, arrondir };
 })();
