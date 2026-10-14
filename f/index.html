@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Carte fidélité</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05080f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fidélité">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/img/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/img/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Carte fidélité NFCWORK : une carte par commerce, couleur du commerce en accent */
+:root{
+  --bg:#05080f;--surface:#0e1626;--sunk:#152036;--fg:#eef3fb;--muted:#9aaac3;--line:#22324f;
+  --accent:#1e90ff;--on-accent:#fff;--ok:#25d366;--warn:#f2b53a;--bad:#ff6b6b;
+  --display:"Readex Pro",system-ui,-apple-system,sans-serif;color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--display)}
+body{min-height:100vh;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left));
+  background:radial-gradient(70vmax 50vmax at 80% -20%,color-mix(in srgb,var(--accent) 28%,transparent),transparent 70%),var(--bg)}
+main{max-width:440px;margin:0 auto}
+.state{min-height:70vh;display:grid;place-items:center;text-align:center;color:var(--muted)}
+.state h1{color:var(--fg);font-size:22px;margin:0 0 6px}
+.spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite;margin:0 auto 14px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.brand{display:flex;align-items:center;gap:12px;margin:6px 0 18px}
+.brand .lg{width:52px;height:52px;border-radius:14px;object-fit:cover;background:var(--surface);flex:none}
+.brand .ini{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:22px;flex:none}
+.brand b{display:block;font-size:20px;line-height:1.2}
+.brand small{color:var(--muted)}
+
+/* la carte */
+.card{position:relative;border-radius:24px;padding:20px;overflow:hidden;color:#fff;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 92%,#000) 0%,color-mix(in srgb,var(--accent) 55%,#05080f) 100%);
+  box-shadow:0 24px 60px -24px color-mix(in srgb,var(--accent) 80%,transparent)}
+.card::after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-90px;top:-120px;background:rgb(255 255 255/.10)}
+.card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;position:relative;z-index:1}
+.card .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
+.card .who{font-size:19px;font-weight:600;margin-top:2px}
+.card .big{font-size:42px;font-weight:700;line-height:1;margin-top:18px;position:relative;z-index:1;font-variant-numeric:tabular-nums}
+.card .big small{font-size:18px;font-weight:500;opacity:.85}
+.stamps{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:18px;position:relative;z-index:1}
+.stamp{aspect-ratio:1;border-radius:50%;border:2px dashed rgb(255 255 255/.55);display:grid;place-items:center;font-size:18px}
+.stamp.on{border:0;background:#fff;color:var(--accent);box-shadow:0 4px 14px rgb(0 0 0/.25)}
+.stamp.new{animation:pop .6s ease}
+@keyframes pop{0%{transform:scale(.3)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+.bar{height:10px;border-radius:99px;background:rgb(255 255 255/.25);margin-top:16px;overflow:hidden;position:relative;z-index:1}
+.bar i{display:block;height:100%;background:#fff;border-radius:99px;transition:width .6s}
+.reward{margin-top:16px;position:relative;z-index:1;font-size:14.5px;background:rgb(0 0 0/.18);border-radius:14px;padding:10px 12px}
+.reward b{font-weight:600}
+.qrbox{background:#fff;border-radius:20px;padding:16px;margin-top:16px;text-align:center;color:#05080f}
+.qrbox svg{width:200px;height:200px;display:block;margin:0 auto}
+.qrbox small{display:block;margin-top:6px;color:#55627a;font-size:12.5px}
+.msg{border-radius:16px;padding:14px 16px;margin:0 0 14px;font-weight:600;display:flex;gap:10px;align-items:center}
+.msg.ok{background:color-mix(in srgb,var(--ok) 20%,var(--surface));color:#c9f7d9}
+.msg.info{background:color-mix(in srgb,var(--warn) 18%,var(--surface));color:#fbe3b0}
+.msg.win{background:linear-gradient(135deg,#f2b53a,#ff8a3d);color:#2a1300}
+.paper{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px}
+h2{font-size:22px;margin:0 0 6px}
+p{color:var(--muted);line-height:1.5;margin:0 0 16px}
+label{display:grid;gap:6px;font-size:14px;color:var(--muted);margin-bottom:12px}
+input{width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:16px}
+input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border-radius:16px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-weight:600;font-size:16px;text-decoration:none;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn:disabled{opacity:.5}
+.err{color:var(--bad);font-size:14px;min-height:1em;margin:0 0 10px}
+.tip{margin-top:14px;font-size:13.5px;color:var(--muted);text-align:center;line-height:1.5}
+.pro{margin-top:16px;padding:14px;border-radius:16px;border:1px dashed color-mix(in srgb,var(--accent) 60%,var(--line))}
+.pro b{display:block;margin-bottom:8px}
+.emp{text-align:center}
+.emp .av{width:84px;height:84px;border-radius:50%;margin:0 auto 12px;display:grid;place-items:center;font-size:34px;font-weight:700;background:var(--accent);color:var(--on-accent)}
+.foot{text-align:center;color:var(--muted);font-size:12px;margin-top:26px}
+.foot a{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.spin,.stamp.new{animation:none}}
+</style>
+</head>
+<body>
+<main id="app"><div class="state"><div><div class="spin"></div>Chargement…</div></div></main>
+<script src="/assets/js/qrgen.js"></script>
+<script src="/f/fid.js"></script>
+</body>
+</html>

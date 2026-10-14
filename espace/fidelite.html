@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fidélité · nfcwork.ma</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05080f">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/img/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../assets/img/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="outil.css">
+<style>
+/* Fidélité : liste des programmes (admin), tableau de bord du commerçant, scan, affiches */
+.big2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.big2 .btn{min-height:58px;font-size:16px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.stats b{display:block;font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums}
+.stats span{font-size:12.5px;color:var(--muted)}
+.tabs2{display:flex;gap:6px;margin:6px 0 12px}
+.tabs2 button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:12px;padding:10px;font:inherit;font-weight:600;cursor:pointer}
+.tabs2 button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.flist{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.frow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.frow .av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);font-weight:700;flex:none}
+.frow .tx{flex:1;min-width:0;cursor:pointer}
+.frow .tx b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .tx small{color:var(--muted)}
+.frow .pts{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.frow.ready{border-color:color-mix(in srgb,var(--warn) 60%,var(--line))}
+.frow .rank{width:28px;text-align:center;font-weight:700;color:var(--muted);flex:none}
+.frow.first{border-color:color-mix(in srgb,var(--warn) 70%,var(--line));background:color-mix(in srgb,var(--warn) 10%,var(--surface))}
+.plus{min-width:52px}
+.winner{border-radius:16px;padding:14px 16px;margin-bottom:12px;background:linear-gradient(135deg,#f2b53a,#ff8a3d);color:#2a1300;font-weight:600}
+.cardview{border-radius:20px;padding:18px;color:#fff;background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 45%,#05080f));margin:10px 0}
+.cardview .n{font-size:20px;font-weight:700}
+.cardview .p{font-size:44px;font-weight:700;line-height:1.1;margin-top:8px;font-variant-numeric:tabular-nums}
+.cardview .p small{font-size:17px;font-weight:500;opacity:.85}
+.cardview .bar{height:10px;border-radius:99px;background:rgb(255 255 255/.25);margin-top:10px;overflow:hidden}
+.cardview .bar i{display:block;height:100%;background:#fff}
+.addbtn{min-height:64px!important;font-size:19px!important}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:52px;height:52px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:26px;cursor:pointer}
+.stepper input{flex:1;text-align:center;font-size:24px;font-weight:700;padding:10px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.scan{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:58vh;margin:10px auto}
+.scan video{width:100%;height:100%;object-fit:cover;display:block}
+.scan::after{content:"";position:absolute;inset:18%;border:3px solid var(--accent-2);border-radius:18px;box-shadow:0 0 0 999px rgb(0 0 0/.35)}
+.seg3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg3 button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:12px;padding:10px 6px;font:inherit;font-size:13.5px;cursor:pointer;text-align:center}
+.seg3 button b{display:block;font-size:14.5px}
+.seg3 button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+
+/* impression */
+#planche{display:none}
+@media print{
+  @page{size:A4;margin:10mm}
+  body{background:#fff!important}
+  header.top,main,#toast,.modal{display:none!important}
+  #planche{display:block;color:#05080f;font-family:"Readex Pro",Arial,sans-serif}
+  .page{page-break-after:always;height:270mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6mm}
+  .page:last-child{page-break-after:auto}
+  .page .shop{font-size:30pt;font-weight:700}
+  .page .t{font-size:16pt;letter-spacing:.2em;text-transform:uppercase;color:#555}
+  .page .rule{font-size:20pt;font-weight:600;max-width:150mm}
+  .page svg{width:110mm;height:110mm}
+  .page .steps{font-size:13pt;color:#333}
+  .page img{height:9mm;width:auto}
+  .grid12{display:grid;grid-template-columns:repeat(3,1fr);page-break-after:always}
+  .stk{height:68mm;border:1px dashed #bbb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm;padding:3mm;text-align:center}
+  .stk svg{width:38mm;height:38mm}
+  .stk b{font-size:11pt}
+  .stk small{font-size:8.5pt;color:#555}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="btn sm ghost" id="backBtn" href="./" aria-label="Retour">←</a>
+  <div class="t"><b id="topTitle">Fidélité</b><small id="topSub">Cartes clients & employés</small></div>
+</div></header>
+<main id="app"><div class="empty"><h3>Chargement…</h3></div></main>
+<div id="planche"></div>
+<div id="toast" hidden></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="../assets/js/qrgen.js"></script>
+<script src="fidelite.js"></script>
+</body>
+</html>

@@ -209,6 +209,7 @@ function startClient(email){
   listen(fs.collection("claims").where("clientEmail","==",email),s=>{P.claims=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   listenDiscret(fs.collection("creations").where("clientEmail","==",email),s=>{P.creations=rows(s).filter(c=>c.statut!=="desactivee").sort((a,b)=>(tsDate(b.modifieLe)||0)-(tsDate(a.modifieLe)||0));render()});
   listenDiscret(fs.collection("modifications").where("clientEmail","==",email),s=>{P.mods=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
+  fs.collection("fidProgrammes").where("ownerEmail","==",email).get().then(s=>{P.fid=rows(s);render()}).catch(()=>{});
   render();
 }
 
@@ -243,6 +244,9 @@ function renderHome(){
   app.innerHTML=`
   <div class="section-head"><div><div class="eyebrow">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</div><h2>Tableau de bord</h2></div>
   <button class="btn primary" data-new-inv>＋ Nouvelle facture</button></div>
+  <div class="quick" style="margin-bottom:16px"><a class="qa" href="menus.html">${ico("tools-kitchen-2")}<b>Menus digitaux</b><span>Créer & modifier</span></a>
+    <a class="qa" href="stands.html">${ico("link")}<b>Stands QR</b><span>Imprimer & lier</span></a>
+    <a class="qa" href="fidelite.html">${ico("star")}<b>Fidélité</b><span>Cartes & employés</span></a></div>
   <div class="eyebrow" style="margin-bottom:8px">À traiter</div>${todoTiles()}
   ${!S.services.length?`<div class="notice row between" style="margin-bottom:12px"><span>Votre catalogue est vide : importez les produits du site en un clic.</span><button class="btn sm primary" data-goto="services">Catalogue</button></div>`:""}
   ${!all.length&&!S.clients.length?`<div class="notice">Pour démarrer : remplissez les <b>Paramètres</b>, ajoutez vos <b>services</b>, puis vos <b>clients</b> (avec leur e-mail), et créez votre première facture.</div>`:""}
@@ -507,6 +511,7 @@ function renderPHome(){
   ${P.creations.length?`<div class="section-head" style="margin-top:4px"><h3>Mes produits NFC</h3><button class="btn sm ghost" data-ptab="nfc">Tout voir</button></div>
   <div class="nfc-mini">${P.creations.slice(0,3).map(c=>`<a class="nmini" href="${esc(c.lien)}" target="_blank" rel="noopener"><span>${(NFC_TYPES[c.type]||[ico("help-circle")])[0]}</span><b>${esc(c.titre||c.slug)}</b><small>${(NFC_TYPES[c.type]||["",""])[1]}</small></a>`).join("")}</div>
   <button class="btn block" data-modreq="" style="margin:10px 0 16px"><i class="ico ico-pencil" aria-hidden="true"></i> Demander une modification</button>`:""}
+  ${P.fid&&P.fid.length?`<a class="btn primary block" href="fidelite.html" style="margin:0 0 16px">${ico("star")} Ma carte fidélité · scanner & gérer</a>`:""}
   ${P.ready&&!P.client?`<div class="notice" style="margin-bottom:14px">Votre e-mail <b>${esc(user.email)}</b> n’est pas encore relié à une fiche client. Vous pouvez déjà commander ; ${esc(S.settings.name||"nfcwork.ma")} créera votre fiche.</div>`:""}
   ${missing?`<div class="notice row between" style="margin-bottom:14px"><span>Complétez votre profil (téléphone, adresse de livraison) pour être livré plus vite.</span><button class="btn sm primary" data-profile>Mon profil</button></div>`:""}
   <div class="section-head" style="margin-top:4px"><h3>Commande en cours</h3>${P.orders.length?`<button class="btn sm ghost" data-ptab="ord">Tout voir</button>`:""}</div>

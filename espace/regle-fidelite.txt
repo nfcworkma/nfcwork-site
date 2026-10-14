@@ -1,0 +1,67 @@
+    // ---------- Fidélité : cartes clients et points des employés ----------
+    // À coller dans Firebase → Firestore Database → Règles, juste AVANT « // Tout le reste est fermé », puis « Publier ».
+    function fidProg(pid) { return get(/databases/$(database)/documents/fidProgrammes/$(pid)).data; }
+    function fidJeton(pid) { return get(/databases/$(database)/documents/fidSecrets/$(pid)).data.jeton; }
+    function moisCle() { return string(request.time.year() * 100 + request.time.month()); }
+    function fidScanClient() {
+      let avant = resource.data;
+      let apres = request.resource.data;
+      let p = fidProg(avant.pid);
+      return p.actif == true && p.modeClient in ['client', 'deux']
+        && apres.diff(avant).affectedKeys().hasOnly(['points', 'total', 'lastAt', 'jeton'])
+        && apres.points == avant.points + 1 && apres.total == avant.total + 1
+        && apres.lastAt == request.time
+        && request.time > avant.lastAt + duration.value(p.delaiH, 'h')
+        && apres.jeton == fidJeton(avant.pid);
+    }
+    function fidVoteClient() {
+      let avant = resource.data;
+      let apres = request.resource.data;
+      let p = fidProg(avant.pid);
+      let k = moisCle();
+      return p.actif == true && p.employes == true && p.modeEmploye in ['client', 'deux'] && avant.get('actif', true) == true
+        && apres.diff(avant).affectedKeys().hasOnly(['m', 'lastAt'])
+        && apres.m.diff(avant.m).affectedKeys().hasOnly([k])
+        && apres.m[k] == avant.m.get(k, 0) + 1
+        && apres.lastAt == request.time
+        && request.time > avant.lastAt + duration.value(p.delaiVoteMin, 'm');
+    }
+    match /fidProgrammes/{pid} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /fidSecrets/{pid} {
+      allow read: if isAdmin() || (verified() && fidProg(pid).ownerEmail == myEmail());
+      allow write: if isAdmin();
+    }
+    match /fidCartes/{cid} {
+      allow get: if true;
+      allow list: if isAdmin() || (verified() && resource.data.ownerEmail == myEmail());
+      allow create: if request.resource.data.keys().hasOnly(['pid', 'ownerEmail', 'nom', 'tel', 'points', 'total', 'recompenses', 'createdAt', 'lastAt'])
+        && str(request.resource.data.pid, 60)
+        && fidProg(request.resource.data.pid).actif == true
+        && request.resource.data.ownerEmail == fidProg(request.resource.data.pid).ownerEmail
+        && str(request.resource.data.nom, 60) && request.resource.data.nom.size() > 0
+        && str(request.resource.data.tel, 30)
+        && request.resource.data.points == 0 && request.resource.data.total == 0 && request.resource.data.recompenses == 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.lastAt == timestamp.value(0);
+      allow update: if isAdmin()
+        || (verified() && resource.data.ownerEmail == myEmail()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['points', 'total', 'recompenses', 'lastAt', 'nom', 'tel']))
+        || fidScanClient();
+      allow delete: if isAdmin() || (verified() && resource.data.ownerEmail == myEmail());
+    }
+    match /fidEmployes/{eid} {
+      allow get: if true;
+      allow list: if isAdmin() || (verified() && resource.data.ownerEmail == myEmail());
+      allow create: if isAdmin() || (verified() && request.resource.data.ownerEmail == myEmail()
+        && fidProg(request.resource.data.pid).ownerEmail == myEmail()
+        && request.resource.data.keys().hasOnly(['pid', 'ownerEmail', 'nom', 'm', 'actif', 'lastAt', 'createdAt'])
+        && str(request.resource.data.nom, 40));
+      allow update: if isAdmin()
+        || (verified() && resource.data.ownerEmail == myEmail()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['m', 'lastAt', 'nom', 'actif']))
+        || fidVoteClient();
+      allow delete: if isAdmin() || (verified() && resource.data.ownerEmail == myEmail());
+    }

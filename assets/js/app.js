@@ -520,7 +520,7 @@
     sentEspace.add(orderRef);
     const o = orderEspace(), str = x => ({ stringValue: String(x) });
     try {
-      fetch(FS_SITE + "?documentId=" + encodeURIComponent(o.ref), { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
+      fetch(FS_SITE + "?documentId=" + encodeURIComponent(o.ref) + "&key=" + encodeURIComponent((window.FIREBASE_CONFIG || {}).apiKey || "AIzaSyDFJGerneuM-Og0Hs9IKIcFqVbLlS9Yqjc"), { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fields: { ref: str(o.ref), createdAt: str(o.createdAt), json: str(JSON.stringify(o).slice(0, 20000)) } }) }).catch(() => {});
     } catch (e) {}
   }
