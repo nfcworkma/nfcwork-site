@@ -592,7 +592,7 @@
       <form class="stack" id="imf">
         <label class="f">Lien, texte ou code<textarea id="im-t" rows="5" placeholder="https://glovoapp.com/fr/ma/kenitra/stores/…" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></label>
         <div class="row" style="gap:10px;flex-wrap:wrap">
-          <label class="f" style="flex:1;min-width:150px">Prix<select id="im-pct"><option value="0">Prix identiques</option><option value="-10">−10 % (prix Glovo)</option><option value="-15">−15 %</option><option value="-20">−20 %</option><option value="-25">−25 %</option></select></label>
+          <label class="f" style="flex:1;min-width:150px">Baisser les prix de (%)<input id="im-pct" type="number" inputmode="decimal" min="0" max="60" step="0.1" value="0" placeholder="0"></label>
           <label class="f" style="flex:1;min-width:150px">Arrondi<select id="im-pas"><option value="1">Au dirham (25)</option><option value="0.5">Au demi (24,5)</option><option value="0">Sans arrondi</option></select></label></div>
         <label class="check"><input type="checkbox" id="im-ph" checked> Ajouter les photos automatiquement</label>
         <label class="check"><input type="checkbox" id="im-rep"> Remplacer les catégories actuelles (sinon : ajoutées à la suite)</label>
@@ -605,12 +605,13 @@
     const montrer = cats => {
       lu = cats;
       const n = cats.reduce((k, c) => k + c.items.length, 0);
-      const pct = +$("#im-pct", d).value, pas = +$("#im-pas", d).value;
+      const pct = -Math.abs(+$("#im-pct", d).value || 0), pas = +$("#im-pas", d).value;
       prev.innerHTML = `<div class="paper" style="padding:12px 14px;border-radius:14px"><b>${cats.length} catégorie(s) · ${n} produit(s) trouvés</b>
         ${cats.map(c => `<div style="margin-top:10px"><b>${esc(c.nom)}</b> <span class="muted">(${c.items.length})</span><div class="muted" style="font-size:13px">${c.items.slice(0, 6).map(i => `${esc(i.nom)} — ${esc(IM.arrondir(i.prix, pct, pas))} ${esc(M.devise || "DH")}`).join("<br>")}${c.items.length > 6 ? "<br>…" : ""}</div></div>`).join("")}</div>`;
       go.textContent = `Importer ${n} produit(s)`;
     };
     d.addEventListener("change", e => { if (lu && (e.target.id === "im-pct" || e.target.id === "im-pas")) montrer(lu); });
+    $("#im-pct", d).addEventListener("input", () => { if (lu) montrer(lu); });
     $("#im-t", d).addEventListener("input", () => { lu = null; prev.innerHTML = ""; err.textContent = ""; go.textContent = "Lire le menu"; });
     $("#imf", d).onsubmit = async e => {
       e.preventDefault(); err.textContent = "";
@@ -644,7 +645,7 @@
         montrer(cats); return;
       }
       // importer
-      const l0 = M.langues[0] || "fr", pct = +$("#im-pct", d).value, pas = +$("#im-pas", d).value;
+      const l0 = M.langues[0] || "fr", pct = -Math.abs(+$("#im-pct", d).value || 0), pas = +$("#im-pas", d).value;
       if ($("#im-rep", d).checked) {
         const n = M.categories.reduce((k, c) => k + (c.items || []).length, 0);
         if (n && !confirm(`Remplacer les ${n} produit(s) actuels par le menu importé ?`)) return;
