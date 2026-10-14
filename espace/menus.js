@@ -44,7 +44,8 @@
   const slugify = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/&/g, " et ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
   const dirty = () => M && JSON.stringify(M) !== saved;
   const idsDe = m => [m.logo, m.couverture, ...(m.pages || []), ...(m.categories || []).flatMap(c => (c.items || []).map(i => i.photo))].filter(Boolean);
-  const langsEdition = () => M.formule === "premium" ? M.langues : [M.langues[0] || "fr"];
+  const langsEdition = () => ["fr"];   // menus en français uniquement
+  const enLigne = id => /^(u:|\/)/.test(id || "");   // photo de la banque ou du site : rien à stocker ni à effacer
   const T = (o, l) => (o && typeof o === "object" ? o[l] : l === (M.langues[0] || "fr") ? o : "") || "";
 
   /* ================= Connexion ================= */
@@ -88,6 +89,7 @@
 
   async function chargerImg(id) {
     if (!id || IMG[id]) return IMG[id];
+    if (id.startsWith("u:")) return (IMG[id] = window.BANQUE_URL(id.slice(2), 400));
     try {
       const d = await db.doc("settings/mimg-" + id).get();
       if (d.exists) IMG[id] = d.data().data;
@@ -165,7 +167,7 @@
   });
   window.addEventListener("beforeunload", e => { if (dirty()) { e.preventDefault(); e.returnValue = ""; } });
   function abandonner() {
-    const orph = [...pending].filter(i => !savedIds.has(i));
+    const orph = [...pending].filter(i => !savedIds.has(i) && !enLigne(i));
     orph.forEach(i => db.doc("settings/mimg-" + i).delete().catch(() => {}));
     pending.clear(); M = null; saved = "";
   }
@@ -198,7 +200,6 @@
         <label class="f">Nom du commerce<input id="nm-nom" required maxlength="60" placeholder="Café Chocco Latte"></label>
         <div><div class="eyebrow" style="margin-bottom:6px">Formule</div>${segFormule(formule)}</div>
         <label class="f">Lien du menu<input id="nm-slug" required maxlength="40" pattern="[a-z0-9-]+" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
-        <label class="f">Langue principale<select id="nm-lang">${Object.entries(LANGS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select></label>
         <p class="err" id="nm-err"></p>
         <div class="row"><button class="btn primary" style="flex:1">Créer le menu</button><button type="button" class="btn ghost" data-fermer>Annuler</button></div>
       </form>`);
@@ -216,7 +217,7 @@
       try {
         const ex = await db.doc("settings/menu-" + s).get();
         if (ex.exists) { err.textContent = "Ce lien existe déjà : choisissez-en un autre."; btn.disabled = false; return; }
-        const lang = $("#nm-lang", d).value;
+        const lang = "fr";
         const m = {
           v: 1, slug: s, nom: nom.value.trim(), formule, actif: true,
           langues: [lang], theme: "nuit", couleur: "", devise: "DH",
@@ -243,7 +244,7 @@
       const d = await db.doc("settings/menu-" + slug).get();
       if (!d.exists) { app.innerHTML = `<div class="empty"><h3>Menu introuvable</h3><a class="btn" href="#">Retour aux menus</a></div>`; return; }
       M = JSON.parse(d.data().json || "{}");
-      M.langues = M.langues && M.langues.length ? M.langues : ["fr"];
+      M.langues = ["fr"];
       M.infos = M.infos || {}; M.slogan = M.slogan || {}; M.pages = M.pages || []; M.categories = M.categories || [];
       saved = JSON.stringify(M); savedIds = new Set(idsDe(M)); pending.clear();
       renderEdit();
@@ -275,7 +276,7 @@
     return `<div class="imgpick" data-pick="${cle}">
       ${id ? imgTag(id, "prev" + (kind === "cover" ? " wide" : ""), label) : `<div class="prev${kind === "cover" ? " wide" : ""}"></div>`}
       <div class="stack" style="gap:6px"><b>${esc(label)}</b>${aide ? `<small class="muted">${esc(aide)}</small>` : ""}
-        <div class="row"><label class="btn sm">${id ? "Changer" : "Ajouter"}<input type="file" accept="image/*" hidden data-up="${cle}" data-kind="${kind}"></label>${id ? `<button class="btn sm ghost" data-act="retirer" data-cle="${cle}">Retirer</button>` : ""}</div></div></div>`;
+        <div class="row"><label class="btn sm">${id ? "Changer" : "Ajouter"}<input type="file" accept="image/*" hidden data-up="${cle}" data-kind="${kind}"></label>${kind === "cover" ? `<button class="btn sm" data-act="banque-cover">Banque de photos</button>` : ""}${id ? `<button class="btn sm ghost" data-act="retirer" data-cle="${cle}">Retirer</button>` : ""}</div></div></div>`;
   }
 
   function renderEdit() {
@@ -303,10 +304,8 @@
       </div>
     </section>
 
-    ${prem ? `<section class="sec paper stack"><h3>Premium : langues & WhatsApp</h3>
-      <div><div class="eyebrow" style="margin-bottom:6px">Langues du menu (le client choisit en haut de la page)</div>
-        <div class="row">${Object.entries(LANGS).map(([k, v]) => `<label class="check" style="margin-inline-end:14px"><input type="checkbox" data-lang="${k}" ${M.langues.includes(k) ? "checked" : ""}> ${v}</label>`).join("")}</div></div>
-      <label class="f">Langue principale (affichée en premier)<select data-act-change="principale">${M.langues.map(k => `<option value="${k}" ${k === M.langues[0] ? "selected" : ""}>${LANGS[k]}</option>`).join("")}</select></label>
+    ${prem ? `<section class="sec paper stack"><h3>Premium : commande WhatsApp</h3>
+      <p class="muted" style="margin:0;font-size:13.5px">Le client choisit ses produits et envoie la commande sur ce numéro. Cochez « À ne pas manquer » sur vos meilleurs produits : ils s’affichent en grand en haut du menu.</p>
       ${champ("infos.whatsapp", "Numéro WhatsApp du commerce", 'type="tel" inputmode="tel" maxlength="30" placeholder="06 12 34 56 78"')}
       <label class="check"><input type="checkbox" data-b="commande" ${M.commande !== false ? "checked" : ""}> Les clients peuvent composer leur commande et l’envoyer sur WhatsApp</label>
     </section>` : ""}
@@ -377,7 +376,6 @@
       if (!t.checked) { if (M.langues.length === 1) { t.checked = true; toast("Gardez au moins une langue."); return; } M.langues = M.langues.filter(x => x !== k); }
       renderEdit(); return;
     }
-    if (t.dataset.actChange === "principale") { M.langues = [t.value, ...M.langues.filter(x => x !== t.value)]; renderEdit(); return; }
     if (t.dataset.up && t.files[0]) {
       const cle = t.dataset.up, kind = t.dataset.kind;
       await occupe(t.closest(".imgpick"), async () => { M[cle] = await televerser(t.files[0], kind); renderEdit(); toast("Photo ajoutée — pensez à enregistrer"); });
@@ -411,6 +409,7 @@
       case "apercu": apercu(); break;
       case "supprimer": supprimer(); break;
       case "retirer": M[b.dataset.cle] = ""; renderEdit(); break;
+      case "banque-cover": banque("Salle", "", id => { M.couverture = id; renderEdit(); }); break;
       case "couleur0": M.couleur = ""; renderEdit(); break;
       case "pg-up": bouge(M.pages, i, -1); break;
       case "pg-down": bouge(M.pages, i, 1); break;
@@ -461,24 +460,31 @@
     const d = fenetre(`<h2>${neuf ? "Nouveau produit" : "Modifier le produit"}</h2><p class="muted" style="margin-top:2px">${esc(T(c.nom, ls[0]))}</p>
       <form class="stack" id="itf">
         <div class="imgpick" id="it-pick">${it.photo ? imgTag(it.photo, "prev", "") : '<div class="prev"></div>'}
-          <div class="row"><label class="btn sm">📷 ${it.photo ? "Changer la photo" : "Ajouter une photo"}<input type="file" accept="image/*" hidden id="it-file"></label>${it.photo ? '<button type="button" class="btn sm ghost" id="it-noph">Retirer</button>' : ""}</div></div>
+          <div class="row"><button type="button" class="btn sm primary" id="it-bank">Banque de photos</button><label class="btn sm">📷 Ma photo<input type="file" accept="image/*" hidden id="it-file"></label>${it.photo ? '<button type="button" class="btn sm ghost" id="it-noph">Retirer</button>' : ""}</div></div>
         ${ls.map(l => `<label class="f">Nom${ls.length > 1 ? " (" + LCOURT[l] + ")" : ""}<input data-l="${l}" data-k="nom" value="${esc(it.nom[l] || "")}" maxlength="80" ${l === "ar" ? 'dir="rtl"' : ""} ${l === ls[0] ? "required" : ""}></label>`).join("")}
         ${ls.map(l => `<label class="f">Description (facultatif)${ls.length > 1 ? " (" + LCOURT[l] + ")" : ""}<textarea data-l="${l}" data-k="desc" maxlength="240" ${l === "ar" ? 'dir="rtl"' : ""}>${esc(it.desc[l] || "")}</textarea></label>`).join("")}
         <label class="f">Prix (${esc(M.devise || "DH")})<input id="it-prix" value="${esc(it.prix || "")}" inputmode="decimal" maxlength="20" placeholder="25"></label>
         <label class="check"><input type="checkbox" id="it-dispo" ${it.dispo !== false ? "checked" : ""}> Disponible (décochez si épuisé)</label>
+        ${M.formule === "premium" ? `<label class="check"><input type="checkbox" id="it-vedette" ${it.vedette ? "checked" : ""}> À ne pas manquer (affiché en grand en haut du menu)</label>` : ""}
         <div class="row"><button class="btn primary" style="flex:1">${neuf ? "Ajouter" : "Valider"}</button><button type="button" class="btn ghost" data-fermer>Annuler</button></div>
         ${neuf ? "" : '<button type="button" class="btn danger sm" id="it-del">Supprimer ce produit</button>'}
       </form>`);
     const pick = $("#it-pick", d);
     const majPhoto = () => {
-      pick.innerHTML = `${it.photo ? `<img class="prev" src="${IMG[it.photo] || ""}" alt="">` : '<div class="prev"></div>'}
-        <div class="row"><label class="btn sm">📷 ${it.photo ? "Changer la photo" : "Ajouter une photo"}<input type="file" accept="image/*" hidden id="it-file"></label>${it.photo ? '<button type="button" class="btn sm ghost" id="it-noph">Retirer</button>' : ""}</div>`;
+      pick.innerHTML = `${it.photo ? `<img class="prev" src="${IMG[it.photo] || (it.photo.startsWith("u:") ? window.BANQUE_URL(it.photo.slice(2), 400) : "")}" alt="">` : '<div class="prev"></div>'}
+        <div class="row"><button type="button" class="btn sm primary" id="it-bank">Banque de photos</button><label class="btn sm">📷 Ma photo<input type="file" accept="image/*" hidden id="it-file"></label>${it.photo ? '<button type="button" class="btn sm ghost" id="it-noph">Retirer</button>' : ""}</div>`;
     };
     pick.addEventListener("change", async e => {
       if (e.target.id !== "it-file" || !e.target.files[0]) return;
       await occupe(pick, async () => { it.photo = await televerser(e.target.files[0], "photo"); majPhoto(); });
     });
-    pick.addEventListener("click", e => { if (e.target.id === "it-noph") { it.photo = ""; majPhoto(); } });
+    pick.addEventListener("click", e => {
+      if (e.target.id === "it-noph") { it.photo = ""; majPhoto(); }
+      if (e.target.id === "it-bank") {
+        const nomFr = (d.querySelector('[data-k="nom"]') || {}).value || "";
+        banque("", nomFr, id => { it.photo = id; majPhoto(); });
+      }
+    });
     if (it.photo) chargerImg(it.photo).then(() => { const im = pick.querySelector("img"); if (im) im.src = IMG[it.photo] || ""; });
     const del = $("#it-del", d);
     if (del) del.onclick = () => { if (confirm("Supprimer ce produit ?")) { c.items.splice(ii, 1); d.remove(); renderEdit(); } };
@@ -487,6 +493,7 @@
       d.querySelectorAll("[data-l]").forEach(x => { it[x.dataset.k][x.dataset.l] = x.value.trim(); });
       it.prix = $("#it-prix", d).value.trim();
       it.dispo = $("#it-dispo", d).checked;
+      const ve = $("#it-vedette", d); if (ve) it.vedette = ve.checked;
       if (neuf) c.items.push(it); else c.items[ii] = it;
       d.remove(); renderEdit();
       if (neuf) toast("Produit ajouté — pensez à enregistrer");
@@ -514,7 +521,7 @@
       if (e) Object.assign(e, info); else liste.push(info);
       await ecrireListe();
       const now = new Set(idsDe(M));
-      const orph = [...new Set([...savedIds, ...pending])].filter(i => !now.has(i));
+      const orph = [...new Set([...savedIds, ...pending])].filter(i => !now.has(i) && !enLigne(i));
       await Promise.all(orph.map(i => db.doc("settings/mimg-" + i).delete().catch(() => {})));
       savedIds = now; pending.clear(); saved = json;
       try { localStorage.removeItem("nfcwork-menu-" + M.slug); } catch (x) {}
@@ -528,7 +535,7 @@
     const r = prompt(`Pour supprimer définitivement « ${M.nom} », écrivez SUPPRIMER :`);
     if (!r || r.trim().toUpperCase() !== "SUPPRIMER") return;
     try {
-      const ids = new Set([...idsDe(M), ...savedIds, ...pending]);
+      const ids = new Set([...idsDe(M), ...savedIds, ...pending].filter(i => !enLigne(i)));
       await Promise.all([...ids].map(i => db.doc("settings/mimg-" + i).delete().catch(() => {})));
       await db.doc("settings/menu-" + M.slug).delete();
       liste = liste.filter(x => x.slug !== M.slug);
@@ -552,6 +559,35 @@
     const onMsg = e => { if (e.source === f.contentWindow && e.data && e.data.type === "nfcwork-menu-pret") envoyer(); };
     window.addEventListener("message", onMsg);
     d.addEventListener("fermee", () => window.removeEventListener("message", onMsg));
+  }
+
+  /* ---------- banque de photos ---------- */
+  const sansAccent = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  function banque(cat, recherche, choisir) {
+    const B = window.BANQUE || [];
+    const cats = [...new Set(B.map(x => x[2]))];
+    let filtre = cat, q = recherche;
+    const d = fenetre(`<div class="row between"><h2>Banque de photos</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
+      <p class="muted" style="margin:4px 0 12px;font-size:13px">Photos professionnelles libres de droits. Touchez une photo pour la choisir.</p>
+      <label class="f"><input id="bq-q" placeholder="Rechercher : café crème, omelette, avocat…" value="${esc(q)}" autocomplete="off"></label>
+      <div class="row" id="bq-cats" style="margin:10px 0;gap:6px"></div><div class="thumbs" id="bq-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))"></div>`);
+    const dessiner = () => {
+      $("#bq-cats", d).innerHTML = [["", "Tout"], ...cats.map(c => [c, c])].map(([k, n]) => `<button class="btn sm${filtre === k ? " primary" : ""}" data-bqc="${esc(k)}">${esc(n)}</button>`).join("");
+      const mots = sansAccent(q).split(/\s+/).filter(w => w.length > 1);
+      let l = B.filter(x => !filtre || x[2] === filtre);
+      if (mots.length) {
+        const sc = x => mots.filter(w => sansAccent(x[1] + " " + x[3]).includes(w)).length;
+        const t = l.map(x => [x, sc(x)]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]).map(([x]) => x);
+        if (t.length) l = t;
+      }
+      $("#bq-grid", d).innerHTML = l.map(x => `<button class="thumb" data-bq="${esc(x[0])}" style="cursor:pointer;padding:0;text-align:start"><img src="${window.BANQUE_URL(x[0], 300)}" alt="${esc(x[1])}" loading="lazy" style="aspect-ratio:1" onerror="this.closest('.thumb').remove()"><span style="display:block;padding:6px 8px;font-size:12.5px">${esc(x[1])}</span></button>`).join("");
+    };
+    dessiner();
+    $("#bq-q", d).addEventListener("input", e => { q = e.target.value; dessiner(); });
+    d.addEventListener("click", e => {
+      const c = e.target.closest("[data-bqc]"); if (c) { filtre = c.dataset.bqc; dessiner(); return; }
+      const p = e.target.closest("[data-bq]"); if (p) { choisir("u:" + p.dataset.bq); d.remove(); }
+    });
   }
 
   /* ---------- outils ---------- */

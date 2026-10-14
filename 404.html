@@ -9,7 +9,7 @@
   // nfcwork.ma/menu/<nom> → page du menu digital
   (function () {
     var m = location.pathname.match(/^\/menu\/([a-z0-9-]+)\/?$/i);
-    if (m) location.replace("/menu/?m=" + m[1].toLowerCase() + location.hash);
+    if (m) location.replace("/menu/?m=" + m[1].toLowerCase() + (location.search ? "&" + location.search.slice(1) : "") + location.hash);
   })();
 </script>
 <style>

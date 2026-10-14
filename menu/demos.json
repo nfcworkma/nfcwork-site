@@ -1,0 +1,485 @@
+{
+ "demo-standard": {
+  "v": 1,
+  "nom": "Café Azur",
+  "actif": true,
+  "devise": "DH",
+  "logo": "/menu/demo/logo.jpg",
+  "logoCarre": false,
+  "slogan": "Café · Petit-déjeuner · Cuisine maison",
+  "infos": {
+   "horaires": "7h – 23h, 7j/7",
+   "adresse": "Bd Mohammed V, Kénitra",
+   "tel": "06 20 66 60 27",
+   "instagram": "@nfcwork_ma",
+   "whatsapp": "0620666027"
+  },
+  "commande": true,
+  "couverture": "u:1511081692775-05d0f180a065",
+  "categories": [],
+  "langues": [
+   "fr"
+  ],
+  "slug": "demo-standard",
+  "formule": "standard",
+  "theme": "nuit",
+  "pages": [
+   "/menu/demo/carte-1.jpg",
+   "/menu/demo/carte-2.jpg"
+  ]
+ },
+ "demo-pro": {
+  "v": 1,
+  "nom": "Café Azur",
+  "actif": true,
+  "devise": "DH",
+  "logo": "/menu/demo/logo.jpg",
+  "logoCarre": false,
+  "slogan": "Café · Petit-déjeuner · Cuisine maison",
+  "infos": {
+   "horaires": "7h – 23h, 7j/7",
+   "adresse": "Bd Mohammed V, Kénitra",
+   "tel": "06 20 66 60 27",
+   "instagram": "@nfcwork_ma",
+   "whatsapp": "0620666027"
+  },
+  "commande": true,
+  "couverture": "u:1511081692775-05d0f180a065",
+  "categories": [
+   {
+    "id": "chaud",
+    "nom": "Boissons chaudes",
+    "items": [
+     {
+      "id": "c1",
+      "nom": "Café noir",
+      "desc": "Espresso serré, grain torréfié maison",
+      "prix": "12",
+      "photo": "u:1579992357154-faf4bde95b3d",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c2",
+      "nom": "Café crème",
+      "desc": "Espresso et lait mousseux, servi avec un petit biscuit",
+      "prix": "15",
+      "photo": "u:1512568400610-62da28bc8a13",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "c3",
+      "nom": "Cappuccino",
+      "desc": "Mousse de lait onctueuse, cacao",
+      "prix": "18",
+      "photo": "u:1572442388796-11668a67e53d",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c4",
+      "nom": "Thé à la menthe",
+      "desc": "Théière pour deux, menthe fraîche du jour",
+      "prix": "12",
+      "photo": "u:1591299089616-c9604047b1a6",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c5",
+      "nom": "Chocolat chaud",
+      "desc": "Chocolat fondu et lait entier",
+      "prix": "20",
+      "photo": "u:1542990253-0d0f5be5f0ed",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "jus",
+    "nom": "Jus & smoothies",
+    "items": [
+     {
+      "id": "j1",
+      "nom": "Orange pressée",
+      "desc": "Pressée à la minute",
+      "prix": "18",
+      "photo": "u:1600271886742-f049cd451bba",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "j2",
+      "nom": "Jus d'avocat",
+      "desc": "Avocat, lait, fruits secs et miel",
+      "prix": "25",
+      "photo": "u:1584587727565-a486d45d58b4",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "j3",
+      "nom": "Milkshake fraise",
+      "desc": "Fraises fraîches, glace vanille",
+      "prix": "28",
+      "photo": "u:1579954115545-a95591f28bfc",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "j4",
+      "nom": "Mojito virgin",
+      "desc": "Citron vert, menthe, eau pétillante",
+      "prix": "25",
+      "photo": "u:1653542772393-71ffa417b1c4",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "pdj",
+    "nom": "Petit-déjeuner",
+    "items": [
+     {
+      "id": "p1",
+      "nom": "Omelette fromage",
+      "desc": "3 œufs, fromage fondant, herbes fraîches",
+      "prix": "25",
+      "photo": "u:1510693206972-df098062cb71",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "p2",
+      "nom": "Pancakes au miel",
+      "desc": "Trois pancakes moelleux, miel et beurre",
+      "prix": "25",
+      "photo": "u:1544726982-b414d58fabaa",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "p3",
+      "nom": "Croissant",
+      "desc": "Pur beurre, cuit le matin",
+      "prix": "8",
+      "photo": "u:1691480162735-9b91238080f6",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "p4",
+      "nom": "Formule complète",
+      "desc": "Boisson chaude, jus, omelette, viennoiserie",
+      "prix": "45",
+      "photo": "u:1504754524776-8f4f37790ca0",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "plats",
+    "nom": "Plats",
+    "items": [
+     {
+      "id": "m1",
+      "nom": "Tajine poulet citron",
+      "desc": "Olives, citron confit, frites maison",
+      "prix": "65",
+      "photo": "u:1557509959-69ef137d9339",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "m2",
+      "nom": "Burger maison",
+      "desc": "Bœuf haché, cheddar, frites",
+      "prix": "55",
+      "photo": "u:1568901346375-23c9450c58cd",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "m3",
+      "nom": "Pâtes bolognaise",
+      "desc": "Penne, sauce tomate mijotée, parmesan",
+      "prix": "55",
+      "photo": "u:1621996346565-e3dbc646d9a9",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "m4",
+      "nom": "Salade composée",
+      "desc": "Légumes de saison, vinaigrette maison",
+      "prix": "45",
+      "photo": "u:1512621776951-a57141f2eefd",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "dess",
+    "nom": "Desserts",
+    "items": [
+     {
+      "id": "d1",
+      "nom": "Fondant au chocolat",
+      "desc": "Cœur coulant, boule vanille",
+      "prix": "30",
+      "photo": "u:1517427294546-5aa121f68e8a",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "d2",
+      "nom": "Coupe glacée",
+      "desc": "Trois boules au choix",
+      "prix": "28",
+      "photo": "u:1597249536924-b226b1a1259d",
+      "vedette": false,
+      "dispo": false
+     }
+    ]
+   }
+  ],
+  "langues": [
+   "fr"
+  ],
+  "slug": "demo-pro",
+  "formule": "pro",
+  "theme": "creme"
+ },
+ "demo-premium": {
+  "v": 1,
+  "nom": "Café Azur",
+  "actif": true,
+  "devise": "DH",
+  "logo": "/menu/demo/logo.jpg",
+  "logoCarre": false,
+  "slogan": "Café · Petit-déjeuner · Cuisine maison",
+  "infos": {
+   "horaires": "7h – 23h, 7j/7",
+   "adresse": "Bd Mohammed V, Kénitra",
+   "tel": "06 20 66 60 27",
+   "instagram": "@nfcwork_ma",
+   "whatsapp": "0620666027"
+  },
+  "commande": true,
+  "couverture": "u:1511081692775-05d0f180a065",
+  "categories": [
+   {
+    "id": "chaud",
+    "nom": "Boissons chaudes",
+    "items": [
+     {
+      "id": "c1",
+      "nom": "Café noir",
+      "desc": "Espresso serré, grain torréfié maison",
+      "prix": "12",
+      "photo": "u:1579992357154-faf4bde95b3d",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c2",
+      "nom": "Café crème",
+      "desc": "Espresso et lait mousseux, servi avec un petit biscuit",
+      "prix": "15",
+      "photo": "u:1512568400610-62da28bc8a13",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "c3",
+      "nom": "Cappuccino",
+      "desc": "Mousse de lait onctueuse, cacao",
+      "prix": "18",
+      "photo": "u:1572442388796-11668a67e53d",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c4",
+      "nom": "Thé à la menthe",
+      "desc": "Théière pour deux, menthe fraîche du jour",
+      "prix": "12",
+      "photo": "u:1591299089616-c9604047b1a6",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c5",
+      "nom": "Chocolat chaud",
+      "desc": "Chocolat fondu et lait entier",
+      "prix": "20",
+      "photo": "u:1542990253-0d0f5be5f0ed",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "jus",
+    "nom": "Jus & smoothies",
+    "items": [
+     {
+      "id": "j1",
+      "nom": "Orange pressée",
+      "desc": "Pressée à la minute",
+      "prix": "18",
+      "photo": "u:1600271886742-f049cd451bba",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "j2",
+      "nom": "Jus d'avocat",
+      "desc": "Avocat, lait, fruits secs et miel",
+      "prix": "25",
+      "photo": "u:1584587727565-a486d45d58b4",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "j3",
+      "nom": "Milkshake fraise",
+      "desc": "Fraises fraîches, glace vanille",
+      "prix": "28",
+      "photo": "u:1579954115545-a95591f28bfc",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "j4",
+      "nom": "Mojito virgin",
+      "desc": "Citron vert, menthe, eau pétillante",
+      "prix": "25",
+      "photo": "u:1653542772393-71ffa417b1c4",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "pdj",
+    "nom": "Petit-déjeuner",
+    "items": [
+     {
+      "id": "p1",
+      "nom": "Omelette fromage",
+      "desc": "3 œufs, fromage fondant, herbes fraîches",
+      "prix": "25",
+      "photo": "u:1510693206972-df098062cb71",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "p2",
+      "nom": "Pancakes au miel",
+      "desc": "Trois pancakes moelleux, miel et beurre",
+      "prix": "25",
+      "photo": "u:1544726982-b414d58fabaa",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "p3",
+      "nom": "Croissant",
+      "desc": "Pur beurre, cuit le matin",
+      "prix": "8",
+      "photo": "u:1691480162735-9b91238080f6",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "p4",
+      "nom": "Formule complète",
+      "desc": "Boisson chaude, jus, omelette, viennoiserie",
+      "prix": "45",
+      "photo": "u:1504754524776-8f4f37790ca0",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "plats",
+    "nom": "Plats",
+    "items": [
+     {
+      "id": "m1",
+      "nom": "Tajine poulet citron",
+      "desc": "Olives, citron confit, frites maison",
+      "prix": "65",
+      "photo": "u:1557509959-69ef137d9339",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "m2",
+      "nom": "Burger maison",
+      "desc": "Bœuf haché, cheddar, frites",
+      "prix": "55",
+      "photo": "u:1568901346375-23c9450c58cd",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "m3",
+      "nom": "Pâtes bolognaise",
+      "desc": "Penne, sauce tomate mijotée, parmesan",
+      "prix": "55",
+      "photo": "u:1621996346565-e3dbc646d9a9",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "m4",
+      "nom": "Salade composée",
+      "desc": "Légumes de saison, vinaigrette maison",
+      "prix": "45",
+      "photo": "u:1512621776951-a57141f2eefd",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "dess",
+    "nom": "Desserts",
+    "items": [
+     {
+      "id": "d1",
+      "nom": "Fondant au chocolat",
+      "desc": "Cœur coulant, boule vanille",
+      "prix": "30",
+      "photo": "u:1517427294546-5aa121f68e8a",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "d2",
+      "nom": "Coupe glacée",
+      "desc": "Trois boules au choix",
+      "prix": "28",
+      "photo": "u:1597249536924-b226b1a1259d",
+      "vedette": false,
+      "dispo": false
+     }
+    ]
+   }
+  ],
+  "langues": [
+   "fr"
+  ],
+  "slug": "demo-premium",
+  "formule": "premium",
+  "theme": "nuit"
+ }
+}

@@ -1,12 +1,15 @@
 /* =========================================================
-   NFCWORK — MENU DIGITAL (page publique)
+   NFCWORK — MENU DIGITAL (page publique, en français)
    Lien : nfcwork.ma/menu/<nom-du-menu>  (404.html renvoie ici avec ?m=<nom>)
    Le menu est lu dans Firestore (document « settings/menu-<nom> »), les photos
-   dans « settings/mimg-<id> ». On les remplit depuis l'Espace → Menus.
+   envoyées dans « settings/mimg-<id> ». On les remplit depuis l'Espace → Menus.
+   Une photo peut aussi être :  « u:<id> » = banque de photos (Unsplash)
+                                « /chemin.jpg » = fichier du site (menus de démonstration)
    3 formules :
      standard : les photos de la carte papier, l'une sous l'autre
-     pro      : menu designé (catégories, produits, photos, prix)
-     premium  : pro + plusieurs langues + commande sur WhatsApp
+     pro      : menu designé (catégories, produits, photos, prix), 4 thèmes
+     premium  : grande couverture, « À ne pas manquer », grandes photos, commande WhatsApp
+   Démonstrations : nfcwork.ma/menu/demo-standard, demo-pro, demo-premium (menu/demos.json)
    ========================================================= */
 (function () {
   "use strict";
@@ -20,32 +23,24 @@
   const mp = location.pathname.match(/^\/menu\/([a-z0-9-]+)\/?$/i);
   if (!slug && mp) slug = mp[1];
   slug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  if (slug === "demo") slug = "demo-premium";
   const apercu = qs.has("apercu");
+  const demo = /^demo-(standard|pro|premium)$/.test(slug);
 
-  /* ---------- textes de l'interface ---------- */
-  const UI = {
-    fr: { load: "Chargement du menu…", none: "Menu introuvable", noneTx: "Vérifiez le lien ou demandez au personnel.", off: "Menu bientôt disponible", offTx: "Ce menu est en cours de mise à jour.", zoom: "Touchez une page pour l'agrandir", soldout: "Épuisé", order: "Ma commande", see: "Voir la commande", total: "Total", table: "Table ou nom (facultatif)", note: "Remarque (facultatif)", send: "Envoyer sur WhatsApp", close: "Fermer", empty: "Votre commande est vide.", hello: "Bonjour, je souhaite commander :", by: "Menu digital par", hours: "Horaires", call: "Appeler" },
-    ar: { load: "جاري تحميل القائمة…", none: "القائمة غير موجودة", noneTx: "تحقق من الرابط أو اسأل النادل.", off: "القائمة متاحة قريبا", offTx: "يتم تحديث هذه القائمة حاليا.", zoom: "المس الصفحة لتكبيرها", soldout: "نفد", order: "طلبي", see: "عرض الطلب", total: "المجموع", table: "رقم الطاولة أو الاسم (اختياري)", note: "ملاحظة (اختياري)", send: "إرسال عبر واتساب", close: "إغلاق", empty: "طلبك فارغ.", hello: "السلام عليكم، بغيت نطلب:", by: "قائمة رقمية من", hours: "أوقات العمل", call: "اتصل" },
-    en: { load: "Loading the menu…", none: "Menu not found", noneTx: "Check the link or ask the staff.", off: "Menu coming soon", offTx: "This menu is being updated.", zoom: "Tap a page to zoom in", soldout: "Sold out", order: "My order", see: "View order", total: "Total", table: "Table or name (optional)", note: "Note (optional)", send: "Send on WhatsApp", close: "Close", empty: "Your order is empty.", hello: "Hello, I would like to order:", by: "Digital menu by", hours: "Opening hours", call: "Call" }
+  const U = {
+    none: "Menu introuvable", noneTx: "Vérifiez le lien ou demandez au personnel.", off: "Menu bientôt disponible", offTx: "Ce menu est en cours de mise à jour.",
+    load: "Chargement du menu…", zoom: "Touchez une page pour l'agrandir", soldout: "Épuisé", order: "Ma commande", see: "Voir ma commande", total: "Total",
+    table: "Table ou nom", note: "Remarque", opt: "(facultatif)", send: "Envoyer la commande sur WhatsApp", close: "Fermer", empty: "Votre commande est vide.",
+    hello: "Bonjour, je souhaite commander :", by: "Menu digital par", add: "Ajouter", top: "À ne pas manquer", carte: "La carte"
   };
-  const LANG_NOM = { fr: "FR", ar: "ع", en: "EN" };
 
-  let M = null, lang = "fr", panier = {};
-  const u = k => (UI[lang] || UI.fr)[k];
-  // un texte peut être une chaîne ou { fr, ar, en } : langue choisie, sinon langue principale, sinon la première remplie
-  const tr = x => {
-    if (x == null) return "";
-    if (typeof x === "string") return x;
-    const main = (M && M.langues && M.langues[0]) || "fr";
-    return x[lang] || x[main] || Object.values(x).find(Boolean) || "";
-  };
+  let M = null, panier = {};
+  // texte enregistré en chaîne ou en { fr: … } (anciens menus) → toujours la version française
+  const tr = x => x == null ? "" : typeof x === "string" ? x : (x.fr || Object.values(x).find(Boolean) || "");
   const prixNum = p => { const n = parseFloat(String(p || "").replace(",", ".").replace(/[^\d.]/g, "")); return Number.isFinite(n) ? n : 0; };
-  const fmtPrix = p => {
-    const s = String(p == null ? "" : p).trim();
-    if (!s) return "";
-    return /[a-z€$]/i.test(s) || /د/.test(s) ? s : s + " " + (M.devise || "DH");
-  };
+  const fmtPrix = p => { const s = String(p == null ? "" : p).trim(); if (!s) return ""; return /[a-z€$]/i.test(s) ? s : s + " " + (M.devise || "DH"); };
   const waNum = p => { let d = String(p || "").replace(/\D/g, ""); if (d.startsWith("00")) d = d.slice(2); if (d.startsWith("0")) d = "212" + d.slice(1); return d.length >= 9 ? d : ""; };
+  const arr = n => String(Math.round(n * 100) / 100);
 
   function etat(titre, texte, spin) {
     app.innerHTML = `<div class="state"><div>${spin ? '<div class="spin"></div>' : ""}${titre ? `<h1>${esc(titre)}</h1>` : ""}<div>${esc(texte || "")}</div></div></div>`;
@@ -60,10 +55,14 @@
     return (await r.json()).fields || {};
   }
 
-  // Photos : un id = une photo qui ne change jamais → gardée dans le cache du navigateur
+  // Photos : un id ne change jamais → gardée dans le cache du navigateur
   const imgCache = {};
-  async function photo(id) {
+  const unsplash = (id, w) => "https://images.unsplash.com/photo-" + id + "?auto=format&fit=crop&w=" + w + "&q=75";
+  async function photo(id, w) {
     if (!id) return "";
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    if (id.startsWith("u:")) return unsplash(id.slice(2), Math.round((w || 400) * dpr / 100) * 100);
+    if (id.startsWith("/")) return id;
     if (imgCache[id]) return imgCache[id];
     const k = "/__menu-img/" + id;
     let box = null;
@@ -75,14 +74,14 @@
     try { if (box) box.put(k, new Response(d)); } catch (e) {}
     return d;
   }
-  // remplit toutes les <img data-img="id"> de la page (6 en même temps)
+  // remplit toutes les <img data-img="id" data-w="largeur affichée"> (6 en même temps)
   async function remplirPhotos() {
     const els = [...document.querySelectorAll("img[data-img]")].filter(e => !e.src);
     let i = 0;
     const suivant = async () => {
       while (i < els.length) {
         const el = els[i++];
-        const d = await photo(el.dataset.img);
+        const d = await photo(el.dataset.img, +el.dataset.w || 400);
         if (d) el.src = d; else el.removeAttribute("data-img");
       }
     };
@@ -90,34 +89,37 @@
   }
 
   async function charger() {
-    if (!slug) { etat(UI.fr.none, UI.fr.noneTx); return; }
+    if (!slug) { etat(U.none, U.noneTx); return; }
+    if (demo) {
+      try {
+        const all = await (await fetch("/menu/demos.json", { cache: "no-cache" })).json();
+        const m = all[slug];
+        if (m && slug === "demo-pro" && ["nuit", "creme", "cafe", "lagon"].includes(qs.get("theme"))) m.theme = qs.get("theme");
+        if (m) demarrer(m); else etat(U.none, U.noneTx);
+      } catch (e) { etat(U.none, "Connexion impossible. Réessayez dans un instant."); }
+      return;
+    }
     let memo = null;
     try { memo = JSON.parse(localStorage.getItem(CLE) || "null"); } catch (e) {}
     if (memo && memo.json && !apercu) { try { demarrer(JSON.parse(memo.json)); } catch (e) {} }
-    else etat("", UI.fr.load, true);
+    else etat("", U.load, true);
     try {
       const f = await lireDoc("menu-" + slug);
-      if (!f) { if (!M) etat(UI.fr.none, UI.fr.noneTx); return; }
+      if (!f) { if (!M) etat(U.none, U.noneTx); return; }
       const json = (f.json && f.json.stringValue) || "{}";
       if (memo && memo.json === json && M) return;
       try { localStorage.setItem(CLE, JSON.stringify({ json })); } catch (e) {}
       demarrer(JSON.parse(json));
     } catch (e) {
-      if (!M) etat(UI.fr.none, "Connexion impossible. Réessayez dans un instant.");
+      if (!M) etat(U.none, "Connexion impossible. Réessayez dans un instant.");
     }
   }
 
   /* ---------- démarrage ---------- */
   function demarrer(data) {
     M = data || {};
-    M.langues = (M.langues && M.langues.length ? M.langues : ["fr"]).filter(l => UI[l]);
-    if (!M.langues.length) M.langues = ["fr"];
-    if (M.formule !== "premium") M.langues = M.langues.slice(0, 1);
-    let pref = "";
-    try { pref = localStorage.getItem("nfcwork-menu-lang") || ""; } catch (e) {}
-    if (!M.langues.includes(lang) || !M.__init) lang = M.langues.includes(pref) ? pref : M.langues[0];
-    M.__init = true;
     const root = document.documentElement;
+    root.lang = "fr"; root.dir = "ltr";
     root.dataset.theme = ["nuit", "creme", "cafe", "lagon"].includes(M.theme) ? M.theme : "nuit";
     if (/^#[0-9a-f]{6}$/i.test(M.couleur || "")) {
       root.style.setProperty("--accent", M.couleur);
@@ -125,7 +127,7 @@
     } else { root.style.removeProperty("--accent"); root.style.removeProperty("--on-accent"); }
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = getComputedStyle(root).getPropertyValue("--bg").trim() || "#0d0f14";
-    if (mp === null && !apercu && history.replaceState) { try { history.replaceState(null, "", "/menu/" + slug); } catch (e) {} }
+    if (mp === null && !apercu && history.replaceState) { try { history.replaceState(null, "", "/menu/" + slug + location.search.replace(/[?&]m=[^&]*/, "").replace(/^&/, "?")); } catch (e) {} }
     rendre();
   }
   function clair(hex) {
@@ -143,72 +145,109 @@
   };
 
   /* ---------- rendu ---------- */
-  function rendre() {
-    const root = document.documentElement;
-    root.lang = lang; root.dir = lang === "ar" ? "rtl" : "ltr";
-    document.title = (M.nom || "Menu") + " · Menu";
-    if (M.actif === false && !apercu) { etat(u("off"), u("offTx")); return; }
-    const pro = M.formule === "pro" || M.formule === "premium";
-    const prem = M.formule === "premium";
-    const inf = M.infos || {};
-    const chips = [];
-    if (inf.horaires) chips.push(`<span class="chip">${I.clock}${esc(inf.horaires)}</span>`);
+  function puces() {
+    const inf = M.infos || {}, c = [];
+    if (inf.horaires) c.push(`<span class="chip">${I.clock}${esc(inf.horaires)}</span>`);
     if (inf.adresse || inf.maps) {
       const href = inf.maps || "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(inf.adresse);
-      chips.push(`<a class="chip" href="${esc(href)}" target="_blank" rel="noopener">${I.pin}${esc(inf.adresse || "Google Maps")}</a>`);
+      c.push(`<a class="chip" href="${esc(href)}" target="_blank" rel="noopener">${I.pin}${esc(inf.adresse || "Google Maps")}</a>`);
     }
-    if (inf.tel) chips.push(`<a class="chip" href="tel:${esc(inf.tel.replace(/[^\d+]/g, ""))}">${I.phone}${esc(inf.tel)}</a>`);
+    if (inf.tel) c.push(`<a class="chip" href="tel:${esc(inf.tel.replace(/[^\d+]/g, ""))}">${I.phone}${esc(inf.tel)}</a>`);
     if (inf.instagram) {
       const ig = inf.instagram.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/.*$/, "");
-      chips.push(`<a class="chip" href="https://instagram.com/${esc(ig)}" target="_blank" rel="noopener">${I.insta}@${esc(ig)}</a>`);
+      c.push(`<a class="chip" href="https://instagram.com/${esc(ig)}" target="_blank" rel="noopener">${I.insta}@${esc(ig)}</a>`);
     }
-    const cover = pro && M.couverture;
-    const tete = `
-      ${cover ? `<div class="hero"><img class="cover" data-img="${esc(M.couverture)}" alt=""></div>` : ""}
-      <div class="head wrap">
-        ${M.logo ? `<img class="logo${M.logoCarre ? " sq" : ""}" data-img="${esc(M.logo)}" alt="${esc(M.nom || "")}">` : ""}
-        <h1>${esc(M.nom || "Menu")}</h1>
-        ${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}
-        ${chips.length ? `<div class="chips">${chips.join("")}</div>` : ""}
-      </div>`;
-    const langs = M.langues.length > 1 ? `<div class="langs" role="group" aria-label="Langue">${M.langues.map(l => `<button data-lang="${l}" aria-pressed="${l === lang}">${LANG_NOM[l]}</button>`).join("")}</div>` : "";
-    const pied = `<footer>${u("by")} <a href="https://nfcwork.ma" target="_blank" rel="noopener"><b>NFCWORK</b></a></footer>`;
-    document.body.classList.toggle("has-cover", !!cover);
+    return c.length ? `<div class="chips">${c.join("")}</div>` : "";
+  }
+  const logoTag = () => M.logo ? `<img class="logo${M.logoCarre ? " sq" : ""}" data-img="${esc(M.logo)}" data-w="120" alt="${esc(M.nom || "")}">` : "";
+
+  function barreDemo() {
+    if (!demo) return "";
+    const f = slug.slice(5), th = M.theme || "nuit";
+    return `<div class="demobar"><b>Exemple NFCWORK</b>${["standard", "pro", "premium"].map(k => `<a href="/menu/?m=demo-${k}" class="${f === k ? "on" : ""}">${k[0].toUpperCase() + k.slice(1)}</a>`).join("")}
+      ${f === "pro" ? `<span class="th">Thème : ${[["nuit", "Nuit"], ["creme", "Crème"], ["cafe", "Café"], ["lagon", "Lagon"]].map(([k, n]) => `<a href="/menu/?m=demo-pro&theme=${k}" class="${th === k ? "on" : ""}">${n}</a>`).join("")}</span>` : ""}</div>`;
+  }
+
+  function rendre() {
+    document.title = (M.nom || "Menu") + " · Menu";
+    if (M.actif === false && !apercu && !demo) { etat(U.off, U.offTx); return; }
+    const pro = M.formule === "pro" || M.formule === "premium";
+    const prem = M.formule === "premium";
+    const pied = `<footer>${U.by} <a href="https://nfcwork.ma" target="_blank" rel="noopener"><b>NFCWORK</b></a></footer>`;
+    document.body.classList.toggle("prem", prem);
+    document.body.classList.toggle("has-cover", pro && !prem && !!M.couverture);
 
     if (!pro) {
       const pages = (M.pages || []).filter(Boolean);
-      app.innerHTML = `${langs}${tete}<div class="wrap">
-        ${pages.length > 0 ? `<p class="hint">${esc(u("zoom"))}</p>` : ""}
-        <div class="pages">${pages.map((id, i) => `<div class="page" data-zoom="${esc(id)}"><img data-img="${esc(id)}" alt="Menu — page ${i + 1}"></div>`).join("")}</div>
-      </div>${pied}`;
-    } else {
-      const cats = (M.categories || []).filter(c => (c.items || []).length || tr(c.nom));
-      const waOk = prem && waNum(inf.whatsapp) && M.commande !== false;
-      app.innerHTML = `${langs}${tete}
-        ${cats.length > 1 ? `<nav class="cats"><div class="cats-in">${cats.map(c => `<a href="#c-${esc(c.id)}" data-cat="${esc(c.id)}">${esc(tr(c.nom))}</a>`).join("")}</div></nav>` : ""}
-        <div class="wrap">${cats.map(c => `<section class="cat" id="c-${esc(c.id)}"><h2>${esc(tr(c.nom))}</h2><div class="items">${(c.items || []).map(it => carte(it, waOk)).join("")}</div></section>`).join("")}</div>
-        ${pied}
-        ${waOk ? `<button class="cartbar" id="cartbar" hidden></button>` : ""}
-        ${prem && waNum(inf.whatsapp) && !waOk ? `<a class="wafab" href="https://wa.me/${waNum(inf.whatsapp)}" target="_blank" rel="noopener" aria-label="WhatsApp">${I.wa}</a>` : ""}`;
-      espion();
-      majPanier();
+      app.innerHTML = `${barreDemo()}<div class="head wrap">${logoTag()}<h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}${puces()}</div>
+        <div class="wrap">${pages.length ? `<p class="hint">${U.zoom}</p>` : ""}
+        <div class="pages">${pages.map((id, i) => `<div class="page" data-zoom="${esc(id)}"><img data-img="${esc(id)}" data-w="720" alt="Menu — page ${i + 1}"></div>`).join("")}</div></div>${pied}`;
+      remplirPhotos();
+      return;
     }
+
+    const inf = M.infos || {};
+    const cats = (M.categories || []).filter(c => (c.items || []).length || tr(c.nom));
+    const waOk = prem && waNum(inf.whatsapp) && M.commande !== false;
+    const nav = cats.length > 1 ? `<nav class="cats"><div class="cats-in">${cats.map(c => `<a href="#c-${esc(c.id)}" data-cat="${esc(c.id)}">${esc(tr(c.nom))}</a>`).join("")}</div></nav>` : "";
+    const fin = `${pied}${waOk ? `<button class="cartbar" id="cartbar" hidden></button>` : ""}
+      ${prem && waNum(inf.whatsapp) && !waOk ? `<a class="wafab" href="https://wa.me/${waNum(inf.whatsapp)}" target="_blank" rel="noopener" aria-label="WhatsApp">${I.wa}</a>` : ""}`;
+
+    if (prem) {
+      const vedettes = cats.flatMap(c => c.items || []).filter(i => i.vedette && i.photo && i.dispo !== false);
+      app.innerHTML = `${barreDemo()}
+        <header class="phero">${M.couverture ? `<img data-img="${esc(M.couverture)}" data-w="900" alt="">` : ""}
+          <div class="in">${logoTag()}<h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}<div class="orn">${U.carte}</div></div></header>
+        <div class="wrap pinfo">${puces()}</div>
+        ${vedettes.length ? `<section class="wrap vedettes"><h2>${U.top}</h2><div class="vscroll">${vedettes.map(it => vcarte(it, waOk)).join("")}</div></section>` : ""}
+        ${nav}
+        <div class="wrap">${cats.map(c => `<section class="cat" id="c-${esc(c.id)}"><h2>${esc(tr(c.nom))}</h2><div class="orn">${(c.items || []).length} choix</div>
+          <div class="pgrid">${(c.items || []).map(it => it.photo ? pcarte(it, waOk) : carte(it, waOk)).join("")}</div></section>`).join("")}</div>
+        ${fin}`;
+    } else {
+      const cover = !!M.couverture;
+      app.innerHTML = `${barreDemo()}
+        ${cover ? `<div class="hero"><img class="cover" data-img="${esc(M.couverture)}" data-w="760" alt=""></div>` : ""}
+        <div class="head wrap">${logoTag()}<h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}${puces()}</div>
+        ${nav}
+        <div class="wrap">${cats.map(c => `<section class="cat" id="c-${esc(c.id)}"><h2>${esc(tr(c.nom))}</h2><div class="items">${(c.items || []).map(it => carte(it, false)).join("")}</div></section>`).join("")}</div>
+        ${fin}`;
+    }
+    espion();
+    majPanier();
     remplirPhotos();
   }
 
-  function carte(it, waOk) {
+  function ctrl(it, waOk, gros) {
     const off = it.dispo === false;
+    if (off) return `<span class="tag">${U.soldout}</span>`;
+    if (!waOk || prixNum(it.prix) <= 0) return "";
     const q = panier[it.id] || 0;
+    return q ? `<span class="qty"><button data-moins="${esc(it.id)}" aria-label="Retirer">−</button><b>${q}</b><button data-plus="${esc(it.id)}" aria-label="Ajouter">+</button></span>`
+             : `<button class="add" data-plus="${esc(it.id)}" aria-label="${U.add}">+${gros ? " " + U.add : ""}</button>`;
+  }
+  // ligne compacte (Pro, ou produit sans photo en Premium)
+  function carte(it, waOk) {
     const p = fmtPrix(it.prix);
-    const ctrl = waOk && !off && prixNum(it.prix) > 0
-      ? (q ? `<span class="qty"><button data-moins="${esc(it.id)}" aria-label="−">−</button><b>${q}</b><button data-plus="${esc(it.id)}" aria-label="+">+</button></span>`
-           : `<button class="add" data-plus="${esc(it.id)}" aria-label="+">+</button>`)
-      : "";
-    return `<article class="item${off ? " off" : ""}" data-item="${esc(it.id)}">
-      ${it.photo ? `<img class="ph" data-img="${esc(it.photo)}" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">` : ""}
+    return `<article class="item${it.dispo === false ? " off" : ""}" data-item="${esc(it.id)}">
+      ${it.photo ? `<img class="ph" data-img="${esc(it.photo)}" data-w="130" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">` : ""}
       <div class="tx"><h3>${esc(tr(it.nom))}</h3>${tr(it.desc) ? `<p>${esc(tr(it.desc))}</p>` : ""}
-      <div class="bot">${p ? `<span class="price">${esc(p)}</span>` : "<span></span>"}${off ? `<span class="tag">${esc(u("soldout"))}</span>` : ctrl}</div></div>
-    </article>`;
+      <div class="bot">${p ? `<span class="price">${esc(p)}</span>` : "<span></span>"}${ctrl(it, waOk)}</div></div></article>`;
+  }
+  // grande carte photo (Premium)
+  function pcarte(it, waOk) {
+    const p = fmtPrix(it.prix);
+    return `<article class="pcard${it.dispo === false ? " off" : ""}" data-item="${esc(it.id)}">
+      <img class="ph" data-img="${esc(it.photo)}" data-w="700" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">
+      <div class="tx"><div class="top"><h3>${esc(tr(it.nom))}</h3>${p ? `<span class="price">${esc(p)}</span>` : ""}</div>
+      ${tr(it.desc) ? `<p>${esc(tr(it.desc))}</p>` : ""}<div class="bot">${ctrl(it, waOk, true)}</div></div></article>`;
+  }
+  // carte « À ne pas manquer »
+  function vcarte(it, waOk) {
+    const p = fmtPrix(it.prix);
+    return `<article class="vcard" data-item="${esc(it.id)}" data-v="1">
+      <img class="ph" data-img="${esc(it.photo)}" data-w="320" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">
+      <div class="tx"><h3>${esc(tr(it.nom))}</h3><div class="bot">${p ? `<span class="price">${esc(p)}</span>` : "<span></span>"}${ctrl(it, waOk)}</div></div></article>`;
   }
 
   /* catégorie visible = puce allumée */
@@ -224,7 +263,7 @@
         nav.querySelectorAll("a").forEach(a => {
           const on = a.dataset.cat === id;
           a.classList.toggle("on", on);
-          if (on) a.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+          if (on) nav.scrollTo({ left: a.offsetLeft - nav.clientWidth / 2 + a.offsetWidth / 2, behavior: "smooth" });
         });
       });
     }, { rootMargin: "-40% 0px -55% 0px" });
@@ -240,17 +279,18 @@
     let n = 0, t = 0;
     for (const [id, q] of Object.entries(panier)) { const it = its.find(x => x.id === id); if (it) { n += q; t += q * prixNum(it.prix); } }
     bar.hidden = !n;
-    bar.innerHTML = `<span>${esc(u("see"))} (${n})</span><span>${esc(fmtPrix(arr(t)))}</span>`;
+    bar.innerHTML = `<span>${U.see} (${n})</span><span>${esc(fmtPrix(arr(t)))}</span>`;
   }
-  const arr = n => String(Math.round(n * 100) / 100);
   function rafraichirItem(id) {
-    const it = tousItems().find(x => x.id === id), el = document.querySelector(`[data-item="${CSS.escape(id)}"]`);
-    if (!it || !el) return;
-    const tmp = document.createElement("div"); tmp.innerHTML = carte(it, true);
-    const neuf = tmp.firstElementChild;
-    const old = el.querySelector("img.ph"), nimg = neuf.querySelector("img.ph");
-    if (old && nimg && old.src) nimg.src = old.src;
-    el.replaceWith(neuf);
+    const it = tousItems().find(x => x.id === id);
+    if (!it) return;
+    document.querySelectorAll(`[data-item="${CSS.escape(id)}"]`).forEach(el => {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = el.dataset.v ? vcarte(it, true) : el.classList.contains("pcard") ? pcarte(it, true) : carte(it, true);
+      const neuf = tmp.firstElementChild, old = el.querySelector("img.ph"), ni = neuf.querySelector("img.ph");
+      if (old && ni && old.src) ni.src = old.src;
+      el.replaceWith(neuf);
+    });
     majPanier();
   }
   function feuille() {
@@ -259,23 +299,19 @@
     const total = lignes.reduce((a, l) => a + l.q * prixNum(l.it.prix), 0);
     const d = document.createElement("div");
     d.className = "sheet";
-    d.innerHTML = `<div class="box" role="dialog" aria-modal="true"><h2>${esc(u("order"))}</h2>
+    d.innerHTML = `<div class="box" role="dialog" aria-modal="true"><h2>${U.order}</h2>
       ${lignes.length ? lignes.map(l => `<div class="line"><div class="n">${esc(tr(l.it.nom))}<br><small>${esc(fmtPrix(l.it.prix))}</small></div><span class="qty"><button data-moins="${esc(l.it.id)}">−</button><b>${l.q}</b><button data-plus="${esc(l.it.id)}">+</button></span></div>`).join("")
-        + `<div class="total"><span>${esc(u("total"))}</span><span>${esc(fmtPrix(arr(total)))}</span></div>
-        <label class="f">${esc(u("table"))}<input id="c-table" maxlength="60"></label>
-        <label class="f">${esc(u("note"))}<input id="c-note" maxlength="200"></label>
-        <button class="wa" id="c-send">${I.wa.replace("<svg", '<svg width="22" height="22"')} ${esc(u("send"))}</button>`
-        : `<p>${esc(u("empty"))}</p>`}
-      <button class="ghost" data-fermer>${esc(u("close"))}</button></div>`;
+        + `<div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total)))}</span></div>
+        <label class="f">${U.table} ${U.opt}<input id="c-table" maxlength="60"></label>
+        <label class="f">${U.note} ${U.opt}<input id="c-note" maxlength="200"></label>
+        <button class="wa" id="c-send">${I.wa.replace("<svg", '<svg width="22" height="22"')} ${U.send}</button>`
+        : `<p>${U.empty}</p>`}
+      <button class="ghost" data-fermer>${U.close}</button></div>`;
     document.body.appendChild(d);
     d.addEventListener("click", e => {
       if (e.target === d || e.target.closest("[data-fermer]")) { d.remove(); return; }
       const p = e.target.closest("[data-plus]"), m = e.target.closest("[data-moins]");
-      if (p || m) {
-        const id = (p || m).dataset[p ? "plus" : "moins"];
-        changer(id, p ? 1 : -1);
-        d.remove(); feuille();
-      }
+      if (p || m) { changer((p || m).dataset[p ? "plus" : "moins"], p ? 1 : -1); d.remove(); feuille(); return; }
       if (e.target.closest("#c-send")) envoyer(lignes, total, d);
     });
   }
@@ -286,8 +322,8 @@
   }
   function envoyer(lignes, total, d) {
     const table = (d.querySelector("#c-table") || {}).value || "", note = (d.querySelector("#c-note") || {}).value || "";
-    const txt = [u("hello"), "", ...lignes.map(l => `• ${l.q} × ${tr(l.it.nom)} — ${fmtPrix(arr(l.q * prixNum(l.it.prix)))}`), "", `${u("total")} : ${fmtPrix(arr(total))}`,
-      table.trim() ? `${u("table").replace(/\s*\(.*\)/, "")} : ${table.trim()}` : "", note.trim() ? `${u("note").replace(/\s*\(.*\)/, "")} : ${note.trim()}` : ""].filter((x, i, a) => x || (i && a[i - 1])).join("\n").trim();
+    const txt = [U.hello, "", ...lignes.map(l => `• ${l.q} × ${tr(l.it.nom)} — ${fmtPrix(arr(l.q * prixNum(l.it.prix)))}`), "", `${U.total} : ${fmtPrix(arr(total))}`]
+      .concat(table.trim() ? [`${U.table} : ${table.trim()}`] : [], note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
     window.open(`https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt)}`, "_blank");
   }
 
@@ -295,10 +331,10 @@
   function zoom(id) {
     const d = document.createElement("div");
     d.className = "lb";
-    d.innerHTML = `<button class="x" aria-label="${esc(u("close"))}">×</button><img alt="">`;
+    d.innerHTML = `<button class="x" aria-label="${U.close}">×</button><img alt="">`;
     document.body.appendChild(d);
     document.body.style.overflow = "hidden";
-    photo(id).then(s => { d.querySelector("img").src = s; });
+    photo(id, 1100).then(s => { d.querySelector("img").src = s; });
     const fin = () => { d.remove(); document.body.style.overflow = ""; };
     d.querySelector(".x").onclick = fin;
     d.addEventListener("click", e => { if (e.target === d) fin(); });
@@ -307,8 +343,6 @@
   /* ---------- clics ---------- */
   document.addEventListener("click", e => {
     if (e.target.closest(".sheet")) return;
-    const l = e.target.closest("[data-lang]");
-    if (l) { lang = l.dataset.lang; try { localStorage.setItem("nfcwork-menu-lang", lang); } catch (x) {} rendre(); return; }
     const p = e.target.closest("[data-plus]"), m = e.target.closest("[data-moins]");
     if (p) { changer(p.dataset.plus, 1); return; }
     if (m) { changer(m.dataset.moins, -1); return; }
@@ -326,6 +360,6 @@
     demarrer(e.data.menu);
   });
 
-  if (apercu && window.parent !== window) { etat("", UI.fr.load, true); window.parent.postMessage({ type: "nfcwork-menu-pret" }, location.origin); }
+  if (apercu && window.parent !== window) { etat("", U.load, true); window.parent.postMessage({ type: "nfcwork-menu-pret" }, location.origin); }
   else charger();
 })();
