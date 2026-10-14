@@ -20,9 +20,10 @@
   const NOW = () => firebase.firestore.FieldValue.serverTimestamp();
   const SITE = "https://nfcwork.ma";
   const lienQR = c => SITE + "/q/" + c;
-  const TYPES = { menu: "Menu digital", profil: "Profil / carte", avis: "Avis Google", wifi: "Wi-Fi", lien: "Autre lien" };
+  // tous les produits NFC, pas seulement les menus : cartes digitales, avis Google, Wi-Fi, menus, pages liens
+  const TYPES = { profil: "Carte digitale", avis: "Avis Google", menu: "Menu digital", wifi: "Wi-Fi", liens: "Page liens", lien: "Autre lien" };
 
-  let user = null, liste = [], menus = [], filtre = "tous", recherche = "";
+  let user = null, liste = [], menus = [], creations = [], filtre = "tous", recherche = "";
   const svgQR = (c, couleur) => window.QRGEN.svg(lienQR(c), { ecl: "M", marge: 2, couleur });
 
   /* ---------- connexion ---------- */
@@ -53,6 +54,8 @@
     try { const d = await db.doc("settings/stands").get(); liste = d.exists ? JSON.parse(d.data().json || "[]") : []; }
     catch (e) { console.error(e); liste = []; toast("Impossible de lire la liste des stands."); }
     try { const d = await db.doc("settings/menus").get(); menus = d.exists ? JSON.parse(d.data().json || "[]") : []; } catch (e) { menus = []; }
+    // produits déjà créés avec l'outil (cartes, avis, Wi-Fi, menus, pages liens) : on les propose directement
+    try { const q = await db.collection("creations").get(); creations = q.docs.map(x => ({ id: x.id, ...x.data() })).filter(c => c.lien && c.statut !== "desactivee"); } catch (e) { creations = []; }
   }
   const sauverListe = () => db.doc("settings/stands").set({ json: JSON.stringify(liste), maj: NOW(), par: user.email });
   function erreur(e) {
@@ -82,7 +85,7 @@
     const q = recherche.toLowerCase();
     const l = liste.filter(x => (filtre === "tous" || (filtre === "libres" ? !x.url : !!x.url))
       && (!q || [x.c, x.nom, x.url].join(" ").toLowerCase().includes(q))).sort((a, b) => (b.maj || 0) - (a.maj || 0));
-    app.innerHTML = `<div class="row between"><div><h2>Stands QR</h2><div class="muted">Imprimez des QR fixes, liez-les plus tard à un menu, un profil ou un lien.</div></div></div>
+    app.innerHTML = `<div class="row between"><div><h2>Stands QR</h2><div class="muted">Imprimez des QR fixes (stands, cartes digitales…), liez-les plus tard : carte, avis Google, menu, Wi-Fi…</div></div></div>
       <div class="row" style="margin-top:14px"><button class="btn primary" data-act="scan" style="flex:1">📷 Scanner un stand</button><button class="btn" data-act="generer" style="flex:1">＋ Générer des QR</button></div>
       <div class="stats"><div><b class="num">${liste.length}</b><span>Stands</span></div><div><b class="num">${nLie}</b><span>Liés</span></div><div><b class="num">${nLibre}</b><span>Libres</span></div></div>
       ${liste.length ? `<label class="f" style="margin-bottom:10px"><input id="rech" placeholder="Rechercher : code, client, lien…" value="${esc(recherche)}" autocomplete="off"></label>
@@ -138,7 +141,7 @@
     let x = liste.find(s => s.c === code);
     const inconnu = !x;
     if (!x) x = { c: code, nom: "", url: "", type: "", maj: Date.now() };
-    let type = x.type || (menus.length ? "menu" : "lien");
+    let type = x.type && TYPES[x.type] ? x.type : "profil";
     const d = fenetre(`<div class="row between"><h2>Stand ${esc(code)}</h2><span class="pill ${x.url ? "lie" : "libre"}">${x.url ? "Lié" : "Libre"}</span></div>
       ${inconnu ? `<div class="notice" style="margin:8px 0">Ce code n’est pas dans votre liste : il y sera ajouté.</div>` : ""}
       <form class="stack" id="lf2" style="margin-top:10px">
@@ -151,11 +154,13 @@
         ${x.url ? `<button type="button" class="btn danger sm" id="delier">Délier ce stand</button>` : ""}
       </form>`);
     const cible = () => {
-      const m = type === "menu";
-      $("#cible", d).innerHTML = m
-        ? (menus.length ? `<label class="f">Menu<select id="lm">${menus.map(mn => `<option value="${esc(mn.slug)}" ${x.url.endsWith("/menu/" + mn.slug) ? "selected" : ""}>${esc(mn.nom)} · ${esc(mn.formule)}</option>`).join("")}</select></label>`
-          : `<div class="notice">Aucun menu créé. <a href="menus.html">Créer un menu</a>, ou choisissez « Autre lien ».</div>`)
-        : `<label class="f">Lien (copiez-le depuis le profil, Google, etc.)<input id="lu" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" value="${esc(x.url && !/\/menu\//.test(x.url) ? x.url : "")}" placeholder="https://…"></label>`;
+      // choix possibles : menus de l'éditeur (type menu) + produits créés avec l'outil, du même type
+      const opts = (type === "menu" ? menus.map(mn => ({ url: SITE + "/menu/" + mn.slug, nom: mn.nom + " · menu " + mn.formule })) : [])
+        .concat(creations.filter(c => c.type === type).map(c => ({ url: c.lien, nom: c.titre || c.slug })));
+      const actuel = opts.some(o => o.url === x.url) ? x.url : "";
+      $("#cible", d).innerHTML = (opts.length && type !== "lien" ? `<label class="f">Choisir dans vos créations<select id="lsel"><option value="">— Coller un lien à la place —</option>${opts.map(o => `<option value="${esc(o.url)}" ${o.url === actuel ? "selected" : ""}>${esc(o.nom)}</option>`).join("")}</select></label>` : "")
+        + `<label class="f" id="luw" ${actuel ? "hidden" : ""}>${{ profil: "Lien de la carte digitale", avis: "Lien Google Maps / avis du commerce", menu: "Lien du menu", wifi: "Lien de la page Wi-Fi", liens: "Lien de la page", lien: "Lien" }[type]}<input id="lu" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" value="${esc(actuel ? "" : x.url)}" placeholder="https://…"></label>`;
+      const sel = $("#lsel", d); if (sel) sel.onchange = () => { $("#luw", d).hidden = !!sel.value; };
     };
     cible();
     d.addEventListener("click", e => { const b = e.target.closest("[data-type]"); if (b) { type = b.dataset.type; d.querySelectorAll("[data-type]").forEach(y => y.setAttribute("aria-pressed", y === b)); cible(); } });
@@ -168,7 +173,8 @@
     $("#lf2", d).onsubmit = async e => {
       e.preventDefault();
       let url = "";
-      if (type === "menu") { const s = $("#lm", d); if (!s) { $("#lerr2", d).textContent = "Choisissez un menu ou « Autre lien »."; return; } url = SITE + "/menu/" + s.value; }
+      const sel = $("#lsel", d);
+      if (sel && sel.value) url = sel.value;
       else {
         url = ($("#lu", d).value || "").trim();
         if (url && !/^https?:\/\//i.test(url)) url = "https://" + url;
