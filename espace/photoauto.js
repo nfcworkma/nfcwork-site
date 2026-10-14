@@ -26,15 +26,30 @@
   const marque = nom => { const n = sansAccent(nom); const m = MARQUES.find(([, r]) => r.test(n)); return m ? m[0] : ""; };
 
   // 1) banque de photos : tous les mots du nom doivent s'y retrouver
-  function banqueMeilleure(nom) {
-    const ws = mots(nom); if (!ws.length) return "";
-    let best = null, bs = 0;
+  // mêmes mots écrits autrement (darija, anglais, fautes courantes)
+  const SYN = { shawarma: "chawarma", shawerma: "chawarma", chawerma: "chawarma", hamburger: "burger", burguer: "burger", waffle: "gaufre",
+    pancake: "pancake", crep: "crepe", pizz: "pizza", panin: "panini", sandwitch: "sandwich", sandwish: "sandwich", tacco: "taco", taco: "taco",
+    nugget: "nugget", wing: "wing", fry: "frite", fries: "frite", juice: "ju", coffee: "cafe", latte: "latte", tea: "the", atay: "menthe",
+    mojitto: "mojito", milk: "lait", shake: "milkshake", lemonade: "limonade", water: "eau", donuts: "donut", beignet: "donut", glac: "glace",
+    harira: "soupe", "jus": "ju", omelet: "omelette", kefta: "kefta", kafta: "kefta", poisson: "poisson", fish: "poisson", crevette: "crevette" };
+  const norm = w => SYN[w] || w;
+  function banqueMeilleure(nom, deja) {
+    const ws = mots(nom).map(norm); if (!ws.length) return "";
+    let bs = 0, tous = [];
     for (const x of window.BANQUE || []) {
-      const t = " " + mots(x[1] + " " + x[3]).join(" ") + " ";
-      const s = ws.filter(w => t.includes(" " + w)).length;
-      if (s > bs) { bs = s; best = x; }
+      const tl = mots(x[1] + " " + x[3]).map(norm);
+      const t = " " + tl.join(" ") + " ";
+      // le 1er mot (« Pizza … », « Crêpe … », « Jus … ») compte double ; bonus si la photo commence pareil
+      let s = 0;
+      ws.forEach((w, i) => { if (t.includes(" " + w)) s += i === 0 ? 2 : 1; });
+      if (s && tl[0] === ws[0]) s += 0.5;
+      if (s) tous.push([x, s]);
+      if (s > bs) bs = s;
     }
-    return best && (bs === ws.length || bs >= 2) ? "u:" + best[0] : "";
+    // assez sûr : le 1er mot est trouvé (score ≥ 2). Entre photos aussi bonnes, une pas encore utilisée dans le menu.
+    if (bs < 2) return "";
+    const top = tous.filter(([, s]) => s === bs).map(([x]) => "u:" + x[0]);
+    return top.find(id => !(deja && deja.has(id))) || top[0];
   }
 
   // 2) Open Food Facts
@@ -80,14 +95,17 @@
   }
 
   // la photo la plus probable pour un produit (ou "" si rien de sûr)
-  async function trouver(nom) {
+  async function trouver(nom, deja) {
     if (!String(nom || "").trim()) return "";
     const mq = marque(nom);
-    if (!mq) return banqueMeilleure(nom);
+    if (!mq) return banqueMeilleure(nom, deja);
+    // la marque a déjà une belle photo dans la banque (Coca-Cola, Fanta, Pepsi, Red Bull…) → on la garde
+    const b = banqueMeilleure(nom, deja), e = b && (window.BANQUE || []).find(x => "u:" + x[0] === b);
+    if (e && !/zero|light/.test(sansAccent(nom)) && sansAccent(e[1]).replace(/[^a-z0-9]/g, "").includes(mots(mq)[0])) return b;
     const n = sansAccent(nom);
     const q = mq + (/zero|0 ?%/.test(n) && !/zero|light/.test(mq) ? " zero" : "");
     const l = await chercherOFF(q).catch(() => []);
-    return (l[0] && l[0].id) || banqueMeilleure(nom);
+    return (l[0] && l[0].id) || banqueMeilleure(nom, deja);
   }
 
   const url = (id, w) => OFF_IMG + id.slice(2) + ((w || 400) > 500 ? ".full.jpg" : ".400.jpg");

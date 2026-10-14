@@ -517,7 +517,7 @@
     if (first) first.addEventListener("change", async () => {
       if (it.photo && !auto) return;
       const v = first.value;
-      const id = await window.PHOTO_AUTO.trouver(v).catch(() => "");
+      const id = await window.PHOTO_AUTO.trouver(v, new Set(M.categories.flatMap(c => (c.items || []).map(i => i.photo)).filter(Boolean))).catch(() => "");
       if (id && first.value === v && (!it.photo || auto) && d.isConnected) { it.photo = id; auto = true; majPhoto(); }
     });
   }
@@ -589,10 +589,11 @@
     if (!todo.length) { toast("Donnez d’abord un nom aux produits."); return; }
     b.disabled = true;
     let ok = 0;
+    const deja = new Set(M.categories.flatMap(c => (c.items || []).map(i => i.photo)).filter(Boolean));
     for (let k = 0; k < todo.length; k++) {
       b.textContent = `${k + 1} / ${todo.length}…`;
-      const id = await window.PHOTO_AUTO.trouver(T(todo[k].nom, l0)).catch(() => "");
-      if (id) { todo[k].photo = id; ok++; }
+      const id = await window.PHOTO_AUTO.trouver(T(todo[k].nom, l0), deja).catch(() => "");
+      if (id) { todo[k].photo = id; deja.add(id); ok++; }
     }
     renderEdit();
     toast(ok ? `${ok} photo(s) ajoutée(s) ✓ Vérifiez-les, puis « Enregistrer ».` + (ok < todo.length ? ` ${todo.length - ok} sans photo trouvée : ajoutez-la à la main.` : "") : "Aucune photo sûre trouvée. Choisissez-les dans la banque de photos.");
