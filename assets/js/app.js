@@ -494,6 +494,36 @@
       total: x.total, remarque: [v("f-note"), cardLines(true).slice(1).join(" "), keyLines(true).slice(1).join(" ")].filter(Boolean).join(" | "), langue: lang
     };
   }
+  /* --- Copie de la commande dans l'Espace (Firestore « commandesSite », sans compte) ---
+     L'admin la retrouve dans Espace → Commandes, avec les infos de chaque produit NFC. */
+  const FS_SITE = "https://firestore.googleapis.com/v1/projects/nfcwork-espace/databases/(default)/documents/commandesSite";
+  const sentEspace = new Set();
+  function orderEspace() {
+    const x = totals(), v = id => { const el = $("#" + id); return el ? el.value.trim() : ""; };
+    const links = id => uploads[id].filter(u => u.etat === "ok").map(u => u.url);
+    const card = {}; if (cartHasCard()) CARD_FIELDS.forEach(([id]) => { const val = v("cd-" + id); if (val) card[id] = val; });
+    return {
+      ref: orderRef, createdAt: new Date().toISOString(), lang,
+      nom: v("f-name"), telephone: v("f-phone"), ville: x.city === "other" ? v("f-other") : x.city,
+      adresse: v("f-addr"), commerce: v("f-biz"), note: v("f-note"),
+      lignes: cart.map(l => { const { C, Ti } = findItem(l.key); return {
+        cat: C.id, offre: Ti.k, nom: C.name.fr, offreNom: typeof Ti.n === "string" ? Ti.n : Ti.n.fr, q: l.q, pu: unitPrice(l),
+        designs: (l.d || []).map(k => ({ k: baseD(k), nom: designText(C, [k], "fr") })) }; }),
+      designPremium: x.design, livraison: x.ship, total: x.total,
+      carte: card,
+      cles: { ssid: v("k-ssid"), motdepasse: v("k-pass"), google: v("k-google"), wifiQr: links("k-wifi-qr"), logo: links("k-logo") },
+      wifiPlaque: wifiPlaque()
+    };
+  }
+  function sendToEspace() {
+    if (!orderRef || sentEspace.has(orderRef)) return;
+    sentEspace.add(orderRef);
+    const o = orderEspace(), str = x => ({ stringValue: String(x) });
+    try {
+      fetch(FS_SITE + "?documentId=" + encodeURIComponent(o.ref), { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields: { ref: str(o.ref), createdAt: str(o.createdAt), json: str(JSON.stringify(o).slice(0, 20000)) } }) }).catch(() => {});
+    } catch (e) {}
+  }
   function validateOrder() {
     if (!cart.length) { toast(t("eCart")); return false; }
     const up = Object.values(uploads).flat();
@@ -549,7 +579,7 @@
     $$("#keyBox input[type=file]").forEach(inp => inp.addEventListener("change", () => onImages(inp)));
     bindWaButton($("#send"), orderMessage, validateOrder, () => {
       $("#doneRef").textContent = orderRef; $("#done").hidden = false; $("#done").scrollIntoView({ behavior: "smooth", block: "center" });
-    }, orderData);
+    }, () => { const d = orderData(); sendToEspace(); return d; });
     $("#copyOrder").addEventListener("click", () => { if (validateOrder()) copyText(orderMessage()); });
     $("#newOrder").addEventListener("click", () => {
       cart = []; orderRef = null; save(); updateCartBadge();

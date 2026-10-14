@@ -156,7 +156,13 @@
   /* ================= Navigation ================= */
   function route() {
     const m = location.hash.match(/^#m=([a-z0-9-]+)/);
-    if (m) ouvrir(m[1]); else renderListe();
+    const n = location.hash.match(/^#nouveau=([A-Za-z0-9_-]+)/);
+    if (m) ouvrir(m[1]);
+    else if (n) {
+      let pre = {};
+      try { pre = JSON.parse(decodeURIComponent(escape(atob(n[1].replace(/-/g, "+").replace(/_/g, "/"))))); } catch (e) {}
+      history.replaceState(null, "", "#"); renderListe(); nouveauMenu(pre);
+    } else renderListe();
   }
   window.addEventListener("hashchange", () => {
     if (M && dirty() && !location.hash.startsWith("#m=" + M.slug)) {
@@ -193,8 +199,11 @@
       : `<div class="empty paper sec"><h3>Aucun menu pour l’instant</h3><p>Créez le premier menu : choisissez la formule, puis ajoutez les photos ou les produits.</p><button class="btn primary" data-act="nouveau">＋ Créer un menu</button></div>`}`;
   }
 
-  function nouveauMenu() {
-    let formule = "standard";
+  // pre : { nom, formule, tel, commande } quand on vient d'une commande (Espace → Commandes → « Créer le menu »)
+  function nouveauMenu(pre) {
+    pre = pre || {};
+    const fp = String(pre.formule || "").toLowerCase();
+    let formule = fp.includes("premium") ? "premium" : fp.includes("pro") ? "pro" : "standard";
     const d = fenetre(`<h2>Nouveau menu</h2><p class="muted">Le lien sera nfcwork.ma/menu/<b id="nm-prev">…</b></p>
       <form class="stack" id="nm">
         <label class="f">Nom du commerce<input id="nm-nom" required maxlength="60" placeholder="Café Chocco Latte"></label>
@@ -205,6 +214,7 @@
       </form>`);
     let auto = true;
     const nom = $("#nm-nom", d), sl = $("#nm-slug", d), prev = () => ($("#nm-prev", d).textContent = sl.value || "…");
+    if (pre.nom) { nom.value = pre.nom; sl.value = slugify(pre.nom); prev(); }
     nom.oninput = () => { if (auto) sl.value = slugify(nom.value); prev(); };
     sl.oninput = () => { auto = false; sl.value = sl.value.toLowerCase().replace(/[^a-z0-9-]/g, ""); prev(); };
     d.addEventListener("click", e => { const b = e.target.closest("[data-formule]"); if (b) { formule = b.dataset.formule; d.querySelectorAll("[data-formule]").forEach(x => x.setAttribute("aria-pressed", x === b)); } });
@@ -222,7 +232,7 @@
           v: 1, slug: s, nom: nom.value.trim(), formule, actif: true,
           langues: [lang], theme: "nuit", couleur: "", devise: "DH",
           logo: "", logoCarre: false, couverture: "", slogan: {},
-          infos: { horaires: "", adresse: "", maps: "", tel: "", instagram: "", whatsapp: "" },
+          infos: { horaires: "", adresse: "", maps: "", tel: pre.tel || "", instagram: "", whatsapp: formule === "premium" ? pre.tel || "" : "" }, commandeRef: pre.commande || "",
           commande: true, pages: [],
           categories: formule === "standard" ? [] : [{ id: rid(6), nom: { [lang]: lang === "ar" ? "المشروبات" : lang === "en" ? "Drinks" : "Boissons" }, items: [] }]
         };

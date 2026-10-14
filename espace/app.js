@@ -157,7 +157,46 @@ function startAdmin(){
   listen(fs.collection("claims"),s=>{S.claims=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   listenDiscret(fs.collection("creations"),s=>{S.creations=rows(s).sort((a,b)=>(tsDate(b.modifieLe)||0)-(tsDate(a.modifieLe)||0));render()});
   listenDiscret(fs.collection("modifications"),s=>{S.mods=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
+  listenDiscret(fs.collection("commandesSite"),s=>s.docs.forEach(importerCommandeSite));
   render();
+}
+/* ---------- Commandes du site (nfcwork.ma/commande.html) ----------
+   Le site dépose chaque commande dans « commandesSite » (sans compte). L'admin la range
+   dans « orders » (même numéro NW-…), avec les infos de chaque produit NFC, puis l'efface. */
+const DESIGN_TYPE={wifi:"wifi",contact:"profil",menu:"menu",google:"avis",barber:"liens"};
+const CAT_SITE={carte:"profil",google:"avis",wifi:"wifi",menu:"menu"};
+const PACK_SITE={starter:["profil","avis"],professional:["profil"],cafe:["menu","avis","wifi"],business:["menu","avis","wifi"],restaurant:["menu","avis","wifi"],premium:["profil","menu","avis","wifi"]};
+const enCours=new Set();
+async function importerCommandeSite(d){
+  if(enCours.has(d.id))return;enCours.add(d.id);
+  let c;try{c=JSON.parse(d.data().json||"{}")}catch(e){c={ref:d.id,note:"Commande illisible : "+String(d.data().json||"").slice(0,800)}}
+  const ref=String(c.ref||d.id).replace(/[^A-Za-z0-9-]/g,"").slice(0,20)||d.id;
+  const lignes=(c.lignes||[]).map(l=>{const ds=(l.designs||[]);
+    const types=[...new Set(ds.map(x=>DESIGN_TYPE[x.k]).filter(Boolean).concat(l.cat==="packs"?PACK_SITE[l.offre]||[]:CAT_SITE[l.cat]?[CAT_SITE[l.cat]]:[]))];
+    return {serviceId:l.cat==="packs"?"pack-"+l.offre:"cat-"+l.cat,name:`${l.nom} — ${l.offreNom}`+(ds.length?` (${ds.map(x=>x.nom).join(", ")})`:""),qty:+l.q||1,price:+l.pu||0,types,designs:ds.map(x=>x.nom)}});
+  if(c.designPremium)lignes.push({serviceId:"",name:"Design premium",qty:1,price:+c.designPremium});
+  if(c.livraison)lignes.push({serviceId:"",name:"Livraison ("+(c.ville||"")+")",qty:1,price:+c.livraison});
+  const types=new Set(lignes.flatMap(l=>l.types||[]));if(c.wifiPlaque)types.add("wifi");
+  const k=c.cles||{},cd=c.carte||{},com=c.commerce||c.nom||"",infos={};
+  const logo=(k.logo||[]).join(" , ");
+  if(types.has("wifi"))infos.wifi={commerce:com,ssid:k.ssid,motdepasse:k.motdepasse,qr:(k.wifiQr||[]).join(" , ")};
+  if(types.has("avis"))infos.avis={commerce:com,lien_google:k.google};
+  if(types.has("menu")){const f=lignes.flatMap(l=>l.designs||[]).filter(n=>/^Menu/.test(n)).map(n=>n.replace(/^Menu\s*/,"")||"Standard");
+    const plaque=(c.lignes||[]).find(l=>l.cat==="menu");
+    infos.menu={nom:com,formule:f.length?f.join(", "):plaque?plaque.offreNom:"",whatsapp:c.telephone};}
+  if(types.has("profil"))infos.profil={nom:cd.nom||c.nom,metiers:cd.job,telephone:c.telephone,instagram:cd.instagram,facebook:cd.facebook,linkedin:cd.linkedin,tiktok:cd.tiktok,snapchat:cd.snapchat,youtube:cd.youtube,site:cd.site,maps:cd.maps};
+  if(types.has("liens"))infos.liens={nom:com,whatsapp:c.telephone};
+  for(const t in infos){for(const x in infos[t])if(infos[t][x]==null||infos[t][x]==="")delete infos[t][x];if(logo)infos[t].logo=logo;if(!Object.keys(infos[t]).length)delete infos[t]}
+  const at=c.createdAt||new Date().toISOString();
+  const o={number:ref,clientId:"",clientEmail:"",clientName:c.nom||"",source:"site",phone:c.telephone||"",city:c.ville||"",address:c.adresse||"",business:c.commerce||"",
+    lines:lignes.map(({designs,...l})=>l),note:String(c.note||"").slice(0,1000),status:"new",history:[{status:"new",at}],createdAt:at,total:oTotal({lines:lignes})};
+  if(Object.keys(infos).length)o.infos=infos;
+  try{
+    const ex=await fs.doc("orders/"+ref).get();
+    if(!ex.exists)await fs.doc("orders/"+ref).set(o);
+    await d.ref.delete();
+    if(!ex.exists)toast("Nouvelle commande du site : "+ref);
+  }catch(e){console.error(e);enCours.delete(d.id)}
 }
 /* ---------- CLIENT ---------- */
 function startClient(email){
@@ -289,7 +328,7 @@ function renderOrders(){
     body=`<div class="filters">${Object.entries(f).map(([k,v])=>`<button class="chip" data-ofilter="${k}" aria-pressed="${ordFilter===k}">${v}</button>`).join("")}</div>
     ${list.length?`<div class="stack">${list.map(orderCard).join("")}</div>`:`<div class="empty"><h3>Aucune commande ici</h3><p>${base.length?"Aucune commande avec ce statut.":"Les commandes de vos clients apparaîtront ici."}</p></div>`}`;
   }
-  app.innerHTML=`<div class="section-head"><div><h2>Suivi clients</h2><div class="muted" style="font-size:13.5px">Commandes, devis, réclamations et demandes de modification envoyés depuis l’espace client.</div></div></div>
+  app.innerHTML=`<div class="section-head"><div><h2>Suivi clients</h2><div class="muted" style="font-size:13.5px">Commandes du site, devis, réclamations et demandes de modification envoyés depuis le site et l’espace client.</div></div></div>
   <div class="seg seg4">${seg("orders","Commandes",t.o)}${seg("quotes","Devis",t.q)}${seg("claims","Réclam.",t.c)}${seg("mods","Modifs",t.m)}</div>${body}`;
 }
 function quoteHtml(q){
@@ -324,7 +363,7 @@ function historyHtml(o){
 function orderView(o){
   const c=o.clientId?clientById(o.clientId):S.clients.find(x=>x.email&&x.email===o.clientEmail),inv=S.invoices.find(i=>i.orderId===o.id);
   openModal(`${head(esc(o.number),oPill(o))}
-  <div class="muted" style="font-size:14px;margin-bottom:12px">${esc(c?c.name:o.clientName||"Client sans fiche")} · ${esc(o.clientEmail)}${c&&c.phone?" · "+esc(c.phone):""}<br>${o.status==="quote"?"Demandé":"Commandée"} le ${fdt(o.createdAt)}${c&&(c.delivery||c.city)?`<br>Livraison : ${esc([c.delivery,c.city].filter(Boolean).join(", "))}`:""}</div>
+  <div class="muted" style="font-size:14px;margin-bottom:12px">${esc(c?c.name:o.clientName||"Client sans fiche")}${o.clientEmail?" · "+esc(o.clientEmail):""}${c&&c.phone?" · "+esc(c.phone):""}${o.source==="site"?` · <b>commande du site</b>${o.phone?` · <a href="https://wa.me/${esc(waNumber(o.phone))}" target="_blank" rel="noopener">${esc(o.phone)}</a>`:""}${o.business?` · ${esc(o.business)}`:""}${o.city||o.address?`<br>Livraison : ${esc([o.address,o.city].filter(Boolean).join(", "))}`:""}`:""}<br>${o.status==="quote"?"Demandé":"Commandée"} le ${fdt(o.createdAt)}${c&&(c.delivery||c.city)?`<br>Livraison : ${esc([c.delivery,c.city].filter(Boolean).join(", "))}`:""}</div>
   ${o.quote?quoteHtml(o.quote):`<div class="paper">${linesTable(o)}</div>`}
   ${o.note&&!o.quote?`<div class="notice" style="margin-top:12px;white-space:pre-wrap"><b>Note du client :</b> ${esc(o.note)}</div>`:""}
   ${infosHtml(o)}
@@ -620,7 +659,7 @@ const tsDate=v=>v&&v.toDate?v.toDate():v?new Date(v):null;
 const fts=v=>{const d=tsDate(v);return d&&!isNaN(d)?d.toLocaleString("fr-FR",{day:"2-digit",month:"short",year:"numeric"}):"—"};
 const PACK_TYPES={starter:["profil","avis"],professional:["profil"],cafe:["menu","avis","wifi"],business:["menu","avis","wifi"],restaurant:["menu","avis","wifi"],premium:["profil","menu","avis","wifi"]};
 const CAT_TYPE={carte:"profil",google:"avis",wifi:"wifi",menu:"menu",led:"liens"};
-function typesDeLigne(l){const id=l.serviceId||"";if(id.startsWith("pack-"))return PACK_TYPES[id.slice(5)]||[];
+function typesDeLigne(l){if(Array.isArray(l.types))return l.types.filter(t=>NFC_TYPES[t]);const id=l.serviceId||"";if(id.startsWith("pack-"))return PACK_TYPES[id.slice(5)]||[];
   const s=S.services.find(x=>x.id===id),cat=s?s.category:(id.startsWith("cat-")?id.slice(4):"");return CAT_TYPE[cat]?[CAT_TYPE[cat]]:[]}
 function typesCommande(o){const t=new Set(Object.keys(o.infos||{}).filter(k=>NFC_TYPES[k]));for(const l of o.lines||[])typesDeLigne(l).forEach(x=>t.add(x));return [...t]}
 const typeChips=ts=>ts.map(t=>`<span class="tchip">${NFC_TYPES[t][0]} ${NFC_TYPES[t][1]}</span>`).join("");
@@ -654,10 +693,11 @@ function lienOutil(o,t){const i=(o.infos||{})[t]||{},c=(o.clientId&&clientById(o
   if((t==="avis"||t==="wifi")&&!p.commerce)p.commerce=c.name||o.clientName||"";
   if((t==="menu"||t==="liens")&&!p.nom)p.nom=c.name||o.clientName||"";
   return OUTIL_URL+"#creer="+t+"&p="+b64(p)+"&commande="+encodeURIComponent(o.id)+"&client="+encodeURIComponent(o.clientEmail||"")}
-const NOMS_CHAMPS={nom:"Nom",entreprise:"Entreprise",metiers:"Métiers",telephone:"Téléphone",whatsapp:"WhatsApp",email:"E-mail",instagram:"Instagram",facebook:"Facebook",linkedin:"LinkedIn",tiktok:"TikTok",snapchat:"Snapchat",youtube:"YouTube",maps:"Google Maps",site:"Site web",adresse:"Adresse",commerce:"Commerce",lien_google:"Lien Google",ssid:"Réseau Wi-Fi",motdepasse:"Mot de passe",securite:"Sécurité",cache:"Réseau caché",horaires:"Horaires",menu:"Menu",slogan:"Slogan",localisation:"Localisation",boutons_texte:"Boutons"};
+const NOMS_CHAMPS={nom:"Nom",entreprise:"Entreprise",metiers:"Métiers",telephone:"Téléphone",whatsapp:"WhatsApp",email:"E-mail",instagram:"Instagram",facebook:"Facebook",linkedin:"LinkedIn",tiktok:"TikTok",snapchat:"Snapchat",youtube:"YouTube",maps:"Google Maps",site:"Site web",adresse:"Adresse",commerce:"Commerce",lien_google:"Lien Google",ssid:"Réseau Wi-Fi",motdepasse:"Mot de passe",securite:"Sécurité",cache:"Réseau caché",horaires:"Horaires",menu:"Menu",slogan:"Slogan",localisation:"Localisation",boutons_texte:"Boutons",formule:"Formule du menu",logo:"Logo (lien)",qr:"QR Wi-Fi (lien)"};
 function infosHtml(o){const ts=typesCommande(o);if(!ts.length)return"";
   return `<div class="eyebrow" style="margin:16px 0 8px">Produits NFC à créer</div><div class="stack">${ts.map(t=>{const i=(o.infos||{})[t]||{};
-    return `<div class="paper"><div class="row between"><b>${NFC_TYPES[t][0]} ${NFC_TYPES[t][1]}</b><a class="btn sm primary" href="${esc(lienOutil(o,t))}" target="_blank" rel="noopener">Créer dans l’outil</a></div>
+    const lien=t==="menu"?"menus.html#nouveau="+b64({nom:i.nom||o.business||o.clientName||"",formule:i.formule||"",tel:i.whatsapp||o.phone||"",commande:o.number}):lienOutil(o,t);
+    return `<div class="paper"><div class="row between"><b>${NFC_TYPES[t][0]} ${NFC_TYPES[t][1]}</b><a class="btn sm primary" href="${esc(lien)}" ${t==="menu"?"":'target="_blank" rel="noopener"'}>${t==="menu"?"Créer le menu":"Créer dans l’outil"}</a></div>
     ${Object.keys(i).length?`<dl class="kv">${Object.entries(i).map(([k,v])=>`<dt>${esc(NOMS_CHAMPS[k]||k)}</dt><dd style="white-space:pre-wrap">${esc(v===true?"oui":v)}</dd>`).join("")}</dl>`:`<p class="muted" style="margin:6px 0 0;font-size:13px">Pas encore d’infos : le formulaire de l’outil s’ouvrira avec le nom et le téléphone du client.</p>`}</div>`}).join("")}</div>
     <p class="muted" style="font-size:12.5px;margin:6px 0 0">« Créer dans l’outil » ouvre l’outil NFCWORK (sur le Mac, ou sur l’iPhone si l’outil est ouvert à l’adresse du Mac).</p>`}
 /* admin : onglet Produits NFC */

@@ -1,0 +1,12 @@
+// À AJOUTER dans Firebase Console → Firestore Database → Règles,
+// juste AVANT la ligne « // Tout le reste est fermé », puis cliquer « Publier ».
+//
+// Commandes envoyées depuis le site nfcwork.ma (sans compte) :
+// tout le monde peut en déposer une, seul l'admin la lit puis la range dans « orders ».
+    match /commandesSite/{id} {
+      allow read, update, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['ref', 'createdAt', 'json'])
+        && str(request.resource.data.ref, 20) && request.resource.data.ref == id
+        && str(request.resource.data.createdAt, 40)
+        && str(request.resource.data.json, 20000);
+    }

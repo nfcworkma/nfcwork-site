@@ -254,6 +254,8 @@ header.top{background:color-mix(in srgb,var(--bg) 72%,transparent);-webkit-backd
 .brand-link{display:block;flex:none}.brand .brand-logo{display:block;height:26px;width:auto;border-radius:0}
 .brand-txt{min-width:0;border-inline-start:1px solid var(--glass-line);padding-inline-start:10px}
 .brand-txt small{font-size:12.5px;color:var(--accent-2);font-weight:600;white-space:nowrap}
+.brand .brand-sym{display:none;width:32px;height:32px;border-radius:8px}
+@media(max-width:480px){.brand .brand-logo,.brand-txt{display:none}.brand .brand-sym{display:block}}
 @media(max-width:420px){.brand .brand-logo{height:20px}.brand-txt{padding-inline-start:8px}.brand-txt small{font-size:11px}}
 .btn{border-color:var(--glass-line);background:var(--glass);border-radius:14px;transition:transform .2s,box-shadow .2s,border-color .2s}
 .btn.primary{background:var(--grad);border-color:transparent;box-shadow:0 10px 28px -12px var(--accent)}
@@ -279,14 +281,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 .hello h2,.hero-pub h2{font-size:28px}
 .qbox{background:color-mix(in srgb,var(--accent) 8%,var(--glass))}
 #editSiteBtn{border-color:#f2b53a;color:#ffd77a;white-space:nowrap}
-@media(max-width:560px){#editSiteBtn .ed-lbl{display:none}}
+@media(max-width:560px){#editSiteBtn .ed-lbl,#menusBtn .ed-lbl{display:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <header class="top"><div class="top-in">
   <div class="brand">
-    <a href="../index.html" class="brand-link" aria-label="nfcwork.ma"><img class="brand-logo" src="../assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></a>
+    <a href="../index.html" class="brand-link" aria-label="nfcwork.ma"><img class="brand-logo" src="../assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"><img class="brand-sym" src="../assets/img/logo-symbole.png" alt="" width="32" height="32"></a>
     <div class="brand-txt"><h1 id="bizName" class="sr">nfcwork.ma</h1><small id="modeLabel">Espace client</small></div>
   </div>
   <a class="btn sm" id="editSiteBtn" href="../index.html?edition=1" hidden title="Modifier les textes, prix et photos du site"><i class="ico ico-pencil" aria-hidden="true"></i><span class="ed-lbl"> Modifier le site</span></a>
