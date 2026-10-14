@@ -23,7 +23,8 @@
   // points des employés, toujours liés à une vraie visite enregistrée par le commerçant
   const MODES_E = { visite: ["À la caisse", "Le commerçant choisit qui a servi"], confirme: ["Le client", "Il confirme qui l’a servi"], les2: ["Les deux", "Caisse, sinon le client"] };
   // modèles prêts à l'emploi par métier (tout reste modifiable)
-  const METIERS = {
+  // modèles par défaut ; la liste modifiée par l'admin (Métiers & prix) est gardée dans settings/fidMetiers
+  const METIERS_BASE = {
     barber:   { ico: "✂️", nom: "Barber / Coiffure", type: "visites", objectif: 8, unite: "coupes", recompense: "La 9e coupe offerte", employes: true },
     cafe:     { ico: "☕", nom: "Café", type: "visites", objectif: 10, unite: "cafés", recompense: "1 café offert", employes: false },
     snack:    { ico: "🌯", nom: "Snack", type: "visites", objectif: 10, unite: "commandes", recompense: "1 sandwich offert", employes: false },
@@ -33,6 +34,12 @@
     lavage:   { ico: "🚗", nom: "Lavage auto", type: "visites", objectif: 5, unite: "lavages", recompense: "Le 6e lavage offert", employes: true },
     autre:    { ico: "✨", nom: "Autre", type: "visites", objectif: 10, unite: "visites", recompense: "", employes: false }
   };
+  const PERIODES = { mois: "/ mois", an: "/ an", once: "une fois" };
+  let METIERS = JSON.parse(JSON.stringify(METIERS_BASE));
+  async function chargerMetiers() {
+    try { const d = await db.doc("settings/fidMetiers").get(); if (d.exists) { const m = JSON.parse(d.data().json || "{}"); if (Object.keys(m).length) METIERS = m; } } catch (e) {}
+  }
+  const prixTxt = m => m && m.prix ? `${m.prix} DH ${PERIODES[m.periode] || ""}`.trim() : "";
 
   let user = null, email = "", admin = false, progs = [], P = null, cartes = [], employes = [], secret = "", vue = "clients", recherche = "", subs = [];
   const unsub = () => { subs.forEach(f => f()); subs = []; };
@@ -59,6 +66,7 @@
       const q = admin ? db.collection("fidProgrammes") : db.collection("fidProgrammes").where("ownerEmail", "==", email);
       progs = (await q.get()).docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.nom || "").localeCompare(b.nom || ""));
     } catch (e) { erreur(e); progs = []; }
+    await chargerMetiers();
     if (!admin && !progs.length) { app.innerHTML = `<div class="empty"><h3>Pas encore de programme fidélité</h3><p>Contactez NFCWORK pour activer la carte fidélité de votre commerce.</p><a class="btn primary" href="https://wa.me/212620666027" target="_blank" rel="noopener">WhatsApp NFCWORK</a></div>`; return; }
     try { localStorage.setItem("nfcwork-fid-pro", "1"); } catch (e) {}
     route();
@@ -94,10 +102,10 @@
     unsub(); P = null;
     entete("Fidélité", admin ? "Programmes de vos clients" : "Vos commerces", "./");
     app.innerHTML = `<div class="row between"><div><h2>Cartes fidélité</h2><div class="muted">Points, récompenses et classement des employés.</div></div>
-      ${admin ? `<button class="btn primary" data-act="nouveau">＋ Nouveau programme</button>` : ""}</div>
+      ${admin ? `<div class="row"><button class="btn" data-act="metiers">✏️ Métiers & prix</button><button class="btn primary" data-act="nouveau">＋ Nouveau programme</button></div>` : ""}</div>
       ${progs.length ? `<div class="mlist sec">${progs.map(p => `<div class="paper mcard">
         <div class="row between"><span class="n">${(METIERS[p.metier] || {}).ico || ""} ${esc(p.nom)}</span><span class="pill ${p.actif === false ? "off" : "pro"}">${p.actif === false ? "Désactivé" : esc(TYPES[p.type] ? TYPES[p.type][0] : "")}</span></div>
-        <div class="l">${esc(p.objectif)} ${unite(p)} = ${esc(p.recompense)}${admin ? `<br>${esc(p.ownerEmail || "sans compte commerçant")}` : ""}</div>
+        <div class="l">${esc(p.objectif)} ${unite(p)} = ${esc(p.recompense)}${admin ? `<br>${esc(p.ownerEmail || "sans compte commerçant")}${p.prix ? ` · ${esc(p.prix)} DH ${PERIODES[p.periode] || ""}` : ""}` : ""}</div>
         <div class="row"><a class="btn sm primary" href="#p=${esc(p.id)}">Ouvrir</a>${admin ? `<button class="btn sm" data-reglages="${esc(p.id)}">Réglages</button>` : ""}</div></div>`).join("")}</div>`
       : `<div class="empty paper sec"><h3>Aucun programme</h3><p>Créez le programme fidélité d’un commerce : type de points, récompense, employés.</p><button class="btn primary" data-act="nouveau">＋ Créer un programme</button></div>`}`;
   }
@@ -137,7 +145,7 @@
     const d = fenetre(`<div class="row between"><h2>${ex ? "Réglages" : "Nouveau programme"}</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
       <form class="stack" id="pf" style="margin-top:10px">
         <div><div class="eyebrow" style="margin-bottom:6px">1 · Le métier</div>
-          <div class="seg3" id="metiers" style="grid-template-columns:repeat(4,1fr)">${Object.entries(METIERS).map(([k, m]) => `<button type="button" data-metier="${k}" aria-pressed="${p.metier === k}"><b style="font-size:22px">${m.ico}</b><small>${esc(m.nom.split(" (")[0])}</small></button>`).join("")}</div></div>
+          <div class="seg3" id="metiers" style="grid-template-columns:repeat(4,1fr)">${Object.entries(METIERS).map(([k, m]) => `<button type="button" data-metier="${k}" aria-pressed="${p.metier === k}"><b style="font-size:22px">${m.ico}</b><small>${esc(m.nom.split(" (")[0])}</small>${m.prix ? `<small class="muted">${esc(prixTxt(m))}</small>` : ""}</button>`).join("")}</div></div>
         <div class="eyebrow">2 · Le commerce</div>
         <label class="f">Nom du commerce<input id="p-nom" required maxlength="60" value="${esc(p.nom)}" placeholder="Barber Atlas"></label>
         <label class="f">E-mail du compte commerçant (il scannera les cartes)<input id="p-mail" type="email" list="mails" value="${esc(p.ownerEmail)}" placeholder="client@gmail.com" autocapitalize="off">
@@ -155,6 +163,9 @@
           <label class="f" id="w-dh">DH pour 1 point<input id="p-dh" type="number" min="1" max="1000" value="${esc(p.dhParPoint)}" inputmode="numeric"></label>
           <div id="w-emp" class="stack"><div><div class="eyebrow" style="margin-bottom:6px">Qui donne le point à l’employé</div>${seg("modeEmploye", MODES_E, p.modeEmploye)}</div>
             <label class="f">Prime du mois (affichée aux employés)<input id="p-prime" maxlength="80" value="${esc(p.primeEmploye)}"></label></div>
+          <div class="grid2"><label class="f">Prix de l’abonnement (DH)<input id="p-prix" type="number" min="0" inputmode="numeric" value="${esc(p.prix || "")}"></label>
+            <label class="f">Période<select id="p-per">${Object.entries(PERIODES).map(([k, v]) => `<option value="${k}" ${(p.periode || "an") === k ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>
+          <label class="f">Comment ça marche (affiché au client, une étape par ligne)<textarea id="p-guide" maxlength="400" rows="3">${esc(p.guide || "")}</textarea></label>
           <label class="check"><input type="checkbox" id="p-actif" ${p.actif !== false ? "checked" : ""}> Programme actif</label>
         </div></details>
         <p class="err" id="perr"></p>
@@ -169,7 +180,8 @@
         metier = m.dataset.metier; const t = METIERS[metier];
         d.querySelectorAll("[data-metier]").forEach(x => x.setAttribute("aria-pressed", x === m));
         $("#p-obj", d).value = t.objectif; $("#p-unite", d).value = t.unite; if (t.recompense || !ex) $("#p-rec", d).value = t.recompense;
-        if (t.dhParPoint) $("#p-dh", d).value = t.dhParPoint; $("#p-emp", d).checked = t.employes; choisirSeg("type", t.type); maj();
+        if (t.dhParPoint) $("#p-dh", d).value = t.dhParPoint; $("#p-emp", d).checked = !!t.employes; choisirSeg("type", t.type); maj();
+        $("#p-prix", d).value = t.prix || ""; $("#p-per", d).value = t.periode || "an"; $("#p-guide", d).value = t.guide || "";
         if (!$("#p-nom", d).value) $("#p-nom", d).focus();
         return;
       }
@@ -188,7 +200,8 @@
         metier: metier || "autre", nom: $("#p-nom", d).value.trim(), ownerEmail: $("#p-mail", d).value.trim().toLowerCase(), couleur: $("#p-coul", d).value,
         logoData, logo: "", type: val.type, objectif: num("#p-obj", 1, 1000, 10), unite: $("#p-unite", d).value.trim() || "visites", dhParPoint: num("#p-dh", 1, 1000, 10),
         recompense: $("#p-rec", d).value.trim(), modeClient: "commercant", employes: $("#p-emp", d).checked, modeEmploye: val.modeEmploye,
-        primeEmploye: $("#p-prime", d).value.trim(), actif: $("#p-actif", d).checked, maj: NOW()
+        primeEmploye: $("#p-prime", d).value.trim(), actif: $("#p-actif", d).checked, maj: NOW(),
+        prix: parseInt($("#p-prix", d).value, 10) || 0, periode: $("#p-per", d).value, guide: $("#p-guide", d).value.trim().slice(0, 400)
       };
       if (!data.ownerEmail) { $("#perr", d).textContent = "Indiquez l’e-mail du compte du commerçant."; return; }
       const b = e.target.querySelector("button.primary"); b.disabled = true;
@@ -202,6 +215,75 @@
         d.remove(); toast("Programme enregistré ✓");
         if (P && P.id === id) { P = progs.find(x => x.id === id); renderDash(); } else renderListe();
       } catch (x) { erreur(x); b.disabled = false; }
+    };
+  }
+
+  /* ================= Métiers & prix (mode modification, admin) ================= */
+  function metiersVue() {
+    const d = fenetre(`<div class="row between"><h2>Métiers & prix</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
+      <p class="muted" style="margin:4px 0 12px">Vos modèles : ils pré-remplissent chaque nouveau programme. Touchez un métier pour le modifier.</p>
+      <div class="flist" id="mlist"></div>
+      <button class="btn primary" style="width:100%;margin-top:12px" data-madd>＋ Ajouter un métier</button>
+      <button class="btn sm ghost" style="width:100%;margin-top:6px" data-mreset>Revenir aux modèles NFCWORK</button>`);
+    const dessiner = () => {
+      $("#mlist", d).innerHTML = Object.entries(METIERS).map(([k, m]) => `<div class="frow" data-medit="${esc(k)}" style="cursor:pointer"><span class="av" style="font-size:20px">${esc(m.ico || "✨")}</span>
+        <div class="tx"><b>${esc(m.nom)}</b><small>${esc(m.type === "montant" ? `${m.dhParPoint || 10} DH = 1 pt · ${m.objectif} pts` : `${m.objectif} ${m.unite || "visites"}`)} = ${esc(m.recompense || "—")}</small></div>
+        <span class="pts">${esc(prixTxt(m) || "—")}</span></div>`).join("");
+    };
+    dessiner();
+    const sauver = async () => { await db.doc("settings/fidMetiers").set({ json: JSON.stringify(METIERS), maj: NOW(), par: email }); dessiner(); toast("Métiers enregistrés ✓"); };
+    let reset = false;
+    d.addEventListener("click", async e => {
+      const ed = e.target.closest("[data-medit]"); if (ed) { metierForm(ed.dataset.medit, sauver); return; }
+      if (e.target.closest("[data-madd]")) { metierForm(null, sauver); return; }
+      const r = e.target.closest("[data-mreset]");
+      if (r) { if (!reset) { reset = true; r.textContent = "Confirmer : remettre les modèles de départ"; return; } METIERS = JSON.parse(JSON.stringify(METIERS_BASE)); try { await sauver(); } catch (x) { erreur(x); } reset = false; r.textContent = "Revenir aux modèles NFCWORK"; }
+    });
+  }
+  function metierForm(cle, sauver) {
+    const m = Object.assign({ ico: "✨", nom: "", type: "visites", objectif: 10, unite: "visites", dhParPoint: 10, recompense: "", employes: false, prix: "", periode: "an", guide: "" }, cle ? METIERS[cle] : {});
+    const ICOS = ["✂️", "☕", "🌯", "🍽️", "👕", "🏠", "🚗", "💅", "🧖", "🏋️", "🥐", "🍕", "🍦", "🧺", "💊", "📱", "🎮", "🛒", "🚕", "✨"];
+    const d = fenetre(`<div class="row between"><h2>${cle ? "Modifier le métier" : "Nouveau métier"}</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
+      <form class="stack" id="mf" style="margin-top:10px">
+        <div><div class="eyebrow" style="margin-bottom:6px">Icône</div><div class="row" style="gap:6px" id="icos">${ICOS.map(i => `<button type="button" class="btn sm" data-ico="${i}" aria-pressed="${m.ico === i}" style="font-size:20px;min-width:44px${m.ico === i ? ";border-color:var(--accent);background:var(--accent-soft)" : ""}">${i}</button>`).join("")}</div></div>
+        <label class="f">Nom du métier<input id="m-nom" required maxlength="40" value="${esc(m.nom)}" placeholder="Salon de beauté, Hammam, Pressing…"></label>
+        <div class="grid2"><label class="f">Prix (DH)<input id="m-prix" type="number" min="0" inputmode="numeric" value="${esc(m.prix)}" placeholder="199"></label>
+          <label class="f">Période<select id="m-per">${Object.entries(PERIODES).map(([k, v]) => `<option value="${k}" ${m.periode === k ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>
+        <div><div class="eyebrow" style="margin-bottom:6px">Le client gagne des points par…</div>
+          <div class="seg3" id="m-type">${Object.entries(TYPES).map(([k, [a, b]]) => `<button type="button" data-v="${k}" aria-pressed="${m.type === k}"><b>${a}</b><small class="muted">${b}</small></button>`).join("")}</div></div>
+        <div class="grid2"><label class="f">Objectif<input id="m-obj" type="number" min="1" max="1000" value="${esc(m.objectif)}" inputmode="numeric"></label>
+          <label class="f" id="m-uw">Unité<input id="m-unite" maxlength="20" value="${esc(m.unite)}" placeholder="séances, lavages…"></label></div>
+        <label class="f" id="m-dhw">DH pour 1 point<input id="m-dh" type="number" min="1" max="1000" value="${esc(m.dhParPoint)}" inputmode="numeric"></label>
+        <label class="f">Récompense<input id="m-rec" maxlength="80" value="${esc(m.recompense)}" placeholder="La 6e séance offerte"></label>
+        <label class="f">Comment ça marche (affiché au client, une étape par ligne)<textarea id="m-guide" maxlength="400" rows="3" placeholder="Montrez votre carte à chaque visite&#10;Après 5 séances, la 6e est offerte">${esc(m.guide)}</textarea></label>
+        <label class="check"><input type="checkbox" id="m-emp" ${m.employes ? "checked" : ""}> Points des employés activés par défaut</label>
+        <p class="err" id="merr"></p>
+        <div class="row"><button class="btn primary" style="flex:1">Enregistrer</button><button type="button" class="btn ghost" data-fermer>Annuler</button></div>
+        ${cle ? `<button type="button" class="btn sm danger" id="m-del">Supprimer ce métier</button>` : ""}
+      </form>`);
+    let type = m.type, ico = m.ico;
+    const maj = () => { $("#m-dhw", d).hidden = type !== "montant"; };
+    maj();
+    d.addEventListener("click", e => {
+      const i = e.target.closest("[data-ico]");
+      if (i) { ico = i.dataset.ico; d.querySelectorAll("[data-ico]").forEach(x => { const on = x === i; x.setAttribute("aria-pressed", on); x.style.borderColor = on ? "var(--accent)" : ""; x.style.background = on ? "var(--accent-soft)" : ""; }); return; }
+      const t = e.target.closest("#m-type [data-v]");
+      if (t) { type = t.dataset.v; d.querySelectorAll("#m-type [data-v]").forEach(x => x.setAttribute("aria-pressed", x === t)); if (type === "montant" && !cle) $("#m-unite", d).value = "points"; maj(); }
+    });
+    const del = $("#m-del", d); let conf = false;
+    if (del) del.onclick = async () => { if (!conf) { conf = true; del.textContent = "Confirmer la suppression"; return; } const old = METIERS[cle]; delete METIERS[cle]; try { await sauver(); d.remove(); } catch (x) { METIERS[cle] = old; erreur(x); } };
+    $("#mf", d).onsubmit = async e => {
+      e.preventDefault();
+      const nom = $("#m-nom", d).value.trim(); if (!nom) return;
+      const num = (id, mn, mx, def) => Math.max(mn, Math.min(mx, parseInt($(id, d).value, 10) || def));
+      const k = cle || (slugify(nom).replace(/-/g, "").slice(0, 16) || "metier") + rid(3);
+      const ancien = METIERS[k];
+      METIERS[k] = { ico, nom, type, objectif: num("#m-obj", 1, 1000, 10), unite: $("#m-unite", d).value.trim() || (type === "montant" ? "points" : "visites"),
+        dhParPoint: num("#m-dh", 1, 1000, 10), recompense: $("#m-rec", d).value.trim(), employes: $("#m-emp", d).checked,
+        prix: parseInt($("#m-prix", d).value, 10) || 0, periode: $("#m-per", d).value, guide: $("#m-guide", d).value.trim().slice(0, 400) };
+      const b = e.target.querySelector("button.primary"); b.disabled = true;
+      try { await sauver(); d.remove(); }
+      catch (x) { if (ancien) METIERS[k] = ancien; else delete METIERS[k]; erreur(x); b.disabled = false; }
     };
   }
 
@@ -428,6 +510,7 @@
     if ((b = t("[data-act]"))) {
       const a = b.dataset.act;
       if (a === "nouveau") reglages(null);
+      if (a === "metiers") metiersVue();
       if (a === "scan") scanner();
       if (a === "affiches") affiches();
       if (a === "emp-add") empAjout();

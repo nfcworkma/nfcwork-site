@@ -94,7 +94,7 @@
         <div class="reward">🎁 <b>${esc(p.recompense)}</b> · ${pret ? "prête !" : `encore ${reste} ${unite(p)}`}${c.recompenses ? ` · déjà ${c.recompenses} gagnée${c.recompenses > 1 ? "s" : ""}` : ""}</div>
       </section>
       <div class="qrbox">${window.QRGEN.svg(SITE + "/f/?c=" + c.id, { marge: 1 })}<small>Montrez ce code à la caisse</small></div>
-      <p class="tip">${esc(regle(p))}</p>
+      <p class="tip">${esc(regle(p))}${p.guide ? "<br>" + p.guide.split(/\n+/).filter(Boolean).map(esc).join(" · ") : ""}</p>
       <p class="tip">📲 Gardez votre carte : <b>Partager</b> → <b>Sur l’écran d’accueil</b> (iPhone) ou <b>⋮</b> → <b>Ajouter à l’écran d’accueil</b> (Android).</p>
       ${pro ? `<div class="pro"><b>Espace commerçant</b><a class="btn primary" href="/espace/fidelite.html#c=${esc(c.id)}">Ouvrir cette carte (ajouter des points)</a></div>` : ""}
       ${pied}`;
@@ -157,6 +157,7 @@
     }
     app.innerHTML = `${brand(prog)}
       <div class="paper"><h2>Votre carte fidélité</h2><p>${esc(regle(prog))}. C’est gratuit, sans application.</p>
+      ${prog.guide ? `<ol style="color:var(--muted);margin:0 0 16px;padding-inline-start:20px;line-height:1.6">${prog.guide.split(/\n+/).filter(Boolean).map(l => `<li>${esc(l)}</li>`).join("")}</ol>` : ""}
       <form id="jf"><label>Prénom<input id="jn" required maxlength="60" autocomplete="given-name"></label>
       <label>Téléphone<input id="jt" type="tel" inputmode="tel" required maxlength="30" autocomplete="tel" placeholder="06 12 34 56 78"></label>
       <p class="err" id="je"></p><button class="btn primary">Créer ma carte</button></form></div>
