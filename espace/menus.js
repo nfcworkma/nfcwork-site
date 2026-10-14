@@ -614,7 +614,14 @@
     $("#im-t", d).addEventListener("input", () => { lu = null; prev.innerHTML = ""; err.textContent = ""; go.textContent = "Lire le menu"; });
     $("#imf", d).onsubmit = async e => {
       e.preventDefault(); err.textContent = "";
-      const t = $("#im-t", d).value.trim();
+      let t = $("#im-t", d).value.trim();
+      // texte de partage (« Hey! Check out this store: https://… ») → on garde juste le lien
+      const lien = t.match(/https?:\/\/\S+/i);
+      if (lien && t.length < 300) t = lien[0];
+      if (/go\.link|glovo\.page\.link|onelink|adj\.st/i.test(t)) {
+        err.innerHTML = "Ce lien vient du <b>partage de l’application</b> Glovo : il ouvre l’appli et ne contient pas le menu.<br>• Envoyez ce lien à l’assistant NFCWORK : il vous prépare le menu (vous tapez ensuite juste son nom ici).<br>• Ou cherchez le resto sur <b>glovoapp.com</b> dans le navigateur et collez le lien de la page.";
+        return;
+      }
       if (!lu) {
         if (!t) { err.textContent = "Collez un lien, un texte ou un code."; return; }
         go.disabled = true;
