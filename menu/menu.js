@@ -297,6 +297,8 @@
     });
     majPanier();
   }
+  // ce que le client a écrit reste gardé, même si la fenêtre se redessine (quand il change une quantité)
+  const saisie = { table: "", note: "" };
   function feuille() {
     const its = tousItems();
     const lignes = Object.entries(panier).map(([id, q]) => ({ it: its.find(x => x.id === id), q })).filter(x => x.it && x.q);
@@ -306,12 +308,13 @@
     d.innerHTML = `<div class="box" role="dialog" aria-modal="true"><h2>${U.order}</h2>
       ${lignes.length ? lignes.map(l => `<div class="line"><div class="n">${esc(tr(l.it.nom))}<br><small>${esc(fmtPrix(l.it.prix))}</small></div><span class="qty"><button data-moins="${esc(l.it.id)}">−</button><b>${l.q}</b><button data-plus="${esc(l.it.id)}">+</button></span></div>`).join("")
         + `<div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total)))}</span></div>
-        <label class="f">${U.table} ${U.opt}<input id="c-table" maxlength="60"></label>
-        <label class="f">${U.note} ${U.opt}<input id="c-note" maxlength="200"></label>
+        <label class="f">${U.table} ${U.opt}<input id="c-table" maxlength="60" value="${esc(saisie.table)}"></label>
+        <label class="f">${U.note} ${U.opt}<input id="c-note" maxlength="200" value="${esc(saisie.note)}"></label>
         <button class="wa" id="c-send">${I.wa.replace("<svg", '<svg width="22" height="22"')} ${U.send}</button>`
         : `<p>${U.empty}</p>`}
       <button class="ghost" data-fermer>${U.close}</button></div>`;
     document.body.appendChild(d);
+    d.addEventListener("input", e => { if (e.target.id === "c-table") saisie.table = e.target.value; if (e.target.id === "c-note") saisie.note = e.target.value; });
     d.addEventListener("click", e => {
       if (e.target === d || e.target.closest("[data-fermer]")) { d.remove(); return; }
       const p = e.target.closest("[data-plus]"), m = e.target.closest("[data-moins]");
@@ -325,7 +328,7 @@
     rafraichirItem(id);
   }
   function envoyer(lignes, total, d) {
-    const table = (d.querySelector("#c-table") || {}).value || "", note = (d.querySelector("#c-note") || {}).value || "";
+    const table = (d.querySelector("#c-table") || {}).value || saisie.table, note = (d.querySelector("#c-note") || {}).value || saisie.note;
     const txt = [U.hello, "", ...lignes.map(l => `• ${l.q} × ${tr(l.it.nom)} — ${fmtPrix(arr(l.q * prixNum(l.it.prix)))}`), "", `${U.total} : ${fmtPrix(arr(total))}`]
       .concat(table.trim() ? [`${U.table} : ${table.trim()}`] : [], note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
     window.open(`https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt)}`, "_blank");
