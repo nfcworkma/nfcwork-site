@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stands QR · nfcwork.ma</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05080f">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/img/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../assets/img/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="outil.css">
+<style>
+/* Stands QR : liste, génération, liaison, scan, planche à imprimer */
+.slist{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.srow{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.srow .qr{width:54px;height:54px;border-radius:8px;overflow:hidden;flex:none;background:#fff}
+.srow .qr svg{display:block;width:100%;height:100%}
+.srow .tx{flex:1;min-width:0}
+.srow .c{font-weight:700;letter-spacing:.1em}
+.srow .u{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill.libre{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.pill.lie{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.stats b{display:block;font-family:var(--display);font-size:24px}
+.stats span{font-size:12.5px;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chips button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
+.chips button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.scan{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:60vh;margin:10px auto}
+.scan video{width:100%;height:100%;object-fit:cover;display:block}
+.scan::after{content:"";position:absolute;inset:18%;border:3px solid var(--accent-2);border-radius:18px;box-shadow:0 0 0 999px rgb(0 0 0/.35)}
+.kind{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kind button{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 8px;cursor:pointer;color:var(--fg);font:inherit;text-align:center}
+.kind button b{display:block}
+.kind button small{color:var(--muted);font-size:12px}
+.kind button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+
+/* planche à imprimer (A4, 3 × 4 stickers) */
+#planche{display:none}
+@media print{
+  @page{size:A4;margin:8mm}
+  body{background:#fff!important}
+  header.top,main,#toast,.modal{display:none!important}
+  #planche{display:block}
+  .feuille{display:grid;grid-template-columns:repeat(3,1fr);gap:0;page-break-after:always}
+  .feuille:last-child{page-break-after:auto}
+  .sticker{height:68mm;border:1px dashed #bbb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm;padding:3mm;color:#05080f;font-family:"Readex Pro",Arial,sans-serif}
+  .sticker img{height:6mm;width:auto}
+  .sticker svg{width:40mm;height:40mm}
+  .sticker b{font-size:11pt}
+  .sticker small{font-size:8pt;letter-spacing:.12em;color:#555}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="btn sm ghost" id="backBtn" href="./" aria-label="Retour">←</a>
+  <div class="t"><b id="topTitle">Stands QR</b><small id="topSub">Espace gestion</small></div>
+  <a class="btn sm" href="menus.html">Menus</a>
+</div></header>
+<main id="app"><div class="empty"><h3>Chargement…</h3></div></main>
+<div id="planche"></div>
+<div id="toast" hidden></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="../assets/js/qrgen.js"></script>
+<script src="stands.js"></script>
+</body>
+</html>

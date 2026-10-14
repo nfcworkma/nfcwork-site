@@ -6,10 +6,13 @@
 <title>Page introuvable · nfcwork.ma</title>
 <meta name="robots" content="noindex">
 <script>
-  // nfcwork.ma/menu/<nom> → page du menu digital
+  // nfcwork.ma/menu/<nom> → page du menu digital ; nfcwork.ma/q/<CODE> → stand QR
   (function () {
     var m = location.pathname.match(/^\/menu\/([a-z0-9-]+)\/?$/i);
     if (m) location.replace("/menu/?m=" + m[1].toLowerCase() + (location.search ? "&" + location.search.slice(1) : "") + location.hash);
+    // nfcwork.ma/q/<CODE> → stand QR (lien modifiable depuis l'Espace)
+    var q = location.pathname.match(/^\/q\/([A-Za-z0-9]+)\/?$/);
+    if (q) location.replace("/q/?c=" + q[1].toUpperCase());
   })();
 </script>
 <style>

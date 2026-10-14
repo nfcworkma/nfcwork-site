@@ -281,7 +281,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 .hello h2,.hero-pub h2{font-size:28px}
 .qbox{background:color-mix(in srgb,var(--accent) 8%,var(--glass))}
 #editSiteBtn{border-color:#f2b53a;color:#ffd77a;white-space:nowrap}
-@media(max-width:560px){#editSiteBtn .ed-lbl,#menusBtn .ed-lbl{display:none}}
+@media(max-width:560px){#editSiteBtn .ed-lbl,#menusBtn .ed-lbl,#standsBtn .ed-lbl{display:none}#settingsBtn,#logoutBtn{padding-inline:10px}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -293,6 +293,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
   </div>
   <a class="btn sm" id="editSiteBtn" href="../index.html?edition=1" hidden title="Modifier les textes, prix et photos du site"><i class="ico ico-pencil" aria-hidden="true"></i><span class="ed-lbl"> Modifier le site</span></a>
   <a class="btn sm" id="menusBtn" href="menus.html" hidden title="Créer et modifier les menus digitaux"><i class="ico ico-tools-kitchen-2" aria-hidden="true"></i><span class="ed-lbl"> Menus</span></a>
+  <a class="btn sm" id="standsBtn" href="stands.html" hidden title="Stands QR : lier un stand imprimé à un menu ou un lien">QR<span class="ed-lbl"> Stands</span></a>
   <button class="btn sm ghost" id="settingsBtn" hidden>Paramètres</button>
   <button class="btn sm ghost" id="profileBtn" hidden>Mon profil</button>
   <button class="btn sm ghost" id="logoutBtn" hidden>Déconnexion</button>
