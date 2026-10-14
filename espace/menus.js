@@ -655,6 +655,7 @@
         if (!cible) { cible = { id: rid(6), nom: { [l0]: c.nom }, items: [] }; M.categories.push(cible); }
         for (const i of c.items) cible.items.push(Object.assign({ id: rid(6), nom: { [l0]: i.nom }, desc: { [l0]: i.desc || "" }, prix: IM.arrondir(i.prix, pct, pas), photo: i.photo || "", dispo: true }, i.vedette && M.formule === "premium" ? { vedette: true } : {}));
       }
+      M.categories = M.categories.filter(c => (c.items || []).length);   // les catégories vides (ex. « Boissons » créée au départ) disparaissent
       const meta = lu.meta || {};
       if (meta.slogan && !T(M.slogan, l0)) M.slogan = Object.assign({}, typeof M.slogan === "object" ? M.slogan : {}, { [l0]: meta.slogan });
       if (meta.theme) M.theme = meta.theme;

@@ -190,7 +190,7 @@
     }
 
     const inf = M.infos || {};
-    const cats = (M.categories || []).filter(c => (c.items || []).length || tr(c.nom));
+    const cats = (M.categories || []).filter(c => (c.items || []).length);   // une catégorie sans produit ne s’affiche pas
     const waOk = prem && waNum(inf.whatsapp) && M.commande !== false;
     const nav = cats.length > 1 ? `<nav class="cats"><div class="cats-in">${cats.map(c => `<a href="#c-${esc(c.id)}" data-cat="${esc(c.id)}">${esc(tr(c.nom))}</a>`).join("")}</div></nav>` : "";
     const fin = `${pied}${waOk ? `<button class="cartbar" id="cartbar" hidden></button>` : ""}
