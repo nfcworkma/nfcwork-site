@@ -62,6 +62,8 @@
     if (!id) return "";
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     if (id.startsWith("u:")) return unsplash(id.slice(2), Math.round((w || 400) * dpr / 100) * 100);
+    if (id.startsWith("o:") && /^o:[0-9/]{4,40}\/front_[a-z]{2}\.\d{1,4}$/.test(id)) return "https://images.openfoodfacts.org/images/products/" + id.slice(2) + ((w || 400) > 500 ? ".full.jpg" : ".400.jpg");
+    if (id.startsWith("o:")) return "";
     if (id.startsWith("/")) return id;
     if (imgCache[id]) return imgCache[id];
     const k = "/__menu-img/" + id;
@@ -173,7 +175,8 @@
     if (M.actif === false && !apercu && !demo) { etat(U.off, U.offTx); return; }
     const pro = M.formule === "pro" || M.formule === "premium";
     const prem = M.formule === "premium";
-    const pied = `<footer>${U.by} <a href="https://nfcwork.ma" target="_blank" rel="noopener"><b>NFCWORK</b></a></footer>`;
+    const off = (M.categories || []).some(c => (c.items || []).some(i => String(i.photo || "").startsWith("o:")));
+    const pied = `<footer>${U.by} <a href="https://nfcwork.ma" target="_blank" rel="noopener"><b>NFCWORK</b></a>${off ? `<br><small style="opacity:.7">Photos produits : <a href="https://openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a> (CC BY-SA)</small>` : ""}</footer>`;
     document.body.classList.toggle("prem", prem);
     document.body.classList.toggle("has-cover", pro && !prem && !!M.couverture);
 
@@ -226,11 +229,12 @@
     return q ? `<span class="qty"><button data-moins="${esc(it.id)}" aria-label="Retirer">−</button><b>${q}</b><button data-plus="${esc(it.id)}" aria-label="Ajouter">+</button></span>`
              : `<button class="add" data-plus="${esc(it.id)}" aria-label="${U.add}">+${gros ? " " + U.add : ""}</button>`;
   }
+  const pk = id => (String(id || "").startsWith("o:") ? " pk" : "");   // photo de produit emballé : affichée en entier sur fond blanc
   // ligne compacte (Pro, ou produit sans photo en Premium)
   function carte(it, waOk) {
     const p = fmtPrix(it.prix);
     return `<article class="item${it.dispo === false ? " off" : ""}" data-item="${esc(it.id)}">
-      ${it.photo ? `<img class="ph" data-img="${esc(it.photo)}" data-w="130" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">` : ""}
+      ${it.photo ? `<img class="ph${pk(it.photo)}" data-img="${esc(it.photo)}" data-w="130" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">` : ""}
       <div class="tx"><h3>${esc(tr(it.nom))}</h3>${tr(it.desc) ? `<p>${esc(tr(it.desc))}</p>` : ""}
       <div class="bot">${p ? `<span class="price">${esc(p)}</span>` : "<span></span>"}${ctrl(it, waOk)}</div></div></article>`;
   }
@@ -238,7 +242,7 @@
   function pcarte(it, waOk) {
     const p = fmtPrix(it.prix);
     return `<article class="pcard${it.dispo === false ? " off" : ""}" data-item="${esc(it.id)}">
-      <img class="ph" data-img="${esc(it.photo)}" data-w="700" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">
+      <img class="ph${pk(it.photo)}" data-img="${esc(it.photo)}" data-w="700" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">
       <div class="tx"><div class="top"><h3>${esc(tr(it.nom))}</h3>${p ? `<span class="price">${esc(p)}</span>` : ""}</div>
       ${tr(it.desc) ? `<p>${esc(tr(it.desc))}</p>` : ""}<div class="bot">${ctrl(it, waOk, true)}</div></div></article>`;
   }
@@ -246,7 +250,7 @@
   function vcarte(it, waOk) {
     const p = fmtPrix(it.prix);
     return `<article class="vcard" data-item="${esc(it.id)}" data-v="1">
-      <img class="ph" data-img="${esc(it.photo)}" data-w="320" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">
+      <img class="ph${pk(it.photo)}" data-img="${esc(it.photo)}" data-w="320" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">
       <div class="tx"><h3>${esc(tr(it.nom))}</h3><div class="bot">${p ? `<span class="price">${esc(p)}</span>` : "<span></span>"}${ctrl(it, waOk)}</div></div></article>`;
   }
 

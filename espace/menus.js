@@ -45,7 +45,7 @@
   const dirty = () => M && JSON.stringify(M) !== saved;
   const idsDe = m => [m.logo, m.couverture, ...(m.pages || []), ...(m.categories || []).flatMap(c => (c.items || []).map(i => i.photo))].filter(Boolean);
   const langsEdition = () => ["fr"];   // menus en français uniquement
-  const enLigne = id => /^(u:|\/)/.test(id || "");   // photo de la banque ou du site : rien à stocker ni à effacer
+  const enLigne = id => /^(u:|o:|\/)/.test(id || "");   // photo de la banque ou du site : rien à stocker ni à effacer
   const T = (o, l) => (o && typeof o === "object" ? o[l] : l === (M.langues[0] || "fr") ? o : "") || "";
 
   /* ================= Connexion ================= */
@@ -90,6 +90,7 @@
   async function chargerImg(id) {
     if (!id || IMG[id]) return IMG[id];
     if (id.startsWith("u:")) return (IMG[id] = window.BANQUE_URL(id.slice(2), 400));
+    if (id.startsWith("o:")) return (IMG[id] = window.PHOTO_AUTO.url(id, 400));
     try {
       const d = await db.doc("settings/mimg-" + id).get();
       if (d.exists) IMG[id] = d.data().data;
@@ -208,7 +209,7 @@
       <form class="stack" id="nm">
         <label class="f">Nom du commerce<input id="nm-nom" required maxlength="60" placeholder="Café Chocco Latte"></label>
         <div><div class="eyebrow" style="margin-bottom:6px">Formule</div>${segFormule(formule)}</div>
-        <label class="f">Lien du menu<input id="nm-slug" required maxlength="40" pattern="[a-z0-9-]+" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <label class="f">Lien du menu<input id="nm-slug" required maxlength="40" pattern="[a-z0-9\\-]+" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
         <p class="err" id="nm-err"></p>
         <div class="row"><button class="btn primary" style="flex:1">Créer le menu</button><button type="button" class="btn ghost" data-fermer>Annuler</button></div>
       </form>`);
@@ -335,6 +336,7 @@
         <div class="row" style="justify-content:center"><label class="btn primary sm">📷 Prendre une photo<input type="file" accept="image/*" capture="environment" hidden data-pages></label><label class="btn sm">Choisir des photos<input type="file" accept="image/*" multiple hidden data-pages></label></div></div>
     </section>` : `<section class="sec">
       <div class="row between" style="margin-bottom:10px"><h3>Catégories & produits</h3><button class="btn sm" data-act="cat-add">＋ Catégorie</button></div>
+      ${M.categories.some(c => (c.items || []).some(i => !i.photo)) ? `<div class="paper row between" style="padding:12px 14px;border-radius:14px;margin-bottom:12px;gap:10px"><div style="flex:1;min-width:0"><b>✨ Photos automatiques</b><div class="muted" style="font-size:13px">${M.categories.reduce((n, c) => n + (c.items || []).filter(i => !i.photo).length, 0)} produit(s) sans photo : on cherche la bonne photo à partir du nom (Coca-Cola, Poms, café crème…).</div></div><button class="btn sm primary" data-act="photos-auto">Remplir</button></div>` : ""}
       ${M.categories.map((c, ci) => `<div class="cat" data-cat="${esc(c.id)}">
         <div class="cat-h"><div class="names">${ls.map(l => `<input data-cb="nom.${l}" value="${esc(T(c.nom, l))}" placeholder="Nom de la catégorie${ls.length > 1 ? " (" + LCOURT[l] + ")" : ""}" maxlength="60" ${l === "ar" ? 'dir="rtl"' : ""}>`).join("")}</div>
           <div class="cat-tools"><button class="btn icon sm" data-act="cat-up" data-i="${ci}" ${ci ? "" : "disabled"} title="Monter">↑</button><button class="btn icon sm" data-act="cat-down" data-i="${ci}" ${ci < M.categories.length - 1 ? "" : "disabled"} title="Descendre">↓</button><button class="btn icon sm danger" data-act="cat-del" data-i="${ci}" title="Supprimer">🗑</button></div></div>
@@ -443,6 +445,7 @@
         break;
       }
       case "it-add": editerItem(ci, -1); break;
+      case "photos-auto": photosAuto(b); break;
       case "it-edit": editerItem(ci, ii); break;
       case "it-up": bouge(M.categories[ci].items, ii, -1); break;
       case "it-down": bouge(M.categories[ci].items, ii, 1); break;
@@ -480,19 +483,20 @@
         ${neuf ? "" : '<button type="button" class="btn danger sm" id="it-del">Supprimer ce produit</button>'}
       </form>`);
     const pick = $("#it-pick", d);
+    let auto = false;
     const majPhoto = () => {
-      pick.innerHTML = `${it.photo ? `<img class="prev" src="${IMG[it.photo] || (it.photo.startsWith("u:") ? window.BANQUE_URL(it.photo.slice(2), 400) : "")}" alt="">` : '<div class="prev"></div>'}
+      pick.innerHTML = `${it.photo ? `<img class="prev" src="${IMG[it.photo] || (it.photo.startsWith("u:") ? window.BANQUE_URL(it.photo.slice(2), 400) : it.photo.startsWith("o:") ? window.PHOTO_AUTO.url(it.photo, 400) : "")}" alt="">` : '<div class="prev"></div>'}${auto ? '<small class="muted" style="flex-basis:100%">✨ Photo trouvée automatiquement — « Banque de photos » pour en choisir une autre.</small>' : ""}
         <div class="row"><button type="button" class="btn sm primary" id="it-bank">Banque de photos</button><label class="btn sm">📷 Ma photo<input type="file" accept="image/*" hidden id="it-file"></label>${it.photo ? '<button type="button" class="btn sm ghost" id="it-noph">Retirer</button>' : ""}</div>`;
     };
     pick.addEventListener("change", async e => {
       if (e.target.id !== "it-file" || !e.target.files[0]) return;
-      await occupe(pick, async () => { it.photo = await televerser(e.target.files[0], "photo"); majPhoto(); });
+      await occupe(pick, async () => { it.photo = await televerser(e.target.files[0], "photo"); auto = false; majPhoto(); });
     });
     pick.addEventListener("click", e => {
-      if (e.target.id === "it-noph") { it.photo = ""; majPhoto(); }
+      if (e.target.id === "it-noph") { it.photo = ""; auto = false; majPhoto(); }
       if (e.target.id === "it-bank") {
         const nomFr = (d.querySelector('[data-k="nom"]') || {}).value || "";
-        banque("", nomFr, id => { it.photo = id; majPhoto(); });
+        banque("", nomFr, id => { it.photo = id; auto = false; majPhoto(); });
       }
     });
     if (it.photo) chargerImg(it.photo).then(() => { const im = pick.querySelector("img"); if (im) im.src = IMG[it.photo] || ""; });
@@ -509,6 +513,13 @@
       if (neuf) toast("Produit ajouté — pensez à enregistrer");
     };
     const first = d.querySelector('[data-k="nom"]'); if (first && neuf) first.focus();
+    // photo trouvée toute seule dès que le nom est écrit (si le produit n'a pas encore de photo)
+    if (first) first.addEventListener("change", async () => {
+      if (it.photo && !auto) return;
+      const v = first.value;
+      const id = await window.PHOTO_AUTO.trouver(v).catch(() => "");
+      if (id && first.value === v && (!it.photo || auto) && d.isConnected) { it.photo = id; auto = true; majPhoto(); }
+    });
   }
 
   /* ---------- enregistrer ---------- */
@@ -571,6 +582,22 @@
     d.addEventListener("fermee", () => window.removeEventListener("message", onMsg));
   }
 
+  /* ---------- photos automatiques pour tous les produits sans photo ---------- */
+  async function photosAuto(b) {
+    const l0 = M.langues[0] || "fr";
+    const todo = M.categories.flatMap(c => (c.items || []).filter(i => !i.photo && T(i.nom, l0).trim()));
+    if (!todo.length) { toast("Donnez d’abord un nom aux produits."); return; }
+    b.disabled = true;
+    let ok = 0;
+    for (let k = 0; k < todo.length; k++) {
+      b.textContent = `${k + 1} / ${todo.length}…`;
+      const id = await window.PHOTO_AUTO.trouver(T(todo[k].nom, l0)).catch(() => "");
+      if (id) { todo[k].photo = id; ok++; }
+    }
+    renderEdit();
+    toast(ok ? `${ok} photo(s) ajoutée(s) ✓ Vérifiez-les, puis « Enregistrer ».` + (ok < todo.length ? ` ${todo.length - ok} sans photo trouvée : ajoutez-la à la main.` : "") : "Aucune photo sûre trouvée. Choisissez-les dans la banque de photos.");
+  }
+
   /* ---------- banque de photos ---------- */
   const sansAccent = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   function banque(cat, recherche, choisir) {
@@ -580,7 +607,25 @@
     const d = fenetre(`<div class="row between"><h2>Banque de photos</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
       <p class="muted" style="margin:4px 0 12px;font-size:13px">Photos professionnelles libres de droits. Touchez une photo pour la choisir.</p>
       <label class="f"><input id="bq-q" placeholder="Rechercher : café crème, omelette, avocat…" value="${esc(q)}" autocomplete="off"></label>
-      <div class="row" id="bq-cats" style="margin:10px 0;gap:6px"></div><div class="thumbs" id="bq-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))"></div>`);
+      <div class="row" id="bq-cats" style="margin:10px 0;gap:6px"></div><div class="thumbs" id="bq-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))"></div>
+      <div id="bq-off"></div>`);
+    $("#bq-grid", d).insertAdjacentElement("beforebegin", $("#bq-off", d));
+    let tOff = 0, locaux = 1;
+    const offTitre = '<h3 style="margin:18px 0 4px">Produits de marque</h3><p class="muted" style="margin:0 0 10px;font-size:12.5px">Photos des vrais produits (Open Food Facts, base libre).</p>';
+    const dessinerOff = () => {
+      clearTimeout(tOff);
+      const box = $("#bq-off", d), qq = q.trim();
+      const mq0 = window.PHOTO_AUTO.marque(qq);
+      box.style.order = mq0 ? "-1" : "";
+      if (qq.length < 3 || (!mq0 && locaux)) { box.innerHTML = ""; return; }
+      box.innerHTML = offTitre + '<p class="muted" style="font-size:13px">Recherche…</p>';
+      tOff = setTimeout(async () => {
+        const mq = window.PHOTO_AUTO.marque(qq);
+        const l = await window.PHOTO_AUTO.chercherOFF(mq && sansAccent(qq).length <= mq.length + 2 ? mq : qq).catch(() => []);
+        if (q.trim() !== qq || !d.isConnected) return;
+        box.innerHTML = l.length ? offTitre + `<div class="thumbs" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${l.map(x => `<button class="thumb" data-bq-o="${esc(x.id)}" style="cursor:pointer;padding:0;text-align:start;background:#fff"><img src="${window.PHOTO_AUTO.url(x.id, 400)}" alt="${esc(x.nom)}" loading="lazy" style="aspect-ratio:1;object-fit:contain;background:#fff" onerror="this.closest('.thumb').remove()"><span style="display:block;padding:6px 8px;font-size:12.5px;color:#222">${esc(x.nom)}</span></button>`).join("")}</div>` : "";
+      }, 500);
+    };
     const dessiner = () => {
       $("#bq-cats", d).innerHTML = [["", "Tout"], ...cats.map(c => [c, c])].map(([k, n]) => `<button class="btn sm${filtre === k ? " primary" : ""}" data-bqc="${esc(k)}">${esc(n)}</button>`).join("");
       const mots = sansAccent(q).split(/\s+/).filter(w => w.length > 1);
@@ -588,15 +633,17 @@
       if (mots.length) {
         const sc = x => mots.filter(w => sansAccent(x[1] + " " + x[3]).includes(w)).length;
         const t = l.map(x => [x, sc(x)]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]).map(([x]) => x);
-        if (t.length) l = t;
+        l = t;
       }
-      $("#bq-grid", d).innerHTML = l.map(x => `<button class="thumb" data-bq="${esc(x[0])}" style="cursor:pointer;padding:0;text-align:start"><img src="${window.BANQUE_URL(x[0], 300)}" alt="${esc(x[1])}" loading="lazy" style="aspect-ratio:1" onerror="this.closest('.thumb').remove()"><span style="display:block;padding:6px 8px;font-size:12.5px">${esc(x[1])}</span></button>`).join("");
+      locaux = l.length;
+      $("#bq-grid", d).innerHTML = l.map(x => `<button class="thumb" data-bq="${esc(x[0])}" style="cursor:pointer;padding:0;text-align:start"><img src="${window.BANQUE_URL(x[0], 300)}" alt="${esc(x[1])}" loading="lazy" style="aspect-ratio:1" onerror="this.closest('.thumb').remove()"><span style="display:block;padding:6px 8px;font-size:12.5px">${esc(x[1])}</span></button>`).join("") || `<p class="muted" style="grid-column:1/-1;font-size:13px">Pas de photo pour « ${esc(q)} » dans la banque.</p>`;
     };
-    dessiner();
-    $("#bq-q", d).addEventListener("input", e => { q = e.target.value; dessiner(); });
+    dessiner(); dessinerOff();
+    $("#bq-q", d).addEventListener("input", e => { q = e.target.value; dessiner(); dessinerOff(); });
     d.addEventListener("click", e => {
       const c = e.target.closest("[data-bqc]"); if (c) { filtre = c.dataset.bqc; dessiner(); return; }
       const p = e.target.closest("[data-bq]"); if (p) { choisir("u:" + p.dataset.bq); d.remove(); }
+      const o = e.target.closest("[data-bq-o]"); if (o) { choisir(o.dataset.bqO); d.remove(); }
     });
   }
 
