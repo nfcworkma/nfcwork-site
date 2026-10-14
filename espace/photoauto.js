@@ -7,7 +7,7 @@
 (function () {
   const OFF_IMG = "https://images.openfoodfacts.org/images/products/";
   const sansAccent = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  const VIDES = new Set("de du des la le les l d a au aux et en avec sans sur the with of and un une cl ml l".split(" "));
+  const VIDES = new Set("de du des la le les l d a au aux et en avec sans sur with of and un une cl ml l".split(" "));
   const mots = t => sansAccent(t).replace(/[^a-z0-9]+/g, " ").split(" ").filter(w => w.length > 1 && !VIDES.has(w) && !/^\d+$/.test(w)).map(w => (w.length > 3 ? w.replace(/s$/, "") : w));
 
   // marques vendues en bouteille / canette (le menu peut écrire « Coca », « coca cola 33cl »…)
@@ -29,10 +29,12 @@
   // mêmes mots écrits autrement (darija, anglais, fautes courantes)
   const SYN = { shawarma: "chawarma", shawerma: "chawarma", chawerma: "chawarma", hamburger: "burger", burguer: "burger", waffle: "gaufre",
     pancake: "pancake", crep: "crepe", pizz: "pizza", panin: "panini", sandwitch: "sandwich", sandwish: "sandwich", tacco: "taco", taco: "taco",
-    nugget: "nugget", wing: "wing", fry: "frite", fries: "frite", juice: "ju", coffee: "cafe", latte: "latte", tea: "the", atay: "menthe",
+    nugget: "nugget", wing: "wing", fry: "frite", fries: "frite", frie: "frite", fried: "frit", juice: "ju", coffee: "cafe", latte: "latte", tea: "the", atay: "menthe",
     mojitto: "mojito", milk: "lait", shake: "milkshake", lemonade: "limonade", water: "eau", donuts: "donut", beignet: "donut", glac: "glace",
-    harira: "soupe", "jus": "ju", omelet: "omelette", kefta: "kefta", kafta: "kefta", poisson: "poisson", fish: "poisson", crevette: "crevette" };
+    harira: "soupe", chicken: "poulet", beef: "boeuf", cheese: "fromage", classic: "classique", crispy: "crispy", "jus": "ju", omelet: "omelette", kefta: "kefta", kafta: "kefta", poisson: "poisson", fish: "poisson", crevette: "crevette" };
   const norm = w => SYN[w] || w;
+  // le mot qui dit « ce que c'est » pèse le plus (Classic Burger → burger, Chicken Burger → burger, pas les ailes de poulet)
+  const TETES = new Set("burger cheeseburger pizza taco tacos crepe gaufre pancake sandwich panini chawarma wrap quesadilla hot dog ju jus smoothie milkshake frappe mojito limonade citronnade the cafe espresso cappuccino latte chocolat eau soda soupe salade pate lasagne couscous tajine omelette croissant frite nugget wing brochette steak poisson crevette tiramisu brownie donut glace cheesecake gateau".split(" "));
   function banqueMeilleure(nom, deja) {
     const ws = mots(nom).map(norm); if (!ws.length) return "";
     let bs = 0, tous = [];
@@ -41,8 +43,8 @@
       const t = " " + tl.join(" ") + " ";
       // le 1er mot (« Pizza … », « Crêpe … », « Jus … ») compte double ; bonus si la photo commence pareil
       let s = 0;
-      ws.forEach((w, i) => { if (t.includes(" " + w)) s += i === 0 ? 2 : 1; });
-      if (s && tl[0] === ws[0]) s += 0.5;
+      ws.forEach((w, i) => { if (t.includes(" " + w)) s += TETES.has(w) ? 3 : i === 0 ? 2 : 1; });
+      if (s && ws.includes(tl[0])) s += tl[0] === ws[0] ? 0.6 : 0.5;
       if (s) tous.push([x, s]);
       if (s > bs) bs = s;
     }

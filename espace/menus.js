@@ -335,7 +335,7 @@
       <div class="drop" style="margin-top:12px" id="pg-drop"><div>Ajouter les photos de la carte</div>
         <div class="row" style="justify-content:center"><label class="btn primary sm">📷 Prendre une photo<input type="file" accept="image/*" capture="environment" hidden data-pages></label><label class="btn sm">Choisir des photos<input type="file" accept="image/*" multiple hidden data-pages></label></div></div>
     </section>` : `<section class="sec">
-      <div class="row between" style="margin-bottom:10px"><h3>Catégories & produits</h3><button class="btn sm" data-act="cat-add">＋ Catégorie</button></div>
+      <div class="row between" style="margin-bottom:10px"><h3>Catégories & produits</h3><div class="row" style="gap:6px"><button class="btn sm" data-act="importer">📥 Importer</button><button class="btn sm" data-act="cat-add">＋ Catégorie</button></div></div>
       ${M.categories.some(c => (c.items || []).some(i => !i.photo)) ? `<div class="paper row between" style="padding:12px 14px;border-radius:14px;margin-bottom:12px;gap:10px"><div style="flex:1;min-width:0"><b>✨ Photos automatiques</b><div class="muted" style="font-size:13px">${M.categories.reduce((n, c) => n + (c.items || []).filter(i => !i.photo).length, 0)} produit(s) sans photo : on cherche la bonne photo à partir du nom (Coca-Cola, Poms, café crème…).</div></div><button class="btn sm primary" data-act="photos-auto">Remplir</button></div>` : ""}
       ${M.categories.map((c, ci) => `<div class="cat" data-cat="${esc(c.id)}">
         <div class="cat-h"><div class="names">${ls.map(l => `<input data-cb="nom.${l}" value="${esc(T(c.nom, l))}" placeholder="Nom de la catégorie${ls.length > 1 ? " (" + LCOURT[l] + ")" : ""}" maxlength="60" ${l === "ar" ? 'dir="rtl"' : ""}>`).join("")}</div>
@@ -446,6 +446,7 @@
       }
       case "it-add": editerItem(ci, -1); break;
       case "photos-auto": photosAuto(b); break;
+      case "importer": importer(); break;
       case "it-edit": editerItem(ci, ii); break;
       case "it-up": bouge(M.categories[ci].items, ii, -1); break;
       case "it-down": bouge(M.categories[ci].items, ii, 1); break;
@@ -580,6 +581,73 @@
     const onMsg = e => { if (e.source === f.contentWindow && e.data && e.data.type === "nfcwork-menu-pret") envoyer(); };
     window.addEventListener("message", onMsg);
     d.addEventListener("fermee", () => window.removeEventListener("message", onMsg));
+  }
+
+  /* ---------- importer un menu (lien Glovo / Jumia / site, texte copié ou code) ---------- */
+  function importer() {
+    const IM = window.IMPORT_MENU;
+    const d = fenetre(`<div class="row between"><h2>Importer un menu</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
+      <p class="muted" style="margin:4px 0 12px;font-size:13.5px">Collez le <b>lien</b> du resto sur Glovo, Jumia ou son site — ou tout le <b>texte</b> de la page copié — ou le <b>code</b> préparé pour vous. Les catégories, produits, descriptions et prix se remplissent tout seuls.</p>
+      <form class="stack" id="imf">
+        <label class="f">Lien, texte ou code<textarea id="im-t" rows="5" placeholder="https://glovoapp.com/fr/ma/kenitra/stores/…" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></label>
+        <div class="row" style="gap:10px;flex-wrap:wrap">
+          <label class="f" style="flex:1;min-width:150px">Prix<select id="im-pct"><option value="0">Prix identiques</option><option value="-10">−10 % (prix Glovo)</option><option value="-15">−15 %</option><option value="-20">−20 %</option><option value="-25">−25 %</option></select></label>
+          <label class="f" style="flex:1;min-width:150px">Arrondi<select id="im-pas"><option value="1">Au dirham (25)</option><option value="0.5">Au demi (24,5)</option><option value="0">Sans arrondi</option></select></label></div>
+        <label class="check"><input type="checkbox" id="im-ph" checked> Ajouter les photos automatiquement</label>
+        <label class="check"><input type="checkbox" id="im-rep"> Remplacer les catégories actuelles (sinon : ajoutées à la suite)</label>
+        <p class="err" id="im-err"></p>
+        <div id="im-prev"></div>
+        <button class="btn primary" id="im-go">Lire le menu</button>
+      </form>`);
+    let lu = null;
+    const err = $("#im-err", d), prev = $("#im-prev", d), go = $("#im-go", d);
+    const montrer = cats => {
+      lu = cats;
+      const n = cats.reduce((k, c) => k + c.items.length, 0);
+      const pct = +$("#im-pct", d).value, pas = +$("#im-pas", d).value;
+      prev.innerHTML = `<div class="paper" style="padding:12px 14px;border-radius:14px"><b>${cats.length} catégorie(s) · ${n} produit(s) trouvés</b>
+        ${cats.map(c => `<div style="margin-top:10px"><b>${esc(c.nom)}</b> <span class="muted">(${c.items.length})</span><div class="muted" style="font-size:13px">${c.items.slice(0, 6).map(i => `${esc(i.nom)} — ${esc(IM.arrondir(i.prix, pct, pas))} ${esc(M.devise || "DH")}`).join("<br>")}${c.items.length > 6 ? "<br>…" : ""}</div></div>`).join("")}</div>`;
+      go.textContent = `Importer ${n} produit(s)`;
+    };
+    d.addEventListener("change", e => { if (lu && (e.target.id === "im-pct" || e.target.id === "im-pas")) montrer(lu); });
+    $("#im-t", d).addEventListener("input", () => { lu = null; prev.innerHTML = ""; err.textContent = ""; go.textContent = "Lire le menu"; });
+    $("#imf", d).onsubmit = async e => {
+      e.preventDefault(); err.textContent = "";
+      const t = $("#im-t", d).value.trim();
+      if (!lu) {
+        if (!t) { err.textContent = "Collez un lien, un texte ou un code."; return; }
+        go.disabled = true;
+        let cats;
+        if (/^https?:\/\/\S+$/i.test(t)) {
+          go.textContent = "Lecture de la page… (jusqu’à 1 minute)";
+          cats = await IM.lirePage(t);
+          if (!cats) {
+            go.disabled = false; go.textContent = "Lire le menu";
+            err.innerHTML = "La page n’a pas pu être lue automatiquement.<br>• Sur ordinateur : ouvrez le lien, sélectionnez tout (Ctrl+A / ⌘A), copiez et collez le texte ici.<br>• Ou envoyez le lien à l’assistant NFCWORK : il vous prépare un code à coller ici.";
+            return;
+          }
+        } else cats = IM.lire(t);
+        go.disabled = false;
+        if (!cats.length) { go.textContent = "Lire le menu"; err.textContent = "Aucun produit avec un prix n’a été trouvé dans ce texte."; return; }
+        montrer(cats); return;
+      }
+      // importer
+      const l0 = M.langues[0] || "fr", pct = +$("#im-pct", d).value, pas = +$("#im-pas", d).value;
+      if ($("#im-rep", d).checked) {
+        const n = M.categories.reduce((k, c) => k + (c.items || []).length, 0);
+        if (n && !confirm(`Remplacer les ${n} produit(s) actuels par le menu importé ?`)) return;
+        M.categories = [];
+      }
+      for (const c of lu) {
+        let cible = M.categories.find(x => (T(x.nom, l0) || "").trim().toLowerCase() === c.nom.trim().toLowerCase());
+        if (!cible) { cible = { id: rid(6), nom: { [l0]: c.nom }, items: [] }; M.categories.push(cible); }
+        for (const i of c.items) cible.items.push({ id: rid(6), nom: { [l0]: i.nom }, desc: { [l0]: i.desc || "" }, prix: IM.arrondir(i.prix, pct, pas), photo: "", dispo: true });
+      }
+      const ph = $("#im-ph", d).checked;
+      d.remove(); renderEdit();
+      toast("Menu importé ✓ Vérifiez puis « Enregistrer ».");
+      if (ph) { const b = document.querySelector('[data-act="photos-auto"]'); if (b) photosAuto(b); }
+    };
   }
 
   /* ---------- photos automatiques pour tous les produits sans photo ---------- */
