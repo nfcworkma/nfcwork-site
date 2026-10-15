@@ -138,7 +138,7 @@
     $$("[data-ph]").forEach(el => (el.placeholder = t(el.dataset.ph)));
     $$(".phone-num").forEach(el => (el.textContent = CONFIG.phoneDisplay));
     const title = $("[data-title]", document.head) || document.querySelector("title");
-    if (title && title.dataset.title) document.title = t(title.dataset.title) + " · NFCWORK";
+    if (title && title.dataset.title && !title.hasAttribute("data-seo")) document.title = t(title.dataset.title) + " · NFCWORK";
   }
 
   /* ---------- Shared bits ---------- */

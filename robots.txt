@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /espace/
+Disallow: /f/
+Disallow: /q/
+
+Sitemap: https://nfcwork.ma/sitemap.xml
