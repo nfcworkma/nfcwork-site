@@ -21,7 +21,9 @@
   const ADMIN = String(window.ADMIN_EMAIL || "").trim().toLowerCase();
   const NOW = () => firebase.firestore.FieldValue.serverTimestamp();
 
-  const SERVICES = { menu: "Menu digital", fid: "Carte fidélité", autre: "Autre (site, carte NFC…)" };
+  const SERVICES = { menu: "Menu digital", fid: "Carte fidélité", profil: "Carte NFC · Avis Google · Wi-Fi", autre: "Autre (suivi des paiements)" };
+  // lien d'une page client (nfcworkma.github.io/profils/<page>/) → nom de la page
+  const pageDe = v => { const t = String(v || "").trim(); const m = t.match(/profils\/([^\/?#\s]+)/i); return (m ? m[1] : t.replace(/^https?:\/\/[^\/]+\//, "").replace(/\/.*$/, "")).toLowerCase().replace(/[^a-z0-9._-]/g, ""); };
   let user = null, abos = [], menus = [], progs = [], filtre = "tous";
 
   /* ---------- dates (jour local, format AAAA-MM-JJ) ---------- */
@@ -102,6 +104,7 @@
     return `<div class="arow ${e.k}" data-id="${esc(a.id)}">
       <div class="h"><div style="min-width:0"><b>${esc(a.client)}</b><div class="s">${esc(SERVICES[a.service] || "")}${a.libelle ? " · " + esc(a.libelle) : ""}</div></div><span class="pill ${e.c}">${esc(e.t)}</span></div>
       <div class="e"><strong>${(+a.prix || 0).toLocaleString("fr-FR")} DH</strong><span class="muted">/ mois</span><span class="muted">· échéance <b style="color:var(--fg)">${esc(fr(a.echeance))}</b></span></div>
+      ${a.service === "profil" && a.cible ? `<div class="s" style="margin:-4px 0 6px">Page : ${esc(a.cible)}</div>` : ""}
       ${a.auto !== false && a.service !== "autre" ? `<div class="s" style="margin:-4px 0 10px">Coupure automatique ${+a.grace || 0} jour(s) après l’échéance si non payé</div>` : ""}
       <div class="acts">
         <button class="btn sm primary" data-act="payer">✅ Paiement reçu</button>
@@ -134,6 +137,12 @@
       if (i) { i.actif = vals.actif; await db.doc("settings/menus").set({ json: JSON.stringify(menus), maj: NOW(), par: user.email }); }
     } else if (a.service === "fid" && a.cible) {
       await db.doc("fidProgrammes/" + a.cible).update({ actif: vals.actif, expire: vals.expire || "" });
+    } else if (a.service === "profil" && a.cible) {
+      // pages des cartes NFC, avis Google, Wi-Fi : liste publique des coupures (aucun nom ni prix dedans)
+      const ref = db.doc("settings/coupures"), d = await ref.get();
+      const c = d.exists ? JSON.parse(d.data().json || "{}") : {};
+      c[a.cible] = vals.expire ? { actif: vals.actif, expire: vals.expire } : { actif: vals.actif };
+      await ref.set({ json: JSON.stringify(c), maj: NOW() });
     }
   }
   async function enregistrer(a, msg) {
@@ -180,7 +189,7 @@
     };
   }
   async function basculer(a, on) {
-    if (!on && !confirm(`Désactiver « ${a.client} » ? ${a.service === "menu" ? "Le menu ne sera plus visible." : a.service === "fid" ? "La carte fidélité sera suspendue." : ""}`)) return;
+    if (!on && !confirm(`Désactiver « ${a.client} » ? ${a.service === "menu" ? "Le menu ne sera plus visible." : a.service === "fid" ? "La carte fidélité sera suspendue." : a.service === "profil" ? "La page (carte NFC, avis, Wi-Fi) affichera « Service momentanément indisponible »." : ""}`)) return;
     a.actif = on;
     if (on && a.auto !== false && ecart(a.echeance) < -(+a.grace || 0)) toast("Attention : l’échéance est dépassée, la coupure automatique reste active. Enregistrez un paiement pour réactiver.", true);
     await enregistrer(a, on ? "Activé ✓" : "Désactivé ⏸");
@@ -214,7 +223,8 @@
     const majCible = () => {
       a.service = $("#a-svc", d).value;
       const op = options();
-      $("#a-cible-box", d).innerHTML = a.service === "autre" ? `<p class="muted" style="font-size:13px">Suivi des paiements uniquement : pour un site ou une carte, la coupure se fait à la main.</p>`
+      $("#a-cible-box", d).innerHTML = a.service === "autre" ? `<p class="muted" style="font-size:13px">Suivi des paiements uniquement : rien n’est coupé automatiquement.</p>`
+        : a.service === "profil" ? `<label class="f">Lien de la page du client<input id="a-cible" value="${esc(a.cible ? "https://nfcworkma.github.io/profils/" + a.cible + "/" : "")}" placeholder="https://nfcworkma.github.io/profils/avis-la-fabrique/" autocapitalize="off" autocorrect="off" spellcheck="false"></label><p class="muted" style="font-size:12.5px;margin-top:-4px">Collez le lien de la carte NFC, de la page avis Google ou Wi-Fi.</p>`
         : `<label class="f">${a.service === "menu" ? "Menu concerné" : "Programme fidélité concerné"}<select id="a-cible"><option value="">— Choisir —</option>${op.map(([v, t]) => `<option value="${esc(v)}" ${a.cible === v ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></label>`;
       $("#a-auto-box", d).hidden = a.service === "autre";
     };
@@ -229,8 +239,8 @@
       e.preventDefault();
       a.client = $("#a-client", d).value.trim();
       a.tel = $("#a-tel", d).value.trim();
-      a.cible = a.service === "autre" ? "" : (($("#a-cible", d) || {}).value || "");
-      if (a.service !== "autre" && !a.cible) { toast("Choisissez le menu ou le programme concerné."); return; }
+      a.cible = a.service === "autre" ? "" : a.service === "profil" ? pageDe(($("#a-cible", d) || {}).value) : (($("#a-cible", d) || {}).value || "");
+      if (a.service !== "autre" && !a.cible) { toast(a.service === "profil" ? "Collez le lien de la page du client." : "Choisissez le menu ou le programme concerné."); return; }
       a.libelle = $("#a-lib", d).value.trim();
       a.prix = +String($("#a-prix", d).value).replace(",", ".") || 0;
       a.echeance = $("#a-ech", d).value || auj();
