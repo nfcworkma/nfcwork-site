@@ -171,8 +171,41 @@
       ${f === "pro" ? `<span class="th">Thème : ${[["nuit", "Nuit"], ["creme", "Crème"], ["cafe", "Café"], ["lagon", "Lagon"]].map(([k, n]) => `<a href="/menu/?m=demo-pro&theme=${k}" class="${th === k ? "on" : ""}">${n}</a>`).join("")}</span>` : ""}</div>`;
   }
 
+  // icône « application » : le logo du commerce quand on ajoute le menu à l'écran d'accueil
+  let iconeFaite = "";
+  async function iconeApp() {
+    const cle = (M.logo || "") + "|" + (M.nom || "");
+    if (iconeFaite === cle) return;
+    iconeFaite = cle;
+    const meta = (n, c) => { let m = document.querySelector(`meta[name="${n}"]`); if (!m) { m = document.createElement("meta"); m.name = n; document.head.appendChild(m); } m.content = c; };
+    meta("apple-mobile-web-app-title", String(M.nom || "Menu").slice(0, 30));
+    meta("apple-mobile-web-app-capable", "yes");
+    meta("mobile-web-app-capable", "yes");
+    if (!M.logo) return;
+    try {
+      const src = await photo(M.logo, 400);
+      if (!src) return;
+      const img = await new Promise((ok, ko) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => ok(i); i.onerror = ko; i.src = src; });
+      const T = 180, c = document.createElement("canvas"); c.width = c.height = T;
+      const x = c.getContext("2d");
+      x.fillStyle = "#ffffff"; x.fillRect(0, 0, T, T);
+      const marge = T * 0.1, k = Math.min((T - 2 * marge) / img.naturalWidth, (T - 2 * marge) / img.naturalHeight);
+      const w = img.naturalWidth * k, h = img.naturalHeight * k;
+      x.drawImage(img, (T - w) / 2, (T - h) / 2, w, h);
+      const url = c.toDataURL("image/png");
+      document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(l => l.remove());
+      const l = document.createElement("link"); l.rel = "apple-touch-icon"; l.sizes = "180x180"; l.href = url; document.head.appendChild(l);
+      const ic = document.querySelector('link[rel="icon"]'); if (ic) { ic.href = url; ic.removeAttribute("sizes"); }
+      // Android / Chrome : petit manifeste avec le même logo
+      const man = { name: M.nom || "Menu", short_name: String(M.nom || "Menu").slice(0, 12), start_url: location.href, scope: location.origin + "/menu/", display: "standalone", background_color: "#ffffff", theme_color: getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#0d0f14", icons: [{ src: url, sizes: "180x180", type: "image/png" }] };
+      document.querySelectorAll('link[rel="manifest"]').forEach(m => m.remove());
+      const lm = document.createElement("link"); lm.rel = "manifest"; lm.href = URL.createObjectURL(new Blob([JSON.stringify(man)], { type: "application/manifest+json" })); document.head.appendChild(lm);
+    } catch (e) { iconeFaite = ""; }
+  }
+
   function rendre() {
     document.title = (M.nom || "Menu") + " · Menu";
+    if (!apercu) iconeApp();
     if (M.actif === false && !apercu && !demo) { etat(U.off, U.offTx); return; }
     const pro = M.formule === "pro" || M.formule === "premium";
     const prem = M.formule === "premium";
