@@ -70,6 +70,9 @@
   const brand = p => `<div class="brand">${logoSrc(p) ? `<img class="lg" src="${esc(logoSrc(p))}" alt="">` : `<div class="ini">${esc((p.nom || "?").trim()[0].toUpperCase())}</div>`}
     <div><b>${esc(p.nom || "Commerce")}</b><small>Carte fidélité</small></div></div>`;
   const pied = `<div class="foot">Carte fidélité par <a href="${SITE}" target="_blank" rel="noopener"><b>NFCWORK</b></a></div>`;
+  // abonnement NFCWORK : programme coupé à la main (actif:false) ou date de coupure dépassée (expire)
+  const jourLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  const coupe = p => p.actif === false || (!!p.expire && jourLocal() > String(p.expire));
   function etat(titre, texte, spin) { app.innerHTML = `<div class="state"><div>${spin ? '<div class="spin"></div>' : ""}${titre ? `<h1>${esc(titre)}</h1>` : ""}<div>${esc(texte || "")}</div></div></div>`; }
   const unite = p => p.unite || (p.type === "montant" ? "points" : p.type === "articles" ? "articles" : "visites");
   const regle = p => p.type === "montant" ? `${p.dhParPoint || 10} DH = 1 point · ${p.objectif} points = ${p.recompense}`
@@ -138,6 +141,7 @@
     if (!carte) { etat("Carte introuvable", "Demandez une nouvelle carte au commerçant."); return; }
     prog = await lire("fidProgrammes/" + carte.pid);
     if (!prog) { etat("Programme introuvable", "Ce programme de fidélité n’existe plus."); return; }
+    if (coupe(prog)) { etat("Carte momentanément indisponible", "Le programme de fidélité de ce commerce est en pause. Vos points sont gardés."); return; }
     theme(prog); lsSet("nfcwork-fid-" + carte.pid, carte.id);
     if (!/[?&]c=/.test(location.search)) history.replaceState(null, "", "/f/?c=" + carte.id);
     rendreCarte(msg, nouveau); suivre();
@@ -146,7 +150,7 @@
   /* ---------- inscription ---------- */
   async function inscription(pid) {
     prog = await lire("fidProgrammes/" + pid);
-    if (!prog || prog.actif === false) { etat("Programme indisponible", "Ce programme de fidélité n’est pas actif pour l’instant."); return; }
+    if (!prog || prog.actif === false || coupe(prog)) { etat("Programme indisponible", "Ce programme de fidélité n’est pas actif pour l’instant."); return; }
     theme(prog);
     const deja = lsGet("nfcwork-fid-" + pid);
     if (deja) {
@@ -189,6 +193,7 @@
     if (!em) { etat("Code inconnu", "Ce code employé n’existe pas."); return; }
     prog = await lire("fidProgrammes/" + em.pid);
     if (!prog) { etat("Programme introuvable", ""); return; }
+    if (coupe(prog)) { etat("Programme en pause", "Le programme de fidélité de ce commerce est momentanément suspendu."); return; }
     theme(prog);
     const d = new Date(), k = moisCle(d); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1);
     const kp = moisCle(d), pts = (em.m || {})[k] || 0, prec = (em.m || {})[kp] || 0;

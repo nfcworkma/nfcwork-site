@@ -236,7 +236,20 @@ function todoTiles(){
   const t=todo(),tile=(seg,n,lab,sub)=>`<button class="todo${n?" on":""}" data-goseg="${seg}"><span class="todo-n num">${n}</span><span class="todo-l">${lab}</span><span class="todo-s">${sub}</span></button>`;
   return `<div class="todos">${tile("orders",t.o,"Nouvelles commandes","à confirmer")}${tile("quotes",t.q,"Devis demandés","à chiffrer")}${tile("claims",t.c,"Réclamations","ouvertes")}${tile("mods",t.m,"Demandes de modif.","nouvelles")}</div>${nfcActifsHtml()}`;
 }
+// tuile Abonnements : nombre de clients à relancer (en retard ou échéance dans 7 jours)
+async function aboBadge(){
+  try{
+    const snap=await fs.collection("abonnements").get();
+    const d=new Date(),j=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const lim=new Date(d.getFullYear(),d.getMonth(),d.getDate()+7),jl=`${lim.getFullYear()}-${String(lim.getMonth()+1).padStart(2,"0")}-${String(lim.getDate()).padStart(2,"0")}`;
+    let retard=0,bientot=0;
+    snap.forEach(x=>{const a=x.data();if(a.actif===false)return;if(a.echeance<j)retard++;else if(a.echeance<=jl)bientot++;});
+    const el=document.getElementById("aboInfo");if(!el)return;
+    if(retard||bientot){el.innerHTML=`<b style="color:${retard?"var(--bad)":"var(--warn)"}">${retard?retard+" en retard":""}${retard&&bientot?" · ":""}${bientot?bientot+" bientôt":""}</b>`;}
+  }catch(e){}
+}
 function renderHome(){
+  setTimeout(aboBadge,0);
   const all=S.invoices,y=String(new Date().getFullYear());
   const paidYear=all.filter(i=>i.status==="paid"&&(i.date||"").startsWith(y)).reduce((a,i)=>a+totals(i).total,0);
   const open=all.filter(i=>i.status==="sent"),late=open.filter(i=>i.due&&i.due<today());
@@ -246,7 +259,8 @@ function renderHome(){
   <button class="btn primary" data-new-inv>＋ Nouvelle facture</button></div>
   <div class="quick" style="margin-bottom:16px"><a class="qa" href="menus.html">${ico("tools-kitchen-2")}<b>Menus digitaux</b><span>Créer & modifier</span></a>
     <a class="qa" href="stands.html">${ico("link")}<b>Stands QR</b><span>Imprimer & lier</span></a>
-    <a class="qa" href="fidelite.html">${ico("star")}<b>Fidélité</b><span>Cartes & employés</span></a></div>
+    <a class="qa" href="fidelite.html">${ico("star")}<b>Fidélité</b><span>Cartes & employés</span></a>
+    <a class="qa" href="abonnements.html" style="position:relative">${ico("file-text")}<b>Abonnements</b><span id="aboInfo">Paiements & activation</span></a></div>
   <div class="eyebrow" style="margin-bottom:8px">À traiter</div>${todoTiles()}
   ${!S.services.length?`<div class="notice row between" style="margin-bottom:12px"><span>Votre catalogue est vide : importez les produits du site en un clic.</span><button class="btn sm primary" data-goto="services">Catalogue</button></div>`:""}
   ${!all.length&&!S.clients.length?`<div class="notice">Pour démarrer : remplissez les <b>Paramètres</b>, ajoutez vos <b>services</b>, puis vos <b>clients</b> (avec leur e-mail), et créez votre première facture.</div>`:""}

@@ -207,6 +207,8 @@
     document.title = (M.nom || "Menu") + " · Menu";
     if (!apercu) iconeApp();
     if (M.actif === false && !apercu && !demo) { etat(U.off, U.offTx); return; }
+    // abonnement NFCWORK non payé : coupure automatique après la date prévue
+    if (M.expire && !apercu && !demo) { const d = new Date(), j = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; if (j > String(M.expire)) { etat("Menu momentanément indisponible", "Merci de revenir un peu plus tard ou de demander au personnel."); return; } }
     const pro = M.formule === "pro" || M.formule === "premium";
     const prem = M.formule === "premium";
     const off = (M.categories || []).some(c => (c.items || []).some(i => String(i.photo || "").startsWith("o:")));
