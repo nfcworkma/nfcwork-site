@@ -319,6 +319,16 @@
       <p class="muted" style="margin:0;font-size:13.5px">Le client choisit ses produits et envoie la commande sur ce numéro. Cochez « À ne pas manquer » sur vos meilleurs produits : ils s’affichent en grand en haut du menu.</p>
       ${champ("infos.whatsapp", "Numéro WhatsApp du commerce", 'type="tel" inputmode="tel" maxlength="30" placeholder="06 12 34 56 78"')}
       <label class="check"><input type="checkbox" data-b="commande" ${M.commande !== false ? "checked" : ""}> Les clients peuvent composer leur commande et l’envoyer sur WhatsApp</label>
+    </section>
+    <section class="sec paper stack"><h3>🛵 Livraison</h3>
+      <p class="muted" style="margin:0;font-size:13.5px">Le client choisit « Livraison », écrit son téléphone et son adresse ou envoie sa position : tout arrive sur votre WhatsApp. Sans commission, contrairement à Glovo.</p>
+      <label class="check"><input type="checkbox" data-b="livraison.actif" ${(M.livraison || {}).actif ? "checked" : ""}> Proposer la livraison</label>
+      ${(M.livraison || {}).actif ? `<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px">
+        <label class="f">Frais de livraison (DH)<input data-b="livraison.frais" value="${esc((M.livraison || {}).frais || "")}" inputmode="decimal" maxlength="8" placeholder="0 = gratuite"></label>
+        <label class="f">Commande minimum (DH)<input data-b="livraison.min" value="${esc((M.livraison || {}).min || "")}" inputmode="decimal" maxlength="8" placeholder="facultatif"></label></div>
+        ${champ("livraison.zone", "Zone de livraison (facultatif)", 'maxlength="60" placeholder="Kénitra centre, Mimosas…"')}
+        <div class="paper" style="padding:12px 14px;border-radius:14px;min-width:0;overflow:hidden"><b>Lien pour Instagram, Facebook, WhatsApp</b><div class="muted" style="font-size:13px;margin:2px 0 8px">À mettre dans la bio : le menu s’ouvre directement en mode livraison.</div>
+          <div style="display:flex;gap:6px;align-items:center;min-width:0"><code style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}?livraison</code><button class="btn sm" data-act="copier" data-v="${esc(lienPublic(M.slug))}?livraison">Copier</button></div></div>` : ""}
     </section>` : ""}
 
     ${pro ? `<section class="sec paper stack"><h3>Design</h3>
@@ -373,6 +383,7 @@
       const v = t.type === "checkbox" ? t.checked : t.value;
       setPath(M, t.dataset.b, typeof v === "string" && t.type !== "color" ? v.replace(/^\s+/, "") : v);
       if (t.dataset.b === "nom") $("#topTitle").textContent = t.value || "Menu";
+      if (t.dataset.b === "livraison.actif") { renderEdit(); return; }
     } else if (t.dataset.cb) {
       const c = M.categories.find(x => x.id === t.closest("[data-cat]").dataset.cat);
       if (c) { if (typeof c.nom !== "object" || !c.nom) c.nom = {}; c.nom[t.dataset.cb.split(".")[1]] = t.value; }

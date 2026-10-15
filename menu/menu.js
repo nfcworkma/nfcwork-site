@@ -35,6 +35,7 @@
   };
 
   let M = null, panier = {};
+  let liv = null;   // livraison activée par le commerce : { frais, min, zone }
   // texte enregistré en chaîne ou en { fr: … } (anciens menus) → toujours la version française
   const tr = x => x == null ? "" : typeof x === "string" ? x : (x.fr || Object.values(x).find(Boolean) || "");
   const prixNum = p => { const n = parseFloat(String(p || "").replace(",", ".").replace(/[^\d.]/g, "")); return Number.isFinite(n) ? n : 0; };
@@ -192,6 +193,10 @@
     const inf = M.infos || {};
     const cats = (M.categories || []).filter(c => (c.items || []).length);   // une catégorie sans produit ne s’affiche pas
     const waOk = prem && waNum(inf.whatsapp) && M.commande !== false;
+    const L = M.livraison || {};
+    liv = waOk && L.actif ? { frais: prixNum(L.frais), min: prixNum(L.min), zone: String(L.zone || "").trim() } : null;
+    if (liv && !saisie.mode) saisie.mode = qs.has("livraison") ? "livraison" : "place";
+    const bandeau = liv ? `<div class="wrap"><div class="livban"><b>🛵 ${liv.frais ? "Livraison " + esc(fmtPrix(arr(liv.frais))) : "Livraison gratuite"}</b><span>${liv.zone ? esc(liv.zone) + " · " : ""}${liv.min ? "dès " + esc(fmtPrix(arr(liv.min))) + " · " : ""}commandez ici, recevez chez vous</span></div></div>` : "";
     const nav = cats.length > 1 ? `<nav class="cats"><div class="cats-in">${cats.map(c => `<a href="#c-${esc(c.id)}" data-cat="${esc(c.id)}">${esc(tr(c.nom))}</a>`).join("")}</div></nav>` : "";
     const fin = `${pied}${waOk ? `<button class="cartbar" id="cartbar" hidden></button>` : ""}
       ${prem && waNum(inf.whatsapp) && !waOk ? `<a class="wafab" href="https://wa.me/${waNum(inf.whatsapp)}" target="_blank" rel="noopener" aria-label="WhatsApp">${I.wa}</a>` : ""}`;
@@ -202,6 +207,7 @@
         <header class="phero">${M.couverture ? `<img data-img="${esc(M.couverture)}" data-w="900" alt="">` : ""}
           <div class="in">${logoTag()}<h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}<div class="orn">${U.carte}</div></div></header>
         <div class="wrap pinfo">${puces()}</div>
+        ${bandeau}
         ${vedettes.length ? `<section class="wrap vedettes"><h2>${U.top}</h2><div class="vscroll">${vedettes.map(it => vcarte(it, waOk)).join("")}</div></section>` : ""}
         ${nav}
         <div class="wrap">${cats.map(c => `<section class="cat" id="c-${esc(c.id)}"><h2>${esc(tr(c.nom))}</h2><div class="orn">${(c.items || []).length} choix</div>
@@ -298,7 +304,7 @@
     majPanier();
   }
   // ce que le client a écrit reste gardé, même si la fenêtre se redessine (quand il change une quantité)
-  const saisie = { table: "", note: "" };
+  const saisie = { table: "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "" };
   function feuille() {
     const its = tousItems();
     const lignes = Object.entries(panier).map(([id, q]) => ({ it: its.find(x => x.id === id), q })).filter(x => x.it && x.q);
@@ -307,18 +313,19 @@
     d.className = "sheet";
     d.innerHTML = `<div class="box" role="dialog" aria-modal="true"><h2>${U.order}</h2>
       ${lignes.length ? lignes.map(l => `<div class="line"><div class="n">${esc(tr(l.it.nom))}<br><small>${esc(fmtPrix(l.it.prix))}</small></div><span class="qty"><button data-moins="${esc(l.it.id)}">−</button><b>${l.q}</b><button data-plus="${esc(l.it.id)}">+</button></span></div>`).join("")
-        + `<div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total)))}</span></div>
-        <label class="f">${U.table} ${U.opt}<input id="c-table" maxlength="60" value="${esc(saisie.table)}"></label>
-        <label class="f">${U.note} ${U.opt}<input id="c-note" maxlength="200" value="${esc(saisie.note)}"></label>
-        <button class="wa" id="c-send">${I.wa.replace("<svg", '<svg width="22" height="22"')} ${U.send}</button>`
+        + blocFin(total)
+        + `<button class="wa" id="c-send">${I.wa.replace("<svg", '<svg width="22" height="22"')} ${U.send}</button><p class="cerr" id="c-err"></p>`
         : `<p>${U.empty}</p>`}
       <button class="ghost" data-fermer>${U.close}</button></div>`;
     document.body.appendChild(d);
-    d.addEventListener("input", e => { if (e.target.id === "c-table") saisie.table = e.target.value; if (e.target.id === "c-note") saisie.note = e.target.value; });
+    d.addEventListener("input", e => { const k = (e.target.id || "").replace(/^c-/, ""); if (k in saisie && k !== "mode") saisie[k] = e.target.value; });
     d.addEventListener("click", e => {
       if (e.target === d || e.target.closest("[data-fermer]")) { d.remove(); return; }
       const p = e.target.closest("[data-plus]"), m = e.target.closest("[data-moins]");
       if (p || m) { changer((p || m).dataset[p ? "plus" : "moins"], p ? 1 : -1); d.remove(); feuille(); return; }
+      const md = e.target.closest("[data-mode]");
+      if (md) { saisie.mode = md.dataset.mode; d.remove(); feuille(); return; }
+      if (e.target.closest("#c-geo")) { position(d); return; }
       if (e.target.closest("#c-send")) envoyer(lignes, total, d);
     });
   }
@@ -327,10 +334,57 @@
     if (q) panier[id] = q; else delete panier[id];
     rafraichirItem(id);
   }
+  const enLivraison = () => !!liv && saisie.mode === "livraison";
+  // bas de la fenêtre : total, sur place / livraison, champs du client
+  function blocFin(total) {
+    const champ = (k, label, attrs) => `<label class="f">${label}<input id="c-${k}" value="${esc(saisie[k])}" ${attrs || ""}></label>`;
+    if (!liv) return `<div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total)))}</span></div>
+        ${champ("table", `${U.table} ${U.opt}`, 'maxlength="60"')}${champ("note", `${U.note} ${U.opt}`, 'maxlength="200"')}`;
+    const lv = enLivraison();
+    const choix = `<div class="mode"><button type="button" data-mode="place" aria-pressed="${!lv}">🍽 Sur place</button><button type="button" data-mode="livraison" aria-pressed="${lv}">🛵 Livraison</button></div>`;
+    if (!lv) return choix + `<div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total)))}</span></div>
+        ${champ("table", `${U.table} ${U.opt}`, 'maxlength="60"')}${champ("note", `${U.note} ${U.opt}`, 'maxlength="200"')}`;
+    const manque = liv.min && total < liv.min ? liv.min - total : 0;
+    return choix + `<div class="sous"><span>Sous-total</span><span>${esc(fmtPrix(arr(total)))}</span></div>
+        <div class="sous"><span>Livraison</span><span>${liv.frais ? esc(fmtPrix(arr(liv.frais))) : '<b class="gratuit">Gratuite</b>'}</span></div>
+        <div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total + liv.frais)))}</span></div>
+        ${manque ? `<p class="cmin">Commande minimum ${esc(fmtPrix(arr(liv.min)))} pour la livraison : ajoutez encore ${esc(fmtPrix(arr(manque)))}.</p>` : ""}
+        ${champ("nom", "Votre nom", 'maxlength="60" autocomplete="name"')}
+        ${champ("tel", "Téléphone", 'type="tel" inputmode="tel" maxlength="20" autocomplete="tel"')}
+        ${champ("adresse", "Adresse (quartier, rue, immeuble, étage)", 'maxlength="200" autocomplete="street-address"')}
+        <button type="button" class="posbtn" id="c-geo">📍 ${saisie.pos ? "Position ajoutée ✓ (toucher pour la mettre à jour)" : "Envoyer ma position"}</button>
+        ${champ("pos", "Ou collez le lien de votre localisation (Google Maps…)", 'maxlength="300" inputmode="url" autocapitalize="off"')}
+        ${champ("note", `Remarque : allergie, sans oignon… ${U.opt}`, 'maxlength="200"')}`;
+  }
+  function position(d) {
+    const b = d.querySelector("#c-geo");
+    if (!navigator.geolocation) { b.textContent = "📍 Position non disponible : collez le lien ci-dessous"; return; }
+    b.textContent = "📍 Recherche de votre position…";
+    navigator.geolocation.getCurrentPosition(p => {
+      saisie.pos = `https://maps.google.com/?q=${p.coords.latitude.toFixed(6)},${p.coords.longitude.toFixed(6)}`;
+      const champPos = d.querySelector("#c-pos");
+      if (champPos) champPos.value = saisie.pos;
+      b.textContent = "📍 Position ajoutée ✓";
+    }, () => { b.textContent = "📍 Position refusée : collez le lien ci-dessous ou écrivez l’adresse"; }, { enableHighAccuracy: true, timeout: 15000 });
+  }
   function envoyer(lignes, total, d) {
     const table = (d.querySelector("#c-table") || {}).value || saisie.table, note = (d.querySelector("#c-note") || {}).value || saisie.note;
-    const txt = [U.hello, "", ...lignes.map(l => `• ${l.q} × ${tr(l.it.nom)} — ${fmtPrix(arr(l.q * prixNum(l.it.prix)))}`), "", `${U.total} : ${fmtPrix(arr(total))}`]
-      .concat(table.trim() ? [`${U.table} : ${table.trim()}`] : [], note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
+    const liste = lignes.map(l => `• ${l.q} × ${tr(l.it.nom)} — ${fmtPrix(arr(l.q * prixNum(l.it.prix)))}`);
+    let txt;
+    if (enLivraison()) {
+      const err = d.querySelector("#c-err");
+      if (liv.min && total < liv.min) { err.textContent = `Commande minimum : ${fmtPrix(arr(liv.min))}.`; return; }
+      if (!saisie.tel.trim()) { err.textContent = "Indiquez votre numéro de téléphone pour le livreur."; d.querySelector("#c-tel").focus(); return; }
+      if (!saisie.adresse.trim() && !saisie.pos.trim()) { err.textContent = "Indiquez votre adresse ou envoyez votre position."; d.querySelector("#c-adresse").focus(); return; }
+      txt = ["Bonjour, je souhaite commander en LIVRAISON 🛵 :", "", ...liste, "",
+        `Sous-total : ${fmtPrix(arr(total))}`, `Livraison : ${liv.frais ? fmtPrix(arr(liv.frais)) : "gratuite"}`, `${U.total} : ${fmtPrix(arr(total + liv.frais))}`, ""]
+        .concat(saisie.nom.trim() ? [`Nom : ${saisie.nom.trim()}`] : [], [`Téléphone : ${saisie.tel.trim()}`],
+          saisie.adresse.trim() ? [`Adresse : ${saisie.adresse.trim()}`] : [], saisie.pos.trim() ? [`Position : ${saisie.pos.trim()}`] : [],
+          note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
+    } else {
+      txt = [U.hello, "", ...liste, "", `${U.total} : ${fmtPrix(arr(total))}`]
+        .concat(table.trim() ? [`${U.table} : ${table.trim()}`] : [], note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
+    }
     window.open(`https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt)}`, "_blank");
   }
 
