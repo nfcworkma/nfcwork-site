@@ -304,7 +304,7 @@
     majPanier();
   }
   // ce que le client a écrit reste gardé, même si la fenêtre se redessine (quand il change une quantité)
-  const saisie = { table: "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "" };
+  const saisie = { table: "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "", gps: "" };
   function feuille() {
     const its = tousItems();
     const lignes = Object.entries(panier).map(([id, q]) => ({ it: its.find(x => x.id === id), q })).filter(x => x.it && x.q);
@@ -353,7 +353,7 @@
         ${champ("tel", "Téléphone", 'type="tel" inputmode="tel" maxlength="20" autocomplete="tel"')}
         ${champ("adresse", "Adresse (quartier, rue, immeuble, étage)", 'maxlength="200" autocomplete="street-address"')}
         <button type="button" class="posbtn" id="c-geo">📍 ${saisie.pos ? "Position ajoutée ✓ (toucher pour la mettre à jour)" : "Envoyer ma position"}</button>
-        ${champ("pos", "Ou collez le lien de votre localisation (Google Maps…)", 'maxlength="300" inputmode="url" autocapitalize="off"')}
+        ${champ("pos", "Ou collez le lien de votre localisation (Google Maps, Plans d’Apple…)", 'maxlength="300" inputmode="url" autocapitalize="off"')}
         ${champ("note", `Remarque : allergie, sans oignon… ${U.opt}`, 'maxlength="200"')}`;
   }
   function position(d) {
@@ -361,11 +361,21 @@
     if (!navigator.geolocation) { b.textContent = "📍 Position non disponible : collez le lien ci-dessous"; return; }
     b.textContent = "📍 Recherche de votre position…";
     navigator.geolocation.getCurrentPosition(p => {
-      saisie.pos = `https://maps.google.com/?q=${p.coords.latitude.toFixed(6)},${p.coords.longitude.toFixed(6)}`;
+      saisie.gps = `${p.coords.latitude.toFixed(6)},${p.coords.longitude.toFixed(6)}`;
+      saisie.pos = `https://maps.google.com/?q=${saisie.gps}`;
       const champPos = d.querySelector("#c-pos");
       if (champPos) champPos.value = saisie.pos;
       b.textContent = "📍 Position ajoutée ✓";
     }, () => { b.textContent = "📍 Position refusée : collez le lien ci-dessous ou écrivez l’adresse"; }, { enableHighAccuracy: true, timeout: 15000 });
+  }
+  // position GPS → lien Google Maps ET lien Plans (Apple) : le livreur ouvre celui de son téléphone
+  function positionTexte() {
+    const p = saisie.pos.trim();
+    if (saisie.gps && p === `https://maps.google.com/?q=${saisie.gps}`)
+      return ["📍 Position du client :", `Google Maps : https://maps.google.com/?q=${saisie.gps}`, `Plans (iPhone) : https://maps.apple.com/?ll=${saisie.gps}&q=Livraison`];
+    const m = p.match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);   // lien collé contenant des coordonnées
+    if (m) return ["📍 Position du client :", `Google Maps : https://maps.google.com/?q=${m[1]},${m[2]}`, `Plans (iPhone) : https://maps.apple.com/?ll=${m[1]},${m[2]}&q=Livraison`];
+    return p ? [`📍 Localisation : ${p}`] : [];
   }
   function envoyer(lignes, total, d) {
     const table = (d.querySelector("#c-table") || {}).value || saisie.table, note = (d.querySelector("#c-note") || {}).value || saisie.note;
@@ -379,7 +389,7 @@
       txt = ["Bonjour, je souhaite commander en LIVRAISON 🛵 :", "", ...liste, "",
         `Sous-total : ${fmtPrix(arr(total))}`, `Livraison : ${liv.frais ? fmtPrix(arr(liv.frais)) : "gratuite"}`, `${U.total} : ${fmtPrix(arr(total + liv.frais))}`, ""]
         .concat(saisie.nom.trim() ? [`Nom : ${saisie.nom.trim()}`] : [], [`Téléphone : ${saisie.tel.trim()}`],
-          saisie.adresse.trim() ? [`Adresse : ${saisie.adresse.trim()}`] : [], saisie.pos.trim() ? [`Position : ${saisie.pos.trim()}`] : [],
+          saisie.adresse.trim() ? [`Adresse : ${saisie.adresse.trim()}`] : [], positionTexte(),
           note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
     } else {
       txt = [U.hello, "", ...liste, "", `${U.total} : ${fmtPrix(arr(total))}`]
