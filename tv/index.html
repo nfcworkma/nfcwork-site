@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Menu TV · NFCWORK</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/img/icons/favicon-32.png">
+<style>
+/* VIDÉO SUR ÉCRAN TV : plein écran, en boucle, sans son, sans arrêt
+   Lien : nfcwork.ma/tv/<nom>  (404.html renvoie ici avec ?v=<nom>) → vidéo tv/v/<nom>.mp4 */
+html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none}
+video{position:fixed;inset:0;width:100vw;height:100vh;object-fit:contain;background:#000}
+#msg{position:fixed;inset:0;display:grid;place-items:center;color:#9aa;font:600 2.2vw system-ui,sans-serif;text-align:center;padding:4vw}
+#msg b{display:block;color:#fff;font-size:3vw;margin-bottom:1vw}
+#fs{position:fixed;top:2vh;right:2vw;border:0;border-radius:10px;padding:10px 16px;background:rgba(255,255,255,.14);color:#fff;font:600 15px system-ui,sans-serif;opacity:0;transition:opacity .3s;cursor:pointer}
+body.souris{cursor:default}body.souris #fs{opacity:1}
+</style>
+</head>
+<body>
+<video id="v" muted playsinline autoplay loop preload="auto" disablepictureinpicture></video>
+<div id="msg"><div><b>Menu TV</b>Chargement de la vidéo…</div></div>
+<button id="fs" type="button">Plein écran</button>
+<script>
+(function () {
+  "use strict";
+  const qs = new URLSearchParams(location.search);
+  const nom = String(qs.get("v") || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const v = document.getElementById("v"), msg = document.getElementById("msg");
+  const dire = (t, s) => { msg.hidden = false; msg.innerHTML = `<div><b>${t}</b>${s || ""}</div>`; };
+  if (!nom) { dire("Menu TV", "Ajoutez le nom de la vidéo au lien : nfcwork.ma/tv/nom"); return; }
+  // MP4 (H.264) pour presque toutes les TV ; WebM en secours si le navigateur ne lit pas le MP4
+  const mp4 = !!v.canPlayType('video/mp4; codecs="avc1.640028"');
+  let src = "/tv/v/" + nom + (mp4 ? ".mp4" : ".webm");
+  v.poster = "/tv/v/" + nom + ".jpg";
+  document.title = nom.charAt(0).toUpperCase() + nom.slice(1) + " · Menu TV";
+
+  // La vidéo est gardée sur l'appareil : elle continue de tourner même si Internet coupe.
+  const BOITE = "nfcwork-tv";
+  let urlLocale = "";
+  async function charger(force) {
+    let rep = null, box = null;
+    try { box = await caches.open(BOITE); if (!force) rep = await box.match(src); } catch (e) {}
+    if (!rep) {
+      try {
+        const r = await fetch(src + "?t=" + Date.now(), { cache: "no-store" });
+        if (!r.ok) throw new Error("http " + r.status);
+        if (box) { try { await box.put(src, r.clone()); } catch (e) {} }
+        rep = r;
+      } catch (e) {
+        if (box) rep = await box.match(src).catch(() => null);
+      }
+    }
+    if (!rep && !src.endsWith(".mp4")) { src = "/tv/v/" + nom + ".mp4"; return charger(force); }   // pas de WebM : on tente le MP4
+    if (!rep) return false;
+    const blob = await rep.blob();
+    if (!blob.size) return false;
+    const ancien = urlLocale;
+    urlLocale = URL.createObjectURL(blob);
+    v.src = urlLocale;
+    if (ancien) setTimeout(() => URL.revokeObjectURL(ancien), 5000);
+    return true;
+  }
+  function jouer() { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+  v.addEventListener("playing", () => { msg.hidden = true; });
+  v.addEventListener("ended", () => { v.currentTime = 0; jouer(); });   // au cas où « loop » est ignoré par la TV
+  v.addEventListener("error", () => { setTimeout(() => charger(false).then(jouer), 3000); });
+
+  // Surveillance : si l'image se fige, on relance
+  let derniere = -1, figee = 0;
+  setInterval(() => {
+    if (v.readyState >= 2 && !v.paused && v.currentTime === derniere) figee++; else figee = 0;
+    derniere = v.currentTime;
+    if (v.paused || figee >= 3) { figee = 0; jouer(); if (v.readyState < 2) charger(false).then(jouer); }
+  }, 5000);
+
+  // Chaque nuit (vers 4 h) : on récupère la dernière version de la vidéo
+  setInterval(() => { const h = new Date().getHours(); if (h === 4 && navigator.onLine) charger(true).then(jouer); }, 60 * 60 * 1000);
+
+  // Écran toujours allumé (si la TV le permet)
+  async function eveil() { try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {} }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { eveil(); jouer(); } });
+  eveil();
+
+  // Plein écran : bouton visible quand on bouge la souris, ou toucher l'écran
+  const plein = () => { const d = document.documentElement; (d.requestFullscreen || d.webkitRequestFullscreen || function () {}).call(d); eveil(); jouer(); };
+  document.getElementById("fs").onclick = plein;
+  v.addEventListener("click", plein);
+  let t = 0;
+  document.addEventListener("mousemove", () => { document.body.classList.add("souris"); clearTimeout(t); t = setTimeout(() => document.body.classList.remove("souris"), 2500); });
+
+  charger(false).then(ok => { if (ok) jouer(); else dire("Vidéo introuvable", "Vérifiez le lien : nfcwork.ma/tv/" + nom); });
+})();
+</script>
+</body>
+</html>

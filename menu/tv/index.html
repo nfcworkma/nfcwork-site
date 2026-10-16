@@ -154,6 +154,7 @@ body:hover #fs{opacity:1}
       const j = (f.json && f.json.stringValue) || "{}";
       if (j === json) return;
       json = j; M = JSON.parse(j);
+      if (/^[a-z0-9-]{2,40}$/.test(M.tvVideo || "")) { location.replace("/tv/?v=" + M.tvVideo); return; }
       if (M.actif === false) { tv.innerHTML = `<div class="state"><div><b>${esc(M.nom || "Menu")}</b>Menu en cours de mise à jour.</div></div>`; return; }
       preparer(); cadre(); ecran();
     } catch (e) { if (premier) tv.innerHTML = `<div class="state"><div><b>Connexion impossible</b>Nouvel essai dans un instant…</div></div>`; }

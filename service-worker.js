@@ -5,7 +5,7 @@
    - Images : cache, puis mise à jour en arrière-plan.
    Après une grosse modification, change VERSION (ex. "v2").
    ========================================================= */
-const VERSION = "v28";
+const VERSION = "v29";
 const CACHE = "nfcwork-" + VERSION;
 const CORE = [
   "./", "index.html", "produits.html", "commande.html", "contact.html",
@@ -33,6 +33,8 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   // Seulement les fichiers du site (pas WhatsApp, Google Sheets, polices...)
   if (req.method !== "GET" || url.origin !== location.origin) return;
+  // vidéos (écran TV) : le navigateur et la page TV s'en occupent
+  if (/\.(mp4|webm|mov)$/i.test(url.pathname)) return;
 
   if (req.mode === "navigate" || /\.(html|css|js|json)$/.test(url.pathname)) {
     // HTML, CSS, JS : réseau d'abord (HTML et JS restent toujours à la même version)

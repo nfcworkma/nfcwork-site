@@ -350,6 +350,8 @@
       <p class="muted" style="margin:0;font-size:13.5px">Ouvrez ce lien sur la TV du commerce (Smart TV, clé Android, ou ordinateur branché en HDMI) : les catégories défilent toutes seules, avec les photos, les prix, les promos et un QR code pour commander. Les changements du menu arrivent seuls.</p>
       <div style="display:flex;gap:6px;align-items:center;min-width:0"><code style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((SITE + "/menu/tv/?m=" + M.slug).replace(/^https?:\/\//, ""))}</code><button class="btn sm" data-act="copier" data-v="${esc(SITE + "/menu/tv/?m=" + M.slug)}">Copier</button><a class="btn sm" href="/menu/tv/?m=${esc(M.slug)}" target="_blank" rel="noopener">Ouvrir</a></div>
       <div class="muted" style="font-size:12.5px">Réglages dans le lien : <code>&n=6</code> produits par écran, <code>&s=15</code> secondes par écran.</div>
+      <label class="f">🎬 Vidéo montée pour la TV (facultatif)<input data-b="tvVideo" value="${esc(M.tvVideo || "")}" maxlength="40" placeholder="ex. lartisan" autocapitalize="off" spellcheck="false"></label>
+      <div class="muted" style="font-size:12.5px">Si une vidéo est rangée sur le site (dossier <code>tv/v/</code>), écrivez son nom : le lien TV la joue en boucle, sans son, même si Internet coupe.${/^[a-z0-9-]{2,40}$/.test(M.tvVideo || "") ? ` Lien direct : <a href="/tv/${esc(M.tvVideo)}" target="_blank" rel="noopener">nfcwork.ma/tv/${esc(M.tvVideo)}</a>` : ""}</div>
     </section>` : ""}
 
     ${pro ? `<section class="sec paper stack"><h3>Design</h3>
