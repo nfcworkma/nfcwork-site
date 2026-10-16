@@ -58,7 +58,35 @@
   const moisCle = d => String((d || new Date()).getUTCFullYear() * 100 + (d || new Date()).getUTCMonth() + 1);
 
   /* ---------- habillage ---------- */
+  // icône « application » sur l'écran d'accueil : le logo du commerce (ou son initiale sur sa couleur)
+  async function iconeApp(p) {
+    const meta = (n, c) => { let m = document.querySelector(`meta[name="${n}"]`); if (!m) { m = document.createElement("meta"); m.name = n; document.head.appendChild(m); } m.content = c; };
+    meta("apple-mobile-web-app-title", String(p.nom || "Fidélité").slice(0, 30));
+    const T = 180, cv = document.createElement("canvas"); cv.width = cv.height = T;
+    const x = cv.getContext("2d"), coul = /^#[0-9a-f]{6}$/i.test(p.couleur || "") ? p.couleur : "#1e90ff";
+    try {
+      const src = logoSrc(p);
+      if (src) {
+        const img = await new Promise((ok, ko) => { const i = new Image(); i.crossOrigin = "anonymous"; i.onload = () => ok(i); i.onerror = ko; i.src = src; });
+        x.fillStyle = "#ffffff"; x.fillRect(0, 0, T, T);
+        const m = T * 0.1, k = Math.min((T - 2 * m) / img.naturalWidth, (T - 2 * m) / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k;
+        x.drawImage(img, (T - w) / 2, (T - h) / 2, w, h);
+      } else {
+        x.fillStyle = coul; x.fillRect(0, 0, T, T);
+        x.fillStyle = "#ffffff"; x.font = "700 96px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+        x.fillText((p.nom || "?").trim().charAt(0).toUpperCase(), T / 2, T / 2 + 4);
+      }
+      const url = cv.toDataURL("image/png");
+      document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(l => l.remove());
+      const l = document.createElement("link"); l.rel = "apple-touch-icon"; l.sizes = "180x180"; l.href = url; document.head.appendChild(l);
+      const ic = document.querySelector('link[rel="icon"]'); if (ic) { ic.href = url; ic.removeAttribute("sizes"); }
+      const man = { name: p.nom || "Fidélité", short_name: String(p.nom || "Fidélité").slice(0, 12), start_url: location.href, scope: location.origin + "/f/", display: "standalone", background_color: "#ffffff", theme_color: coul, icons: [{ src: url, sizes: "180x180", type: "image/png" }] };
+      document.querySelectorAll('link[rel="manifest"]').forEach(m => m.remove());
+      const lm = document.createElement("link"); lm.rel = "manifest"; lm.href = URL.createObjectURL(new Blob([JSON.stringify(man)], { type: "application/manifest+json" })); document.head.appendChild(lm);
+    } catch (e) {}
+  }
   function theme(p) {
+    iconeApp(p);
     const c = /^#[0-9a-f]{6}$/i.test(p.couleur || "") ? p.couleur : "#1e90ff";
     const n = parseInt(c.slice(1), 16), clair = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) > 170;
     document.documentElement.style.setProperty("--accent", c);

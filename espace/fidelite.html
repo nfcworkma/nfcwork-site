@@ -54,6 +54,13 @@
 .seg3 button b{display:block;font-size:14.5px}
 .seg3 button small{display:block;line-height:1.3}
 .seg3 button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+.idees{display:flex;flex-wrap:wrap;gap:6px}
+.idees button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;text-align:start}
+.idees button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+.qrbox{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.qrbox .q{width:150px;height:150px;background:#fff;border-radius:14px;padding:8px;flex:none}
+.qrbox .q svg{width:100%;height:100%;display:block}
+.qrbox .u{font-size:13.5px;word-break:break-all;color:var(--muted)}
 
 /* impression */
 #planche{display:none}
@@ -92,5 +99,6 @@
 <script src="config.js"></script>
 <script src="../assets/js/qrgen.js"></script>
 <script src="fidelite.js"></script>
+<script src="langue.js"></script>
 </body>
 </html>

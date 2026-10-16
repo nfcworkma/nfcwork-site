@@ -24,20 +24,71 @@
   const MODES_E = { visite: ["À la caisse", "Le commerçant choisit qui a servi"], confirme: ["Le client", "Il confirme qui l’a servi"], les2: ["Les deux", "Caisse, sinon le client"] };
   // modèles prêts à l'emploi par métier (tout reste modifiable)
   // modèles par défaut ; la liste modifiée par l'admin (Métiers & prix) est gardée dans settings/fidMetiers
+  // modèles par métier · idees : [objectif, unité, récompense, type?, DH pour 1 point?]
   const METIERS_BASE = {
-    barber:   { ico: "✂️", nom: "Barber / Coiffure", type: "visites", objectif: 8, unite: "coupes", recompense: "La 9e coupe offerte", employes: true },
-    cafe:     { ico: "☕", nom: "Café", type: "visites", objectif: 10, unite: "cafés", recompense: "1 café offert", employes: false },
-    snack:    { ico: "🌯", nom: "Snack", type: "visites", objectif: 10, unite: "commandes", recompense: "1 sandwich offert", employes: false },
-    resto:    { ico: "🍽️", nom: "Restaurant", type: "montant", objectif: 200, dhParPoint: 10, unite: "points", recompense: "-50 DH sur l’addition", employes: true },
-    vetement: { ico: "👕", nom: "Vêtements", type: "articles", objectif: 10, unite: "articles", recompense: "-20 % sur le prochain achat", employes: true },
-    location: { ico: "🏠", nom: "Location (maisons, voitures)", type: "visites", objectif: 5, unite: "locations", recompense: "La 6e location à -50 %", employes: false },
-    lavage:   { ico: "🚗", nom: "Lavage auto", type: "visites", objectif: 5, unite: "lavages", recompense: "Le 6e lavage offert", employes: true },
-    autre:    { ico: "✨", nom: "Autre", type: "visites", objectif: 10, unite: "visites", recompense: "", employes: false }
+    barber:    { ico: "✂️", nom: "Barber / Coiffure homme", type: "visites", objectif: 8, unite: "coupes", recompense: "La 9e coupe offerte", employes: true,
+      idees: [[8, "coupes", "La 9e coupe offerte"], [5, "coupes", "1 barbe offerte"], [10, "coupes", "1 soin du visage offert"], [6, "coupes", "-50 % sur la 7e coupe"]] },
+    beaute:    { ico: "💅", nom: "Salon de beauté / Coiffure femme", type: "visites", objectif: 6, unite: "visites", recompense: "1 brushing offert", employes: true,
+      idees: [[6, "visites", "1 brushing offert"], [5, "manucures", "La 6e manucure offerte"], [8, "visites", "1 soin capillaire offert"], [10, "visites", "-30 % sur une coloration"]] },
+    cafe:      { ico: "☕", nom: "Café", type: "visites", objectif: 10, unite: "cafés", recompense: "1 café offert", employes: false,
+      idees: [[10, "cafés", "1 café offert"], [8, "boissons", "1 boisson au choix offerte"], [12, "cafés", "1 petit-déjeuner offert"], [5, "visites", "1 viennoiserie offerte"]] },
+    snack:     { ico: "🌯", nom: "Snack / Fast-food", type: "visites", objectif: 10, unite: "commandes", recompense: "1 sandwich offert", employes: false,
+      idees: [[10, "commandes", "1 sandwich offert"], [8, "commandes", "1 menu offert"], [5, "commandes", "1 boisson offerte"], [6, "tacos", "Le 7e tacos offert"]] },
+    resto:     { ico: "🍽️", nom: "Restaurant", type: "montant", objectif: 200, dhParPoint: 10, unite: "points", recompense: "-50 DH sur l’addition", employes: true,
+      idees: [[200, "points", "-50 DH sur l’addition", "montant", 10], [10, "repas", "1 dessert offert"], [300, "points", "1 plat offert", "montant", 10], [5, "visites", "1 boisson offerte"]] },
+    pizzeria:  { ico: "🍕", nom: "Pizzeria", type: "visites", objectif: 8, unite: "pizzas", recompense: "La 9e pizza offerte", employes: false,
+      idees: [[8, "pizzas", "La 9e pizza offerte"], [5, "commandes", "1 boisson 1 L offerte"], [10, "commandes", "1 pizza familiale offerte"]] },
+    patisserie:{ ico: "🥐", nom: "Boulangerie / Pâtisserie", type: "montant", objectif: 100, dhParPoint: 10, unite: "points", recompense: "1 gâteau offert", employes: false,
+      idees: [[100, "points", "1 gâteau offert", "montant", 10], [10, "visites", "1 viennoiserie offerte"], [200, "points", "-20 % sur une commande de fête", "montant", 10]] },
+    glacier:   { ico: "🍦", nom: "Glacier / Crêperie / Jus", type: "visites", objectif: 8, unite: "commandes", recompense: "1 glace offerte", employes: false,
+      idees: [[8, "glaces", "1 glace offerte"], [10, "jus", "1 jus offert"], [6, "crêpes", "La 7e crêpe offerte"]] },
+    vetement:  { ico: "👕", nom: "Vêtements / Chaussures", type: "articles", objectif: 10, unite: "articles", recompense: "-20 % sur le prochain achat", employes: true,
+      idees: [[10, "articles", "-20 % sur le prochain achat"], [500, "points", "Bon d’achat de 50 DH", "montant", 10], [5, "achats", "1 accessoire offert"]] },
+    pressing:  { ico: "🧺", nom: "Pressing / Laverie", type: "articles", objectif: 20, unite: "pièces", recompense: "5 pièces nettoyées gratuitement", employes: false,
+      idees: [[20, "pièces", "5 pièces nettoyées gratuitement"], [10, "visites", "1 couette nettoyée offerte"], [15, "pièces", "1 costume nettoyé offert"]] },
+    hammam:    { ico: "🧖", nom: "Hammam / Spa", type: "visites", objectif: 6, unite: "séances", recompense: "La 7e séance offerte", employes: true,
+      idees: [[6, "séances", "La 7e séance offerte"], [5, "séances", "1 gommage offert"], [10, "séances", "1 massage offert"]] },
+    sport:     { ico: "🏋️", nom: "Salle de sport", type: "visites", objectif: 3, unite: "mois", recompense: "Le 4e mois à -50 %", employes: false,
+      idees: [[3, "mois", "Le 4e mois à -50 %"], [6, "mois", "1 mois offert"], [12, "mois", "1 tenue de sport offerte"]] },
+    pharmacie: { ico: "💊", nom: "Parapharmacie", type: "montant", objectif: 300, dhParPoint: 10, unite: "points", recompense: "Bon d’achat de 30 DH", employes: false,
+      idees: [[300, "points", "Bon d’achat de 30 DH", "montant", 10], [500, "points", "1 produit de soin offert", "montant", 10]] },
+    epicerie:  { ico: "🛒", nom: "Épicerie / Supérette", type: "montant", objectif: 500, dhParPoint: 10, unite: "points", recompense: "Bon d’achat de 25 DH", employes: false,
+      idees: [[500, "points", "Bon d’achat de 25 DH", "montant", 10], [1000, "points", "Bon d’achat de 60 DH", "montant", 10], [10, "visites", "1 article surprise offert"]] },
+    telephone: { ico: "📱", nom: "Téléphonie / Réparation", type: "visites", objectif: 5, unite: "achats", recompense: "1 protection d’écran offerte", employes: false,
+      idees: [[5, "achats", "1 protection d’écran offerte"], [3, "réparations", "-30 % sur la 4e réparation"], [500, "points", "1 câble ou chargeur offert", "montant", 10]] },
+    gaming:    { ico: "🎮", nom: "Salle de jeux / Gaming", type: "visites", objectif: 10, unite: "heures", recompense: "2 heures offertes", employes: false,
+      idees: [[10, "heures", "2 heures offertes"], [8, "visites", "1 boisson offerte"], [20, "heures", "1 tournoi gratuit"]] },
+    location:  { ico: "🏠", nom: "Location (maisons, voitures)", type: "visites", objectif: 5, unite: "locations", recompense: "La 6e location à -50 %", employes: false,
+      idees: [[5, "locations", "La 6e location à -50 %"], [3, "locations", "1 jour offert"], [10, "nuits", "1 nuit offerte"]] },
+    lavage:    { ico: "🚗", nom: "Lavage auto", type: "visites", objectif: 5, unite: "lavages", recompense: "Le 6e lavage offert", employes: true,
+      idees: [[5, "lavages", "Le 6e lavage offert"], [8, "lavages", "1 lavage intérieur complet offert"], [10, "lavages", "1 polissage offert"]] },
+    garage:    { ico: "🔧", nom: "Garage / Vidange", type: "visites", objectif: 4, unite: "vidanges", recompense: "La 5e vidange à -50 %", employes: false,
+      idees: [[4, "vidanges", "La 5e vidange à -50 %"], [3, "visites", "1 contrôle offert"], [5, "visites", "1 lavage offert"]] },
+    autre:     { ico: "✨", nom: "Autre", type: "visites", objectif: 10, unite: "visites", recompense: "", employes: false,
+      idees: [[10, "visites", "1 cadeau surprise"], [5, "visites", "-10 % sur la prochaine visite"], [200, "points", "Bon d’achat de 20 DH", "montant", 10]] }
   };
+  // idées valables pour tous les commerces
+  const IDEES_TOUS = [[10, "visites", "Cadeau surprise"], [5, "commandes", "Livraison gratuite"], [8, "visites", "-15 % sur la prochaine visite"], [12, "visites", "1 produit au choix offert"]];
+  const ideesTxt = l => (l || []).map(([o, u, r, t, dh]) => (t === "montant" ? `${dh || 10} DH = 1 pt, ${o} pts` : `${o} ${u}`) + " = " + r).join("\n");
+  const lireIdees = txt => String(txt || "").split(/\n+/).map(l => {
+    const m = l.match(/^\s*(\d+)\s*DH\s*=\s*1\s*pts?\s*,\s*(\d+)\s*pts?\s*=\s*(.+)$/i); if (m) return [+m[2], "points", m[3].trim(), "montant", +m[1]];
+    const v = l.match(/^\s*(\d+)\s+([^=]+?)\s*=\s*(.+)$/); return v ? [+v[1], v[2].trim(), v[3].trim()] : null;
+  }).filter(Boolean).slice(0, 12);
   const PERIODES = { mois: "/ mois", an: "/ an", once: "une fois" };
   let METIERS = JSON.parse(JSON.stringify(METIERS_BASE));
   async function chargerMetiers() {
-    try { const d = await db.doc("settings/fidMetiers").get(); if (d.exists) { const m = JSON.parse(d.data().json || "{}"); if (Object.keys(m).length) METIERS = m; } } catch (e) {}
+    try {
+      const d = await db.doc("settings/fidMetiers").get();
+      if (d.exists) {
+        const m = JSON.parse(d.data().json || "{}"), retires = m._retires || [];
+        if (Object.keys(m).length) {
+          METIERS = m;
+          // nouveaux modèles NFCWORK ajoutés depuis : on les montre aussi (sauf ceux supprimés exprès)
+          for (const [k, v] of Object.entries(METIERS_BASE)) if (!METIERS[k] && !retires.includes(k)) METIERS[k] = JSON.parse(JSON.stringify(v));
+          for (const [k, v] of Object.entries(METIERS)) if (k[0] !== "_" && !v.idees && METIERS_BASE[k]) v.idees = METIERS_BASE[k].idees;
+        }
+      }
+    } catch (e) {}
   }
   const prixTxt = m => m && m.prix ? `${m.prix} DH ${PERIODES[m.periode] || ""}`.trim() : "";
 
@@ -106,7 +157,7 @@
       ${progs.length ? `<div class="mlist sec">${progs.map(p => `<div class="paper mcard">
         <div class="row between"><span class="n">${(METIERS[p.metier] || {}).ico || ""} ${esc(p.nom)}</span><span class="pill ${p.actif === false ? "off" : "pro"}">${p.actif === false ? "Désactivé" : esc(TYPES[p.type] ? TYPES[p.type][0] : "")}</span></div>
         <div class="l">${esc(p.objectif)} ${unite(p)} = ${esc(p.recompense)}${admin ? `<br>${esc(p.ownerEmail || "sans compte commerçant")}${p.prix ? ` · ${esc(p.prix)} DH ${PERIODES[p.periode] || ""}` : ""}` : ""}</div>
-        <div class="row"><a class="btn sm primary" href="#p=${esc(p.id)}">Ouvrir</a>${admin ? `<button class="btn sm" data-reglages="${esc(p.id)}">Réglages</button>` : ""}</div></div>`).join("")}</div>`
+        <div class="row"><a class="btn sm primary" href="#p=${esc(p.id)}">Ouvrir</a><button class="btn sm" data-lienqr="${esc(p.id)}">🔗 Lien & QR</button>${admin ? `<button class="btn sm" data-reglages="${esc(p.id)}">Réglages</button>` : ""}</div></div>`).join("")}</div>`
       : `<div class="empty paper sec"><h3>Aucun programme</h3><p>Créez le programme fidélité d’un commerce : type de points, récompense, employés.</p><button class="btn primary" data-act="nouveau">＋ Créer un programme</button></div>`}`;
   }
 
@@ -145,7 +196,7 @@
     const d = fenetre(`<div class="row between"><h2>${ex ? "Réglages" : "Nouveau programme"}</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
       <form class="stack" id="pf" style="margin-top:10px">
         <div><div class="eyebrow" style="margin-bottom:6px">1 · Le métier</div>
-          <div class="seg3" id="metiers" style="grid-template-columns:repeat(4,1fr)">${Object.entries(METIERS).map(([k, m]) => `<button type="button" data-metier="${k}" aria-pressed="${p.metier === k}"><b style="font-size:22px">${m.ico}</b><small>${esc(m.nom.split(" (")[0])}</small>${m.prix ? `<small class="muted">${esc(prixTxt(m))}</small>` : ""}</button>`).join("")}</div></div>
+          <div class="seg3" id="metiers" style="grid-template-columns:repeat(4,1fr)">${Object.entries(METIERS).filter(([k]) => k[0] !== "_").map(([k, m]) => `<button type="button" data-metier="${k}" aria-pressed="${p.metier === k}"><b style="font-size:22px">${m.ico}</b><small>${esc(m.nom.split(" (")[0])}</small>${m.prix ? `<small class="muted">${esc(prixTxt(m))}</small>` : ""}</button>`).join("")}</div></div>
         <div class="eyebrow">2 · Le commerce</div>
         <label class="f">Nom du commerce<input id="p-nom" required maxlength="60" value="${esc(p.nom)}" placeholder="Barber Atlas"></label>
         <label class="f">E-mail du compte commerçant (il scannera les cartes)<input id="p-mail" type="email" list="mails" value="${esc(p.ownerEmail)}" placeholder="client@gmail.com" autocapitalize="off">
@@ -157,6 +208,7 @@
         <div class="grid2"><label class="f">Objectif<input id="p-obj" type="number" min="1" max="1000" value="${esc(p.objectif)}" inputmode="numeric"></label>
           <label class="f">Unité (coupes, cafés…)<input id="p-unite" maxlength="20" value="${esc(p.unite)}"></label></div>
         <label class="f">Récompense<input id="p-rec" required maxlength="80" value="${esc(p.recompense)}" placeholder="1 café offert · -20 % · 1 coupe gratuite"></label>
+        <div><div class="muted" style="font-size:13px;margin-bottom:6px">💡 Idées : touchez pour remplir</div><div class="idees" id="p-idees"></div></div>
         <label class="check"><input type="checkbox" id="p-emp" ${p.employes ? "checked" : ""}> Points des employés (classement du mois)</label>
         <details id="plus"><summary class="muted" style="cursor:pointer;padding:6px 0">Plus d’options</summary><div class="stack" style="margin-top:10px">
           <div><div class="eyebrow" style="margin-bottom:6px">Comment le client gagne ses points</div>${seg("type", TYPES, p.type)}</div>
@@ -173,8 +225,21 @@
       </form>`);
     const val = { type: p.type, modeEmploye: p.modeEmploye }; let logoData = p.logoData || "", metier = p.metier;
     const maj = () => { $("#w-dh", d).hidden = val.type !== "montant"; $("#w-emp", d).hidden = !$("#p-emp", d).checked; };
+    const dessinerIdees = () => {
+      const l = [...((METIERS[metier] || {}).idees || []), ...IDEES_TOUS];
+      $("#p-idees", d).innerHTML = l.map((x, i) => `<button type="button" data-idee="${i}">${esc(x[3] === "montant" ? `${x[4] || 10} DH = 1 pt · ${x[0]} pts` : `${x[0]} ${x[1]}`)} → ${esc(x[2])}</button>`).join("");
+      $("#p-idees", d)._l = l;
+    };
     const choisirSeg = (nom, v) => { val[nom] = v; d.querySelectorAll(`[data-seg="${nom}"] [data-v]`).forEach(x => x.setAttribute("aria-pressed", x.dataset.v === v)); };
     d.addEventListener("click", e => {
+      const ide = e.target.closest("[data-idee]");
+      if (ide) {
+        const [o, u, r, t, dh] = $("#p-idees", d)._l[+ide.dataset.idee];
+        $("#p-obj", d).value = o; $("#p-unite", d).value = u; $("#p-rec", d).value = r;
+        choisirSeg("type", t === "montant" ? "montant" : /article|pièce/i.test(u) ? "articles" : "visites"); if (dh) $("#p-dh", d).value = dh; maj();
+        d.querySelectorAll("[data-idee]").forEach(x => x.setAttribute("aria-pressed", x === ide));
+        return;
+      }
       const m = e.target.closest("[data-metier]");
       if (m) {
         metier = m.dataset.metier; const t = METIERS[metier];
@@ -182,12 +247,13 @@
         $("#p-obj", d).value = t.objectif; $("#p-unite", d).value = t.unite; if (t.recompense || !ex) $("#p-rec", d).value = t.recompense;
         if (t.dhParPoint) $("#p-dh", d).value = t.dhParPoint; $("#p-emp", d).checked = !!t.employes; choisirSeg("type", t.type); maj();
         $("#p-prix", d).value = t.prix || ""; $("#p-per", d).value = t.periode || "an"; $("#p-guide", d).value = t.guide || "";
+        dessinerIdees();
         if (!$("#p-nom", d).value) $("#p-nom", d).focus();
         return;
       }
       const b = e.target.closest("[data-seg] [data-v]"); if (b) { choisirSeg(b.closest("[data-seg]").dataset.seg, b.dataset.v); maj(); }
     });
-    $("#p-emp", d).onchange = maj; maj();
+    $("#p-emp", d).onchange = maj; maj(); dessinerIdees();
     $("#p-logo", d).onchange = async e => {
       const f = e.target.files[0]; if (!f) return;
       try { const r = await lireLogo(f); logoData = r.data; $("#p-logo-prev", d).innerHTML = `<img class="prev" src="${r.data}" alt="">`; if (r.couleur) $("#p-coul", d).value = r.couleur; }
@@ -214,6 +280,7 @@
         const i = progs.findIndex(x => x.id === id); if (i >= 0) progs[i] = { ...progs[i], ...local }; else progs.push(local);
         d.remove(); toast("Programme enregistré ✓");
         if (P && P.id === id) { P = progs.find(x => x.id === id); renderDash(); } else renderListe();
+        if (!pid) lienQR(progs.find(x => x.id === id), true);
       } catch (x) { erreur(x); b.disabled = false; }
     };
   }
@@ -226,7 +293,7 @@
       <button class="btn primary" style="width:100%;margin-top:12px" data-madd>＋ Ajouter un métier</button>
       <button class="btn sm ghost" style="width:100%;margin-top:6px" data-mreset>Revenir aux modèles NFCWORK</button>`);
     const dessiner = () => {
-      $("#mlist", d).innerHTML = Object.entries(METIERS).map(([k, m]) => `<div class="frow" data-medit="${esc(k)}" style="cursor:pointer"><span class="av" style="font-size:20px">${esc(m.ico || "✨")}</span>
+      $("#mlist", d).innerHTML = Object.entries(METIERS).filter(([k]) => k[0] !== "_").map(([k, m]) => `<div class="frow" data-medit="${esc(k)}" style="cursor:pointer"><span class="av" style="font-size:20px">${esc(m.ico || "✨")}</span>
         <div class="tx"><b>${esc(m.nom)}</b><small>${esc(m.type === "montant" ? `${m.dhParPoint || 10} DH = 1 pt · ${m.objectif} pts` : `${m.objectif} ${m.unite || "visites"}`)} = ${esc(m.recompense || "—")}</small></div>
         <span class="pts">${esc(prixTxt(m) || "—")}</span></div>`).join("");
     };
@@ -237,7 +304,7 @@
       const ed = e.target.closest("[data-medit]"); if (ed) { metierForm(ed.dataset.medit, sauver); return; }
       if (e.target.closest("[data-madd]")) { metierForm(null, sauver); return; }
       const r = e.target.closest("[data-mreset]");
-      if (r) { if (!reset) { reset = true; r.textContent = "Confirmer : remettre les modèles de départ"; return; } METIERS = JSON.parse(JSON.stringify(METIERS_BASE)); try { await sauver(); } catch (x) { erreur(x); } reset = false; r.textContent = "Revenir aux modèles NFCWORK"; }
+      if (r) { if (!reset) { reset = true; r.textContent = "Confirmer : remettre les modèles de départ"; return; } METIERS = JSON.parse(JSON.stringify(METIERS_BASE)); delete METIERS._retires; try { await sauver(); } catch (x) { erreur(x); } reset = false; r.textContent = "Revenir aux modèles NFCWORK"; }
     });
   }
   function metierForm(cle, sauver) {
@@ -256,6 +323,7 @@
         <label class="f" id="m-dhw">DH pour 1 point<input id="m-dh" type="number" min="1" max="1000" value="${esc(m.dhParPoint)}" inputmode="numeric"></label>
         <label class="f">Récompense<input id="m-rec" maxlength="80" value="${esc(m.recompense)}" placeholder="La 6e séance offerte"></label>
         <label class="f">Comment ça marche (affiché au client, une étape par ligne)<textarea id="m-guide" maxlength="400" rows="3" placeholder="Montrez votre carte à chaque visite&#10;Après 5 séances, la 6e est offerte">${esc(m.guide)}</textarea></label>
+        <label class="f">💡 Idées de récompenses (une par ligne : « 10 cafés = 1 café offert » ou « 10 DH = 1 pt, 200 pts = -50 DH »)<textarea id="m-idees" rows="4" maxlength="800">${esc(ideesTxt(m.idees))}</textarea></label>
         <label class="check"><input type="checkbox" id="m-emp" ${m.employes ? "checked" : ""}> Points des employés activés par défaut</label>
         <p class="err" id="merr"></p>
         <div class="row"><button class="btn primary" style="flex:1">Enregistrer</button><button type="button" class="btn ghost" data-fermer>Annuler</button></div>
@@ -271,7 +339,7 @@
       if (t) { type = t.dataset.v; d.querySelectorAll("#m-type [data-v]").forEach(x => x.setAttribute("aria-pressed", x === t)); if (type === "montant" && !cle) $("#m-unite", d).value = "points"; maj(); }
     });
     const del = $("#m-del", d); let conf = false;
-    if (del) del.onclick = async () => { if (!conf) { conf = true; del.textContent = "Confirmer la suppression"; return; } const old = METIERS[cle]; delete METIERS[cle]; try { await sauver(); d.remove(); } catch (x) { METIERS[cle] = old; erreur(x); } };
+    if (del) del.onclick = async () => { if (!conf) { conf = true; del.textContent = "Confirmer la suppression"; return; } const old = METIERS[cle]; delete METIERS[cle]; if (METIERS_BASE[cle]) METIERS._retires = [...new Set([...(METIERS._retires || []), cle])]; try { await sauver(); d.remove(); } catch (x) { METIERS[cle] = old; erreur(x); } };
     $("#mf", d).onsubmit = async e => {
       e.preventDefault();
       const nom = $("#m-nom", d).value.trim(); if (!nom) return;
@@ -280,7 +348,7 @@
       const ancien = METIERS[k];
       METIERS[k] = { ico, nom, type, objectif: num("#m-obj", 1, 1000, 10), unite: $("#m-unite", d).value.trim() || (type === "montant" ? "points" : "visites"),
         dhParPoint: num("#m-dh", 1, 1000, 10), recompense: $("#m-rec", d).value.trim(), employes: $("#m-emp", d).checked,
-        prix: parseInt($("#m-prix", d).value, 10) || 0, periode: $("#m-per", d).value, guide: $("#m-guide", d).value.trim().slice(0, 400) };
+        prix: parseInt($("#m-prix", d).value, 10) || 0, periode: $("#m-per", d).value, guide: $("#m-guide", d).value.trim().slice(0, 400), idees: lireIdees($("#m-idees", d).value) };
       const b = e.target.querySelector("button.primary"); b.disabled = true;
       try { await sauver(); d.remove(); }
       catch (x) { if (ancien) METIERS[k] = ancien; else delete METIERS[k]; erreur(x); b.disabled = false; }
@@ -310,6 +378,7 @@
         ${admin ? `<button class="btn sm" data-reglages="${esc(P.id)}">Réglages</button>` : ""}</div>
       ${P.actif === false ? `<div class="notice" style="margin-top:10px">Programme désactivé : les clients ne peuvent pas créer de carte.</div>` : ""}
       <div class="big2"><button class="btn primary" data-act="scan">📷 Scanner</button><button class="btn" data-act="affiches">🖨 Affiches & QR</button></div>
+      <button class="btn sm" style="width:100%;margin:-4px 0 14px" data-act="lienqr">🔗 Lien & QR code de la carte</button>
       <div class="stats"><div><b>${cartes.length}</b><span>Clients</span></div><div><b>${prets}</b><span>Récompenses prêtes</span></div><div><b>${offerts}</b><span>Offertes</span></div></div>
       ${P.employes ? `<div class="tabs2"><button data-vue="clients" aria-pressed="${vue === "clients"}">Clients</button><button data-vue="employes" aria-pressed="${vue === "employes"}">Employés</button></div>` : ""}
       ${vue === "employes" && P.employes ? `
@@ -469,6 +538,33 @@
   }
 
   /* ================= Affiches à imprimer ================= */
+  // lien d'inscription + QR code d'un programme (copier, WhatsApp, télécharger en image)
+  function lienQR(prog, neuf) {
+    const lien = SITE + "/f/?p=" + prog.id;
+    const d = fenetre(`<div class="row between"><h2>${neuf ? "✅ Carte fidélité créée" : "Lien et QR de la carte"}</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
+      <p class="muted" style="margin:4px 0 12px">Imprimez ce QR ou envoyez le lien : vos clients créent leur carte en 10 secondes.</p>
+      <div class="qrbox"><div class="q">${window.QRGEN.svg(lien, { marge: 1, couleur: "#05080f" })}</div>
+        <div style="flex:1;min-width:160px"><b>${esc(prog.nom)}</b><div class="u" style="margin:4px 0 10px">${esc(lien)}</div>
+          <div class="stack" style="gap:6px"><button class="btn sm primary" id="lq-copier">Copier le lien</button>
+            <a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent("Votre carte fidélité " + prog.nom + " : " + lien)}">Partager sur WhatsApp</a>
+            <button class="btn sm" id="lq-png">Télécharger le QR</button></div></div></div>
+      <div class="row" style="margin-top:12px"><a class="btn sm ghost" href="${esc(lien)}" target="_blank" rel="noopener">Voir la page client</a>${neuf ? `<a class="btn sm" href="#p=${esc(prog.id)}" data-fermer>Ouvrir le tableau de bord</a>` : ""}</div>`);
+    $("#lq-copier", d).onclick = async () => { try { await navigator.clipboard.writeText(lien); toast("Lien copié"); } catch (e) { prompt("Copiez le lien :", lien); } };
+    $("#lq-png", d).onclick = () => {
+      let svg = window.QRGEN.svg(lien, { marge: 2, couleur: "#05080f" });
+      if (!/xmlns=/.test(svg)) svg = svg.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+      svg = svg.replace("<svg", '<svg width="1000" height="1000"');
+      const img = new Image();
+      img.onload = () => {
+        const W = 1000, c = document.createElement("canvas"); c.width = W; c.height = W + 140;
+        const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, W, W);
+        g.fillStyle = "#05080f"; g.font = "700 52px system-ui, sans-serif"; g.textAlign = "center"; g.fillText(String(prog.nom || ""), W / 2, W + 60);
+        g.font = "400 34px system-ui, sans-serif"; g.fillStyle = "#5b6b85"; g.fillText("Carte fidélité · scannez pour créer votre carte", W / 2, W + 112);
+        const a = document.createElement("a"); a.href = c.toDataURL("image/png"); a.download = "QR-fidelite-" + prog.id + ".png"; document.body.appendChild(a); a.click(); a.remove();
+      };
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    };
+  }
   function affiches() {
     const lienCaisse = SITE + "/f/?p=" + P.id;
     const d = fenetre(`<div class="row between"><h2>Affiches & QR</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
@@ -502,6 +598,7 @@
     const t = (sel) => e.target.closest(sel);
     let b;
     if ((b = t("[data-reglages]"))) return void reglages(b.dataset.reglages);
+    if ((b = t("[data-lienqr]"))) return void lienQR(progs.find(x => x.id === b.dataset.lienqr), false);
     if ((b = t("[data-vue]"))) { vue = b.dataset.vue; return void renderDash(); }
     if ((b = t("[data-plus]"))) { const d = fenetre(""); return void quiAServi(d, b.dataset.plus, 1); }
     if ((b = t("[data-carte]"))) return void carteVue(b.dataset.carte);
@@ -513,6 +610,7 @@
       if (a === "metiers") metiersVue();
       if (a === "scan") scanner();
       if (a === "affiches") affiches();
+      if (a === "lienqr") lienQR(P, false);
       if (a === "emp-add") empAjout();
     }
   });
