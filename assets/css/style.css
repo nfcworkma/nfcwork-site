@@ -436,3 +436,35 @@ details p{margin:0;padding:0 18px 16px;color:#c9d4e8}
 .ico-star-filled{--i:url("../icons/ui/star-filled.svg")}.ico-user{--i:url("../icons/ui/user.svg")}.ico-wifi{--i:url("../icons/ui/wifi.svg")}.ico-tools-kitchen-2{--i:url("../icons/ui/tools-kitchen-2.svg")}
 .ico-link{--i:url("../icons/ui/link.svg")}.ico-alert-triangle{--i:url("../icons/ui/alert-triangle.svg")}.ico-nfc{--i:url("../icons/ui/nfc.svg")}.ico-help-circle{--i:url("../icons/ui/help-circle.svg")}
 .ico-file-text{--i:url("../icons/ui/file-text.svg")}.ico-circle-check{--i:url("../icons/ui/circle-check.svg")}.ico-x{--i:url("../icons/ui/x.svg")}
+
+/* ---------- Page Abonnements & solutions ---------- */
+.sol-forms{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-top:8px}
+.sol-f{position:relative;background:var(--glass);border:1px solid var(--glass-line);border-radius:var(--radius);padding:22px 20px 20px;display:flex;flex-direction:column;gap:12px}
+.sol-f.star{border-color:var(--accent);box-shadow:var(--glow)}
+.sol-badge{position:absolute;top:-11px;inset-inline-end:18px;background:var(--grad);color:#fff;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px}
+.sol-f h2{font-size:21px;display:flex;align-items:center;gap:10px}
+.sol-pour{margin:-6px 0 0;color:var(--muted);font-size:13.5px}
+.sol-pr{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 0;border-top:1px dashed var(--line-2);border-bottom:1px dashed var(--line-2)}
+.sol-pr small{display:block;color:var(--muted);font-size:12px}
+.sol-pr b{font-size:24px;font-family:var(--display)}
+.sol-pr b i{font-style:normal;font-size:13px;color:var(--muted);font-weight:500}
+.sol-f ul{list-style:none;margin:0;padding:0;display:grid;gap:7px;font-size:14.5px;flex:1;align-content:start}
+.sol-f li{padding-inline-start:24px;position:relative}
+.sol-f li::before{content:"✓";position:absolute;inset-inline-start:0;color:var(--ok);font-weight:700}
+.sol-band{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:18px}
+.sol-band div{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-s);padding:14px 16px;color:var(--muted);font-size:14px}
+.sol-band b{display:block;color:var(--fg);font-size:15.5px}
+.sol-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.sol-o{background:var(--glass);border:1px solid var(--glass-line);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:8px}
+.sol-ic{font-size:30px;line-height:1}
+.sol-o h3{font-size:17px}
+.sol-o p{margin:0;color:var(--muted);font-size:14px;flex:1}
+.sol-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13.5px;margin-top:4px}
+.sol-foot a{color:var(--accent-2);text-decoration:none;font-weight:600}
+.sol-inc{background:color-mix(in srgb,var(--accent) 16%,transparent);color:#bfe0ff;border-radius:20px;padding:3px 10px;font-size:12.5px}
+.sol-how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.sol-how div{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.sol-how i{font-style:normal;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--grad);color:#fff;font-weight:700;margin-bottom:10px}
+.sol-how b{display:block;font-size:16px}.sol-how p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.sol-cta{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;background:linear-gradient(120deg,#0b1a3a,#123a7a);border:1px solid var(--line-2);border-radius:var(--radius);padding:26px}
+.sol-cta h2{font-size:22px}.sol-cta p{margin:6px 0 0;color:#c5d4ee;max-width:560px}

@@ -34,6 +34,14 @@
     hello: "Bonjour, je souhaite commander :", by: "Menu digital par", add: "Ajouter", top: "À ne pas manquer", carte: "La carte"
   };
 
+  // type de commerce : change les mots de la page et ce qu'on demande au client
+  const TYPES = {
+    resto: { carte: "La carte", choix: "choix", order: "Ma commande", hello: "Bonjour, je souhaite commander :", titre: "Menu", add: "Ajouter" },
+    boutique: { carte: "Catalogue", choix: "articles", order: "Mon panier", hello: "Bonjour, je souhaite commander :", titre: "Catalogue", add: "Ajouter" },
+    salon: { carte: "Nos services", choix: "services", order: "Mon rendez-vous", hello: "Bonjour, je souhaite prendre rendez-vous :", titre: "Rendez-vous", add: "Choisir" },
+    hotel: { carte: "Room service", choix: "choix", order: "Ma commande", hello: "Room service, je souhaite commander :", titre: "Room service", add: "Ajouter" }
+  };
+  const TY = () => TYPES[M && M.type] || TYPES.resto;
   let M = null, panier = {};
   let liv = null;   // livraison activée par le commerce : { frais, min, zone }
   // texte enregistré en chaîne ou en { fr: … } (anciens menus) → toujours la version française
@@ -204,7 +212,11 @@
   }
 
   function rendre() {
-    document.title = (M.nom || "Menu") + " · Menu";
+    document.title = (M.nom || "Menu") + " · " + TY().titre;
+    U.order = TY().order; U.hello = TY().hello; U.add = TY().add; U.carte = TY().carte;
+    U.table = M.type === "hotel" ? "Numéro de chambre" : M.type === "boutique" ? "Votre nom" : "Table ou nom";
+    U.send = M.type === "salon" ? "Envoyer la demande de rendez-vous sur WhatsApp" : "Envoyer la commande sur WhatsApp";
+    U.see = M.type === "salon" ? "Voir mon rendez-vous" : M.type === "boutique" ? "Voir mon panier" : "Voir ma commande";
     if (!apercu) iconeApp();
     if (M.actif === false && !apercu && !demo) { etat(U.off, U.offTx); return; }
     // abonnement NFCWORK non payé : coupure automatique après la date prévue
@@ -231,7 +243,10 @@
     const L = M.livraison || {};
     liv = waOk && L.actif ? { frais: prixNum(L.frais), min: prixNum(L.min), zone: String(L.zone || "").trim() } : null;
     if (liv && !saisie.mode) saisie.mode = qs.has("livraison") ? "livraison" : "place";
-    const bandeau = liv ? `<div class="wrap"><div class="livban"><b>🛵 ${liv.frais ? "Livraison " + esc(fmtPrix(arr(liv.frais))) : "Livraison gratuite"}</b><span>${liv.zone ? esc(liv.zone) + " · " : ""}${liv.min ? "dès " + esc(fmtPrix(arr(liv.min))) + " · " : ""}commandez ici, recevez chez vous</span></div></div>` : "";
+    const promo = promosActives().map(p => `<div class="wrap"><div class="promoban"><b>🔥 ${esc(p.texte)}</b>${p.de && p.a ? `<span>${esc(p.de.replace(":", "h"))} – ${esc(p.a.replace(":", "h"))}${(p.jours || []).length && p.jours.length < 7 ? " · " + p.jours.map(j => JOURS[j]).join(", ") : ""}</span>` : ""}</div></div>`).join("");
+    const resaOk = prem && waNum(inf.whatsapp) && (M.reservation || {}).actif && M.type !== "salon" && M.type !== "boutique";
+    const resa = resaOk ? `<div class="wrap"><button class="resabtn" id="resa">📅 ${M.type === "hotel" ? "Réserver une chambre ou une table" : "Réserver une table"}</button></div>` : "";
+    const bandeau = promo + resa + (liv ? `<div class="wrap"><div class="livban"><b>🛵 ${liv.frais ? "Livraison " + esc(fmtPrix(arr(liv.frais))) : "Livraison gratuite"}</b><span>${liv.zone ? esc(liv.zone) + " · " : ""}${liv.min ? "dès " + esc(fmtPrix(arr(liv.min))) + " · " : ""}commandez ici, recevez chez vous</span></div></div>` : "");
     const nav = cats.length > 1 ? `<nav class="cats"><div class="cats-in">${cats.map(c => `<a href="#c-${esc(c.id)}" data-cat="${esc(c.id)}">${esc(tr(c.nom))}</a>`).join("")}</div></nav>` : "";
     const fin = `${pied}${waOk ? `<button class="cartbar" id="cartbar" hidden></button>` : ""}
       ${prem && waNum(inf.whatsapp) && !waOk ? `<a class="wafab" href="https://wa.me/${waNum(inf.whatsapp)}" target="_blank" rel="noopener" aria-label="WhatsApp">${I.wa}</a>` : ""}`;
@@ -245,7 +260,7 @@
         ${bandeau}
         ${vedettes.length ? `<section class="wrap vedettes"><h2>${U.top}</h2><div class="vscroll">${vedettes.map(it => vcarte(it, waOk)).join("")}</div></section>` : ""}
         ${nav}
-        <div class="wrap">${cats.map(c => `<section class="cat" id="c-${esc(c.id)}"><h2>${esc(tr(c.nom))}</h2><div class="orn">${(c.items || []).length} choix</div>
+        <div class="wrap">${cats.map(c => `<section class="cat" id="c-${esc(c.id)}"><h2>${esc(tr(c.nom))}</h2><div class="orn">${(c.items || []).length} ${TY().choix}</div>
           <div class="pgrid">${(c.items || []).map(it => it.photo ? pcarte(it, waOk) : carte(it, waOk)).join("")}</div></section>`).join("")}</div>
         ${fin}`;
     } else {
@@ -253,6 +268,7 @@
       app.innerHTML = `${barreDemo()}
         ${cover ? `<div class="hero"><img class="cover" data-img="${esc(M.couverture)}" data-w="760" alt=""></div>` : ""}
         <div class="head wrap">${logoTag()}<h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}${puces()}</div>
+        ${promo}
         ${nav}
         <div class="wrap">${cats.map(c => `<section class="cat" id="c-${esc(c.id)}"><h2>${esc(tr(c.nom))}</h2><div class="items">${(c.items || []).map(it => carte(it, false)).join("")}</div></section>`).join("")}</div>
         ${fin}`;
@@ -261,6 +277,21 @@
     majPanier();
     remplirPhotos();
   }
+
+  /* ---------- promos et happy hour : affichées seulement aux jours et heures prévus ---------- */
+  const JOURS = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"];
+  function promosActives(quand) {
+    const d = quand || new Date(), j = d.getDay(), m = d.getHours() * 60 + d.getMinutes();
+    const mn = t => { const x = String(t || "").match(/^(\d{1,2}):(\d{2})$/); return x ? +x[1] * 60 + +x[2] : null; };
+    return (M.promos || []).filter(p => {
+      if (!p || p.actif === false || !String(p.texte || "").trim()) return false;
+      if ((p.jours || []).length && !p.jours.includes(j)) return false;
+      const a = mn(p.de), b = mn(p.a);
+      if (a == null || b == null || a === b) return true;
+      return a < b ? m >= a && m < b : m >= a || m < b;   // ex. 22:00 → 02:00
+    });
+  }
+  window.NFCW_PROMOS = promosActives;
 
   function ctrl(it, waOk, gros) {
     const off = it.dispo === false;
@@ -339,7 +370,7 @@
     majPanier();
   }
   // ce que le client a écrit reste gardé, même si la fenêtre se redessine (quand il change une quantité)
-  const saisie = { table: "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "", gps: "" };
+  const saisie = { table: "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "", gps: "", date: "", heure: "", pers: "" };
   function feuille() {
     const its = tousItems();
     const lignes = Object.entries(panier).map(([id, q]) => ({ it: its.find(x => x.id === id), q })).filter(x => x.it && x.q);
@@ -373,8 +404,11 @@
   // bas de la fenêtre : total, sur place / livraison, champs du client
   function blocFin(total) {
     const champ = (k, label, attrs) => `<label class="f">${label}<input id="c-${k}" value="${esc(saisie[k])}" ${attrs || ""}></label>`;
+    if (M.type === "salon") return `<div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total)))}</span></div>
+        <div class="grid2">${champ("date", "Jour souhaité", `type="date" min="${aujourdhui()}"`)}${champ("heure", "Heure souhaitée", 'type="time" step="900"')}</div>
+        ${champ("nom", "Votre nom", 'maxlength="60" autocomplete="name"')}${champ("note", `${U.note} ${U.opt}`, 'maxlength="200"')}`;
     if (!liv) return `<div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total)))}</span></div>
-        ${champ("table", `${U.table} ${U.opt}`, 'maxlength="60"')}${champ("note", `${U.note} ${U.opt}`, 'maxlength="200"')}`;
+        ${champ("table", M.type === "hotel" ? U.table : `${U.table} ${U.opt}`, 'maxlength="60"' + (M.type === "hotel" ? ' inputmode="numeric"' : ""))}${champ("note", `${U.note} ${U.opt}`, 'maxlength="200"')}`;
     const lv = enLivraison();
     const choix = `<div class="mode"><button type="button" data-mode="place" aria-pressed="${!lv}">🍽 Sur place</button><button type="button" data-mode="livraison" aria-pressed="${lv}">🛵 Livraison</button></div>`;
     if (!lv) return choix + `<div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total)))}</span></div>
@@ -416,7 +450,14 @@
     const table = (d.querySelector("#c-table") || {}).value || saisie.table, note = (d.querySelector("#c-note") || {}).value || saisie.note;
     const liste = lignes.map(l => `• ${l.q} × ${tr(l.it.nom)} — ${fmtPrix(arr(l.q * prixNum(l.it.prix)))}`);
     let txt;
-    if (enLivraison()) {
+    if (M.type === "salon") {
+      const err = d.querySelector("#c-err");
+      if (!saisie.date || !saisie.heure) { err.textContent = "Choisissez le jour et l’heure du rendez-vous."; return; }
+      txt = [U.hello, "", ...liste, "", `${U.total} : ${fmtPrix(arr(total))}`, "", `📅 Jour : ${dateFr(saisie.date)}`, `🕒 Heure : ${saisie.heure}`]
+        .concat(saisie.nom.trim() ? [`Nom : ${saisie.nom.trim()}`] : [], note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
+    } else if (M.type === "hotel" && !enLivraison() && !table.trim()) {
+      d.querySelector("#c-err").textContent = "Indiquez le numéro de votre chambre."; d.querySelector("#c-table").focus(); return;
+    } else if (enLivraison()) {
       const err = d.querySelector("#c-err");
       if (liv.min && total < liv.min) { err.textContent = `Commande minimum : ${fmtPrix(arr(liv.min))}.`; return; }
       if (!saisie.tel.trim()) { err.textContent = "Indiquez votre numéro de téléphone pour le livreur."; d.querySelector("#c-tel").focus(); return; }
@@ -431,6 +472,37 @@
         .concat(table.trim() ? [`${U.table} : ${table.trim()}`] : [], note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
     }
     window.open(`https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt)}`, "_blank");
+  }
+
+  /* ---------- réservation de table (envoyée sur WhatsApp) ---------- */
+  const aujourdhui = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  const dateFr = v => { const d = new Date(v + "T12:00:00"); return isNaN(d) ? v : d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }); };
+  function reserver() {
+    const d = document.createElement("div");
+    d.className = "sheet";
+    const champ = (k, label, attrs) => `<label class="f">${label}<input id="r-${k}" value="${esc(saisie[k])}" ${attrs || ""}></label>`;
+    d.innerHTML = `<div class="box" role="dialog" aria-modal="true"><h2>📅 Réserver une table</h2>
+      <div class="grid2">${champ("date", "Jour", `type="date" min="${aujourdhui()}"`)}${champ("heure", "Heure", 'type="time" step="900"')}</div>
+      ${champ("pers", "Nombre de personnes", 'type="number" min="1" max="200" inputmode="numeric"')}
+      ${champ("nom", "Votre nom", 'maxlength="60" autocomplete="name"')}
+      ${champ("tel", "Téléphone", 'type="tel" inputmode="tel" maxlength="20" autocomplete="tel"')}
+      ${champ("note", `Remarque : anniversaire, terrasse… ${U.opt}`, 'maxlength="200"')}
+      ${tr((M.reservation || {}).note) ? `<p class="hint" style="margin:6px 0 0">${esc(tr(M.reservation.note))}</p>` : ""}
+      <button class="wa" id="r-send">${I.wa.replace("<svg", '<svg width="22" height="22"')} Envoyer la demande sur WhatsApp</button><p class="cerr" id="r-err"></p>
+      <button class="ghost" data-fermer>${U.close}</button></div>`;
+    document.body.appendChild(d);
+    d.addEventListener("input", e => { const k = (e.target.id || "").replace(/^r-/, ""); if (k in saisie) saisie[k] = e.target.value; });
+    d.addEventListener("click", e => {
+      if (e.target === d || e.target.closest("[data-fermer]")) { d.remove(); return; }
+      if (!e.target.closest("#r-send")) return;
+      const err = d.querySelector("#r-err");
+      if (!saisie.date || !saisie.heure) { err.textContent = "Choisissez le jour et l’heure."; return; }
+      if (!(+saisie.pers > 0)) { err.textContent = "Indiquez le nombre de personnes."; return; }
+      if (!saisie.nom.trim()) { err.textContent = "Indiquez votre nom."; return; }
+      const txt = ["Bonjour, je souhaite RÉSERVER une table 📅 :", "", `Jour : ${dateFr(saisie.date)}`, `Heure : ${saisie.heure}`, `Personnes : ${saisie.pers}`, `Nom : ${saisie.nom.trim()}`]
+        .concat(saisie.tel.trim() ? [`Téléphone : ${saisie.tel.trim()}`] : [], saisie.note.trim() ? [`Remarque : ${saisie.note.trim()}`] : []).join("\n");
+      window.open(`https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt)}`, "_blank");
+    });
   }
 
   /* ---------- visionneuse ---------- */
@@ -453,6 +525,7 @@
     if (p) { changer(p.dataset.plus, 1); return; }
     if (m) { changer(m.dataset.moins, -1); return; }
     if (e.target.closest("#cartbar")) { feuille(); return; }
+    if (e.target.closest("#resa")) { reserver(); return; }
     const z = e.target.closest("[data-zoom]");
     if (z) { zoom(z.dataset.zoom); return; }
     const c = e.target.closest(".cats a");

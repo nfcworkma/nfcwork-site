@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Menu TV · NFCWORK</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/img/icons/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Readex+Pro:wght@400;500;600&display=swap">
+<style>
+/* MENU SUR ÉCRAN TV : même menu que le téléphone, en grand, les catégories défilent toutes seules */
+:root{--bg:#0d0f14;--surface:#171a22;--fg:#f3f1ec;--muted:#a4a7b1;--line:#2a2f3b;--accent:#e0b15c;--on-accent:#16130d;--display:"Fraunces",Georgia,serif;--body:"Readex Pro",system-ui,sans-serif}
+:root[data-theme="creme"]{--bg:#f6f0e6;--surface:#fffaf2;--fg:#2a211a;--muted:#7b6d60;--line:#e3d7c5;--accent:#b5552b;--on-accent:#fff}
+:root[data-theme="cafe"]{--bg:#1d1410;--surface:#2a1e18;--fg:#f4e9dc;--muted:#c0a996;--line:#45342a;--accent:#d99a4e;--on-accent:#1d1410}
+:root[data-theme="lagon"]{--bg:#f2f7f6;--surface:#ffffff;--fg:#10302c;--muted:#5b7470;--line:#d3e3e0;--accent:#0f8a7e;--on-accent:#fff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font-family:var(--body)}
+body{font-size:1.4vw}
+#tv{height:100vh;display:grid;grid-template-rows:auto auto 1fr auto;padding:2.2vw 2.8vw 1.6vw;gap:1.4vw}
+.hd{display:flex;align-items:center;gap:1.6vw}
+.hd img.logo{width:6vw;height:6vw;border-radius:50%;object-fit:cover;background:#fff}
+.hd img.logo.sq{border-radius:1vw}
+.hd h1{font-family:var(--display);font-size:3.4vw;margin:0;line-height:1}
+.hd .sl{color:var(--muted);font-size:1.3vw;margin-top:.4vw}
+.hd .cat{margin-inline-start:auto;text-align:end}
+.hd .cat b{display:block;font-family:var(--display);font-size:2.8vw;color:var(--accent);line-height:1}
+.hd .cat span{color:var(--muted);font-size:1.1vw}
+.promo{border-radius:1.2vw;padding:1vw 1.6vw;background:linear-gradient(110deg,#e8452c,#f39c12);color:#fff;display:flex;justify-content:center;align-items:baseline;gap:1.2vw;font-size:1.7vw}
+.promo b{font-size:2vw}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;gap:1.3vw;min-height:0;transition:opacity .6s}
+.grid.fade{opacity:0}
+.it{background:var(--surface);border:1px solid var(--line);border-radius:1.2vw;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.it img{width:100%;flex:1;min-height:0;object-fit:cover;background:var(--line)}
+.it img.pk{object-fit:contain;background:#fff;padding:.6vw}
+.it .tx{padding:.9vw 1.1vw;display:flex;justify-content:space-between;align-items:baseline;gap:.8vw}
+.it h3{margin:0;font-size:1.45vw;font-weight:600;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.it .p{color:var(--accent);font-weight:700;font-size:1.6vw;white-space:nowrap}
+.it.np{justify-content:center}.it.np .tx{padding:1.4vw 1.4vw}
+.it.off{opacity:.45}
+.ft{display:flex;align-items:center;gap:1.4vw;color:var(--muted);font-size:1.1vw}
+.ft .dots{display:flex;gap:.5vw;flex:1}
+.ft .dots i{width:.7vw;height:.7vw;border-radius:50%;background:var(--line)}
+.ft .dots i.on{background:var(--accent)}
+.ft .qr{display:flex;align-items:center;gap:1vw;color:var(--fg);font-size:1.2vw;text-align:end}
+.ft .qr div{background:#fff;padding:.4vw;border-radius:.6vw;width:6.5vw;height:6.5vw}
+.ft .qr svg{width:100%;height:100%;display:block}
+.state{height:100vh;display:grid;place-items:center;text-align:center;color:var(--muted);font-size:2vw;padding:4vw}
+.state b{display:block;color:var(--fg);font-family:var(--display);font-size:3vw;margin-bottom:1vw}
+#fs{position:fixed;top:1vw;inset-inline-end:1vw;opacity:0;transition:opacity .3s;border:0;border-radius:.8vw;padding:.7vw 1.2vw;background:var(--accent);color:var(--on-accent);font:inherit;font-size:1vw;cursor:pointer}
+body:hover #fs{opacity:1}
+@media (max-aspect-ratio:1/1){body{font-size:2.4vw}.grid{grid-template-columns:repeat(2,1fr)}.hd h1{font-size:5vw}.hd img.logo{width:10vw;height:10vw}.hd .cat b{font-size:4vw}.it h3{font-size:2.6vw}.it .p{font-size:2.8vw}.promo{font-size:2.6vw}.promo b{font-size:3vw}.ft .qr div{width:12vw;height:12vw}.ft{font-size:2vw}}
+</style>
+</head>
+<body>
+<div id="tv"><div class="state"><div><b>Menu TV</b>Chargement…</div></div></div>
+<button id="fs" type="button">Plein écran</button>
+<script src="/assets/js/qrgen.js"></script>
+<script>
+(function () {
+  "use strict";
+  const DOC = "https://firestore.googleapis.com/v1/projects/nfcwork-espace/databases/(default)/documents/settings/";
+  const qs = new URLSearchParams(location.search);
+  const slug = String(qs.get("m") || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const PAR_PAGE = Math.max(4, Math.min(12, +qs.get("n") || 8));      // produits par écran
+  const DUREE = Math.max(5, Math.min(60, +qs.get("s") || 10)) * 1000;  // secondes par écran
+  const tv = document.getElementById("tv");
+  const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const tr = x => x == null ? "" : typeof x === "string" ? x : (x.fr || Object.values(x).find(Boolean) || "");
+  let M = null, ecrans = [], idx = 0, json = "";
+
+  async function lireDoc(id) {
+    const r = await fetch(DOC + id, { cache: "no-store" });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error("http " + r.status);
+    return (await r.json()).fields || {};
+  }
+  const imgs = {};
+  async function photo(id, w) {
+    if (!id) return "";
+    if (id.startsWith("u:")) return "https://images.unsplash.com/photo-" + id.slice(2) + "?auto=format&fit=crop&w=" + (w || 600) + "&q=75";
+    if (/^o:[0-9/]{4,40}\/front_[a-z]{2}\.\d{1,4}$/.test(id)) return "https://images.openfoodfacts.org/images/products/" + id.slice(2) + ".400.jpg";
+    if (id.startsWith("o:")) return "";
+    if (id.startsWith("/")) return id;
+    if (imgs[id]) return imgs[id];
+    const f = await lireDoc("mimg-" + id).catch(() => null);
+    const d = f && f.data && f.data.stringValue;
+    return (imgs[id] = d && d.startsWith("data:image/") ? d : "");
+  }
+  function remplir() { document.querySelectorAll("img[data-img]").forEach(async el => { const s = await photo(el.dataset.img, +el.dataset.w || 600); if (s) el.src = s; else el.remove(); el.removeAttribute("data-img"); }); }
+  const fmt = p => { const s = String(p == null ? "" : p).trim(); return !s ? "" : /[a-z€$]/i.test(s) ? s : s + " " + (M.devise || "DH"); };
+
+  // même règle que le menu : jours et heures de la promo
+  function promos() {
+    const d = new Date(), j = d.getDay(), m = d.getHours() * 60 + d.getMinutes();
+    const mn = t => { const x = String(t || "").match(/^(\d{1,2}):(\d{2})$/); return x ? +x[1] * 60 + +x[2] : null; };
+    return (M.promos || []).filter(p => {
+      if (!p || p.actif === false || !String(p.texte || "").trim()) return false;
+      if ((p.jours || []).length && !p.jours.includes(j)) return false;
+      const a = mn(p.de), b = mn(p.a);
+      if (a == null || b == null || a === b) return true;
+      return a < b ? m >= a && m < b : m >= a || m < b;
+    });
+  }
+
+  function preparer() {
+    ecrans = [];
+    (M.categories || []).forEach(c => {
+      const its = (c.items || []).filter(i => tr(i.nom));
+      for (let k = 0; k < its.length; k += PAR_PAGE) ecrans.push({ cat: tr(c.nom), items: its.slice(k, k + PAR_PAGE), part: its.length > PAR_PAGE ? Math.floor(k / PAR_PAGE) + 1 : 0, parts: Math.ceil(its.length / PAR_PAGE) });
+    });
+  }
+
+  function cadre() {
+    const root = document.documentElement;
+    root.dataset.theme = ["nuit", "creme", "cafe", "lagon"].includes(M.theme) ? M.theme : "nuit";
+    if (/^#[0-9a-f]{6}$/i.test(M.couleur || "")) root.style.setProperty("--accent", M.couleur);
+    document.title = (M.nom || "Menu") + " · Menu TV";
+    const lien = location.origin + "/menu/" + slug;
+    let qr = "";
+    try { qr = window.QRGEN.svg(lien, { marge: 1 }); } catch (e) {}
+    tv.innerHTML = `<div class="hd">${M.logo ? `<img class="logo${M.logoCarre ? " sq" : ""}" data-img="${esc(M.logo)}" data-w="200" alt="">` : ""}
+      <div><h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<div class="sl">${esc(tr(M.slogan))}</div>` : ""}</div><div class="cat" id="cat"></div></div>
+      <div id="promo"></div><div class="grid" id="grid"></div>
+      <div class="ft"><div class="dots" id="dots"></div><div class="qr"><span>Commandez depuis votre téléphone<br><b>${esc(lien.replace(/^https?:\/\//, ""))}</b></span>${qr ? `<div>${qr}</div>` : ""}</div></div>`;
+    remplir();
+  }
+
+  function ecran() {
+    if (!ecrans.length) { tv.innerHTML = `<div class="state"><div><b>${esc(M.nom || "Menu")}</b>Ajoutez des produits au menu pour les afficher ici.</div></div>`; return; }
+    idx = idx % ecrans.length;
+    const e = ecrans[idx], g = document.getElementById("grid");
+    const n = e.items.length, cols = n <= 4 ? Math.max(2, n) : n <= 6 ? 3 : 4;
+    g.classList.add("fade");
+    setTimeout(() => {
+      g.style.gridTemplateColumns = innerWidth > innerHeight ? `repeat(${cols},1fr)` : "";
+      g.innerHTML = e.items.map(i => `<div class="it${i.photo ? "" : " np"}${i.dispo === false ? " off" : ""}">${i.photo ? `<img class="${String(i.photo).startsWith("o:") ? "pk" : ""}" data-img="${esc(i.photo)}" data-w="600" alt="">` : ""}
+        <div class="tx"><h3>${esc(tr(i.nom))}</h3><span class="p">${i.dispo === false ? "Épuisé" : esc(fmt(i.prix))}</span></div></div>`).join("");
+      document.getElementById("cat").innerHTML = `<b>${esc(e.cat)}</b>${e.part ? `<span>${e.part} / ${e.parts}</span>` : ""}`;
+      document.getElementById("dots").innerHTML = ecrans.map((x, k) => `<i class="${k === idx ? "on" : ""}"></i>`).join("");
+      const pr = promos();
+      document.getElementById("promo").innerHTML = pr.length ? `<div class="promo"><b>🔥 ${esc(pr[0].texte)}</b>${pr[0].de && pr[0].a ? `<span>${esc(pr[0].de.replace(":", "h"))} – ${esc(pr[0].a.replace(":", "h"))}</span>` : ""}</div>` : "";
+      remplir();
+      g.classList.remove("fade");
+    }, 500);
+  }
+
+  async function charger(premier) {
+    try {
+      const f = /^demo-/.test(slug) ? await fetch("/menu/demos.json", { cache: "no-cache" }).then(r => r.json()).then(all => all[slug] ? { json: { stringValue: JSON.stringify(all[slug]) } } : null) : await lireDoc("menu-" + slug);
+      if (!f) { if (premier) tv.innerHTML = `<div class="state"><div><b>Menu introuvable</b>Vérifiez le lien : nfcwork.ma/menu/tv/?m=nom-du-menu</div></div>`; return; }
+      const j = (f.json && f.json.stringValue) || "{}";
+      if (j === json) return;
+      json = j; M = JSON.parse(j);
+      if (M.actif === false) { tv.innerHTML = `<div class="state"><div><b>${esc(M.nom || "Menu")}</b>Menu en cours de mise à jour.</div></div>`; return; }
+      preparer(); cadre(); ecran();
+    } catch (e) { if (premier) tv.innerHTML = `<div class="state"><div><b>Connexion impossible</b>Nouvel essai dans un instant…</div></div>`; }
+  }
+  if (!slug) { tv.innerHTML = `<div class="state"><div><b>Menu TV</b>Ajoutez le nom du menu au lien : nfcwork.ma/menu/tv/?m=nom-du-menu</div></div>`; return; }
+  charger(true);
+  setInterval(() => { if (M) { idx++; ecran(); } }, DUREE);
+  setInterval(() => charger(false), 3 * 60 * 1000);   // les changements du menu arrivent tout seuls (prix, épuisé, promo)
+  document.getElementById("fs").onclick = () => { const d = document.documentElement; (d.requestFullscreen || d.webkitRequestFullscreen || function () {}).call(d); };
+  // garder l'écran allumé quand c'est possible
+  try { if (navigator.wakeLock) navigator.wakeLock.request("screen").catch(() => {}); } catch (e) {}
+})();
+</script>
+</body>
+</html>

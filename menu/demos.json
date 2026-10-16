@@ -480,6 +480,50 @@
   ],
   "slug": "demo-premium",
   "formule": "premium",
-  "theme": "nuit"
+  "theme": "nuit",
+  "promos": [
+   {
+    "id": "p1",
+    "texte": "Petit-déjeuner complet 25 DH",
+    "jours": [],
+    "de": "07:00",
+    "a": "12:00",
+    "actif": true
+   },
+   {
+    "id": "p2",
+    "texte": "Menu midi : plat + boisson 45 DH",
+    "jours": [],
+    "de": "12:00",
+    "a": "15:00",
+    "actif": true
+   },
+   {
+    "id": "p3",
+    "texte": "Happy hour : -20 % sur tous les jus",
+    "jours": [],
+    "de": "15:00",
+    "a": "19:00",
+    "actif": true
+   },
+   {
+    "id": "p4",
+    "texte": "Soirée : 2 crêpes achetées, la 3e offerte",
+    "jours": [],
+    "de": "19:00",
+    "a": "07:00",
+    "actif": true
+   }
+  ],
+  "reservation": {
+   "actif": true,
+   "note": "Réservation confirmée sur WhatsApp."
+  },
+  "livraison": {
+   "actif": true,
+   "frais": "0",
+   "min": "60",
+   "zone": "Kénitra centre"
+  }
  }
 }

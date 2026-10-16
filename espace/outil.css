@@ -127,3 +127,8 @@ label.f input:focus,label.f textarea:focus,label.f select:focus{outline:2px soli
 .empty h3{color:var(--fg);margin-bottom:6px}
 .auth{max-width:420px;margin:40px auto}
 #toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:500;box-shadow:0 8px 24px rgb(0 0 0/.4);max-width:calc(100% - 32px)}
+/* type de commerce (4 choix) et jours des promos */
+.seg.s4{grid-template-columns:repeat(2,1fr)}
+@media (min-width:640px){.seg.s4{grid-template-columns:repeat(4,1fr)}}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:6px 11px;font-size:13px;cursor:pointer}
+.chip[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}

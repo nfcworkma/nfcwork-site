@@ -5,7 +5,7 @@
 const T = {
  ar: {
   // Navigation
-  nav_home:"الرئيسية", nav_products:"المنتجات", nav_order:"الطلب", nav_about:"من نحن", nav_faq:"الأسئلة", nav_contact:"اتصل بنا", nav_claim:"شكاية", nav_cond:"الشروط",
+  nav_home:"الرئيسية", nav_products:"المنتجات", nav_solutions:"الاشتراكات", nav_order:"الطلب", nav_about:"من نحن", nav_faq:"الأسئلة", nav_contact:"اتصل بنا", nav_claim:"شكاية", nav_cond:"الشروط",
   menu:"القائمة", cart:"السلة", account:"فضاء الزبون", accountFoot:"فضاء الزبون · تسجيل الدخول", clientH:"ديجا زبون عندنا؟", clientP:"تبّع الطلبات والفواتير ديالك من فضاء الزبون.", clientBtn:"دخل لفضائك",
   // Common
   dh:"درهم", yr:"/ السنة", addBtn:"زيد للسلة", inCart:"فالسلة", added:"تزاد للسلة",
@@ -72,7 +72,7 @@ const T = {
   cond:[["الطلب","كيتسجل الطلب ملي كيتأكد معاك فالواتساب. الأثمنة المعروضة بالدرهم."],["التصميم","كنصيفطو ليك معاينة التصميم قبل الطباعة. الطباعة كتبدا غير من بعد الموافقة ديالك."],["التوصيل","التوصيل لجميع أنحاء المغرب. الدار البيضاء 30 درهم، المدن الأخرى حسب الطلب. المدة كتأكد معاك حسب المدينة."],["الدفع","الدفع بالتحويل البنكي ولا كاش عند التوصيل. كنأكدو معاك طريقة الدفع ملي كيتأكد الطلب."],["الضمان والشكايات","إلا وصلك منتوج فيه عيب ولا ما خدامش، دير شكاية من صفحة الشكاية وغنلقاو ليك حل (إصلاح، إعادة برمجة ولا تبديل)."],["تعديل المعلومات","المعلومات المبرمجة قابلة للتعديل. تعديل المنيو +20 درهم للتعديل ولا اشتراك سنوي 249 درهم."]]
  },
  fr: {
-  nav_home:"Accueil", nav_products:"Produits", nav_order:"Commande", nav_about:"À propos", nav_faq:"FAQ", nav_contact:"Contact", nav_claim:"Réclamation", nav_cond:"Conditions",
+  nav_home:"Accueil", nav_products:"Produits", nav_solutions:"Abonnements", nav_order:"Commande", nav_about:"À propos", nav_faq:"FAQ", nav_contact:"Contact", nav_claim:"Réclamation", nav_cond:"Conditions",
   menu:"Menu", cart:"Panier", account:"Espace client", accountFoot:"Espace client · Se connecter", clientH:"Déjà client ?", clientP:"Suivez vos commandes et factures dans votre espace client.", clientBtn:"Accéder à mon espace",
   dh:"DH", yr:"/ an", addBtn:"Ajouter au panier", inCart:"Dans le panier", added:"Ajouté au panier",
   rec:"Recommandé", best:"Best seller", launch:"Prix de lancement",

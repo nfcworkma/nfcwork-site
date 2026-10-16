@@ -72,7 +72,7 @@
 
   /* ---------- Header & footer ---------- */
   const NAV = [
-    ["home", "index.html"], ["products", "produits.html"], ["about", "a-propos.html"],
+    ["home", "index.html"], ["products", "produits.html"], ["solutions", "solutions.html"], ["about", "a-propos.html"],
     ["faq", "faq.html"], ["contact", "contact.html"], ["claim", "reclamation.html"]
   ];
   const USER_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4 4-6 8-6s7.2 2 8 6"/></svg>`;
@@ -111,7 +111,7 @@
       <div class="wrap foot-grid">
         <div><a class="brand" href="index.html"><img class="brand-logo" src="assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></a><p>${t("footerAbout")}</p></div>
         <div><h4>${t("footerLinks")}</h4>
-          ${[["products","produits.html"],["order","commande.html"],["faq","faq.html"],["claim","reclamation.html"],["cond","conditions.html"]].map(([k,h])=>`<a href="${h}">${t("nav_"+k)}</a>`).join("")}
+          ${[["products","produits.html"],["solutions","solutions.html"],["order","commande.html"],["faq","faq.html"],["claim","reclamation.html"],["cond","conditions.html"]].map(([k,h])=>`<a href="${h}">${t("nav_"+k)}</a>`).join("")}
           <a class="foot-acct" href="espace/">${t("accountFoot")}</a>
         </div>
         <div><h4>${t("footerContact")}</h4>
@@ -677,6 +677,7 @@
     $("#faqList").innerHTML = t("faq").map(q => `<details><summary>${esc(q[0])}</summary><p>${esc(q[1])}</p></details>`).join("");
     $("#faqWa").href = waLink();
   };
+  pages.solutions = function () { if (window.SOLUTIONS_RENDER) window.SOLUTIONS_RENDER(lang, esc, waLink); };
   pages.cond = function () {
     $("#condList").innerHTML = t("cond").map((c, i) => `<section><h2>${i + 1}. ${esc(c[0])}</h2><p>${esc(c[1])}</p></section>`).join("");
   };

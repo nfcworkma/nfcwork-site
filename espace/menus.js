@@ -26,6 +26,9 @@
     pro: ["Pro", "Menu designé"],
     premium: ["Premium", "Pro + langues + WhatsApp"]
   };
+  // type de commerce : change les mots du menu et ce qu'on demande au client
+  const TYPES_COM = { resto: ["🍽", "Restaurant · café", "Commande, livraison, réservation"], boutique: ["🛍", "Boutique", "Catalogue de produits"], salon: ["💈", "Salon · beauté", "Prise de rendez-vous"], hotel: ["🏨", "Hôtel", "Room service par chambre"] };
+  const JOURS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
   const LANGS = { fr: "Français", ar: "العربية", en: "English" };
   const LCOURT = { fr: "FR", ar: "AR", en: "EN" };
   const THEMES = { nuit: ["Nuit", "#0d0f14", "#e0b15c"], creme: ["Crème", "#f6f0e6", "#b5552b"], cafe: ["Café", "#1d1410", "#d99a4e"], lagon: ["Lagon", "#f2f7f6", "#0f8a7e"] };
@@ -296,6 +299,7 @@
     const ls = langsEdition();
     app.innerHTML = `
     <section class="sec" style="margin-top:0"><div class="eyebrow" style="margin-bottom:8px">Formule</div>${segFormule(M.formule)}</section>
+    ${pro ? `<section class="sec" style="margin-top:14px"><div class="eyebrow" style="margin-bottom:8px">Type de commerce</div><div class="seg s4">${Object.entries(TYPES_COM).map(([k, [ic, n, sd]]) => `<button type="button" data-act="type" data-v="${k}" aria-pressed="${(M.type || "resto") === k}"><b>${ic} ${n}</b><small>${sd}</small></button>`).join("")}</div></section>` : ""}
 
     <section class="sec paper stack">
       <div class="row between"><h3>Infos du commerce</h3><label class="check"><input type="checkbox" data-b="actif" ${M.actif !== false ? "checked" : ""}> Menu en ligne</label></div>
@@ -318,7 +322,9 @@
     ${prem ? `<section class="sec paper stack"><h3>Premium : commande WhatsApp</h3>
       <p class="muted" style="margin:0;font-size:13.5px">Le client choisit ses produits et envoie la commande sur ce numéro. Cochez « À ne pas manquer » sur vos meilleurs produits : ils s’affichent en grand en haut du menu.</p>
       ${champ("infos.whatsapp", "Numéro WhatsApp du commerce", 'type="tel" inputmode="tel" maxlength="30" placeholder="06 12 34 56 78"')}
-      <label class="check"><input type="checkbox" data-b="commande" ${M.commande !== false ? "checked" : ""}> Les clients peuvent composer leur commande et l’envoyer sur WhatsApp</label>
+      <label class="check"><input type="checkbox" data-b="commande" ${M.commande !== false ? "checked" : ""}> ${M.type === "salon" ? "Les clients choisissent leurs services, le jour et l’heure, et envoient la demande de rendez-vous sur WhatsApp" : "Les clients peuvent composer leur commande et l’envoyer sur WhatsApp"}</label>
+      ${M.type === "salon" || M.type === "boutique" ? "" : `<label class="check"><input type="checkbox" data-b="reservation.actif" ${(M.reservation || {}).actif ? "checked" : ""}> 📅 Bouton « Réserver une table » : jour, heure, nombre de personnes, envoyé sur WhatsApp</label>
+      ${(M.reservation || {}).actif ? champ("reservation.note", "Message sous le formulaire (facultatif)", 'maxlength="140" placeholder="Réservation confirmée par WhatsApp. Groupes : appelez-nous."') : ""}`}
     </section>
     <section class="sec paper stack"><h3>🛵 Livraison</h3>
       <p class="muted" style="margin:0;font-size:13.5px">Le client choisit « Livraison », écrit son téléphone et son adresse ou envoie sa position : tout arrive sur votre WhatsApp. Sans commission, contrairement à Glovo.</p>
@@ -329,6 +335,21 @@
         ${champ("livraison.zone", "Zone de livraison (facultatif)", 'maxlength="60" placeholder="Kénitra centre, Mimosas…"')}
         <div class="paper" style="padding:12px 14px;border-radius:14px;min-width:0;overflow:hidden"><b>Lien pour Instagram, Facebook, WhatsApp</b><div class="muted" style="font-size:13px;margin:2px 0 8px">À mettre dans la bio : le menu s’ouvre directement en mode livraison.</div>
           <div style="display:flex;gap:6px;align-items:center;min-width:0"><code style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}?livraison</code><button class="btn sm" data-act="copier" data-v="${esc(lienPublic(M.slug))}?livraison">Copier</button></div></div>` : ""}
+    </section>` : ""}
+
+    ${pro ? `<section class="sec paper stack"><div class="row between"><h3>🔥 Promos et happy hour</h3><button class="btn sm" data-act="promo-add">＋ Promo</button></div>
+      <p class="muted" style="margin:0;font-size:13.5px">Un bandeau en haut du menu (et sur l’écran TV), seulement aux jours et heures choisis. Sans heures : affiché toute la journée.</p>
+      ${(M.promos || []).map((p, i) => `<div class="paper stack" style="padding:12px;border-radius:14px">
+        <div class="row between"><label class="check" style="margin:0"><input type="checkbox" data-pr="${i}.actif" ${p.actif !== false ? "checked" : ""}> Active</label><button class="btn sm ghost danger" data-act="promo-del" data-i="${i}">Supprimer</button></div>
+        <label class="f">Texte de la promo<input data-pr="${i}.texte" value="${esc(p.texte || "")}" maxlength="90" placeholder="Happy hour : -20 % sur tous les jus"></label>
+        <div class="row" style="gap:6px;flex-wrap:wrap">${JOURS.map((j, k) => `<button type="button" class="chip" data-act="promo-jour" data-i="${i}" data-j="${k}" aria-pressed="${(p.jours || []).includes(k)}">${j}</button>`).join("")}<span class="muted" style="font-size:12.5px">${(p.jours || []).length ? "" : "tous les jours"}</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px"><label class="f">De<input type="time" data-pr="${i}.de" value="${esc(p.de || "")}"></label><label class="f">À<input type="time" data-pr="${i}.a" value="${esc(p.a || "")}"></label></div>
+      </div>`).join("") || `<div class="muted" style="font-size:13.5px">Aucune promo. Exemples : « Petit-déjeuner complet 25 DH » de 7h à 11h, « Happy hour -20 % » de 17h à 19h.</div>`}
+    </section>
+    <section class="sec paper stack"><h3>📺 Menu sur écran TV</h3>
+      <p class="muted" style="margin:0;font-size:13.5px">Ouvrez ce lien sur la TV du commerce (Smart TV, clé Android, ou ordinateur branché en HDMI) : les catégories défilent toutes seules, avec les photos, les prix, les promos et un QR code pour commander. Les changements du menu arrivent seuls.</p>
+      <div style="display:flex;gap:6px;align-items:center;min-width:0"><code style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((SITE + "/menu/tv/?m=" + M.slug).replace(/^https?:\/\//, ""))}</code><button class="btn sm" data-act="copier" data-v="${esc(SITE + "/menu/tv/?m=" + M.slug)}">Copier</button><a class="btn sm" href="/menu/tv/?m=${esc(M.slug)}" target="_blank" rel="noopener">Ouvrir</a></div>
+      <div class="muted" style="font-size:12.5px">Réglages dans le lien : <code>&n=6</code> produits par écran, <code>&s=15</code> secondes par écran.</div>
     </section>` : ""}
 
     ${pro ? `<section class="sec paper stack"><h3>Design</h3>
@@ -383,7 +404,10 @@
       const v = t.type === "checkbox" ? t.checked : t.value;
       setPath(M, t.dataset.b, typeof v === "string" && t.type !== "color" ? v.replace(/^\s+/, "") : v);
       if (t.dataset.b === "nom") $("#topTitle").textContent = t.value || "Menu";
-      if (t.dataset.b === "livraison.actif") { renderEdit(); return; }
+      if (t.dataset.b === "livraison.actif" || t.dataset.b === "reservation.actif") { renderEdit(); return; }
+    } else if (t.dataset.pr) {
+      const [i, k] = t.dataset.pr.split("."), p = (M.promos || [])[+i];
+      if (p) p[k] = t.type === "checkbox" ? t.checked : t.value;
     } else if (t.dataset.cb) {
       const c = M.categories.find(x => x.id === t.closest("[data-cat]").dataset.cat);
       if (c) { if (typeof c.nom !== "object" || !c.nom) c.nom = {}; c.nom[t.dataset.cb.split(".")[1]] = t.value; }
@@ -456,6 +480,10 @@
         break;
       }
       case "it-add": editerItem(ci, -1); break;
+      case "type": M.type = b.dataset.v; renderEdit(); break;
+      case "promo-add": M.promos = M.promos || []; M.promos.push({ id: rid(6), texte: "", jours: [], de: "", a: "", actif: true }); renderEdit(); break;
+      case "promo-del": M.promos.splice(i, 1); renderEdit(); break;
+      case "promo-jour": { const p = M.promos[i], j = +b.dataset.j; p.jours = p.jours || []; p.jours = p.jours.includes(j) ? p.jours.filter(x => x !== j) : [...p.jours, j].sort(); renderEdit(); break; }
       case "photos-auto": photosAuto(b); break;
       case "importer": importer(); break;
       case "it-edit": editerItem(ci, ii); break;

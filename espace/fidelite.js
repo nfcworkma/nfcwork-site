@@ -378,7 +378,7 @@
         ${admin ? `<button class="btn sm" data-reglages="${esc(P.id)}">Réglages</button>` : ""}</div>
       ${P.actif === false ? `<div class="notice" style="margin-top:10px">Programme désactivé : les clients ne peuvent pas créer de carte.</div>` : ""}
       <div class="big2"><button class="btn primary" data-act="scan">📷 Scanner</button><button class="btn" data-act="affiches">🖨 Affiches & QR</button></div>
-      <button class="btn sm" style="width:100%;margin:-4px 0 14px" data-act="lienqr">🔗 Lien & QR code de la carte</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-4px 0 14px"><button class="btn sm" data-act="lienqr">🔗 Lien & QR code de la carte</button><button class="btn sm" data-act="rapport">📊 Rapport du mois</button></div>
       <div class="stats"><div><b>${cartes.length}</b><span>Clients</span></div><div><b>${prets}</b><span>Récompenses prêtes</span></div><div><b>${offerts}</b><span>Offertes</span></div></div>
       ${P.employes ? `<div class="tabs2"><button data-vue="clients" aria-pressed="${vue === "clients"}">Clients</button><button data-vue="employes" aria-pressed="${vue === "employes"}">Employés</button></div>` : ""}
       ${vue === "employes" && P.employes ? `
@@ -539,6 +539,34 @@
 
   /* ================= Affiches à imprimer ================= */
   // lien d'inscription + QR code d'un programme (copier, WhatsApp, télécharger en image)
+  /* ================= Rapport du mois (à envoyer au commerçant sur WhatsApp) ================= */
+  function rapport() {
+    const dt = v => !v ? null : v.toDate ? v.toDate() : v.seconds ? new Date(v.seconds * 1000) : new Date(v);
+    const k = moisCle(), deb = new Date(); deb.setDate(1); deb.setHours(0, 0, 0, 0);
+    const ceMois = v => { const d = dt(v); return d && !isNaN(d) && d >= deb; };
+    const nomMois = deb.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    const nouveaux = cartes.filter(c => ceMois(c.createdAt)).length;
+    const venus = cartes.filter(c => ceMois(c.lastAt)).length;
+    const offertes = cartes.reduce((a, c) => a + (c.recompenses || 0), 0);
+    const pretes = cartes.filter(c => (c.points || 0) >= Math.max(1, P.objectif || 10)).length;
+    const top = [...employes].filter(e => ((e.m || {})[k] || 0) > 0).sort((a, b) => (b.m[k] || 0) - (a.m[k] || 0))[0];
+    const fidele = [...cartes].sort((a, b) => (b.total || 0) - (a.total || 0))[0];
+    const txt = [`📊 Rapport fidélité · ${P.nom} · ${nomMois}`, "",
+      `👥 Clients inscrits : ${cartes.length}${nouveaux ? ` (dont ${nouveaux} nouveaux ce mois)` : ""}`,
+      `🔄 Clients revenus ce mois : ${venus}`,
+      `🎁 Récompenses offertes depuis le début : ${offertes}`,
+      pretes ? `⏳ Récompenses prêtes à offrir : ${pretes}` : "",
+      fidele && fidele.total ? `⭐ Client le plus fidèle : ${fidele.nom || "—"} (${fidele.total} ${unite(P)})` : "",
+      top ? `🏆 Employé du mois : ${top.nom} (${top.m[k]} points)` : "",
+      "", "Merci pour votre confiance · NFCWORK"].filter((l, i, a) => l || (a[i - 1] && a[i - 1] !== "")).join("\n");
+    const d = fenetre(`<div class="row between"><h2>📊 Rapport du mois</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
+      <p class="muted" style="margin:4px 0 10px">Envoyez-le au commerçant chaque mois : il voit ce que la carte fidélité lui rapporte.</p>
+      <textarea id="rp-t" rows="11" style="width:100%;font:inherit;font-size:14px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg)">${esc(txt)}</textarea>
+      <div class="row" style="margin-top:10px;gap:8px"><button class="btn sm primary" id="rp-wa">Envoyer sur WhatsApp</button><button class="btn sm" id="rp-copier">Copier</button></div>`);
+    $("#rp-wa", d).onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent($("#rp-t", d).value), "_blank");
+    $("#rp-copier", d).onclick = async () => { try { await navigator.clipboard.writeText($("#rp-t", d).value); toast("Rapport copié"); } catch (e) { prompt("Copiez :", $("#rp-t", d).value); } };
+  }
+
   function lienQR(prog, neuf) {
     const lien = SITE + "/f/?p=" + prog.id;
     const d = fenetre(`<div class="row between"><h2>${neuf ? "✅ Carte fidélité créée" : "Lien et QR de la carte"}</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
@@ -611,6 +639,7 @@
       if (a === "scan") scanner();
       if (a === "affiches") affiches();
       if (a === "lienqr") lienQR(P, false);
+      if (a === "rapport") rapport();
       if (a === "emp-add") empAjout();
     }
   });
