@@ -5,13 +5,13 @@
    - Images : cache, puis mise à jour en arrière-plan.
    Après une grosse modification, change VERSION (ex. "v2").
    ========================================================= */
-const VERSION = "v27";
+const VERSION = "v28";
 const CACHE = "nfcwork-" + VERSION;
 const CORE = [
   "./", "index.html", "produits.html", "commande.html", "contact.html",
   "reclamation.html", "a-propos.html", "faq.html", "conditions.html",
   "assets/css/style.css", "assets/js/config.js", "assets/js/catalog.js",
-  "assets/js/i18n.js", "assets/js/app.js", "assets/img/logo.png", "assets/img/logo-nfcwork.png",
+  "assets/js/i18n.js", "assets/js/app.js", "assets/js/solutions.js", "solutions.html", "assets/img/logo.png", "assets/img/logo-nfcwork.png",
   "assets/img/logo-nfcwork-blanc.png", "manifest.json"
 ];
 
@@ -37,7 +37,7 @@ self.addEventListener("fetch", e => {
   if (req.mode === "navigate" || /\.(html|css|js|json)$/.test(url.pathname)) {
     // HTML, CSS, JS : réseau d'abord (HTML et JS restent toujours à la même version)
     e.respondWith(
-      fetch(req)
+      fetch(req, { cache: "no-cache" })   // toujours vérifier auprès du serveur : les nouveautés s'affichent tout de suite
         .then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; })
         .catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match("index.html")))
     );

@@ -231,6 +231,7 @@
     '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="2" fill="currentColor"/><path d="M11 8a6 6 0 0 1 0 8M15 5a10 10 0 0 1 0 14"/></svg>'];
   pages.home = function () {
+    solHome();
     $("#cats").innerHTML = CATALOG.map(C => shot(C, "produits.html#" + C.id)).join("");
     const P = CATALOG.find(c => c.id === "packs");
     $("#packShot").innerHTML = shot(P, "produits.html#packs");
@@ -677,6 +678,12 @@
     $("#faqList").innerHTML = t("faq").map(q => `<details><summary>${esc(q[0])}</summary><p>${esc(q[1])}</p></details>`).join("");
     $("#faqWa").href = waLink();
   };
+  // accueil : les nouveautés (options des abonnements)
+  function solHome() {
+    const box = $("#solHome"); if (!box || !window.SOLUTIONS) return;
+    box.innerHTML = window.SOLUTIONS.options.slice(0, 8).map(o => `<article class="sol-o"><span class="sol-ic">${o.ico}</span><h3>${esc(L(o.n))}</h3><p>${esc(L(o.d))}</p>
+      <div class="sol-foot"><span class="sol-inc">${esc(L(o.inc))}</span>${o.demo ? `<a href="${o.demo}" target="_blank" rel="noopener">${lang === "ar" ? "شوف الديمو" : "Voir la démo"} →</a>` : ""}</div></article>`).join("");
+  }
   pages.solutions = function () { if (window.SOLUTIONS_RENDER) window.SOLUTIONS_RENDER(lang, esc, waLink); };
   pages.cond = function () {
     $("#condList").innerHTML = t("cond").map((c, i) => `<section><h2>${i + 1}. ${esc(c[0])}</h2><p>${esc(c[1])}</p></section>`).join("");
