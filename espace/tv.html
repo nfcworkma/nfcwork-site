@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Menus TV · nfcwork.ma</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05080f">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/img/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../assets/img/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="outil.css">
+<style>
+/* Menus TV : un PDF (ou des photos) → un lien qui défile tout seul sur la TV */
+.tvlist{display:grid;gap:10px}
+.tvrow{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.tvrow .mini{width:92px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;flex:none;background:#000;display:grid;place-items:center}
+.tvrow .mini img{width:100%;height:100%;object-fit:contain}
+.tvrow .tx{flex:1;min-width:0}
+.tvrow .u{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.pg{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#000;aspect-ratio:16/9}
+.pg img{width:100%;height:100%;object-fit:contain;display:block}
+.pg .no{position:absolute;top:6px;inset-inline-start:6px;background:rgb(0 0 0/.65);color:#fff;font-size:12px;font-weight:700;border-radius:20px;padding:2px 8px}
+.pg .acts{position:absolute;bottom:6px;inset-inline-end:6px;display:flex;gap:4px}
+.pg .acts button{border:0;border-radius:8px;background:rgb(0 0 0/.65);color:#fff;width:30px;height:30px;cursor:pointer;font-size:14px}
+.pg .acts button:disabled{opacity:.35}
+.drop{border:2px dashed var(--line);border-radius:16px;padding:22px;text-align:center;color:var(--muted);display:grid;gap:12px}
+.drop.busy{opacity:.6;pointer-events:none}
+.linkbox{border-radius:16px;padding:16px;background:linear-gradient(120deg,#0b1a3a,#123a7a);border:1px solid var(--line);display:grid;gap:10px}
+.linkbox code{display:block;font-size:17px;font-weight:700;color:#fff;word-break:break-all}
+.linkbox .qr{width:120px;height:120px;background:#fff;border-radius:10px;padding:6px}
+.linkbox .qr svg{width:100%;height:100%;display:block}
+.prog{height:8px;border-radius:8px;background:var(--line);overflow:hidden}.prog i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="btn sm ghost" id="backBtn" href="./" aria-label="Retour">←</a>
+  <div class="t"><b id="topTitle">Menus TV</b><small id="topSub">PDF → écran TV</small></div>
+  <a class="btn sm" href="menus.html">Menus</a>
+</div></header>
+<main id="app"><div class="empty"><h3>Chargement…</h3></div></main>
+<div id="toast" hidden></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="../assets/js/qrgen.js"></script>
+<script src="tv.js"></script>
+</body>
+</html>

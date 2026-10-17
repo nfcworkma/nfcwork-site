@@ -259,6 +259,7 @@ function renderHome(){
   <button class="btn primary" data-new-inv>＋ Nouvelle facture</button></div>
   <div class="quick" style="margin-bottom:16px"><a class="qa" href="menus.html">${ico("tools-kitchen-2")}<b>Menus digitaux</b><span>Créer & modifier</span></a>
     <a class="qa" href="stands.html">${ico("link")}<b>Stands QR</b><span>Imprimer & lier</span></a>
+    <a class="qa" href="tv.html">${ico("device-tv")}<b>Menus TV</b><span>PDF → écran TV</span></a>
     <a class="qa" href="fidelite.html">${ico("star")}<b>Fidélité</b><span>Cartes & employés</span></a>
     <a class="qa" href="abonnements.html" style="position:relative">${ico("file-text")}<b>Abonnements</b><span id="aboInfo">Paiements & activation</span></a></div>
   <div class="eyebrow" style="margin-bottom:8px">À traiter</div>${todoTiles()}
