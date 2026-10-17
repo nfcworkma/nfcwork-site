@@ -249,7 +249,7 @@ async function aboBadge(){
   }catch(e){}
 }
 function renderHome(){
-  setTimeout(aboBadge,0);
+  setTimeout(aboBadge,0);setTimeout(()=>{if(window.NFCW_GESTION)window.NFCW_GESTION.home()},0);
   const all=S.invoices,y=String(new Date().getFullYear());
   const paidYear=all.filter(i=>i.status==="paid"&&(i.date||"").startsWith(y)).reduce((a,i)=>a+totals(i).total,0);
   const open=all.filter(i=>i.status==="sent"),late=open.filter(i=>i.due&&i.due<today());
@@ -263,6 +263,7 @@ function renderHome(){
     <a class="qa" href="pages.html">${ico("user")}<b>Cartes, avis, Wi-Fi</b><span>Créer sans Mac</span></a>
     <a class="qa" href="fidelite.html">${ico("star")}<b>Fidélité</b><span>Cartes & employés</span></a>
     <a class="qa" href="abonnements.html" style="position:relative">${ico("file-text")}<b>Abonnements</b><span id="aboInfo">Paiements & activation</span></a></div>
+  <div id="gHome"></div>
   <div class="eyebrow" style="margin-bottom:8px">À traiter</div>${todoTiles()}
   ${!S.services.length?`<div class="notice row between" style="margin-bottom:12px"><span>Votre catalogue est vide : importez les produits du site en un clic.</span><button class="btn sm primary" data-goto="services">Catalogue</button></div>`:""}
   ${!all.length&&!S.clients.length?`<div class="notice">Pour démarrer : remplissez les <b>Paramètres</b>, ajoutez vos <b>services</b>, puis vos <b>clients</b> (avec leur e-mail), et créez votre première facture.</div>`:""}
@@ -806,6 +807,10 @@ function creer(){
 function openModal(html){$("#modal").innerHTML=`<div class="scrim" data-scrim><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;const f=$("#modal input,#modal select");if(f)f.focus()}
 function closeModal(){$("#modal").innerHTML=""}
 const head=(t,extra="")=>`<div class="sheet-head"><h2 style="font-size:20px">${t}</h2><div class="row">${extra}<button class="btn sm ghost" data-close>Fermer</button></div></div>`;
+/* ---------- pont pour gestion.js (recherche, relances, devis, contrat, prospects) ---------- */
+window.NFCW_APP={fs,S,openModal,closeModal,head,toast,esc,dh,fmt,today,addDays,clientById,clientView,
+  factureDepuis(clientId,lignes,notes){draft={number:nextNumber(),clientId:clientId||(S.clients[0]||{}).id,date:today(),due:addDays(today(),15),tva:false,tvaRate:20,status:"draft",notes:notes||"",lines:lignes.length?lignes:[blankLine()]};if(!S.clients.length){toast("Ajoutez d’abord un client.");return}drawInvoiceForm()},
+  nouveauClient(pre){clientForm(pre||{})}};
 async function guard(p,ok){try{await p;if(ok)toast(ok);return true}catch(e){console.error(e);toast(e&&e.code==="permission-denied"?"Action refusée : vérifiez l’e-mail admin dans config.js et firestore.rules.":"Échec de l’enregistrement, réessayez.");return false}}
 
 function serviceForm(s){
@@ -861,7 +866,9 @@ function clientView(c){
   ${c.email?`<div class="notice" style="margin-bottom:12px">Le client crée son compte avec <b>${esc(c.email)}</b> sur cette page et voit ses factures envoyées et payées.</div>`:`<div class="notice" style="margin-bottom:12px">Ajoutez un e-mail pour donner accès à l’espace client.</div>`}
   <div class="kpis" style="margin-top:0"><div class="kpi"><div class="eyebrow">Payé</div><b>${fmt(paid)} <small>DH</small></b></div><div class="kpi"><div class="eyebrow">Reste dû</div><b>${fmt(due)} <small>DH</small></b></div></div>
   <div class="section-head"><h3>Factures</h3><button class="btn sm primary" data-new-inv="${esc(c.id)}">＋ Facture</button></div>
-  ${inv.length?`<div class="list">${inv.map(invRow).join("")}</div>`:`<div class="empty"><p>Pas encore de facture pour ce client.</p></div>`}`);
+  ${inv.length?`<div class="list">${inv.map(invRow).join("")}</div>`:`<div class="empty"><p>Pas encore de facture pour ce client.</p></div>`}
+  <div id="gClient"></div>`);
+  if(window.NFCW_GESTION)window.NFCW_GESTION.client(c);
 }
 function nextNumber(){
   const pre=`FAC-${new Date().getFullYear()}-`;

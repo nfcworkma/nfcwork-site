@@ -218,7 +218,7 @@
       </form>`);
     let auto = true;
     const nom = $("#nm-nom", d), sl = $("#nm-slug", d), prev = () => ($("#nm-prev", d).textContent = sl.value || "…");
-    if (pre.nom) { nom.value = pre.nom; sl.value = slugify(pre.nom); prev(); }
+    if (pre.nom) { nom.value = pre.nom; sl.value = (pre.demo ? "essai-" : "") + slugify(pre.nom); prev(); if (pre.demo) auto = false; }
     nom.oninput = () => { if (auto) sl.value = slugify(nom.value); prev(); };
     sl.oninput = () => { auto = false; sl.value = sl.value.toLowerCase().replace(/[^a-z0-9-]/g, ""); prev(); };
     d.addEventListener("click", e => { const b = e.target.closest("[data-formule]"); if (b) { formule = b.dataset.formule; d.querySelectorAll("[data-formule]").forEach(x => x.setAttribute("aria-pressed", x === b)); } });
@@ -238,6 +238,7 @@
           logo: "", logoCarre: false, couverture: "", slogan: {},
           infos: { horaires: "", adresse: "", maps: "", tel: pre.tel || "", instagram: "", whatsapp: formule === "premium" ? pre.tel || "" : "" }, commandeRef: pre.commande || "",
           commande: true, pages: [],
+          ...(pre.demo ? { demo7: true, expire: (() => { const d = new Date(); d.setDate(d.getDate() + 7); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })() } : {}),
           categories: formule === "standard" ? [] : [{ id: rid(6), nom: { [lang]: lang === "ar" ? "المشروبات" : lang === "en" ? "Drinks" : "Boissons" }, items: [] }]
         };
         await db.doc("settings/menu-" + s).set({ json: JSON.stringify(m), v: String(Date.now()), maj: NOW(), par: user.email });
@@ -245,6 +246,7 @@
         await ecrireListe();
         d.remove();
         location.hash = "m=" + s;
+        if (pre.demo) setTimeout(() => { toast("🎯 Démo créée (7 jours) : importez le menu depuis Glovo.", true); importer(); }, 900);
       } catch (x) { erreur(x); btn.disabled = false; }
     };
     nom.focus();

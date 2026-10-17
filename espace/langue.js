@@ -106,7 +106,9 @@
     "Voir la page client": "شوف صفحة الزبون", "Ouvrir le tableau de bord": "فتح لوحة التسيير", "Cartes fidélité": "كارطات الوفاء", "Vos commerces": "المحلات ديالك",
     "Points, récompenses et classement des employés.": "النقط، المكافآت وترتيب الخدامة.", "Carte introuvable dans ce commerce.": "الكارطة ما كايناش فهاد المحل.",
     "Montant trop petit pour 1 point.": "المبلغ صغير بزاف على نقطة وحدة.",
-    "📊 Rapport du mois": "📊 تقرير الشهر", "Envoyer sur WhatsApp": "صيفط فالواتساب", "Copier": "نسخ", "Rapport copié": "تنسخ التقرير",
+    "📊 Rapport du mois": "📊 تقرير الشهر", "Démo 2 min": "ديمو فدقيقتين", "Devis": "عرض الثمن", "Contrat": "العقد", "Prospects": "الزبناء المحتملين", "＋ Créer": "＋ صاوب", "Rappel": "تذكير", "Payé": "تخلص",
+    "🔎 Chercher : client, menu, carte, facture…": "🔎 قلب: زبون، منيو، كارطة، فاتورة…", "⚡ Actions": "⚡ أعمال سريعة", "Appeler": "اتصل", "Menus TV": "منيوهات TV", "PDF → écran TV": "PDF ← شاشة TV", "Cartes, avis, Wi-Fi": "كارطات، تقييمات، واي فاي", "Créer sans Mac": "صاوب بلا ماك",
+    "Menu digital": "منيو رقمي", "Carte digitale": "كارطة رقمية", "Avis Google": "تقييمات Google", "Page liens": "صفحة روابط", "Carte fidélité": "كارطة الوفاء", "Menu TV (PDF)": "منيو TV (PDF)", "Stand QR": "ستاند QR", "Facture": "فاتورة", "Envoyer sur WhatsApp": "صيفط فالواتساب", "Copier": "نسخ", "Rapport copié": "تنسخ التقرير",
     "Envoyez-le au commerçant chaque mois : il voit ce que la carte fidélité lui rapporte.": "صيفطو كل شهر: كتشوف شنو كتجيب ليك كارطة الوفاء."
   };
   // ajouts : tout ce que voit le commerçant (statuts, catalogue, formulaires, aide…)
