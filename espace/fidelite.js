@@ -141,6 +141,7 @@
     const c = m("c"), e = m("e"), p = m("p");
     if (c) { history.replaceState(null, "", "#"); await ouvrirParCarte(c); return; }
     if (e) { history.replaceState(null, "", "#"); await ouvrirParEmploye(e); return; }
+    if (h === "#nouveau" && admin) { history.replaceState(null, "", "#"); renderListe(); reglages(null); return; }
     if (p && progs.some(x => x.id === p)) { ouvrirProgramme(p); return; }
     if (!admin && progs.length === 1) { ouvrirProgramme(progs[0].id); return; }
     renderListe();
@@ -575,8 +576,9 @@
         <div style="flex:1;min-width:160px"><b>${esc(prog.nom)}</b><div class="u" style="margin:4px 0 10px">${esc(lien)}</div>
           <div class="stack" style="gap:6px"><button class="btn sm primary" id="lq-copier">Copier le lien</button>
             <a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent("Votre carte fidélité " + prog.nom + " : " + lien)}">Partager sur WhatsApp</a>
-            <button class="btn sm" id="lq-png">Télécharger le QR</button></div></div></div>
+            <button class="btn sm" id="lq-png">Télécharger le QR</button><button class="btn sm" id="lq-nfc">📲 Écrire sur la puce</button></div></div></div>
       <div class="row" style="margin-top:12px"><a class="btn sm ghost" href="${esc(lien)}" target="_blank" rel="noopener">Voir la page client</a>${neuf ? `<a class="btn sm" href="#p=${esc(prog.id)}" data-fermer>Ouvrir le tableau de bord</a>` : ""}</div>`);
+    $("#lq-nfc", d).onclick = () => window.NFCW_ECRIRE ? window.NFCW_ECRIRE(lien, prog.nom) : toast("NFC indisponible");
     $("#lq-copier", d).onclick = async () => { try { await navigator.clipboard.writeText(lien); toast("Lien copié"); } catch (e) { prompt("Copiez le lien :", lien); } };
     $("#lq-png", d).onclick = () => {
       let svg = window.QRGEN.svg(lien, { marge: 2, couleur: "#05080f" });

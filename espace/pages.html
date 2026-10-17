@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cartes, avis, Wi-Fi · nfcwork.ma</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05080f">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/img/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../assets/img/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="outil.css">
+<style>
+/* Cartes digitales, avis Google, Wi-Fi, pages liens : création au téléphone, sans Mac */
+.types{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.types button{border:1px solid var(--line);background:var(--surface);border-radius:18px;padding:18px 10px;cursor:pointer;color:var(--fg);font:inherit;text-align:center}
+.types button span{display:block;font-size:34px;line-height:1.1}
+.types button b{display:block;margin-top:6px;font-size:16px}
+.types button small{color:var(--muted);font-size:12.5px}
+.plist{display:grid;gap:10px}
+.prow{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--line);text-decoration:none;color:inherit}
+.prow .ph{width:48px;height:48px;border-radius:50%;overflow:hidden;flex:none;background:var(--bg);display:grid;place-items:center;font-size:22px}
+.prow .ph img{width:100%;height:100%;object-fit:cover}
+.prow .tx{flex:1;min-width:0}.prow .u{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chipsf{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.linkbox{border-radius:16px;padding:16px;background:linear-gradient(120deg,#0b1a3a,#123a7a);border:1px solid var(--line);display:grid;gap:10px}
+.linkbox code{display:block;font-size:16px;font-weight:700;color:#fff;word-break:break-all}
+.linkbox .qr{width:110px;height:110px;background:#fff;border-radius:10px;padding:6px;flex:none}.linkbox .qr svg{width:100%;height:100%;display:block}
+.acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.themes2{display:flex;gap:8px;flex-wrap:wrap}
+.themes2 button{border:2px solid var(--line);border-radius:12px;padding:8px 12px;cursor:pointer;font:inherit;font-size:13.5px}
+.themes2 button[aria-pressed=true]{border-color:var(--accent)}
+.photo{display:flex;align-items:center;gap:12px}
+.photo .pv{width:76px;height:76px;border-radius:50%;overflow:hidden;background:var(--bg);border:1px solid var(--line);flex:none;display:grid;place-items:center;font-size:28px}
+.photo .pv img{width:100%;height:100%;object-fit:cover}
+.hgrid{display:grid;grid-template-columns:90px 1fr;gap:8px;align-items:center}
+.hgrid input{padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:15px;width:100%}
+.lrow{display:grid;grid-template-columns:1fr 1.4fr auto;gap:6px;align-items:center}
+.lrow input{padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:14.5px;min-width:0}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px}
+.gal div{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--bg)}
+.gal img{width:100%;height:100%;object-fit:cover}.gal button{position:absolute;top:4px;right:4px;border:0;border-radius:8px;background:rgb(0 0 0/.6);color:#fff;width:26px;height:26px;cursor:pointer}
+iframe.apercu{width:100%;height:72vh;border:0;border-radius:16px;background:#fff}
+details.plus summary{cursor:pointer;font-weight:600;padding:4px 0}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="btn sm ghost" id="backBtn" href="./" aria-label="Retour">←</a>
+  <div class="t"><b id="topTitle">Cartes, avis, Wi-Fi</b><small id="topSub">Créer sans Mac</small></div>
+  <a class="btn sm" href="./">Espace</a>
+</div></header>
+<main id="app"><div class="empty"><h3>Chargement…</h3></div></main>
+<div id="toast" hidden></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="../assets/js/qrgen.js"></script>
+<script src="nfc.js"></script>
+<script src="pages.js"></script>
+</body>
+</html>

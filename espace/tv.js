@@ -74,6 +74,7 @@
   /* ---------- navigation ---------- */
   function route() {
     const m = location.hash.match(/^#e=([a-z0-9-]+)/);
+    if (location.hash === "#nouveau") { history.replaceState(null, "", "#"); renderListe(); nouveau(); return; }
     if (m) ouvrir(m[1]); else renderListe();
   }
   window.addEventListener("hashchange", () => { if (dirty() && !(E && location.hash === "#e=" + E.slug) && !confirm("Modifications non enregistrées : quitter quand même ?")) return; route(); });
@@ -121,7 +122,7 @@
     app.innerHTML = `
     <section class="sec linkbox" style="margin-top:0">
       <div class="row between" style="align-items:flex-start;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div class="muted" style="color:#c5d4ee">Lien à ouvrir sur la TV</div><code>${esc(lien.replace(/^https?:\/\//, ""))}</code>
-        <div class="row" style="margin-top:10px;gap:6px"><button class="btn sm primary" data-act="copier">Copier le lien</button><a class="btn sm" href="/tv/${esc(E.slug)}" target="_blank" rel="noopener">Voir sur cet écran</a>
+        <div class="row" style="margin-top:10px;gap:6px"><button class="btn sm primary" data-act="copier">Copier le lien</button><a class="btn sm" href="/tv/${esc(E.slug)}" target="_blank" rel="noopener">Voir sur cet écran</a><button class="btn sm" data-act="nfc">📲 Puce NFC</button>
         <a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent("Menu TV " + E.nom + " : " + lien + "\nOuvrez ce lien sur la TV (Chrome), puis touchez l’écran pour le plein écran.")}">WhatsApp</a></div>
         ${dirty() ? `<div style="color:#ffd27a;font-size:13px;margin-top:8px">⚠️ Enregistrez pour que la TV affiche les changements.</div>` : ""}</div>
         ${qr ? `<div class="qr">${qr}</div>` : ""}</div>
@@ -274,6 +275,7 @@
     const a = b.dataset.act, i = +b.dataset.i;
     const bouge = d => { const j = i + d; if (j < 0 || j >= E.pages.length) return; [E.pages[i], E.pages[j]] = [E.pages[j], E.pages[i]]; renderEdit(); };
     if (a === "nouveau") nouveau();
+    if (a === "nfc") window.NFCW_ECRIRE(lienTV(E.slug), E.nom);
     if (a === "up") bouge(-1);
     if (a === "down") bouge(1);
     if (a === "del" && confirm("Supprimer la page " + (i + 1) + " ?")) { E.pages.splice(i, 1); renderEdit(); }

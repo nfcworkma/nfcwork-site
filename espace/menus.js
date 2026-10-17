@@ -304,7 +304,7 @@
     <section class="sec paper stack">
       <div class="row between"><h3>Infos du commerce</h3><label class="check"><input type="checkbox" data-b="actif" ${M.actif !== false ? "checked" : ""}> Menu en ligne</label></div>
       ${champ("nom", "Nom du commerce", 'maxlength="60"')}
-      <div class="row" style="gap:6px"><span class="muted" style="font-size:13.5px">Lien :</span><a href="${esc(lienPublic(M.slug))}" target="_blank" rel="noopener">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}</a><button class="btn sm ghost" data-act="copier" data-v="${esc(lienPublic(M.slug))}">Copier</button></div>
+      <div class="row" style="gap:6px"><span class="muted" style="font-size:13.5px">Lien :</span><a href="${esc(lienPublic(M.slug))}" target="_blank" rel="noopener">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}</a><button class="btn sm ghost" data-act="copier" data-v="${esc(lienPublic(M.slug))}">Copier</button><button class="btn sm ghost" data-act="nfc">📲 Écrire sur la puce</button><button class="btn sm ghost" data-act="dupliquer">📄 Dupliquer</button></div>
       ${photoPick("logo", "Logo", "logo", "Carré ou rond, fond uni de préférence.")}
       <label class="check"><input type="checkbox" data-b="logoCarre" ${M.logoCarre ? "checked" : ""}> Logo carré (au lieu de rond)</label>
       ${pro ? photoPick("couverture", "Photo de couverture", "cover", "Une belle photo de la salle ou d’un plat (format paysage).") : ""}
@@ -490,6 +490,8 @@
       case "it-add": editerItem(ci, -1); break;
       case "type": M.type = b.dataset.v; renderEdit(); break;
       case "stands": imprimerStands(); break;
+      case "nfc": window.NFCW_ECRIRE(lienPublic(M.slug), M.nom); break;
+      case "dupliquer": dupliquerMenu(); break;
       case "promo-add": M.promos = M.promos || []; M.promos.push({ id: rid(6), texte: "", jours: [], de: "", a: "", actif: true }); renderEdit(); break;
       case "promo-del": M.promos.splice(i, 1); renderEdit(); break;
       case "promo-jour": { const p = M.promos[i], j = +b.dataset.j; p.jours = p.jours || []; p.jours = p.jours.includes(j) ? p.jours.filter(x => x !== j) : [...p.jours, j].sort(); renderEdit(); break; }
@@ -500,6 +502,25 @@
       case "it-down": bouge(M.categories[ci].items, ii, 1); break;
     }
   });
+
+  /* ---------- dupliquer un menu (même produits et photos, nouveau nom) ---------- */
+  async function dupliquerMenu() {
+    if (dirty()) { toast("Enregistrez d’abord ce menu."); return; }
+    const nom = prompt("Nom du nouveau menu :", M.nom + " 2"); if (!nom || !nom.trim()) return;
+    let s = slugify(nom); if (!s) return; let i = 2; const s0 = s; while (liste.some(x => x.slug === s)) s = s0 + "-" + i++;
+    try {
+      const c = JSON.parse(JSON.stringify(M)); c.slug = s; c.nom = nom.trim(); delete c.commandeRef;
+      // les photos envoyées sont recopiées : supprimer un menu n'efface pas les photos de l'autre
+      const map = {};
+      for (const id of idsDe(c).filter(x => !enLigne(x))) { const d = IMG[id] || await chargerImg(id); if (d) { const n = rid(); await db.doc("settings/mimg-" + n).set({ data: d, menu: s, maj: NOW() }); IMG[n] = d; map[id] = n; } }
+      const r = id => map[id] || id;
+      c.logo = r(c.logo); c.couverture = r(c.couverture); c.pages = (c.pages || []).map(r); (c.categories || []).forEach(k => (k.items || []).forEach(it => { if (it.photo) it.photo = r(it.photo); }));
+      const json = JSON.stringify(c);
+      await db.doc("settings/menu-" + s).set({ json, v: String(Date.now()), maj: NOW(), par: user.email });
+      liste.push({ slug: s, nom: c.nom, formule: c.formule, actif: true, maj: Date.now() }); await ecrireListe();
+      toast("📄 Menu copié : « " + c.nom + " »", true); location.hash = "#m=" + s;
+    } catch (x) { erreur(x); }
+  }
 
   /* ---------- stands de table numérotés : page A4 prête à imprimer (6 par page) ---------- */
   function imprimerStands() {

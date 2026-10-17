@@ -256,10 +256,11 @@ function renderHome(){
   const openAmt=open.reduce((a,i)=>a+totals(i).total,0),lateAmt=late.reduce((a,i)=>a+totals(i).total,0);
   app.innerHTML=`
   <div class="section-head"><div><div class="eyebrow">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</div><h2>Tableau de bord</h2></div>
-  <button class="btn primary" data-new-inv>＋ Nouvelle facture</button></div>
+  <button class="btn primary" data-creer>＋ Créer</button></div>
   <div class="quick" style="margin-bottom:16px"><a class="qa" href="menus.html">${ico("tools-kitchen-2")}<b>Menus digitaux</b><span>Créer & modifier</span></a>
     <a class="qa" href="stands.html">${ico("link")}<b>Stands QR</b><span>Imprimer & lier</span></a>
     <a class="qa" href="tv.html">${ico("device-tv")}<b>Menus TV</b><span>PDF → écran TV</span></a>
+    <a class="qa" href="pages.html">${ico("user")}<b>Cartes, avis, Wi-Fi</b><span>Créer sans Mac</span></a>
     <a class="qa" href="fidelite.html">${ico("star")}<b>Fidélité</b><span>Cartes & employés</span></a>
     <a class="qa" href="abonnements.html" style="position:relative">${ico("file-text")}<b>Abonnements</b><span id="aboInfo">Paiements & activation</span></a></div>
   <div class="eyebrow" style="margin-bottom:8px">À traiter</div>${todoTiles()}
@@ -795,6 +796,12 @@ function modForm(id){const cs=P.creations;if(!cs.length){toast("Aucun produit NF
     if(await clientWrite(fs.collection("modifications").doc().set(data))){closeModal();ptab="nfc";render();toast("Demande "+data.number+" envoyée")}else btn.disabled=false;
     sending=false}}
 
+/* ---------- ＋ Créer : tout ce qu'on peut créer, en un seul endroit ---------- */
+function creer(){
+  const C=[["🍽","Menu digital","menus.html#nouveau=e30"],["👤","Carte digitale","pages.html#new=profil"],["⭐","Avis Google","pages.html#new=avis"],["📶","Wi-Fi","pages.html#new=wifi"],
+    ["🔗","Page liens","pages.html#new=liens"],["🎁","Carte fidélité","fidelite.html#nouveau"],["📺","Menu TV (PDF)","tv.html#nouveau"],["🪑","Stand QR","stands.html"],["🧾","Facture","#facture"]];
+  openModal(`${head("＋ Créer")}<div class="creer">${C.map(([i,n,h])=>h==="#facture"?`<button class="cr" data-new-inv><span>${i}</span><b>${n}</b></button>`:`<a class="cr" href="${h}"><span>${i}</span><b>${n}</b></a>`).join("")}</div>`);
+}
 /* ---------- modals ---------- */
 function openModal(html){$("#modal").innerHTML=`<div class="scrim" data-scrim><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;const f=$("#modal input,#modal select");if(f)f.focus()}
 function closeModal(){$("#modal").innerHTML=""}
@@ -979,6 +986,7 @@ document.addEventListener("click",async e=>{
   if(d.amode){authMode=d.amode;renderAuth();return}
   if(d.verified!=null){await user.reload();if(auth.currentUser.emailVerified){await auth.currentUser.getIdToken(true);location.reload()}else toast("E-mail pas encore vérifié.");return}
   if(d.resend!=null){try{await user.sendEmailVerification();toast("E-mail renvoyé.")}catch(err){toast(authMsg(err))}return}
+  if(d.creer!=null){creer();return}
   if(d.ptab){ptab=d.ptab;if(d.close!=null)closeModal();window.scrollTo(0,0);render();return}
   if(role==="client"&&(d.cartInc||d.cartDec)){const id=d.cartInc||d.cartDec;cart[id]=Math.max(0,(cart[id]||0)+(d.cartInc?1:-1));if(!cart[id])delete cart[id];
     if($("#orderForm"))cartView();else{const y=window.scrollY;render();window.scrollTo(0,y)}return}

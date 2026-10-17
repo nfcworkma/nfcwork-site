@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NFCWORK</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05080f">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/img/icons/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* PAGES NFC créées depuis l'Espace (sans Mac) : carte digitale, avis Google, Wi-Fi, page liens
+   Lien : nfcwork.ma/p/<nom>  (404.html renvoie ici avec ?s=<nom>) ; données : Firestore settings/page-<nom> */
+:root{--bg:#05080f;--surf:#0B1220;--surf2:#0E1626;--line:#1B2A44;--fg:#E8EEFA;--muted:#8FA3C7;--accent:#2F7BFF;--accent2:#4C8DFF;--accentfg:#fff;--glow:rgba(47,123,255,.35)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);min-height:100%}
+body{font-family:"Readex Pro","IBM Plex Sans Arabic",sans-serif;color:var(--fg);position:relative;overflow-x:hidden;min-height:100vh}
+[dir=rtl] body{font-family:"IBM Plex Sans Arabic","Readex Pro",sans-serif}
+.glow{position:absolute;left:50%;top:-140px;width:520px;height:420px;transform:translateX(-50%);background:radial-gradient(closest-side,var(--glow),transparent);pointer-events:none}
+.wrap{position:relative;max-width:430px;margin:0 auto;padding:34px 20px 0}
+.brand{display:flex;justify-content:center}.brand img{height:20px;width:auto}
+.av{width:128px;height:128px;border-radius:50%;margin:24px auto 16px;padding:4px;background:linear-gradient(140deg,var(--accent2),var(--accent))}
+.av img,.av div{width:100%;height:100%;border-radius:50%;object-fit:cover;border:4px solid var(--bg);display:block;background:var(--surf2)}
+.av.contain img{object-fit:contain;padding:8px;background:#fff}
+.av div{display:grid;place-items:center;font-size:46px;font-weight:700;color:var(--accent)}
+.logo{width:120px;height:120px;margin:24px auto 14px;border-radius:26px;background:#fff;display:grid;place-items:center;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.logo img{width:86%;height:86%;object-fit:contain}
+h1{text-align:center;font-weight:700;font-size:27px;line-height:1.2}
+.co{text-align:center;color:var(--accent2);font-weight:600;font-size:14px;margin-top:5px;letter-spacing:.03em}
+.sub{text-align:center;color:var(--muted);margin-top:6px;font-size:15px}
+.pills{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:16px 0 4px}
+.pill{font-size:12px;padding:5px 11px;border-radius:99px;background:var(--surf2);border:1px solid var(--line)}
+.bio{text-align:center;color:var(--muted);font-size:14px;line-height:1.55;margin:12px 0 0}
+.quick{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:9px;margin:18px 0 14px}
+.q{display:flex;flex-direction:column;align-items:center;gap:7px;padding:13px 0;border-radius:16px;background:var(--surf);border:1px solid var(--line);color:var(--fg);text-decoration:none;font-size:12.5px;font-weight:500}
+.q svg{width:22px;height:22px;color:var(--accent)}
+.main{display:flex;align-items:center;justify-content:center;gap:9px;background:var(--accent);color:var(--accentfg);border-radius:14px;padding:14px;font-weight:600;font-size:15.5px;text-decoration:none;margin-bottom:10px;border:0;width:100%;font-family:inherit;cursor:pointer}
+.main svg{width:20px;height:20px}
+.main.ghost{background:var(--surf);color:var(--fg);border:1px solid var(--line)}
+.row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:14px;background:var(--surf);border:1px solid var(--line);color:var(--fg);text-decoration:none;margin-bottom:8px}
+.row svg{width:20px;height:20px;color:var(--accent);flex:none}
+.row div{flex:1;min-width:0}.row b{display:block;font-size:14px;font-weight:600}
+.row span{font-size:12.5px;color:var(--muted);word-break:break-word}
+.row .ar{width:16px;height:16px;color:var(--line)}
+[dir=rtl] .row .ar{transform:scaleX(-1)}
+a:active,button:active{transform:scale(.98)}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:18px;padding:18px;margin:16px 0}
+.hor .ht{font-weight:700;margin-bottom:6px}
+.hor .hr{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.hor .hr span{color:var(--muted)}.hor .hr b{font-weight:600;text-align:end}.hor .hr.f b{color:#e5484d}
+.hor .hr.today{color:var(--accent)}.hor .hr.today span{color:var(--accent);font-weight:700}
+.stars{display:flex;justify-content:center;gap:6px;font-size:34px;color:#f5b301;letter-spacing:2px}
+.aide{color:var(--muted);font-size:13px;text-align:center;margin-top:10px;line-height:1.5}
+.lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.net{display:flex;gap:12px;align-items:center}.net .ic{font-size:26px}
+.mdp{font-size:28px;font-weight:700;letter-spacing:1px;margin:4px 0 14px;word-break:break-all}
+.qrw{width:200px;height:200px;margin:4px auto 10px;background:#fff;border-radius:14px;padding:10px}.qrw svg{width:100%;height:100%;display:block}
+.steps{display:grid;gap:10px;font-size:13.5px;color:var(--muted)}.steps b{color:var(--fg)}
+.gal{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}.gal img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px}
+.foot{padding:28px 0 calc(26px + env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;color:var(--muted);letter-spacing:.06em}
+.foot a{color:var(--accent);text-decoration:none}.foot img{height:13px;width:auto;vertical-align:-2px;margin-inline-start:5px}
+.state{min-height:80vh;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted)}
+.state b{display:block;color:var(--fg);font-size:22px;margin-bottom:6px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;transition:.25s;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="wrap" id="app"><div class="state"><div><b>…</b></div></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/assets/js/qrgen.js"></script>
+<script>
+(function () {
+  "use strict";
+  const DOC = "https://firestore.googleapis.com/v1/projects/nfcwork-espace/databases/(default)/documents/settings/";
+  const app = document.getElementById("app");
+  const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const qs = new URLSearchParams(location.search);
+  let slug = (qs.get("s") || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const mp = location.pathname.match(/^\/p\/([a-z0-9-]+)\/?$/i); if (!slug && mp) slug = mp[1].toLowerCase();
+  const apercu = qs.has("apercu");
+  const CLE = "nfcwork-page-" + slug;
+
+  // thèmes (mêmes couleurs que l'ancien outil)
+  const THEMES = {
+    nuit: { bg: "#05080f", surf: "#0B1220", surf2: "#0E1626", line: "#1B2A44", fg: "#E8EEFA", muted: "#8FA3C7" },
+    blanc: { bg: "#f6f7f9", surf: "#ffffff", surf2: "#eef0f4", line: "#e1e4ea", fg: "#14171c", muted: "#5d6470" },
+    creme: { bg: "#f7f5f0", surf: "#ffffff", surf2: "#f1ede4", line: "#e3ddd1", fg: "#1d1b18", muted: "#6d665c" },
+    noir: { bg: "#000000", surf: "#111111", surf2: "#1a1a1a", line: "#2a2a2a", fg: "#f5f5f5", muted: "#a3a3a3" }
+  };
+  const I = {
+    tel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
+    wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.6-4.6A9 9 0 1 1 8 19.6L3 21"/><path d="M9 9.5c.5 2 2.5 4 4.5 4.5l1.2-1.2 2 .8"/></svg>',
+    mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+    insta: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>',
+    fb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h-2a4 4 0 0 0-4 4v3H7v4h2v7h4v-7h3l1-4h-4V7a1 1 0 0 1 1-1h2z"/></svg>',
+    tiktok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v11a4 4 0 1 1-4-4"/><path d="M14 3c.5 3 2.5 5 6 5"/></svg>',
+    in: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 11v5M8 8v.01M12 16v-5M16 16v-3a2 2 0 0 0-4 0"/></svg>',
+    yt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="M10 9.5l5 2.5-5 2.5z"/></svg>',
+    snap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 0 5 2 5 5v3l2 1-2 1c0 2 2 3 3 3-1 1-2 1-3 1l-1 2c-1 0-2-1-4-1s-3 1-4 1l-1-2c-1 0-2 0-3-1 1 0 3-1 3-3l-2-1 2-1V8c0-3 2-5 5-5z"/></svg>',
+    web: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
+    pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+    map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>',
+    link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>',
+    user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>',
+    star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+    ar: '<svg class="ar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
+  };
+  const waNum = p => { let d = String(p || "").replace(/\D/g, ""); if (d.startsWith("00")) d = d.slice(2); if (d.startsWith("0")) d = "212" + d.slice(1); return d.length >= 9 ? d : ""; };
+  const telFmt = p => { const n = waNum(p); return n ? "+" + n.replace(/^212(\d)(\d{2})(\d{2})(\d{2})(\d{2})$/, "212 $1 $2 $3 $4 $5") : p; };
+  const url = u => { u = String(u || "").trim(); if (!u) return ""; return /^(https?:|mailto:|tel:)/i.test(u) ? u : "https://" + u.replace(/^\/+/, ""); };
+  const handle = (u, base) => { u = String(u || "").trim(); if (!u) return ""; if (/^https?:/i.test(u)) return u; return base + u.replace(/^@/, ""); };
+  function toast(m) { const t = document.getElementById("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), 2000); }
+  function copier(txt, ok) {
+    const fb = () => { const a = document.createElement("textarea"); a.value = txt; a.style.cssText = "position:fixed;opacity:0;font-size:16px"; document.body.appendChild(a); a.select(); try { document.execCommand("copy"); toast(ok); } catch (e) { prompt("", txt); } a.remove(); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(() => toast(ok), fb); else fb();
+  }
+  const etat = (t, s) => { app.innerHTML = `<div class="state"><div><b>${esc(t)}</b>${esc(s || "")}</div></div>`; };
+
+  async function lireDoc(id) {
+    const r = await fetch(DOC + id, { cache: "no-store" });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error("http " + r.status);
+    return (await r.json()).fields || {};
+  }
+  const imgs = {};
+  async function photo(id) {
+    if (!id) return "";
+    if (id.startsWith("/") || /^https?:/.test(id)) return id;
+    if (imgs[id]) return imgs[id];
+    const k = "/__page-img/" + id; let box = null;
+    try { box = await caches.open("nfcwork-pages"); const h = await box.match(k); if (h) return (imgs[id] = await h.text()); } catch (e) {}
+    const f = await lireDoc("mimg-" + id).catch(() => null);
+    const d = f && f.data && f.data.stringValue;
+    if (!d || !d.startsWith("data:image/")) return "";
+    imgs[id] = d; try { if (box) box.put(k, new Response(d)); } catch (e) {}
+    return d;
+  }
+  function remplir() { document.querySelectorAll("img[data-img]").forEach(async el => { const s = await photo(el.dataset.img); if (s) el.src = s; else if (el.closest(".av")) el.parentNode.innerHTML = `<div>${esc((P.nom || "?").trim().charAt(0).toUpperCase())}</div>`; else el.remove(); }); }
+
+  let P = null;
+  function theme() {
+    const t = THEMES[P.theme] || THEMES.nuit, r = document.documentElement.style;
+    r.setProperty("--bg", t.bg); r.setProperty("--surf", t.surf); r.setProperty("--surf2", t.surf2); r.setProperty("--line", t.line); r.setProperty("--fg", t.fg); r.setProperty("--muted", t.muted);
+    const a = /^#[0-9a-f]{6}$/i.test(P.couleur || "") ? P.couleur : "#2F7BFF";
+    r.setProperty("--accent", a); r.setProperty("--accent2", a); r.setProperty("--glow", a + "40");
+    const n = parseInt(a.slice(1), 16), clair = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) > 170;
+    r.setProperty("--accentfg", clair ? "#111" : "#fff");
+    document.querySelector('meta[name="theme-color"]').content = t.bg;
+    document.documentElement.dir = P.langue === "ar" ? "rtl" : "ltr"; document.documentElement.lang = P.langue === "ar" ? "ar" : "fr";
+  }
+  const T = (fr, ar) => (P && P.langue === "ar" ? ar : fr);
+  const row = (href, ic, b, s) => href ? `<a class="row" href="${esc(href)}" ${/^https?:/.test(href) ? 'target="_blank" rel="noopener"' : ""}>${I[ic] || I.link}<div><b>${esc(b)}</b>${s ? `<span>${esc(s)}</span>` : ""}</div>${I.ar}</a>` : "";
+  const brand = '<div class="brand"><img src="/assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></div>';
+  const pied = () => `<div class="foot">${T("Créé par", "صُنع بواسطة")} <a href="https://nfcwork.ma" aria-label="NFCWORK"><img src="/assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></a></div>`;
+  const JOURS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], JOURS_AR = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  function horaires() {
+    const h = P.horaires || {}; const ordre = [1, 2, 3, 4, 5, 6, 0];
+    if (!ordre.some(j => (h[j] || "").trim())) return "";
+    const auj = new Date().getDay();
+    return `<div class="card hor"><div class="ht">🕒 ${T("Horaires", "أوقات العمل")}</div>${ordre.map(j => { const v = String(h[j] || "").trim(); const f = !v || /ferm|مغلق|سد/i.test(v);
+      return `<div class="hr${f ? " f" : ""}${j === auj ? " today" : ""}"><span>${T(JOURS[j], JOURS_AR[j])}</span><b>${esc(f ? T("Fermé", "مغلق") : v)}</b></div>`; }).join("")}</div>`;
+  }
+  function vcard() {
+    const l = ["BEGIN:VCARD", "VERSION:3.0", "N:" + (P.nom || "") + ";;;;", "FN:" + (P.nom || "")];
+    if (P.entreprise) l.push("ORG:" + P.entreprise); if (P.fonction) l.push("TITLE:" + P.fonction);
+    if (P.tel) l.push("TEL;TYPE=CELL:+" + waNum(P.tel)); if (P.email) l.push("EMAIL:" + P.email);
+    if (P.site) l.push("URL:" + url(P.site)); if (P.adresse) l.push("ADR:;;" + P.adresse + ";;;;");
+    l.push("URL:" + location.origin + "/p/" + slug, "END:VCARD");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([l.join("\r\n")], { type: "text/vcard" })); a.download = (slug || "contact") + ".vcf"; document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  function profil() {
+    const wa = waNum(P.whatsapp || P.tel), tel = waNum(P.tel), quick = [];
+    if (tel) quick.push(`<a class="q" href="tel:+${tel}">${I.tel}${T("Appeler", "اتصال")}</a>`);
+    if (wa) quick.push(`<a class="q" href="https://wa.me/${wa}">${I.wa}WhatsApp</a>`);
+    if (P.email) quick.push(`<a class="q" href="mailto:${esc(P.email)}">${I.mail}E-mail</a>`);
+    const tags = String(P.metiers || "").split(/\n|·/).map(s => s.trim()).filter(Boolean);
+    const maps = P.maps ? url(P.maps) : P.adresse ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(P.adresse) : "";
+    const liens = (P.liens || []).filter(x => x && x.titre && x.url);
+    app.innerHTML = `${brand}<div class="av${P.photoContain ? " contain" : ""}">${P.photo ? `<img data-img="${esc(P.photo)}" alt="">` : `<div>${esc((P.nom || "?").trim().charAt(0).toUpperCase())}</div>`}</div>
+      <h1>${esc(P.nom || "")}</h1>${P.fonction || P.entreprise ? `<div class="co">${esc([P.fonction, P.entreprise].filter(Boolean).join(" · "))}</div>` : ""}
+      ${tags.length ? `<div class="pills">${tags.map(t => `<span class="pill">${esc(t)}</span>`).join("")}</div>` : ""}
+      ${P.bio ? `<p class="bio">${esc(P.bio)}</p>` : ""}
+      ${quick.length ? `<div class="quick" style="--n:${quick.length}">${quick.join("")}</div>` : ""}
+      ${wa ? `<a class="main" href="https://wa.me/${wa}?text=${encodeURIComponent(T("Bonjour, j’ai vu votre carte NFCWORK", "السلام، شفت الكارطة ديالك"))}" target="_blank" rel="noopener">${I.wa}${T("Écrire sur WhatsApp", "كتب فالواتساب")}</a>` : ""}
+      <button class="main ghost" id="vcf">${I.user}${T("Enregistrer le contact", "حفظ جهة الاتصال")}</button>
+      ${horaires()}
+      ${row(handle(P.instagram, "https://instagram.com/"), "insta", "Instagram", String(P.instagram || "").replace(/^https?:\/\/(www\.)?/, ""))}
+      ${row(handle(P.facebook, "https://facebook.com/"), "fb", "Facebook", String(P.facebook || "").replace(/^https?:\/\/(www\.)?/, ""))}
+      ${row(handle(P.tiktok, "https://tiktok.com/@"), "tiktok", "TikTok", String(P.tiktok || "").replace(/^https?:\/\/(www\.)?/, ""))}
+      ${row(handle(P.linkedin, "https://linkedin.com/in/"), "in", "LinkedIn", String(P.linkedin || "").replace(/^https?:\/\/(www\.)?/, ""))}
+      ${row(handle(P.youtube, "https://youtube.com/@"), "yt", "YouTube", String(P.youtube || "").replace(/^https?:\/\/(www\.)?/, ""))}
+      ${row(handle(P.snapchat, "https://snapchat.com/add/"), "snap", "Snapchat", String(P.snapchat || ""))}
+      ${row(url(P.site), "web", T("Site web", "الموقع"), String(P.site || "").replace(/^https?:\/\//, ""))}
+      ${liens.map(x => row(url(x.url), "link", x.titre, "")).join("")}
+      ${tel ? row("tel:+" + tel, "tel", T("Téléphone", "الهاتف"), telFmt(P.tel)) : ""}
+      ${P.email ? row("mailto:" + P.email, "mail", "E-mail", P.email) : ""}
+      ${P.adresse ? row(maps, "pin", T("Adresse", "العنوان"), P.adresse) : maps ? row(maps, "map", "Google Maps", T("Voir la localisation", "شوف الموقع")) : ""}
+      ${(P.galerie || []).length ? `<div class="gal">${P.galerie.map(id => `<img data-img="${esc(id)}" alt="">`).join("")}</div>` : ""}
+      ${pied()}`;
+    document.getElementById("vcf").onclick = vcard;
+  }
+  function avis() {
+    const lien = url(P.lienGoogle);
+    app.innerHTML = `${brand}${P.photo ? `<div class="logo"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}<h1>${esc(P.nom || "")}</h1><p class="sub">${esc(P.message || T("Votre avis compte 🙏", "رأيك كيهمنا 🙏"))}</p>
+      <div class="card" style="text-align:center"><div class="stars" aria-hidden="true">★★★★★</div>
+        <p style="margin:8px 0 14px;color:var(--muted);font-size:14.5px">${T("Merci de prendre quelques secondes pour partager votre expérience.", "شكراً على شي ثواني باش تشارك التجربة ديالك.")}</p>
+        ${lien ? `<a class="main" href="${esc(lien)}" rel="noopener">${I.star}${T("Laisser un avis", "خلي تقييم")}</a>` : ""}
+        <p class="aide">${T("Google s’ouvre : choisissez vos étoiles, écrivez un mot, puis « Publier ».", "كيتحل Google: اختار النجوم، كتب كلمة، ومن بعد « نشر ».")}</p></div>
+      ${P.instagram ? row(handle(P.instagram, "https://instagram.com/"), "insta", "Instagram", String(P.instagram).replace(/^https?:\/\/(www\.)?/, "")) : ""}
+      ${pied()}`;
+  }
+  function wifi() {
+    const sec = P.securite === "nopass" ? "nopass" : P.securite === "WEP" ? "WEP" : "WPA";
+    const e = s => String(s || "").replace(/([\\;,:"])/g, "\\$1");
+    const code = `WIFI:T:${sec};S:${e(P.ssid)};${sec === "nopass" ? "" : "P:" + e(P.motdepasse) + ";"}${P.cache ? "H:true;" : ""};`;
+    let qr = ""; try { qr = window.QRGEN.svg(code, { marge: 1, couleur: "#111111" }); } catch (x) {}
+    app.innerHTML = `${brand}${P.photo ? `<div class="logo"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}<h1>${esc(P.nom || "Wi-Fi")}</h1><p class="sub">${esc(P.message || T("Wi-Fi offert 📶", "واي فاي فابور 📶"))}</p>
+      <div class="card"><div class="net"><span class="ic">📶</span><div style="min-width:0"><div class="lab">${T("Réseau", "الشبكة")}</div><b style="font-size:19px;word-break:break-all">${esc(P.ssid || "")}</b></div></div>
+        ${sec !== "nopass" ? `<div class="lab" style="margin-top:14px">${T("Mot de passe", "كلمة السر")}</div><div class="mdp">${esc(P.motdepasse || "")}</div><button class="main" id="cp">${I.copy}${T("Copier le mot de passe", "نسخ كلمة السر")}</button>` : `<p style="margin-top:12px;color:var(--muted)">${T("Réseau ouvert : pas de mot de passe.", "شبكة مفتوحة: بلا كلمة سر.")}</p>`}</div>
+      ${qr ? `<div class="card" style="text-align:center"><div class="qrw">${qr}</div><b>${T("Scannez avec l’appareil photo pour vous connecter automatiquement", "سكاني بالكاميرا باش تدخل للشبكة أوتوماتيكياً")}</b></div>` : ""}
+      <div class="card steps"><div>🍎 <b>iPhone</b> : ${T("ouvrez l’appareil photo, visez le QR, puis « Rejoindre le réseau ».", "حل الكاميرا، وجهها للـQR، ومن بعد « الانضمام للشبكة ».")}</div><div>🤖 <b>Android</b> : ${T("scannez le QR avec l’appareil photo, ou copiez le mot de passe.", "سكاني الـQR بالكاميرا، ولا نسخ كلمة السر.")}</div></div>
+      ${pied()}`;
+    const b = document.getElementById("cp"); if (b) b.onclick = () => copier(P.motdepasse || "", T("Mot de passe copié ✓", "تنسخات كلمة السر ✓"));
+  }
+  function liens() {
+    const wa = waNum(P.whatsapp), L = (P.liens || []).filter(x => x && x.titre && x.url);
+    const ic = u => /instagram/.test(u) ? "insta" : /facebook|fb\.com/.test(u) ? "fb" : /tiktok/.test(u) ? "tiktok" : /youtu/.test(u) ? "yt" : /wa\.me|whatsapp/.test(u) ? "wa" : /maps|goo\.gl/.test(u) ? "map" : "link";
+    app.innerHTML = `${brand}<div class="av${P.photoContain ? " contain" : ""}">${P.photo ? `<img data-img="${esc(P.photo)}" alt="">` : `<div>${esc((P.nom || "?").trim().charAt(0).toUpperCase())}</div>`}</div>
+      <h1>${esc(P.nom || "")}</h1>${P.slogan ? `<p class="sub">${esc(P.slogan)}</p>` : ""}
+      <div style="height:16px"></div>
+      ${wa ? `<a class="main" href="https://wa.me/${wa}" target="_blank" rel="noopener">${I.wa}WhatsApp</a>` : ""}
+      ${L.map(x => row(url(x.url), ic(x.url), x.titre, "")).join("")}
+      ${P.localisation ? row(/^https?:/.test(P.localisation) ? P.localisation : "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(P.localisation), "pin", T("Localisation", "الموقع"), /^https?:/.test(P.localisation) ? "Google Maps" : P.localisation) : ""}
+      ${pied()}`;
+  }
+
+  function rendre(data) {
+    P = data || {};
+    if (!apercu && P.actif === false) { etat(T("Service momentanément indisponible", "الخدمة متوقفة مؤقتاً"), T("Merci de réessayer un peu plus tard.", "عاود من بعد شوية.")); return; }
+    if (!apercu && P.expire) { const d = new Date(), j = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; if (j > String(P.expire)) { etat("Service momentanément indisponible", "Merci de réessayer un peu plus tard."); return; } }
+    theme();
+    document.title = (P.nom || "NFCWORK") + (P.fonction ? " · " + P.fonction : "");
+    ({ profil, avis, wifi, liens }[P.type] || profil)();
+    remplir();
+  }
+
+  async function charger() {
+    if (!slug) { etat("Page introuvable", "Vérifiez le lien."); return; }
+    let memo = null; try { memo = localStorage.getItem(CLE); } catch (e) {}
+    if (memo) { try { rendre(JSON.parse(memo)); } catch (e) {} }
+    try {
+      const [f, c] = await Promise.all([lireDoc("page-" + slug), lireDoc("coupures").catch(() => null)]);
+      if (!f) { if (!P) etat("Page introuvable", "Vérifiez le lien ou contactez NFCWORK."); return; }
+      const j = (f.json && f.json.stringValue) || "{}";
+      const data = JSON.parse(j);
+      try { const cp = JSON.parse((c && c.json && c.json.stringValue) || "{}")[slug]; if (cp && (cp.actif === false || cp.expire)) { if (cp.actif === false) data.actif = false; if (cp.expire) data.expire = cp.expire; } } catch (e) {}
+      const s = JSON.stringify(data);
+      if (s === memo) return;
+      try { localStorage.setItem(CLE, s); } catch (e) {}
+      rendre(data);
+    } catch (e) { if (!P) etat("Connexion impossible", "Réessayez dans un instant."); }
+  }
+  // aperçu depuis l'Espace (sans enregistrer)
+  window.addEventListener("message", e => { if (e.origin === location.origin && e.data && e.data.type === "nfcwork-page-apercu") { Object.assign(imgs, e.data.images || {}); rendre(e.data.page); } });
+  if (apercu && window.parent !== window) { etat("", ""); window.parent.postMessage({ type: "nfcwork-page-pret" }, location.origin); } else charger();
+})();
+</script>
+</body>
+</html>
