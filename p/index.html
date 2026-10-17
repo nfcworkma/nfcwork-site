@@ -74,6 +74,7 @@ a:active,button:active{transform:scale(.98)}
 <div class="wrap" id="app"><div class="state"><div><b>…</b></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/assets/js/qrgen.js"></script>
+<script src="/assets/js/vue.js"></script>
 <script>
 (function () {
   "use strict";
@@ -247,6 +248,7 @@ a:active,button:active{transform:scale(.98)}
     if (!apercu && P.actif === false) { etat(T("Service momentanément indisponible", "الخدمة متوقفة مؤقتاً"), T("Merci de réessayer un peu plus tard.", "عاود من بعد شوية.")); return; }
     if (!apercu && P.expire) { const d = new Date(), j = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; if (j > String(P.expire)) { etat("Service momentanément indisponible", "Merci de réessayer un peu plus tard."); return; } }
     theme();
+    if (!apercu && window.NFCW_VUE) NFCW_VUE("page", slug);
     document.title = (P.nom || "NFCWORK") + (P.fonction ? " · " + P.fonction : "");
     ({ profil, avis, wifi, liens }[P.type] || profil)();
     remplir();

@@ -49,8 +49,10 @@
     const box = document.getElementById("gHome"); if (!box) return;
     box.innerHTML = `<input id="gq" type="search" placeholder="🔎 Chercher : client, menu, carte, facture…" autocomplete="off" style="width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px;margin-bottom:10px">
       <div id="gres"></div>
-      <div class="gacts"><button class="ga" data-g="demo"><span>🎯</span><b>Démo 2 min</b></button><button class="ga" data-g="devis"><span>📝</span><b>Devis</b></button><button class="ga" data-g="contrat"><span>✍️</span><b>Contrat</b></button><button class="ga" data-g="prospects"><span>🗂</span><b>Prospects</b><i id="gpb"></i></button></div>
+      <div class="gacts"><button class="ga" data-g="demo"><span>🎯</span><b>Démo 2 min</b></button><button class="ga" data-g="devis"><span>📝</span><b>Devis</b></button><button class="ga" data-g="contrat"><span>✍️</span><b>Contrat</b></button><button class="ga" data-g="prospects"><span>🗂</span><b>Prospects</b><i id="gpb"></i></button>
+        <button class="ga" data-g="stats"><span>📊</span><b>Visites</b></button><button class="ga" data-new-inv><span>🧾</span><b>Facture</b></button><button class="ga" data-g="guide"><span>📖</span><b>Guide</b></button><button class="ga" data-g="app" id="gapp"><span>📲</span><b>Application</b></button></div>
       <div id="grel"></div>`;
+    try { if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) document.getElementById("gapp").remove(); } catch (e) {}
     const q = document.getElementById("gq"); q.oninput = () => chercher(q.value);
     const d = await donnees();
     relances(d);
@@ -279,16 +281,95 @@
     }
   }
 
+  /* ---------- 📊 visites (menus + pages) ---------- */
+  const RULE_STATS = `match /stats/{id} {
+      allow read: if request.auth != null;
+      allow create: if id.size() < 90 && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == 1;
+      allow update: if request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == resource.data.n + 1;
+    }`;
+  const moisCle = dec => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - dec); return String(d.getFullYear() * 100 + d.getMonth() + 1); };
+  function regleBox(ap, titre, texte, regle) {
+    ap.openModal(`${ap.head(titre)}<div class="notice">${texte}<br><br>Firebase → Firestore Database → <b>Règles</b> → collez ce bloc juste avant « // Tout le reste est fermé », puis <b>Publier</b> :</div>
+      <pre style="white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0;font-size:12.5px;direction:ltr;text-align:left">${esc(regle)}</pre><button class="btn primary" id="cpr">📋 Copier la règle</button>`);
+    document.getElementById("cpr").onclick = async () => { try { await navigator.clipboard.writeText(regle); ap.toast("Règle copiée ✓"); } catch (e) { prompt("Copiez :", regle); } };
+  }
+  async function stats() {
+    const ap = A(), d = await donnees();
+    let docs;
+    try { docs = (await ap.fs.collection("stats").get()).docs.map(x => ({ id: x.id, n: +x.data().n || 0 })); }
+    catch (e) { regleBox(ap, "📊 Visites", "Pour compter les visites de vos menus et cartes, ajoutez cette règle dans Firebase (une seule fois). Le comptage commence juste après.", RULE_STATS); return; }
+    const m0 = moisCle(0), m1 = moisCle(1), T = {};
+    docs.forEach(x => { const r = x.id.match(/^(menu|page)-(.+)-(\d{6})$/); if (!r) return; const k = r[1] + "-" + r[2]; const t = T[k] = T[k] || { type: r[1], slug: r[2], m0: 0, m1: 0, tot: 0 }; t.tot += x.n; if (r[3] === m0) t.m0 += x.n; if (r[3] === m1) t.m1 += x.n; });
+    d.menus.forEach(m => { const k = "menu-" + m.slug; T[k] = T[k] || { type: "menu", slug: m.slug, m0: 0, m1: 0, tot: 0 }; T[k].nom = m.nom; });
+    d.pages.forEach(p => { const k = "page-" + p.slug; T[k] = T[k] || { type: "page", slug: p.slug, m0: 0, m1: 0, tot: 0 }; T[k].nom = p.nom; T[k].pt = p.type; });
+    const L = Object.values(T).sort((a, b) => b.m0 - a.m0 || b.tot - a.tot), tot0 = L.reduce((s, t) => s + t.m0, 0), tot1 = L.reduce((s, t) => s + t.m1, 0);
+    const mx = Math.max(1, ...L.map(t => t.m0)), nomMois = new Date().toLocaleDateString("fr-FR", { month: "long" });
+    const txt = t => `Bonjour 👋\n\n📊 Votre ${t.type === "menu" ? "menu" : "carte"} NFCWORK « ${t.nom || t.slug} » a été ouvert(e) par ${t.m0} personne(s) ce mois-ci${t.m1 ? " (" + t.m1 + " le mois dernier)" : ""}.\n\nnfcwork.ma/${t.type === "menu" ? "menu" : "p"}/${t.slug}\n\nNFCWORK · nfcwork.ma`;
+    ap.openModal(`${ap.head("📊 Visites")}
+      <div class="grid2" style="margin-bottom:12px"><div class="grow" style="flex-direction:column;align-items:flex-start"><span class="muted" style="font-size:12.5px">Ce mois (${esc(nomMois)})</span><b style="font-size:26px">${tot0}</b></div><div class="grow" style="flex-direction:column;align-items:flex-start"><span class="muted" style="font-size:12.5px">Mois dernier</span><b style="font-size:26px">${tot1}</b></div></div>
+      <p class="muted" style="font-size:12.5px;margin:0 0 10px">1 visite = 1 téléphone par jour. Vos propres visites (connecté à l’Espace) ne comptent pas.</p>
+      ${L.length ? `<div class="stack" style="gap:8px">${L.map(t => `<div class="grow"><span style="font-size:20px">${t.type === "menu" ? "🍽" : ({ profil: "👤", avis: "⭐", wifi: "📶", liens: "🔗" }[t.pt] || "📄")}</span><div style="flex:1;min-width:0"><b>${esc(t.nom || t.slug)}</b><div style="height:6px;border-radius:6px;background:var(--line);margin:5px 0"><i style="display:block;height:100%;border-radius:6px;background:var(--accent);width:${Math.round(t.m0 / mx * 100)}%"></i></div><div class="muted" style="font-size:12.5px">${t.m0} ce mois · ${t.m1} le mois dernier · ${t.tot} au total</div></div><a class="btn sm" href="https://wa.me/?text=${encodeURIComponent(txt(t))}" target="_blank" rel="noopener" title="Envoyer au client">💬</a></div>`).join("")}</div>` : `<div class="empty"><p>Pas encore de visites.</p></div>`}
+      ${!docs.length ? `<details style="margin-top:14px"><summary class="muted">Toujours 0 ? Vérifiez la règle Firebase</summary><pre style="white-space:pre-wrap;font-size:12px;direction:ltr;text-align:left">${esc(RULE_STATS)}</pre></details>` : ""}`);
+  }
+
+  /* ---------- 📲 installer l'Espace comme une application ---------- */
+  function installer() {
+    const ap = A(), ev = window.NFCW_INSTALL;
+    if (ev) { ev.prompt(); ev.userChoice.then(r => { if (r.outcome === "accepted") { ap.toast("✅ Installée !"); window.NFCW_INSTALL = null; } }).catch(() => {}); return; }
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    ap.openModal(`${ap.head("📲 L’Espace comme une application")}<div dir="rtl" lang="ar" style="font-size:16px;line-height:1.9">
+      ${ios ? `<p>📱 <b>آيفون</b> (Safari):</p><ol><li>ورك على زر <b>المشاركة</b> ⬆️ لتحت</li><li>اختار <b>«Sur l’écran d’accueil»</b> ➕</li><li>ورك <b>Ajouter</b> ✅</li></ol>`
+        : `<p>📱 <b>أندرويد</b> (Chrome):</p><ol><li>ورك على <b>⋮</b> الفوق على اليمين</li><li>اختار <b>«Installer l’application»</b> ولا <b>«Ajouter à l’écran d’accueil»</b> ➕</li><li>ورك <b>Installer</b> ✅</li></ol>
+        <p>💻 <b>PC</b> (Chrome / Edge): ورك على الأيقونة ⊕ فـ آخر خانة العنوان الفوق.</p>`}
+      <p>🎉 من بعد غادي تلقى <b>NFCWORK</b> فـ التليفون بحال شي تطبيق، كيتحل نيشان على الـEspace.</p></div>`);
+  }
+
+  /* ---------- 📖 guide : téléphone seul / PC seul ---------- */
+  let gTab = "tel";
+  function guide() {
+    const ap = A();
+    const T = {
+      tel: [
+        ["🆕", "زبون جديد", "الصفحة الأولى ← <b>＋ Créer</b> ← <b>Client</b>. كتب الاسم والتيليفون وصافي."],
+        ["🎯", "ديمو قدام الزبون", "<b>🎯 Démo 2 min</b> ← كتب اسم المحل ← كيتصاوب منيو تجريبي 7 أيام. وريه للزبون فـ التيليفون."],
+        ["🍽", "منيو", "<b>Menus</b> ← ＋ ← زيد الأطباق والتصاور (صوّر بالكاميرا نيشان). ولا <b>Importer</b> من صورة المنيو."],
+        ["📲", "نكتب الستيكر NFC", "من المنيو ولا الكارط ← زر <b>📲 NFC</b> ← قرّب الستيكر من ظهر التيليفون. (أندرويد Chrome كيكتب بوحدو، آيفون كيعطيك NFC Tools)."],
+        ["⭐", "كارط، أفيس غوغل، Wi-Fi", "<b>＋ Créer</b> ← اختار النوع ← عمّر ← <b>Enregistrer</b> ← <b>📲 NFC</b>."],
+        ["🎁", "الفيدليتي", "<b>Fidélité</b> ← ＋ برنامج. المحل كيسكاني الكارطات بالتيليفون ديالو."],
+        ["📝", "ديفي وكونطرا", "<b>📝 Devis</b> ← اختار المنتوجات ← صيفطو فـ واتساب. <b>✍️ Contrat</b> ← الزبون كيسيني بصبعو فـ الشاشة."],
+        ["🧾", "فاكتورة", "<b>🧾 Facture</b> ← اختار الزبون ← <b>PDF</b> ولا واتساب."],
+        ["💰", "الفلوس ديال الشهر", "فـ الصفحة الأولى كيبانو <b>💰 À encaisser</b> ← <b>💬 Rappel</b> فـ واتساب ← ملي يخلّص <b>✅ Payé</b>."],
+        ["📊", "شحال من واحد شاف المنيو", "<b>📊 Visites</b> ← صيفط الرقم للزبون فـ واتساب 💬 (كيفرح بيه 😄)."]
+      ],
+      pc: [
+        ["📺", "منيو TV", "<b>Menus TV</b> ← ＋ ← حط <b>PDF</b> ديال المنيو ← خذ الرابط <b>nfcwork.ma/tv/…</b> وحلّو فـ التلفزة."],
+        ["🖨", "طباعة الستاندات", "<b>Menus</b> ← المنيو ← <b>Stands</b> ← <b>Imprimer</b> (6 فـ كل ورقة A4، كل واحد برقم الطابلة)."],
+        ["📄", "ديفي / كونطرا / فاكتورة PDF", "نفس الشي بحال التيليفون، ولكن <b>Imprimer</b> كيخرج ورقة نقية للطابعة."],
+        ["📥", "منيو كبير", "<b>Menus</b> ← <b>Importer</b> ← لصق المنيو كامل (من Glovo ولا ملف) ← كيتقسم بوحدو."],
+        ["🗂", "البروسبي", "<b>🗂 Prospects</b> ← زيد المحلات اللي دزتي عليهم + نهار الرجوع 📅."],
+        ["🔁", "الأبونمان", "<b>Abonnements</b> ← شوف شكون خلّص وشكون لا، وقطع/رجّع الخدمة بنقرة."],
+        ["🔎", "قلّب على أي حاجة", "خانة <b>🔎 Chercher</b> فـ الصفحة الأولى: زبون، منيو، كارط، فاكتورة…"]
+      ]
+    };
+    const plus = gTab === "tel" ? "✅ <b>كلشي كيتدار بالتيليفون بوحدو</b> — حتى PC ما خاصك." : "💡 <b>الـPC مزيان للحوايج الكبار</b> (TV، طباعة، منيو طويل). وكلشي خدام حتى بلا Mac.";
+    ap.openModal(`${ap.head("📖 Guide")}
+      <div class="filters" style="margin-bottom:12px"><button class="chip" data-gt="tel" aria-pressed="${gTab === "tel"}">📱 بالتيليفون بوحدو</button><button class="chip" data-gt="pc" aria-pressed="${gTab === "pc"}">💻 بالـPC بوحدو</button></div>
+      <div dir="rtl" lang="ar"><div class="notice" style="margin-bottom:12px">${plus}</div>
+      <div class="stack" style="gap:8px">${T[gTab].map(([i, t, x], n) => `<div class="grow" style="align-items:flex-start"><span style="font-size:24px">${i}</span><div style="flex:1"><b>${n + 1}. ${t}</b><div style="font-size:15px;line-height:1.8;margin-top:2px">${x}</div></div></div>`).join("")}</div>
+      <p class="muted" style="margin-top:14px;font-size:14px">📲 نصيحة: ثبّت الـEspace فـ التيليفون بحال تطبيق ← زر <b>📲 Application</b>.</p></div>`);
+    document.querySelectorAll("[data-gt]").forEach(b => b.onclick = () => { gTab = b.dataset.gt; guide(); });
+  }
+
   /* ---------- clics ---------- */
   document.addEventListener("click", e => {
     const g = e.target.closest("[data-g]");
-    if (g) { e.preventDefault(); const k = g.dataset.g, c = g.dataset.c || ""; if (k === "demo") demo(); if (k === "devis") devis(c); if (k === "contrat") contrat(c); if (k === "prospects") prospects(); return; }
+    if (g) { e.preventDefault(); const k = g.dataset.g, c = g.dataset.c || ""; if (k === "demo") demo(); if (k === "devis") devis(c); if (k === "contrat") contrat(c); if (k === "prospects") prospects(); if (k === "stats") stats(); if (k === "guide") guide(); if (k === "app") installer(); return; }
     const cl = e.target.closest("[data-gcli]"); if (cl) { const c = A().clientById(cl.dataset.gcli); if (c) A().clientView(c); return; }
     const pr = e.target.closest("[data-gpro]"); if (pr) { const p = (D && D.prospects || []).find(x => x.id === pr.dataset.gpro); if (p) prospect(p); return; }
   }, true);
 
   const st = document.createElement("style");
-  st.textContent = `.gacts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}.ga{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;cursor:pointer;text-decoration:none}
+  st.textContent = `.gacts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}.ga[hidden]{display:none}.ga{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;cursor:pointer;text-decoration:none}
     .ga span{font-size:24px;line-height:1}.ga b{font-size:12.5px}.ga i{position:absolute;top:6px;right:8px;font-style:normal;background:var(--bad,#e5484d);color:#fff;border-radius:10px;font-size:11px;padding:0 6px}.ga i:empty{display:none}
     .grow{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface)}
     .dl{display:grid;grid-template-columns:minmax(0,2.4fr) 52px 78px 70px 32px;gap:5px;align-items:center}.dl input{min-width:0;padding:9px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:14px}

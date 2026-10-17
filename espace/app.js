@@ -159,6 +159,7 @@ function startAdmin(){
   listenDiscret(fs.collection("modifications"),s=>{S.mods=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   listenDiscret(fs.collection("commandesSite"),s=>s.docs.forEach(importerCommandeSite));
   render();
+  if(location.hash==="#creer"){history.replaceState(null,"",location.pathname);setTimeout(creer,300)}
 }
 /* ---------- Commandes du site (nfcwork.ma/commande.html) ----------
    Le site dépose chaque commande dans « commandesSite » (sans compte). L'admin la range

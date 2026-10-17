@@ -142,6 +142,7 @@
     if (meta) meta.content = getComputedStyle(root).getPropertyValue("--bg").trim() || "#0d0f14";
     if (mp === null && !apercu && history.replaceState) { try { history.replaceState(null, "", "/menu/" + slug + location.search.replace(/[?&]m=[^&]*/, "").replace(/^&/, "?")); } catch (e) {} }
     rendre();
+    if (!apercu && !demo && !/^essai-/.test(slug) && window.NFCW_VUE) NFCW_VUE("menu", slug);
   }
   function clair(hex) {
     const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;

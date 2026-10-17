@@ -1,0 +1,21 @@
+{
+  "name": "NFCWORK Espace",
+  "short_name": "NFCWORK",
+  "description": "Gérer vos clients, menus, cartes NFC et factures",
+  "id": "/espace/",
+  "start_url": "/espace/",
+  "scope": "/espace/",
+  "display": "standalone",
+  "background_color": "#05080f",
+  "theme_color": "#05080f",
+  "icons": [
+    { "src": "/assets/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/img/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/assets/img/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Créer", "url": "/espace/#creer" },
+    { "name": "Menus", "url": "/espace/menus.html" },
+    { "name": "Fidélité", "url": "/espace/fidelite.html" }
+  ]
+}
