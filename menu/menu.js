@@ -25,6 +25,7 @@
   slug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "");
   if (slug === "demo") slug = "demo-premium";
   const apercu = qs.has("apercu");
+  const tableQR = String(qs.get("table") || "").replace(/[^0-9A-Za-z-]/g, "").slice(0, 6);   // stand de table numéroté
   const demo = /^demo-(standard|pro|premium)$/.test(slug);
 
   const U = {
@@ -39,7 +40,8 @@
     resto: { carte: "La carte", choix: "choix", order: "Ma commande", hello: "Bonjour, je souhaite commander :", titre: "Menu", add: "Ajouter" },
     boutique: { carte: "Catalogue", choix: "articles", order: "Mon panier", hello: "Bonjour, je souhaite commander :", titre: "Catalogue", add: "Ajouter" },
     salon: { carte: "Nos services", choix: "services", order: "Mon rendez-vous", hello: "Bonjour, je souhaite prendre rendez-vous :", titre: "Rendez-vous", add: "Choisir" },
-    hotel: { carte: "Room service", choix: "choix", order: "Ma commande", hello: "Room service, je souhaite commander :", titre: "Room service", add: "Ajouter" }
+    hotel: { carte: "Room service", choix: "choix", order: "Ma commande", hello: "Room service, je souhaite commander :", titre: "Room service", add: "Ajouter" },
+    location: { carte: "Nos voitures", choix: "véhicules", order: "Ma réservation", hello: "Bonjour, je souhaite louer :", titre: "Location", add: "Choisir" }
   };
   const TY = () => TYPES[M && M.type] || TYPES.resto;
   let M = null, panier = {};
@@ -215,7 +217,8 @@
     document.title = (M.nom || "Menu") + " · " + TY().titre;
     U.order = TY().order; U.hello = TY().hello; U.add = TY().add; U.carte = TY().carte;
     U.table = M.type === "hotel" ? "Numéro de chambre" : M.type === "boutique" ? "Votre nom" : "Table ou nom";
-    U.send = M.type === "salon" ? "Envoyer la demande de rendez-vous sur WhatsApp" : "Envoyer la commande sur WhatsApp";
+    if (tableQR && M.type === "hotel" && saisie.table === "Table " + tableQR) saisie.table = "Chambre " + tableQR;
+    U.send = M.type === "salon" ? "Envoyer la demande de rendez-vous sur WhatsApp" : M.type === "location" ? "Envoyer la demande de réservation sur WhatsApp" : "Envoyer la commande sur WhatsApp";
     U.see = M.type === "salon" ? "Voir mon rendez-vous" : M.type === "boutique" ? "Voir mon panier" : "Voir ma commande";
     if (!apercu) iconeApp();
     if (M.actif === false && !apercu && !demo) { etat(U.off, U.offTx); return; }
@@ -256,7 +259,7 @@
       app.innerHTML = `${barreDemo()}
         <header class="phero">${M.couverture ? `<img data-img="${esc(M.couverture)}" data-w="900" alt="">` : ""}
           <div class="in">${logoTag()}<h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}<div class="orn">${U.carte}</div></div></header>
-        <div class="wrap pinfo">${puces()}</div>
+        <div class="wrap pinfo">${puces()}${tableQR ? `<div style="text-align:center"><span class="tablechip">${M.type === "hotel" ? "🛏 Chambre " : "🪑 Table "}${esc(tableQR)}</span></div>` : ""}</div>
         ${bandeau}
         ${vedettes.length ? `<section class="wrap vedettes"><h2>${U.top}</h2><div class="vscroll">${vedettes.map(it => vcarte(it, waOk)).join("")}</div></section>` : ""}
         ${nav}
@@ -301,6 +304,7 @@
     return q ? `<span class="qty"><button data-moins="${esc(it.id)}" aria-label="Retirer">−</button><b>${q}</b><button data-plus="${esc(it.id)}" aria-label="Ajouter">+</button></span>`
              : `<button class="add" data-plus="${esc(it.id)}" aria-label="${U.add}">+${gros ? " " + U.add : ""}</button>`;
   }
+  const parJour = () => (M.type === "location" ? " / jour" : "");
   const pk = id => (String(id || "").startsWith("o:") ? " pk" : "");   // photo de produit emballé : affichée en entier sur fond blanc
   // ligne compacte (Pro, ou produit sans photo en Premium)
   function carte(it, waOk) {
@@ -308,14 +312,14 @@
     return `<article class="item${it.dispo === false ? " off" : ""}" data-item="${esc(it.id)}">
       ${it.photo ? `<img class="ph${pk(it.photo)}" data-img="${esc(it.photo)}" data-w="130" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">` : ""}
       <div class="tx"><h3>${esc(tr(it.nom))}</h3>${tr(it.desc) ? `<p>${esc(tr(it.desc))}</p>` : ""}
-      <div class="bot">${p ? `<span class="price">${esc(p)}</span>` : "<span></span>"}${ctrl(it, waOk)}</div></div></article>`;
+      <div class="bot">${p ? `<span class="price">${esc(p)}${parJour()}</span>` : "<span></span>"}${ctrl(it, waOk)}</div></div></article>`;
   }
   // grande carte photo (Premium)
   function pcarte(it, waOk) {
     const p = fmtPrix(it.prix);
     return `<article class="pcard${it.dispo === false ? " off" : ""}" data-item="${esc(it.id)}">
       <img class="ph${pk(it.photo)}" data-img="${esc(it.photo)}" data-w="700" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">
-      <div class="tx"><div class="top"><h3>${esc(tr(it.nom))}</h3>${p ? `<span class="price">${esc(p)}</span>` : ""}</div>
+      <div class="tx"><div class="top"><h3>${esc(tr(it.nom))}</h3>${p ? `<span class="price">${esc(p)}${parJour()}</span>` : ""}</div>
       ${tr(it.desc) ? `<p>${esc(tr(it.desc))}</p>` : ""}<div class="bot">${ctrl(it, waOk, true)}</div></div></article>`;
   }
   // carte « À ne pas manquer »
@@ -323,7 +327,7 @@
     const p = fmtPrix(it.prix);
     return `<article class="vcard" data-item="${esc(it.id)}" data-v="1">
       <img class="ph${pk(it.photo)}" data-img="${esc(it.photo)}" data-w="320" data-zoom="${esc(it.photo)}" alt="${esc(tr(it.nom))}" loading="lazy">
-      <div class="tx"><h3>${esc(tr(it.nom))}</h3><div class="bot">${p ? `<span class="price">${esc(p)}</span>` : "<span></span>"}${ctrl(it, waOk)}</div></div></article>`;
+      <div class="tx"><h3>${esc(tr(it.nom))}</h3><div class="bot">${p ? `<span class="price">${esc(p)}${parJour()}</span>` : "<span></span>"}${ctrl(it, waOk)}</div></div></article>`;
   }
 
   /* catégorie visible = puce allumée */
@@ -370,7 +374,8 @@
     majPanier();
   }
   // ce que le client a écrit reste gardé, même si la fenêtre se redessine (quand il change une quantité)
-  const saisie = { table: "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "", gps: "", date: "", heure: "", pers: "" };
+  const joursLoc = () => { if (!saisie.date || !saisie.fin) return 0; const n = Math.round((new Date(saisie.fin + "T12:00:00") - new Date(saisie.date + "T12:00:00")) / 864e5); return n > 0 ? n : 0; };
+  const saisie = { fin: "", table: tableQR ? "Table " + tableQR : "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "", gps: "", date: "", heure: "", pers: "" };
   function feuille() {
     const its = tousItems();
     const lignes = Object.entries(panier).map(([id, q]) => ({ it: its.find(x => x.id === id), q })).filter(x => x.it && x.q);
@@ -385,6 +390,7 @@
       <button class="ghost" data-fermer>${U.close}</button></div>`;
     document.body.appendChild(d);
     d.addEventListener("input", e => { const k = (e.target.id || "").replace(/^c-/, ""); if (k in saisie && k !== "mode") saisie[k] = e.target.value; });
+    d.addEventListener("change", e => { if (M.type === "location" && /^c-(date|fin)$/.test(e.target.id || "")) { d.remove(); feuille(); } });
     d.addEventListener("click", e => {
       if (e.target === d || e.target.closest("[data-fermer]")) { d.remove(); return; }
       const p = e.target.closest("[data-plus]"), m = e.target.closest("[data-moins]");
@@ -404,6 +410,13 @@
   // bas de la fenêtre : total, sur place / livraison, champs du client
   function blocFin(total) {
     const champ = (k, label, attrs) => `<label class="f">${label}<input id="c-${k}" value="${esc(saisie[k])}" ${attrs || ""}></label>`;
+    if (M.type === "location") {
+      const j = joursLoc();
+      return `<div class="grid2">${champ("date", "Date de départ", `type="date" min="${aujourdhui()}"`)}${champ("fin", "Date de retour", `type="date" min="${saisie.date || aujourdhui()}"`)}</div>
+        ${j ? `<div class="sous"><span>Durée</span><span>${j} jour${j > 1 ? "s" : ""}</span></div><div class="total"><span>${U.total} estimé</span><span>${esc(fmtPrix(arr(total * j)))}</span></div>` : `<p class="hint" style="margin:6px 0">Choisissez les dates pour voir le prix total.</p>`}
+        ${champ("nom", "Votre nom", 'maxlength="60" autocomplete="name"')}${champ("tel", "Téléphone", 'type="tel" inputmode="tel" maxlength="20" autocomplete="tel"')}
+        ${champ("note", `Lieu de livraison du véhicule, remarque ${U.opt}`, 'maxlength="200"')}`;
+    }
     if (M.type === "salon") return `<div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total)))}</span></div>
         <div class="grid2">${champ("date", "Jour souhaité", `type="date" min="${aujourdhui()}"`)}${champ("heure", "Heure souhaitée", 'type="time" step="900"')}</div>
         ${champ("nom", "Votre nom", 'maxlength="60" autocomplete="name"')}${champ("note", `${U.note} ${U.opt}`, 'maxlength="200"')}`;
@@ -450,7 +463,14 @@
     const table = (d.querySelector("#c-table") || {}).value || saisie.table, note = (d.querySelector("#c-note") || {}).value || saisie.note;
     const liste = lignes.map(l => `• ${l.q} × ${tr(l.it.nom)} — ${fmtPrix(arr(l.q * prixNum(l.it.prix)))}`);
     let txt;
-    if (M.type === "salon") {
+    if (M.type === "location") {
+      const err = d.querySelector("#c-err"), j = joursLoc();
+      if (!j) { err.textContent = "Choisissez la date de départ et la date de retour."; return; }
+      if (!saisie.tel.trim()) { err.textContent = "Indiquez votre numéro de téléphone."; return; }
+      const liste2 = lignes.map(l => `• ${l.q > 1 ? l.q + " × " : ""}${tr(l.it.nom)} — ${fmtPrix(l.it.prix)} / jour`);
+      txt = [U.hello, "", ...liste2, "", `📅 Du ${dateFr(saisie.date)} au ${dateFr(saisie.fin)} (${j} jour${j > 1 ? "s" : ""})`, `💰 Total estimé : ${fmtPrix(arr(total * j))}`, ""]
+        .concat(saisie.nom.trim() ? [`Nom : ${saisie.nom.trim()}`] : [], [`Téléphone : ${saisie.tel.trim()}`], note.trim() ? [`Remarque : ${note.trim()}`] : []).join("\n");
+    } else if (M.type === "salon") {
       const err = d.querySelector("#c-err");
       if (!saisie.date || !saisie.heure) { err.textContent = "Choisissez le jour et l’heure du rendez-vous."; return; }
       txt = [U.hello, "", ...liste, "", `${U.total} : ${fmtPrix(arr(total))}`, "", `📅 Jour : ${dateFr(saisie.date)}`, `🕒 Heure : ${saisie.heure}`]

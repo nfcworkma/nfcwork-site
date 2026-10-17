@@ -27,7 +27,7 @@
     premium: ["Premium", "Pro + langues + WhatsApp"]
   };
   // type de commerce : change les mots du menu et ce qu'on demande au client
-  const TYPES_COM = { resto: ["🍽", "Restaurant · café", "Commande, livraison, réservation"], boutique: ["🛍", "Boutique", "Catalogue de produits"], salon: ["💈", "Salon · beauté", "Prise de rendez-vous"], hotel: ["🏨", "Hôtel", "Room service par chambre"] };
+  const TYPES_COM = { resto: ["🍽", "Restaurant · café", "Commande, livraison, réservation"], boutique: ["🛍", "Boutique", "Catalogue de produits"], salon: ["💈", "Salon · beauté", "Prise de rendez-vous"], hotel: ["🏨", "Hôtel", "Room service par chambre"], location: ["🚗", "Location de voitures", "Voitures, prix par jour, réservation"] };
   const JOURS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
   const LANGS = { fr: "Français", ar: "العربية", en: "English" };
   const LCOURT = { fr: "FR", ar: "AR", en: "EN" };
@@ -323,7 +323,8 @@
       <p class="muted" style="margin:0;font-size:13.5px">Le client choisit ses produits et envoie la commande sur ce numéro. Cochez « À ne pas manquer » sur vos meilleurs produits : ils s’affichent en grand en haut du menu.</p>
       ${champ("infos.whatsapp", "Numéro WhatsApp du commerce", 'type="tel" inputmode="tel" maxlength="30" placeholder="06 12 34 56 78"')}
       <label class="check"><input type="checkbox" data-b="commande" ${M.commande !== false ? "checked" : ""}> ${M.type === "salon" ? "Les clients choisissent leurs services, le jour et l’heure, et envoient la demande de rendez-vous sur WhatsApp" : "Les clients peuvent composer leur commande et l’envoyer sur WhatsApp"}</label>
-      ${M.type === "salon" || M.type === "boutique" ? "" : `<label class="check"><input type="checkbox" data-b="reservation.actif" ${(M.reservation || {}).actif ? "checked" : ""}> 📅 Bouton « Réserver une table » : jour, heure, nombre de personnes, envoyé sur WhatsApp</label>
+      ${M.type === "location" ? `<div class="notice" style="font-size:13.5px">🚗 Mettez chaque voiture comme un produit : <b>nom</b> (Dacia Logan 2023), <b>prix par jour</b>, <b>photo</b>, et dans la description : Diesel · Manuelle · 5 places · Clim. Le client choisit les dates et envoie la réservation sur WhatsApp, avec le total.<br>💡 Sticker NFC caché dans la boîte à gants ou le coffre : le client touche ou scanne, et voit vos voitures et vos prix.</div>` : ""}
+      ${M.type === "salon" || M.type === "boutique" || M.type === "location" ? "" : `<label class="check"><input type="checkbox" data-b="reservation.actif" ${(M.reservation || {}).actif ? "checked" : ""}> 📅 Bouton « Réserver une table » : jour, heure, nombre de personnes, envoyé sur WhatsApp</label>
       ${(M.reservation || {}).actif ? champ("reservation.note", "Message sous le formulaire (facultatif)", 'maxlength="140" placeholder="Réservation confirmée par WhatsApp. Groupes : appelez-nous."') : ""}`}
     </section>
     <section class="sec paper stack"><h3>🛵 Livraison</h3>
@@ -345,6 +346,11 @@
         <div class="row" style="gap:6px;flex-wrap:wrap">${JOURS.map((j, k) => `<button type="button" class="chip" data-act="promo-jour" data-i="${i}" data-j="${k}" aria-pressed="${(p.jours || []).includes(k)}">${j}</button>`).join("")}<span class="muted" style="font-size:12.5px">${(p.jours || []).length ? "" : "tous les jours"}</span></div>
         <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px"><label class="f">De<input type="time" data-pr="${i}.de" value="${esc(p.de || "")}"></label><label class="f">À<input type="time" data-pr="${i}.a" value="${esc(p.a || "")}"></label></div>
       </div>`).join("") || `<div class="muted" style="font-size:13.5px">Aucune promo. Exemples : « Petit-déjeuner complet 25 DH » de 7h à 11h, « Happy hour -20 % » de 17h à 19h.</div>`}
+    </section>
+    <section class="sec paper stack"><h3>${M.type === "hotel" ? "🛏 QR des chambres" : "🪑 Stands de table numérotés"}</h3>
+      <p class="muted" style="margin:0;font-size:13.5px">${M.type === "hotel" ? "Un QR par chambre : la commande arrive avec le numéro de la chambre." : "Un QR par table : « TABLE 01 », « TABLE 02 »… La commande arrive sur WhatsApp avec le numéro de la table, sans que le client l’écrive."}</p>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px"><label class="f">De<input type="number" id="tb-de" min="1" max="999" value="1" inputmode="numeric"></label><label class="f">Jusqu’à<input type="number" id="tb-a" min="1" max="999" value="${M.type === "hotel" ? 20 : 12}" inputmode="numeric"></label></div>
+      <div class="row" style="gap:6px"><button class="btn sm primary" data-act="stands">🖨 Imprimer les stands (PDF)</button><button class="btn sm" data-act="copier" data-v="${esc(lienPublic(M.slug))}?table=1">Copier le lien de la table 1</button></div>
     </section>
     <section class="sec paper stack"><h3>📺 Menu sur écran TV</h3>
       <p class="muted" style="margin:0;font-size:13.5px">Ouvrez ce lien sur la TV du commerce (Smart TV, clé Android, ou ordinateur branché en HDMI) : les catégories défilent toutes seules, avec les photos, les prix, les promos et un QR code pour commander. Les changements du menu arrivent seuls.</p>
@@ -483,6 +489,7 @@
       }
       case "it-add": editerItem(ci, -1); break;
       case "type": M.type = b.dataset.v; renderEdit(); break;
+      case "stands": imprimerStands(); break;
       case "promo-add": M.promos = M.promos || []; M.promos.push({ id: rid(6), texte: "", jours: [], de: "", a: "", actif: true }); renderEdit(); break;
       case "promo-del": M.promos.splice(i, 1); renderEdit(); break;
       case "promo-jour": { const p = M.promos[i], j = +b.dataset.j; p.jours = p.jours || []; p.jours = p.jours.includes(j) ? p.jours.filter(x => x !== j) : [...p.jours, j].sort(); renderEdit(); break; }
@@ -493,6 +500,33 @@
       case "it-down": bouge(M.categories[ci].items, ii, 1); break;
     }
   });
+
+  /* ---------- stands de table numérotés : page A4 prête à imprimer (6 par page) ---------- */
+  function imprimerStands() {
+    const de = Math.max(1, parseInt($("#tb-de").value, 10) || 1), a = Math.min(de + 199, Math.max(de, parseInt($("#tb-a").value, 10) || de));
+    const hotel = M.type === "hotel", mot = hotel ? "CHAMBRE" : "TABLE";
+    const pad = n => String(n).padStart(2, "0");
+    const logo = M.logo ? IMG[M.logo] || "" : "";
+    const coul = /^#[0-9a-f]{6}$/i.test(M.couleur || "") ? M.couleur : "#b5552b";
+    const cartes = [];
+    for (let n = de; n <= a; n++) {
+      const lien = lienPublic(M.slug) + "?table=" + n;
+      cartes.push(`<div class="st"><div class="h">${logo ? `<img src="${logo}" alt="">` : ""}<b>${esc(String(M.nom || "").toUpperCase())}</b></div>
+        <small>${hotel ? "Room service · scannez ou touchez" : "Scannez ou touchez pour commander"}</small>
+        <div class="q">${window.QRGEN.svg(lien, { ecl: "M", marge: 1, couleur: "#111111" })}</div>
+        <div class="n" style="color:${coul}">${mot} ${pad(n)}</div><div class="w">📶 NFC · nfcwork.ma</div></div>`);
+    }
+    const w = window.open("", "_blank");
+    if (!w) { toast("Autorisez les fenêtres (pop-up) pour imprimer.", true); return; }
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Stands ${esc(M.nom)}</title><style>
+      @page{size:A4;margin:8mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#111}
+      .g{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.st{border:1px dashed #bbb;border-radius:4mm;height:88mm;padding:5mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;break-inside:avoid}
+      .h{display:flex;align-items:center;gap:3mm}.h img{height:12mm;max-width:24mm;object-fit:contain}.h b{font-size:15pt;letter-spacing:.5px}
+      small{font-size:9pt;color:#555}.q{width:44mm;height:44mm}.q svg{width:100%;height:100%;display:block}.n{font-size:22pt;font-weight:800;letter-spacing:1px}.w{font-size:8pt;color:#777}
+      .bar{position:sticky;top:0;background:#fff;padding:8px 0;text-align:center}.bar button{font-size:16px;padding:10px 18px;border-radius:10px;border:0;background:#1e90ff;color:#fff}
+      @media print{.bar{display:none}}</style></head><body><div class="bar"><button onclick="print()">🖨 Imprimer / Enregistrer en PDF</button></div><div class="g">${cartes.join("")}</div></body></html>`);
+    w.document.close();
+  }
 
   function changerFormule(f) {
     if (f === M.formule) return;
