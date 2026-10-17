@@ -1,0 +1,8 @@
+    // 🍽 Plats épuisés : le commerçant coche lui-même (Espace client), le menu public lit
+    match /dispo/{slug} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (verified() && resource.data.email == myEmail()
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.keys().hasOnly(['email', 'off', 'maj']));
+    }

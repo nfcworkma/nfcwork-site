@@ -526,6 +526,7 @@ function renderPHome(){
     <button class="qa" data-quote>${ICON.quote}<b>Demander un devis</b><span>Sur mesure</span></button>
     <button class="qa" data-ptab="help">${ICON.help}<b>Aide</b><span>Guides & SAV</span></button>
   </div>
+  <div id="mcBox"></div>
   ${P.creations.length?`<div class="section-head" style="margin-top:4px"><h3>Mes produits NFC</h3><button class="btn sm ghost" data-ptab="nfc">Tout voir</button></div>
   <div class="nfc-mini">${P.creations.slice(0,3).map(c=>`<a class="nmini" href="${esc(c.lien)}" target="_blank" rel="noopener"><span>${(NFC_TYPES[c.type]||[ico("help-circle")])[0]}</span><b>${esc(c.titre||c.slug)}</b><small>${(NFC_TYPES[c.type]||["",""])[1]}</small></a>`).join("")}</div>
   <button class="btn block" data-modreq="" style="margin:10px 0 16px"><i class="ico ico-pencil" aria-hidden="true"></i> Demander une modification</button>`:""}
@@ -667,6 +668,7 @@ function renderPortal(){
   if(bd){bd.textContent=n;bd.hidden=!n}
   const v={home:renderPHome,cat:renderCatalog,ord:renderMyOrders,nfc:renderMyNfc,inv:renderMyInvoices,help:renderHelp}[ptab]||renderPHome;
   app.innerHTML=v()+cartBar();
+  if(window.NFCW_MC&&(ptab==="home"||!ptab))window.NFCW_MC.client(P.client);
 }
 
 /* ---------- Produits NFC (créations de l’outil) & demandes de modification ---------- */

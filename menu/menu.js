@@ -66,6 +66,23 @@
     return (await r.json()).fields || {};
   }
 
+  // Plats épuisés cochés par le commerçant lui-même (Espace client) : dispo/<slug> { off:[ids] }
+  let OFF = null;
+  function lireDispo() {
+    if (demo || !slug) return;
+    fetch(DOC.replace(/settings\/$/, "dispo/") + slug, { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
+      const v = j && j.fields && j.fields.off && j.fields.off.arrayValue;
+      const l = ((v && v.values) || []).map(x => x.stringValue).filter(Boolean);
+      const nv = new Set(l), avant = OFF ? [...OFF].sort().join() : "";
+      OFF = nv;
+      if (M && [...nv].sort().join() !== avant) { appliquerDispo(); rendre(); }
+    }).catch(() => {});
+  }
+  function appliquerDispo() {
+    if (!M || !OFF) return;
+    (M.categories || []).forEach(c => (c.items || []).forEach(i => { if (i.__off) { delete i.__off; i.dispo = true; } if (OFF.has(i.id) && i.dispo !== false) { i.dispo = false; i.__off = 1; } }));
+  }
+
   // Photos : un id ne change jamais → gardée dans le cache du navigateur
   const imgCache = {};
   const unsplash = (id, w) => "https://images.unsplash.com/photo-" + id + "?auto=format&fit=crop&w=" + w + "&q=75";
@@ -103,6 +120,7 @@
 
   async function charger() {
     if (!slug) { etat(U.none, U.noneTx); return; }
+    lireDispo(); setInterval(() => { if (!document.hidden) lireDispo(); }, 60000);
     if (demo) {
       try {
         const all = await (await fetch("/menu/demos.json", { cache: "no-cache" })).json();
@@ -141,6 +159,7 @@
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = getComputedStyle(root).getPropertyValue("--bg").trim() || "#0d0f14";
     if (mp === null && !apercu && history.replaceState) { try { history.replaceState(null, "", "/menu/" + slug + location.search.replace(/[?&]m=[^&]*/, "").replace(/^&/, "?")); } catch (e) {} }
+    appliquerDispo();
     rendre();
     if (!apercu && !demo && !/^essai-/.test(slug) && window.NFCW_VUE) NFCW_VUE("menu", slug);
   }
