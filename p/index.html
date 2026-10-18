@@ -248,7 +248,7 @@ a:active,button:active{transform:scale(.98)}
     if (!apercu && P.actif === false) { etat(T("Service momentanément indisponible", "الخدمة متوقفة مؤقتاً"), T("Merci de réessayer un peu plus tard.", "عاود من بعد شوية.")); return; }
     if (!apercu && P.expire) { const d = new Date(), j = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; if (j > String(P.expire)) { etat("Service momentanément indisponible", "Merci de réessayer un peu plus tard."); return; } }
     theme();
-    if (!apercu && window.NFCW_VUE) NFCW_VUE("page", slug);
+    if (!apercu && window.NFCW_VUE && !/^demo-/.test(slug)) NFCW_VUE("page", slug);
     document.title = (P.nom || "NFCWORK") + (P.fonction ? " · " + P.fonction : "");
     ({ profil, avis, wifi, liens }[P.type] || profil)();
     remplir();
@@ -256,6 +256,10 @@ a:active,button:active{transform:scale(.98)}
 
   async function charger() {
     if (!slug) { etat("Page introuvable", "Vérifiez le lien."); return; }
+    if (/^demo-[a-z]+$/.test(slug)) {   // démonstrations : p/demos.json
+      try { const d = (await (await fetch("/p/demos.json", { cache: "no-cache" })).json())[slug]; if (d) { rendre(d); return; } } catch (e) {}
+      etat("Page introuvable", "Vérifiez le lien."); return;
+    }
     let memo = null; try { memo = localStorage.getItem(CLE); } catch (e) {}
     if (memo) { try { rendre(JSON.parse(memo)); } catch (e) {} }
     try {

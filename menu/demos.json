@@ -525,5 +525,609 @@
    "min": "60",
    "zone": "Kénitra centre"
   }
+ },
+ "demo-location": {
+  "v": 1,
+  "nom": "Atlas Car",
+  "actif": true,
+  "devise": "DH",
+  "logo": "",
+  "logoCarre": false,
+  "slogan": "Location de voitures · Kénitra",
+  "infos": {
+   "horaires": "8h – 21h, 7j/7",
+   "adresse": "Kénitra",
+   "tel": "06 20 66 60 27",
+   "instagram": "@nfcwork_ma",
+   "whatsapp": "0620666027"
+  },
+  "commande": true,
+  "couverture": "/menu/demo/cars/cover.jpg",
+  "categories": [
+   {
+    "id": "prestige",
+    "nom": "👑 Prestige",
+    "items": [
+     {
+      "id": "lamborghin0",
+      "nom": "Lamborghini Urus",
+      "desc": "Essence · Automatique · 5 places",
+      "prix": "5000",
+      "photo": "/menu/demo/cars/lamborghini-urus.jpg",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "porsche-ca1",
+      "nom": "Porsche Cayenne",
+      "desc": "Essence · Automatique · 5 places",
+      "prix": "2500",
+      "photo": "/menu/demo/cars/porsche-cayenne.jpg",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "range-svr2",
+      "nom": "Range Rover Sport SVR",
+      "desc": "Essence · Automatique · 5 places",
+      "prix": "3000",
+      "photo": "/menu/demo/cars/range-svr.jpg",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "mercedes-c3",
+      "nom": "Mercedes Classe E",
+      "desc": "Diesel · Automatique · 5 places",
+      "prix": "1200",
+      "photo": "/menu/demo/cars/mercedes-classe-e.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "bmw-serie54",
+      "nom": "BMW Série 5 Pack M",
+      "desc": "Diesel · Automatique · 5 places",
+      "prix": "1200",
+      "photo": "/menu/demo/cars/bmw-serie5.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "mercedes-c5",
+      "nom": "Mercedes CLA",
+      "desc": "Diesel · Automatique · 5 places",
+      "prix": "900",
+      "photo": "/menu/demo/cars/mercedes-cla.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "vw-touareg6",
+      "nom": "Volkswagen Touareg",
+      "desc": "Diesel · Automatique · 5 places",
+      "prix": "1200",
+      "photo": "/menu/demo/cars/vw-touareg.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "mercedes-v7",
+      "nom": "Mercedes Vito",
+      "desc": "Diesel · Automatique · 9 places",
+      "prix": "1000",
+      "photo": "/menu/demo/cars/mercedes-vito.jpg",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "eco",
+    "nom": "🚙 SUV & économiques",
+    "items": [
+     {
+      "id": "jeep-compae0",
+      "nom": "Jeep Compass",
+      "desc": "Diesel · Automatique · 5 places",
+      "prix": "700",
+      "photo": "/menu/demo/cars/jeep-compass.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "hyundai-tue1",
+      "nom": "Hyundai Tucson",
+      "desc": "Diesel · Automatique · 5 places",
+      "prix": "600",
+      "photo": "/menu/demo/cars/hyundai-tucson.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "peugeot-30e2",
+      "nom": "Peugeot 3008 GT",
+      "desc": "Diesel · Automatique · 5 places",
+      "prix": "600",
+      "photo": "/menu/demo/cars/peugeot-3008-gt.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "dacia-logae3",
+      "nom": "Dacia Logan",
+      "desc": "Diesel · Manuelle · 5 places · Clim",
+      "prix": "250",
+      "photo": "/menu/demo/cars/dacia-logan.jpg",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   }
+  ],
+  "langues": [
+   "fr"
+  ],
+  "formule": "premium",
+  "theme": "nuit",
+  "promos": [],
+  "type": "location",
+  "couleur": "#d4a017"
+ },
+ "demo-salon": {
+  "v": 1,
+  "nom": "Studio Élégance",
+  "actif": true,
+  "devise": "DH",
+  "logo": "",
+  "logoCarre": false,
+  "slogan": "Coiffure · Barber · Soins",
+  "infos": {
+   "horaires": "10h – 21h, fermé lundi",
+   "adresse": "Kénitra",
+   "tel": "06 20 66 60 27",
+   "instagram": "@nfcwork_ma",
+   "whatsapp": "0620666027"
+  },
+  "commande": true,
+  "couverture": "",
+  "categories": [
+   {
+    "id": "h",
+    "nom": "💈 Homme",
+    "items": [
+     {
+      "id": "h1",
+      "nom": "Coupe homme",
+      "desc": "30 min",
+      "prix": "50",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h2",
+      "nom": "Coupe + barbe",
+      "desc": "45 min",
+      "prix": "70",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h3",
+      "nom": "Barbe à l’ancienne",
+      "desc": "Serviette chaude",
+      "prix": "35",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h4",
+      "nom": "Coupe enfant",
+      "desc": "",
+      "prix": "40",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "f",
+    "nom": "💇 Femme",
+    "items": [
+     {
+      "id": "f1",
+      "nom": "Brushing",
+      "desc": "",
+      "prix": "80",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "f2",
+      "nom": "Coupe + brushing",
+      "desc": "",
+      "prix": "150",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "f3",
+      "nom": "Coloration",
+      "desc": "À partir de",
+      "prix": "250",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "f4",
+      "nom": "Lissage protéine",
+      "desc": "À partir de",
+      "prix": "600",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "s",
+    "nom": "✨ Soins",
+    "items": [
+     {
+      "id": "s1",
+      "nom": "Soin du visage",
+      "desc": "",
+      "prix": "200",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "s2",
+      "nom": "Manucure",
+      "desc": "",
+      "prix": "100",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "s3",
+      "nom": "Pédicure",
+      "desc": "",
+      "prix": "120",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "s4",
+      "nom": "Épilation sourcils",
+      "desc": "",
+      "prix": "30",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   }
+  ],
+  "langues": [
+   "fr"
+  ],
+  "formule": "premium",
+  "theme": "nuit",
+  "promos": [],
+  "type": "salon",
+  "couleur": "#c9a37a"
+ },
+ "demo-hotel": {
+  "v": 1,
+  "nom": "Riad Al Andalous",
+  "actif": true,
+  "devise": "DH",
+  "logo": "",
+  "logoCarre": false,
+  "slogan": "Room service · Commandez depuis votre chambre",
+  "infos": {
+   "horaires": "Room service 7h – 23h",
+   "adresse": "Kénitra",
+   "tel": "06 20 66 60 27",
+   "instagram": "@nfcwork_ma",
+   "whatsapp": "0620666027"
+  },
+  "commande": true,
+  "couverture": "u:1511081692775-05d0f180a065",
+  "categories": [
+   {
+    "id": "pd",
+    "nom": "🥐 Petit-déjeuner",
+    "items": [
+     {
+      "id": "p1",
+      "nom": "Petit-déjeuner complet",
+      "desc": "Jus, café, viennoiseries, œufs",
+      "prix": "90",
+      "photo": "u:1504754524776-8f4f37790ca0",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "p2",
+      "nom": "Omelette",
+      "desc": "",
+      "prix": "35",
+      "photo": "u:1510693206972-df098062cb71",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "p3",
+      "nom": "Pancakes au miel",
+      "desc": "",
+      "prix": "45",
+      "photo": "u:1544726982-b414d58fabaa",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "p4",
+      "nom": "Croissant",
+      "desc": "",
+      "prix": "15",
+      "photo": "u:1691480162735-9b91238080f6",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "pl",
+    "nom": "🍲 Plats",
+    "items": [
+     {
+      "id": "m1",
+      "nom": "Tajine de poulet",
+      "desc": "Citron confit et olives",
+      "prix": "110",
+      "photo": "u:1557509959-69ef137d9339",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "m2",
+      "nom": "Grillades mixtes",
+      "desc": "",
+      "prix": "150",
+      "photo": "u:1520252729650-ddced2015543",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "m3",
+      "nom": "Poisson grillé",
+      "desc": "",
+      "prix": "140",
+      "photo": "u:1519708227418-c8fd9a32b7a2",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "m4",
+      "nom": "Salade composée",
+      "desc": "",
+      "prix": "60",
+      "photo": "u:1505253716362-afaea1d3d1af",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "bo",
+    "nom": "☕ Boissons",
+    "items": [
+     {
+      "id": "b1",
+      "nom": "Thé à la menthe",
+      "desc": "",
+      "prix": "25",
+      "photo": "u:1591299089616-c9604047b1a6",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "b2",
+      "nom": "Café crème",
+      "desc": "",
+      "prix": "25",
+      "photo": "u:1534778101976-62847782c213",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "b3",
+      "nom": "Jus d’orange pressé",
+      "desc": "",
+      "prix": "30",
+      "photo": "u:1600271886742-f049cd451bba",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "de",
+    "nom": "🍰 Desserts",
+    "items": [
+     {
+      "id": "d1",
+      "nom": "Salade de fruits",
+      "desc": "",
+      "prix": "40",
+      "photo": "u:1564093497595-593b96d80180",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "d2",
+      "nom": "Tiramisu",
+      "desc": "",
+      "prix": "45",
+      "photo": "u:1571877227200-a0d98ea607e9",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   }
+  ],
+  "langues": [
+   "fr"
+  ],
+  "formule": "premium",
+  "theme": "creme",
+  "promos": [],
+  "type": "hotel",
+  "couleur": "#b8860b"
+ },
+ "demo-boutique": {
+  "v": 1,
+  "nom": "Pâtisserie Douceurs",
+  "actif": true,
+  "devise": "DH",
+  "logo": "",
+  "logoCarre": false,
+  "slogan": "Gâteaux sur commande · Livraison",
+  "infos": {
+   "horaires": "8h – 22h",
+   "adresse": "Kénitra",
+   "tel": "06 20 66 60 27",
+   "instagram": "@nfcwork_ma",
+   "whatsapp": "0620666027"
+  },
+  "commande": true,
+  "couverture": "u:1567880905822-56f8e06fe630",
+  "categories": [
+   {
+    "id": "g",
+    "nom": "🎂 Gâteaux",
+    "items": [
+     {
+      "id": "g1",
+      "nom": "Gâteau au chocolat (8 parts)",
+      "desc": "Sur commande 24 h avant",
+      "prix": "220",
+      "photo": "u:1517427294546-5aa121f68e8a",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "g2",
+      "nom": "Cheesecake (8 parts)",
+      "desc": "",
+      "prix": "240",
+      "photo": "u:1588195538326-c5b1e9f80a1b",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "g3",
+      "nom": "Tiramisu (6 parts)",
+      "desc": "",
+      "prix": "180",
+      "photo": "u:1639744211487-b27e3551b07c",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "g4",
+      "nom": "Brownies (boîte de 6)",
+      "desc": "",
+      "prix": "90",
+      "photo": "u:1606313564200-e75d5e30476c",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "c",
+    "nom": "🧇 Crêpes & gaufres",
+    "items": [
+     {
+      "id": "c1",
+      "nom": "Crêpe chocolat",
+      "desc": "",
+      "prix": "30",
+      "photo": "u:1515467837915-15c4777ba46a",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c2",
+      "nom": "Gaufre fraises",
+      "desc": "",
+      "prix": "40",
+      "photo": "u:1568051243851-f9b136146e97",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c3",
+      "nom": "Pancakes Nutella",
+      "desc": "",
+      "prix": "45",
+      "photo": "u:1772729633992-39fd398866b5",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "v",
+    "nom": "🥐 Viennoiseries",
+    "items": [
+     {
+      "id": "v1",
+      "nom": "Croissants (x6)",
+      "desc": "",
+      "prix": "36",
+      "photo": "u:1623334044303-241021148842",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "v2",
+      "nom": "Plateau de fruits",
+      "desc": "",
+      "prix": "120",
+      "photo": "u:1523033904333-243d0283acae",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   }
+  ],
+  "langues": [
+   "fr"
+  ],
+  "formule": "premium",
+  "theme": "creme",
+  "promos": [],
+  "type": "boutique",
+  "couleur": "#e07a5f",
+  "livraison": {
+   "actif": true,
+   "frais": "15",
+   "min": "100",
+   "zone": "Kénitra"
+  }
  }
 }

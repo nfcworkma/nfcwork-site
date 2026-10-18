@@ -1,0 +1,70 @@
+{
+ "demo-medecin": {
+  "type": "profil",
+  "nom": "Dr Salma Benali",
+  "fonction": "Chirurgien-dentiste",
+  "entreprise": "Cabinet Dentaire Al Amal",
+  "metiers": "Soins dentaires\nBlanchiment\nImplants\nOrthodontie",
+  "bio": "Cabinet moderne au centre de Kénitra. Rendez-vous sur WhatsApp.",
+  "tel": "0620666027",
+  "whatsapp": "0620666027",
+  "email": "contact@exemple.ma",
+  "adresse": "Av. Mohammed V, Kénitra",
+  "horaires": {
+   "1": "9h – 18h",
+   "2": "9h – 18h",
+   "3": "9h – 18h",
+   "4": "9h – 18h",
+   "5": "9h – 13h",
+   "6": "9h – 13h",
+   "0": "Fermé"
+  },
+  "theme": "blanc",
+  "couleur": "#1f8a8a",
+  "langue": "fr"
+ },
+ "demo-avis": {
+  "type": "avis",
+  "nom": "Café Azur",
+  "message": "Votre avis compte 🙏",
+  "lienGoogle": "https://www.google.com/maps",
+  "theme": "nuit",
+  "couleur": "#2F7BFF",
+  "langue": "fr"
+ },
+ "demo-wifi": {
+  "type": "wifi",
+  "nom": "Café Azur",
+  "message": "Wi-Fi offert 📶",
+  "ssid": "CafeAzur_Clients",
+  "motdepasse": "bienvenue2026",
+  "securite": "WPA",
+  "theme": "nuit",
+  "couleur": "#2F7BFF",
+  "langue": "fr"
+ },
+ "demo-liens": {
+  "type": "liens",
+  "nom": "Studio Élégance",
+  "slogan": "Coiffure · Barber · Soins",
+  "whatsapp": "0620666027",
+  "liens": [
+   {
+    "titre": "Nos prix et rendez-vous",
+    "url": "https://nfcwork.ma/menu/demo-salon"
+   },
+   {
+    "titre": "Instagram",
+    "url": "https://instagram.com/nfcwork_ma"
+   },
+   {
+    "titre": "Laisser un avis Google",
+    "url": "https://nfcwork.ma/p/demo-avis"
+   }
+  ],
+  "localisation": "Kénitra",
+  "theme": "noir",
+  "couleur": "#c9a37a",
+  "langue": "fr"
+ }
+}

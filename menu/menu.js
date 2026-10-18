@@ -26,7 +26,7 @@
   if (slug === "demo") slug = "demo-premium";
   const apercu = qs.has("apercu");
   const tableQR = String(qs.get("table") || "").replace(/[^0-9A-Za-z-]/g, "").slice(0, 6);   // stand de table numéroté
-  const demo = /^demo-(standard|pro|premium)$/.test(slug);
+  const demo = /^demo-[a-z]+$/.test(slug);   // démonstrations : menu/demos.json (resto, location, salon, hotel, boutique…)
 
   const U = {
     none: "Menu introuvable", noneTx: "Vérifiez le lien ou demandez au personnel.", off: "Menu bientôt disponible", offTx: "Ce menu est en cours de mise à jour.",
@@ -196,6 +196,7 @@
 
   function barreDemo() {
     if (!demo) return "";
+    if (!/^demo-(standard|pro|premium)$/.test(slug)) return `<div class="demobar"><b>Exemple NFCWORK</b><a href="/demo/" class="on">Voir tous les métiers</a></div>`;
     const f = slug.slice(5), th = M.theme || "nuit";
     return `<div class="demobar"><b>Exemple NFCWORK</b>${["standard", "pro", "premium"].map(k => `<a href="/menu/?m=demo-${k}" class="${f === k ? "on" : ""}">${k[0].toUpperCase() + k.slice(1)}</a>`).join("")}
       ${f === "pro" ? `<span class="th">Thème : ${[["nuit", "Nuit"], ["creme", "Crème"], ["cafe", "Café"], ["lagon", "Lagon"]].map(([k, n]) => `<a href="/menu/?m=demo-pro&theme=${k}" class="${th === k ? "on" : ""}">${n}</a>`).join("")}</span>` : ""}</div>`;
