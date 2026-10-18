@@ -12,8 +12,17 @@
       allow read: if true;
       allow create, delete: if isAdmin();
       allow update: if isAdmin() || (verified() && resource.data.email == myEmail()
-        && request.resource.data.email == resource.data.email
-        && request.resource.data.keys().hasOnly(['email', 'off', 'maj']));
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['off', 'maj']));
+    }
+    // ✏️ le commerçant modifie son propre menu (prix, photos, voitures) si NFCWORK l'autorise
+    function proprio(slug) { return verified() && exists(/databases/$(database)/documents/dispo/$(slug))
+      && get(/databases/$(database)/documents/dispo/$(slug)).data.email == myEmail()
+      && get(/databases/$(database)/documents/dispo/$(slug)).data.get('edit', false) == true; }
+    match /settings/{doc} {
+      allow update: if doc.matches('menu-[a-z0-9-]+') && proprio(doc.replace('^menu-', ''));
+      allow create, update: if doc.matches('hist-[a-z0-9-]+') && proprio(doc.replace('^hist-', ''));
+      allow create: if doc.matches('mimg-[a-z0-9]+') && proprio(request.resource.data.menu);
+      allow delete: if doc.matches('mimg-[a-z0-9]+') && proprio(resource.data.menu);
     }`;
   const ICP = { profil: "👤", avis: "⭐", wifi: "📶", liens: "🔗" };
   async function liste(id) { try { const d = await A().fs.doc("settings/" + id).get(); return d.exists ? JSON.parse(d.data().json || "[]") : []; } catch (e) { return []; } }
@@ -37,6 +46,7 @@
         <b style="font-size:14px">✅ Ce qu’il peut faire</b>
         <div class="mcchk"><label><input type="checkbox" id="mc-ep"${dr.epuise ? " checked" : ""}> <span>🚫 Cocher lui-même les plats <b>épuisés</b></span></label>
           <label><input type="checkbox" id="mc-vi"${dr.visites ? " checked" : ""}> <span>📊 Voir ses <b>visites</b></span></label>
+          <label><input type="checkbox" id="mc-ed"${dr.edit ? " checked" : ""}> <span>✏️ Modifier lui-même ses <b>prix, photos et produits</b></span></label>
           <label class="muted" style="font-size:13px">🧾 Factures, 🛒 commandes et ✏️ demandes de modification : toujours visibles.</label></div>
         <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" id="mc-save"${c.email ? "" : " disabled"}>💾 Enregistrer l’accès</button>${ac ? `<button class="btn ghost" id="mc-off">⛔ Couper l’accès</button>` : ""}</div>
       </div>`;
@@ -47,13 +57,13 @@
       return true;
     };
     el.querySelector("#mc-save").onclick = async () => {
-      const acces = { menus: [...el.querySelectorAll("[data-mcm]:checked")].map(x => x.dataset.mcm), pages: [...el.querySelectorAll("[data-mcp]:checked")].map(x => x.dataset.mcp), epuise: el.querySelector("#mc-ep").checked, visites: el.querySelector("#mc-vi").checked, maj: new Date().toISOString() };
+      const acces = { menus: [...el.querySelectorAll("[data-mcm]:checked")].map(x => x.dataset.mcm), pages: [...el.querySelectorAll("[data-mcp]:checked")].map(x => x.dataset.mcp), epuise: el.querySelector("#mc-ep").checked, visites: el.querySelector("#mc-vi").checked, edit: el.querySelector("#mc-ed").checked, maj: new Date().toISOString() };
       if (!(await sauver(acces))) return;
       c.acces = acces;
-      if (acces.epuise) {
+      if (acces.epuise || acces.edit) {
         let refus = false;
         for (const s of acces.menus) {
-          try { const r = ap.fs.doc("dispo/" + s), d = await r.get(); await r.set({ email: String(c.email).toLowerCase(), off: d.exists ? (d.data().off || []) : [], maj: new Date().toISOString() }); }
+          try { const r = ap.fs.doc("dispo/" + s), d = await r.get(); await r.set({ email: String(c.email).toLowerCase(), off: d.exists ? (d.data().off || []) : [], edit: !!acces.edit, maj: new Date().toISOString() }); }
           catch (e) { refus = true; }
         }
         if (refus) { regle(); return; }
@@ -85,7 +95,7 @@
     const L = [...(ac.menus || []).map(s => ["menu", s]), ...(ac.pages || []).map(s => ["page", s])];
     const ligne = ([t, s], v) => `<div class="grow" style="flex-wrap:wrap"><span style="font-size:22px">${t === "menu" ? "🍽" : ICP[cache.noms["t-" + s]] || "📄"}</span>
         <div style="flex:1;min-width:0"><b>${esc(cache.noms[t + "-" + s] || s)}</b><div class="muted" style="font-size:12.5px;direction:ltr;text-align:start">nfcwork.ma/${t === "menu" ? "menu" : "p"}/${esc(s)}</div>${v && v.a != null ? `<div style="font-size:13px;margin-top:2px">📊 <b>${v.a}</b> visites ce mois · ${v.b} le mois dernier</div>` : ""}</div>
-        <div class="row" style="gap:6px"><a class="btn sm" href="/${t === "menu" ? "menu" : "p"}/${esc(s)}" target="_blank" rel="noopener">👁 Voir</a>${t === "menu" && ac.epuise ? `<button class="btn sm primary" data-mcdispo="${esc(s)}">🚫 Épuisés</button>` : ""}</div></div>`;
+        <div class="row" style="gap:6px;width:100%;justify-content:flex-end;flex-wrap:wrap"><a class="btn sm" href="/${t === "menu" ? "menu" : "p"}/${esc(s)}" target="_blank" rel="noopener">👁 Voir</a>${t === "menu" && ac.edit ? `<a class="btn sm primary" href="menus.html#m=${esc(s)}">✏️ Modifier</a>` : ""}${t === "menu" && ac.epuise ? `<button class="btn sm${ac.edit ? "" : " primary"}" data-mcdispo="${esc(s)}">🚫 ${ac.edit ? "Indispo" : "Épuisés"}</button>` : ""}</div></div>`;
     const dessiner = V => { const b = document.getElementById("mcBox"); if (b) b.innerHTML = `<div class="section-head" style="margin-top:4px"><h3>🏪 Mon commerce</h3></div><div class="stack" style="gap:8px;margin-bottom:16px">${L.map((x, i) => ligne(x, V[i])).join("")}</div>`; };
     dessiner([]);
     if (ac.visites) dessiner(await Promise.all(L.map(([t, s]) => visites(t, s))));
@@ -101,12 +111,13 @@
     let q = "";
     const draw = () => {
       const n = norm(q);
-      ap.openModal(`${ap.head("🚫 Plats épuisés")}
-        <p class="muted" style="margin:0 0 10px;font-size:14px">Touchez un plat pour le mettre <b>épuisé</b> 🚫 ou <b>disponible</b> ✅. Le menu change tout de suite pour vos clients.</p>
+      const loc = M.type === "location", KO = loc ? "🚫 Louée" : "🚫 Épuisé";
+      ap.openModal(`${ap.head(loc ? "🚫 Voitures indisponibles" : "🚫 Plats épuisés")}
+        <p class="muted" style="margin:0 0 10px;font-size:14px">Touchez ${loc ? "une voiture pour la mettre <b>louée / indisponible</b>" : "un plat pour le mettre <b>épuisé</b>"} 🚫 ou <b>disponible</b> ✅. Le menu change tout de suite pour vos clients.</p>
         <input id="mcq" type="search" placeholder="🔎 Chercher un plat…" value="${esc(q)}" style="width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px;margin-bottom:10px">
         ${S.size ? `<div class="notice" style="margin-bottom:10px">🚫 ${S.size} plat(s) épuisé(s) <button class="btn sm" id="mcall">↩️ Tout remettre disponible</button></div>` : ""}
         ${cats.map(c => { const it = (c.items || []).filter(i => !n || norm(nomTr(i.nom)).includes(n)); return it.length ? `<div style="font-weight:700;margin:12px 0 6px">${esc(nomTr(c.nom))}</div><div class="stack" style="gap:6px">${it.map(i => { const ko = S.has(i.id) || i.dispo === false;
-          return `<button class="grow mcit${ko ? " ko" : ""}" data-mci="${esc(i.id)}"${i.dispo === false ? " disabled title=\"Épuisé dans le menu (demandez à NFCWORK)\"" : ""}><span style="flex:1;text-align:start">${esc(nomTr(i.nom))}</span><b>${ko ? "🚫 Épuisé" : "✅ Dispo"}</b></button>`; }).join("")}</div>` : ""; }).join("")}`);
+          return `<button class="grow mcit${ko ? " ko" : ""}" data-mci="${esc(i.id)}"${i.dispo === false ? " disabled title=\"Épuisé dans le menu (demandez à NFCWORK)\"" : ""}><span style="flex:1;text-align:start">${esc(nomTr(i.nom))}</span><b>${ko ? KO : "✅ Dispo"}</b></button>`; }).join("")}</div>` : ""; }).join("")}`);
       const inp = document.getElementById("mcq"); inp.oninput = () => { q = inp.value; draw(); const x = document.getElementById("mcq"); x.focus(); x.setSelectionRange(q.length, q.length); };
       const all = document.getElementById("mcall"); if (all) all.onclick = () => { S.clear(); save(); };
       document.querySelectorAll("[data-mci]").forEach(b => b.onclick = () => { const id = b.dataset.mci; S.has(id) ? S.delete(id) : S.add(id); save(); });

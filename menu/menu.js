@@ -238,6 +238,7 @@
     U.order = TY().order; U.hello = TY().hello; U.add = TY().add; U.carte = TY().carte;
     U.table = M.type === "hotel" ? "Numéro de chambre" : M.type === "boutique" ? "Votre nom" : "Table ou nom";
     if (tableQR && M.type === "hotel" && saisie.table === "Table " + tableQR) saisie.table = "Chambre " + tableQR;
+    U.soldout = M.type === "location" ? "Indisponible" : "Épuisé";
     U.send = M.type === "salon" ? "Envoyer la demande de rendez-vous sur WhatsApp" : M.type === "location" ? "Envoyer la demande de réservation sur WhatsApp" : "Envoyer la commande sur WhatsApp";
     U.see = M.type === "salon" ? "Voir mon rendez-vous" : M.type === "boutique" ? "Voir mon panier" : "Voir ma commande";
     if (!apercu) iconeApp();

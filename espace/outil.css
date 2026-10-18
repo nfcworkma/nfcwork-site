@@ -134,3 +134,4 @@ label.f input:focus,label.f textarea:focus,label.f select:focus{outline:2px soli
 .chip[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
 
 .it .edit-ic{flex:none;font-size:15px;opacity:.75;margin-inline-start:4px}
+body.proprio [data-adm]{display:none!important}

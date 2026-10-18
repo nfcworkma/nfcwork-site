@@ -55,12 +55,27 @@
   auth.onAuthStateChanged(u => {
     user = u;
     if (!u) { renderLogin(); return; }
-    if ((u.email || "").toLowerCase() !== ADMIN) {
-      app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Cette page est réservée à l’administrateur NFCWORK.</p><a class="btn" href="./">Retour à l’Espace</a></div>`;
-      return;
-    }
+    if ((u.email || "").toLowerCase() !== ADMIN) { modeProprio(u); return; }
     chargerListe().then(route);
   });
+
+  /* ---------- ✏️ mode commerçant : il modifie seulement SES menus (accès donné dans sa fiche client) ---------- */
+  let PROPRIO = false;
+  async function modeProprio(u) {
+    const refuse = () => { app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Demandez à NFCWORK d’activer la modification de votre menu.</p><a class="btn" href="./">Retour à mon espace</a></div>`; };
+    try {
+      if (!u.emailVerified) { refuse(); return; }
+      const s = await db.collection("clients").where("email", "==", (u.email || "").toLowerCase()).get();
+      const c = s.docs.length ? s.docs[0].data() : null, ac = c && c.acces;
+      if (!ac || !ac.edit || !(ac.menus || []).length) { refuse(); return; }
+      await chargerListe();
+      const noms = Object.fromEntries(liste.map(x => [x.slug, x]));
+      liste = ac.menus.map(sl => Object.assign({ slug: sl, nom: sl, formule: "premium" }, noms[sl] || {}));
+      PROPRIO = true; document.body.classList.add("proprio");
+      if (liste.length === 1 && !location.hash.startsWith("#m=")) location.hash = "#m=" + liste[0].slug;
+      route();
+    } catch (e) { console.error(e); refuse(); }
+  }
 
   function renderLogin() {
     app.innerHTML = `<div class="auth paper"><h2>Connexion</h2><p class="muted">Connectez-vous avec le compte administrateur.</p>
@@ -82,6 +97,7 @@
     } catch (e) { console.error(e); liste = []; toast("Impossible de lire la liste des menus."); }
   }
   async function ecrireListe() {
+    if (PROPRIO) return;   // la liste générale reste gérée par NFCWORK
     await db.doc("settings/menus").set({ json: JSON.stringify(liste), maj: NOW(), par: user.email });
   }
   function erreur(e) {
@@ -191,10 +207,10 @@
   /* ================= Liste ================= */
   function renderListe() {
     M = null;
-    entete("Menus digitaux", "Espace gestion", "./", "");
+    entete(PROPRIO ? "Mes menus" : "Menus digitaux", PROPRIO ? "Mon commerce" : "Espace gestion", "./", "");
     const l = [...liste].sort((a, b) => (b.maj || 0) - (a.maj || 0));
     app.innerHTML = `<div class="row between"><div><h2>Menus digitaux</h2><div class="muted">${l.length} menu${l.length > 1 ? "s" : ""} · Standard, Pro, Premium</div></div>
-      <div class="row" style="gap:6px"><button class="btn" data-act="fichier-in" title="Ouvrir un menu tout prêt (.json)">📥 Fichier</button><button class="btn primary" data-act="nouveau">＋ Nouveau menu</button></div></div>
+      <div class="row" style="gap:6px" data-adm><button class="btn" data-act="fichier-in" title="Ouvrir un menu tout prêt (.json)">📥 Fichier</button><button class="btn primary" data-act="nouveau">＋ Nouveau menu</button></div></div>
       ${l.length ? `<div class="mlist sec">${l.map(m => `<div class="paper mcard">
         <div class="row between"><span class="n">${esc(m.nom)}</span><span class="row"><span class="pill ${esc(m.formule)}">${esc((FORMULES[m.formule] || [m.formule])[0])}</span>${m.actif === false ? '<span class="pill off">Désactivé</span>' : ""}</span></div>
         <div class="l">${esc(lienPublic(m.slug).replace(/^https?:\/\//, ""))}</div>
@@ -300,13 +316,13 @@
     const pro = M.formule !== "standard", prem = M.formule === "premium";
     const ls = langsEdition();
     app.innerHTML = `
-    <section class="sec" style="margin-top:0"><div class="eyebrow" style="margin-bottom:8px">Formule</div>${segFormule(M.formule)}</section>
-    ${pro ? `<section class="sec" style="margin-top:14px"><div class="eyebrow" style="margin-bottom:8px">Type de commerce</div><div class="seg s4">${Object.entries(TYPES_COM).map(([k, [ic, n, sd]]) => `<button type="button" data-act="type" data-v="${k}" aria-pressed="${(M.type || "resto") === k}"><b>${ic} ${n}</b><small>${sd}</small></button>`).join("")}</div></section>` : ""}
+    <section class="sec" data-adm style="margin-top:0"><div class="eyebrow" style="margin-bottom:8px">Formule</div>${segFormule(M.formule)}</section>
+    ${pro ? `<section class="sec" data-adm style="margin-top:14px"><div class="eyebrow" style="margin-bottom:8px">Type de commerce</div><div class="seg s4">${Object.entries(TYPES_COM).map(([k, [ic, n, sd]]) => `<button type="button" data-act="type" data-v="${k}" aria-pressed="${(M.type || "resto") === k}"><b>${ic} ${n}</b><small>${sd}</small></button>`).join("")}</div></section>` : ""}
 
     <section class="sec paper stack">
-      <div class="row between"><h3>Infos du commerce</h3><label class="check"><input type="checkbox" data-b="actif" ${M.actif !== false ? "checked" : ""}> Menu en ligne</label></div>
+      <div class="row between"><h3>Infos du commerce</h3><label class="check" data-adm><input type="checkbox" data-b="actif" ${M.actif !== false ? "checked" : ""}> Menu en ligne</label></div>
       ${champ("nom", "Nom du commerce", 'maxlength="60"')}
-      <div class="row" style="gap:6px"><span class="muted" style="font-size:13.5px">Lien :</span><a href="${esc(lienPublic(M.slug))}" target="_blank" rel="noopener">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}</a><button class="btn sm ghost" data-act="copier" data-v="${esc(lienPublic(M.slug))}">Copier</button><button class="btn sm ghost" data-act="nfc">📲 Écrire sur la puce</button><button class="btn sm ghost" data-act="dupliquer">📄 Dupliquer</button><button class="btn sm ghost" data-act="historique">🕘 Historique</button><button class="btn sm ghost" data-act="fichier-out">💾 Fichier</button></div>
+      <div class="row" style="gap:6px"><span class="muted" style="font-size:13.5px">Lien :</span><a href="${esc(lienPublic(M.slug))}" target="_blank" rel="noopener">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}</a><button class="btn sm ghost" data-act="copier" data-v="${esc(lienPublic(M.slug))}">Copier</button><button class="btn sm ghost" data-act="nfc">📲 Écrire sur la puce</button><button class="btn sm ghost" data-adm data-act="dupliquer">📄 Dupliquer</button><button class="btn sm ghost" data-act="historique">🕘 Historique</button><button class="btn sm ghost" data-adm data-act="fichier-out">💾 Fichier</button></div>
       ${photoPick("logo", "Logo", "logo", "Carré ou rond, fond uni de préférence.")}
       <label class="check"><input type="checkbox" data-b="logoCarre" ${M.logoCarre ? "checked" : ""}> Logo carré (au lieu de rond)</label>
       ${pro ? photoPick("couverture", "Photo de couverture", "cover", "Une belle photo de la salle ou d’un plat (format paysage).") : ""}
@@ -390,7 +406,7 @@
       <button class="btn" style="width:100%" data-act="cat-add">＋ Nouvelle catégorie</button>
     </section>`}
 
-    <section class="sec paper row between"><div><b>Supprimer ce menu</b><div class="muted" style="font-size:13px">Le lien ne marchera plus. Action définitive.</div></div><button class="btn sm danger" data-act="supprimer">Supprimer</button></section>
+    <section class="sec paper row between" data-adm><div><b>Supprimer ce menu</b><div class="muted" style="font-size:13px">Le lien ne marchera plus. Action définitive.</div></div><button class="btn sm danger" data-act="supprimer">Supprimer</button></section>
 
     <div class="savebar"><div class="in"><span class="st" id="st"></span><button class="btn" data-act="apercu">Aperçu</button><button class="btn primary" data-act="enregistrer" id="saveBtn">Enregistrer</button></div></div>`;
     majBarre();
@@ -718,6 +734,9 @@
     b.disabled = true; $("#st").textContent = "Enregistrement…";
     try {
       nettoyer(M);
+      if (PROPRIO) {
+        try { const sv = JSON.parse((await db.doc("settings/menu-" + M.slug).get()).data().json || "{}"); ["formule", "type", "actif", "expire", "demo7", "slug", "commandeRef"].forEach(k => { if (k in sv) M[k] = sv[k]; else delete M[k]; }); } catch (x) {}
+      }
       const json = JSON.stringify(M);
       // 🕘 l'ancienne version part dans l'historique (ses photos sont gardées tant qu'elle y reste)
       let H = await lireHist(M.slug), garde = new Set(), jetees = [];
