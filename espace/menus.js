@@ -306,7 +306,7 @@
     <section class="sec paper stack">
       <div class="row between"><h3>Infos du commerce</h3><label class="check"><input type="checkbox" data-b="actif" ${M.actif !== false ? "checked" : ""}> Menu en ligne</label></div>
       ${champ("nom", "Nom du commerce", 'maxlength="60"')}
-      <div class="row" style="gap:6px"><span class="muted" style="font-size:13.5px">Lien :</span><a href="${esc(lienPublic(M.slug))}" target="_blank" rel="noopener">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}</a><button class="btn sm ghost" data-act="copier" data-v="${esc(lienPublic(M.slug))}">Copier</button><button class="btn sm ghost" data-act="nfc">📲 Écrire sur la puce</button><button class="btn sm ghost" data-act="dupliquer">📄 Dupliquer</button></div>
+      <div class="row" style="gap:6px"><span class="muted" style="font-size:13.5px">Lien :</span><a href="${esc(lienPublic(M.slug))}" target="_blank" rel="noopener">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}</a><button class="btn sm ghost" data-act="copier" data-v="${esc(lienPublic(M.slug))}">Copier</button><button class="btn sm ghost" data-act="nfc">📲 Écrire sur la puce</button><button class="btn sm ghost" data-act="dupliquer">📄 Dupliquer</button><button class="btn sm ghost" data-act="historique">🕘 Historique</button></div>
       ${photoPick("logo", "Logo", "logo", "Carré ou rond, fond uni de préférence.")}
       <label class="check"><input type="checkbox" data-b="logoCarre" ${M.logoCarre ? "checked" : ""}> Logo carré (au lieu de rond)</label>
       ${pro ? photoPick("couverture", "Photo de couverture", "cover", "Une belle photo de la salle ou d’un plat (format paysage).") : ""}
@@ -494,6 +494,7 @@
       case "stands": imprimerStands(); break;
       case "nfc": window.NFCW_ECRIRE(lienPublic(M.slug), M.nom); break;
       case "dupliquer": dupliquerMenu(); break;
+      case "historique": historique(); break;
       case "promo-add": M.promos = M.promos || []; M.promos.push({ id: rid(6), texte: "", jours: [], de: "", a: "", actif: true }); renderEdit(); break;
       case "promo-del": M.promos.splice(i, 1); renderEdit(); break;
       case "promo-jour": { const p = M.promos[i], j = +b.dataset.j; p.jours = p.jours || []; p.jours = p.jours.includes(j) ? p.jours.filter(x => x !== j) : [...p.jours, j].sort(); renderEdit(); break; }
@@ -635,13 +636,22 @@
     try {
       nettoyer(M);
       const json = JSON.stringify(M);
+      // 🕘 l'ancienne version part dans l'historique (ses photos sont gardées tant qu'elle y reste)
+      let H = await lireHist(M.slug), garde = new Set(), jetees = [];
+      if (saved && saved !== json) {
+        H.unshift({ t: Date.now(), par: user.email, json: saved });
+        while (H.length > HMAX || (H.length > 1 && JSON.stringify(H).length > 800000)) jetees.push(H.pop());
+        try { await db.doc("settings/hist-" + M.slug).set({ json: JSON.stringify(H), maj: NOW() }); } catch (x) { console.warn("historique", x); }
+      }
+      H.forEach(v => { try { idsDe(JSON.parse(v.json)).forEach(i => garde.add(i)); } catch (x) {} });
+      const dejetees = jetees.flatMap(v => { try { return idsDe(JSON.parse(v.json)); } catch (x) { return []; } });
       await db.doc("settings/menu-" + M.slug).set({ json, v: String(Date.now()), maj: NOW(), par: user.email });
       const e = liste.find(x => x.slug === M.slug);
       const info = { slug: M.slug, nom: M.nom, formule: M.formule, actif: M.actif !== false, maj: Date.now() };
       if (e) Object.assign(e, info); else liste.push(info);
       await ecrireListe();
       const now = new Set(idsDe(M));
-      const orph = [...new Set([...savedIds, ...pending])].filter(i => !now.has(i) && !enLigne(i));
+      const orph = [...new Set([...savedIds, ...pending, ...dejetees])].filter(i => !now.has(i) && !garde.has(i) && !enLigne(i));
       await Promise.all(orph.map(i => db.doc("settings/mimg-" + i).delete().catch(() => {})));
       savedIds = now; pending.clear(); saved = json;
       try { localStorage.removeItem("nfcwork-menu-" + M.slug); } catch (x) {}
@@ -651,12 +661,42 @@
     majBarre();
   }
 
+  /* ---------- 🕘 historique : les 15 dernières versions, restaurables ---------- */
+  const HMAX = 15;
+  async function lireHist(slug) {
+    try { const d = await db.doc("settings/hist-" + slug).get(); return d.exists ? JSON.parse(d.data().json || "[]") : []; } catch (e) { return []; }
+  }
+  async function historique() {
+    const H = await lireHist(M.slug);
+    const resume = j => { try { const m = JSON.parse(j); const c = (m.categories || []).length, n = (m.categories || []).reduce((s, k) => s + (k.items || []).length, 0); return `${c} catégorie${c > 1 ? "s" : ""} · ${n} produit${n > 1 ? "s" : ""}`; } catch (e) { return ""; } };
+    const quand = t => new Date(t).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    const d = fenetre(`<h2>🕘 Historique</h2><p class="muted" style="margin-top:2px">Chaque « Enregistrer » garde l’ancienne version (les ${HMAX} dernières). Vous avez effacé quelque chose par erreur ? Revenez en arrière.</p>
+      <div class="stack" style="gap:8px;margin-top:10px">
+        <div class="row between" style="padding:10px 12px;border:1px solid var(--accent);border-radius:12px"><div><b>✅ Version en ligne</b><div class="muted" style="font-size:13px">${resume(saved)}</div></div></div>
+        ${H.length ? H.map((v, i) => `<div class="row between" style="padding:10px 12px;border:1px solid var(--line);border-radius:12px;gap:8px"><div style="min-width:0"><b>${esc(quand(v.t))}</b><div class="muted" style="font-size:13px">${resume(v.json)}</div></div><button class="btn sm" data-hr="${i}">↩️ Revenir</button></div>`).join("")
+          : `<p class="muted">Pas encore d’anciennes versions : elles apparaîtront après le prochain « Enregistrer ».</p>`}
+      </div><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn ghost" data-fermer>Fermer</button></div>`);
+    d.addEventListener("click", e => {
+      const b = e.target.closest("[data-hr]"); if (!b) return;
+      const v = H[+b.dataset.hr]; if (!v) return;
+      if (!confirm("Revenir à la version du " + quand(v.t) + " ?\n\nVous la verrez d’abord ici : rien ne change en ligne tant que vous n’appuyez pas sur « Enregistrer ».")) return;
+      try {
+        const slug = M.slug, m = JSON.parse(v.json);
+        m.slug = slug; m.langues = ["fr"]; m.infos = m.infos || {}; m.slogan = m.slogan || {}; m.pages = m.pages || []; m.categories = m.categories || [];
+        M = m; d.remove(); renderEdit(); majBarre();
+        toast("↩️ Ancienne version chargée. Vérifiez puis appuyez sur « Enregistrer ».", true);
+      } catch (x) { toast("Version illisible."); }
+    });
+  }
+
   async function supprimer() {
     const r = prompt(`Pour supprimer définitivement « ${M.nom} », écrivez SUPPRIMER :`);
     if (!r || r.trim().toUpperCase() !== "SUPPRIMER") return;
     try {
-      const ids = new Set([...idsDe(M), ...savedIds, ...pending].filter(i => !enLigne(i)));
+      const hist = (await lireHist(M.slug)).flatMap(v => { try { return idsDe(JSON.parse(v.json)); } catch (x) { return []; } });
+      const ids = new Set([...idsDe(M), ...savedIds, ...pending, ...hist].filter(i => !enLigne(i)));
       await Promise.all([...ids].map(i => db.doc("settings/mimg-" + i).delete().catch(() => {})));
+      await db.doc("settings/hist-" + M.slug).delete().catch(() => {});
       await db.doc("settings/menu-" + M.slug).delete();
       liste = liste.filter(x => x.slug !== M.slug);
       await ecrireListe();
