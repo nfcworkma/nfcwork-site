@@ -519,17 +519,40 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     toast("💾 Fichier du menu téléchargé");
   }
+  // 📦 modèles tout prêts, hébergés sur le site (un clic, pas de fichier à télécharger)
+  const MODELES = [["location-voitures", "🚗", "Location de voitures", "47 voitures avec photos, réservation date + heure"]];
   function fichierIn() {
-    const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".json,application/json";
-    inp.onchange = async () => {
-      const f = inp.files && inp.files[0]; if (!f) return;
-      let P; try { P = JSON.parse(await f.text()); } catch (e) { toast("Fichier illisible."); return; }
+    const d = fenetre(`<h2>📥 Menu tout prêt</h2><p class="muted" style="margin-top:2px">Choisissez un modèle : il est copié avec toutes ses photos, puis vous changez le nom, les prix et le WhatsApp.</p>
+      <div class="stack" style="gap:8px;margin-top:10px">${MODELES.map(([k, i, n, s]) => `<button class="btn block" data-mod="${k}" style="justify-content:flex-start;text-align:start;padding:14px"><span style="font-size:26px">${i}</span><span><b>${n}</b><br><small class="muted">${s}</small></span></button>`).join("")}
+        <button class="btn ghost block" data-mod="__fichier">📂 Ouvrir un fichier (.json)</button></div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn ghost" data-fermer>Fermer</button></div>`);
+    d.addEventListener("click", async e => {
+      const b = e.target.closest("[data-mod]"); if (!b) return;
+      const k = b.dataset.mod;
+      if (k === "__fichier") {
+        const inp = document.createElement("input"); inp.type = "file";
+        inp.onchange = async () => { const f = inp.files && inp.files[0]; if (!f) return; let P; try { P = JSON.parse(await f.text()); } catch (x) { toast("Fichier illisible."); return; } d.remove(); importerMenu(P); };
+        inp.click(); return;
+      }
+      b.disabled = true; b.insertAdjacentHTML("beforeend", " <small>⏳</small>");
+      try { const r = await fetch("modeles/" + k + ".json", { cache: "no-cache" }); if (!r.ok) throw new Error("http " + r.status); const P = await r.json(); d.remove(); importerMenu(P); }
+      catch (x) { b.disabled = false; toast("Téléchargement impossible. Vérifiez la connexion."); }
+    });
+  }
+  async function importerMenu(P) {
+    {
       const c = P && P.menu; if (!c || !Array.isArray(c.categories)) { toast("Ce fichier n’est pas un menu NFCWORK."); return; }
-      const nom = prompt("Nom du menu :", c.nom || ""); if (!nom || !nom.trim()) return;
-      let s = slugify(prompt("Lien : nfcwork.ma/menu/…", c.slug || slugify(nom)) || nom); if (!s) return;
-      if (liste.some(x => x.slug === s)) { let i = 2; const s0 = s; while (liste.some(x => x.slug === s)) s = s0 + "-" + i++; if (!confirm("Ce lien existe déjà. Utiliser nfcwork.ma/menu/" + s + " ?")) return; }
+      const nom = prompt("Nom du commerce :", c.nom || ""); if (!nom || !nom.trim()) return;
+      let s = slugify(prompt("Lien : nfcwork.ma/menu/…", slugify(nom)) || nom); if (!s) return;
+      let remplace = false;
+      if (liste.some(x => x.slug === s)) {
+        if (confirm("Le menu nfcwork.ma/menu/" + s + " existe déjà.\n\nOK = le REMPLACER par ce modèle\nAnnuler = créer un autre lien")) remplace = true;
+        else { let i = 2; const s0 = s; while (liste.some(x => x.slug === s)) s = s0 + "-" + i++; if (!confirm("Créer nfcwork.ma/menu/" + s + " ?")) return; }
+      }
+      const wa = prompt("📞 Numéro WhatsApp qui reçoit les commandes / réservations :", (c.infos || {}).whatsapp || "");
+      if (wa != null) { c.infos = c.infos || {}; c.infos.whatsapp = wa.trim(); c.infos.tel = wa.trim(); }
       const imgs = P.images || {}, ids = Object.keys(imgs).filter(id => /^data:image\//.test(imgs[id]));
-      const d = fenetre(`<h2>📥 Import du menu</h2><p class="muted">Envoi des photos… ne fermez pas la page.</p><div style="height:8px;border-radius:8px;background:var(--line);overflow:hidden"><i id="fp" style="display:block;height:100%;width:0;background:var(--accent);transition:width .2s"></i></div><p id="fpt" class="muted" style="margin-top:8px">0 / ${ids.length}</p>`);
+      const d = fenetre(`<h2>📥 Import du menu</h2><p class="muted">Envoi des photos… <b>ne fermez pas la page</b> ⏳</p><div style="height:8px;border-radius:8px;background:var(--line);overflow:hidden"><i id="fp" style="display:block;height:100%;width:0;background:var(--accent);transition:width .2s"></i></div><p id="fpt" class="muted" style="margin-top:8px">0 / ${ids.length}</p>`);
       try {
         const map = {}; let n = 0;
         for (const id of ids) {
@@ -541,11 +564,14 @@
         c.logo = r(c.logo || ""); c.couverture = r(c.couverture || ""); c.pages = (c.pages || []).map(r);
         c.categories.forEach(k => { k.id = k.id || rid(6); (k.items || []).forEach(it => { it.id = it.id || rid(6); if (it.photo) it.photo = r(it.photo); }); });
         await db.doc("settings/menu-" + s).set({ json: JSON.stringify(c), v: String(Date.now()), maj: NOW(), par: user.email });
-        liste.push({ slug: s, nom: c.nom, formule: c.formule || "premium", actif: c.actif !== false, maj: Date.now() }); await ecrireListe();
-        d.remove(); toast("✅ Menu « " + c.nom + " » créé", true); location.hash = "#m=" + s;
+        const info = { slug: s, nom: c.nom, formule: c.formule || "premium", actif: c.actif !== false, maj: Date.now() };
+        const ex = liste.find(x => x.slug === s); if (ex) Object.assign(ex, info); else liste.push(info);
+        await ecrireListe();
+        try { localStorage.removeItem("nfcwork-menu-" + s); } catch (x) {}
+        if (remplace && M && M.slug === s) M = null;
+        d.remove(); toast("✅ Menu « " + c.nom + " » prêt avec " + n + " photos", true); location.hash = "#m=" + s;
       } catch (x) { d.remove(); erreur(x); }
-    };
-    inp.click();
+    }
   }
 
   async function dupliquerMenu() {
