@@ -159,7 +159,7 @@
       ${progs.length ? `<div class="mlist sec">${progs.map(p => `<div class="paper mcard">
         <div class="row between"><span class="n">${(METIERS[p.metier] || {}).ico || ""} ${esc(p.nom)}</span><span class="pill ${p.actif === false ? "off" : "pro"}">${p.actif === false ? "Désactivé" : esc(TYPES[p.type] ? TYPES[p.type][0] : "")}</span></div>
         <div class="l">${esc(p.objectif)} ${unite(p)} = ${esc(p.recompense)}${admin ? `<br>${esc(p.ownerEmail || "sans compte commerçant")}${p.prix ? ` · ${esc(p.prix)} DH ${PERIODES[p.periode] || ""}` : ""}` : ""}</div>
-        <div class="row"><a class="btn sm primary" href="#p=${esc(p.id)}">Ouvrir</a><button class="btn sm" data-lienqr="${esc(p.id)}">🔗 Lien & QR</button>${admin ? `<button class="btn sm" data-reglages="${esc(p.id)}">Réglages</button>` : ""}</div></div>`).join("")}</div>`
+        <div class="row"><a class="btn sm primary" href="#p=${esc(p.id)}">Ouvrir</a><button class="btn sm" data-lienqr="${esc(p.id)}">🔗 Lien & QR</button>${p.modeClient === "caisse" ? `<a class="btn sm" href="caisse.html#p=${esc(p.id)}">📱 Écran caisse</a>` : ""}${admin ? `<button class="btn sm" data-reglages="${esc(p.id)}">Réglages</button>` : ""}</div></div>`).join("")}</div>`
       : `<div class="empty paper sec"><h3>Aucun programme</h3><p>Créez le programme fidélité d’un commerce : type de points, récompense, employés.</p><button class="btn primary" data-act="nouveau">＋ Créer un programme</button></div>`}`;
   }
 
