@@ -515,7 +515,24 @@
     let flux = null, fini = false;
     const d = fenetre(`<div class="row between"><h2>Scanner</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
       <div class="scan"><video id="cam" playsinline muted></video></div>
-      <p class="muted" style="text-align:center;margin:6px 0 0;font-size:13.5px" id="sm">Visez la carte du client ou le code d’un employé.</p>`);
+      <p class="muted" style="text-align:center;margin:6px 0 0;font-size:13.5px" id="sm">Visez la carte du client ou le code d’un employé.</p>
+      <label class="btn block" style="margin-top:10px">📸 Prendre le QR en photo<input type="file" accept="image/*" capture="environment" hidden id="scan-photo"></label>`);
+    // secours : une photo du QR (marche partout, même quand la caméra en direct est bloquée)
+    $("#scan-photo", d).onchange = async e => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      $("#sm", d).textContent = "Lecture de la photo…";
+      try {
+        await chargerJsQR();
+        const url = URL.createObjectURL(f), img = new Image();
+        await new Promise((ok, ko) => { img.onload = ok; img.onerror = ko; img.src = url; });
+        const k = Math.min(1, 1200 / Math.max(img.width, img.height)), cv = document.createElement("canvas");
+        cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+        const g = cv.getContext("2d"); g.drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+        const r = jsQR(g.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height, { inversionAttempts: "attemptBoth" });
+        if (!(r && r.data && trouve(r.data))) $("#sm", d).textContent = "QR non trouvé : reprenez la photo plus près, bien nette.";
+      } catch (x) { $("#sm", d).textContent = "Photo illisible, réessayez."; }
+      e.target.value = "";
+    };
     const stop = () => { fini = true; if (flux) flux.getTracks().forEach(t => t.stop()); };
     d.addEventListener("fermee", stop);
     const trouve = txt => {
@@ -542,7 +559,14 @@
         requestAnimationFrame(tour);
       };
       tour();
-    } catch (e) { console.warn(e); $("#sm", d).textContent = "Caméra indisponible. Vous pouvez aussi scanner la carte avec l’appareil photo du téléphone."; }
+    } catch (e) {
+      console.warn(e);
+      const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      $("#sm", d).innerHTML = e && e.name === "NotAllowedError"
+        ? (ios ? "Caméra refusée. Touchez <b>📸 Prendre le QR en photo</b>, ou autorisez la caméra : <b>Réglages → Safari → Caméra → Autoriser</b>, puis rouvrez cette page dans <b>Safari</b>."
+               : "Caméra refusée. Touchez <b>📸 Prendre le QR en photo</b>, ou autorisez la caméra (🔒 à côté de l’adresse → Caméra → Autoriser).")
+        : "Caméra en direct indisponible ici. Touchez <b>📸 Prendre le QR en photo</b> : ça marche aussi.";
+    }
   }
 
   /* ================= Affiches à imprimer ================= */
