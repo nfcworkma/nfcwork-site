@@ -319,7 +319,7 @@
   function ctrl(it, waOk, gros) {
     const off = it.dispo === false;
     if (off) return `<span class="tag">${U.soldout}</span>`;
-    if (!waOk || prixNum(it.prix) <= 0) return "";
+    if (!waOk || (prixNum(it.prix) <= 0 && M.type !== "location")) return "";   // location : on réserve même sans prix affiché
     const q = panier[it.id] || 0;
     return q ? `<span class="qty"><button data-moins="${esc(it.id)}" aria-label="Retirer">−</button><b>${q}</b><button data-plus="${esc(it.id)}" aria-label="Ajouter">+</button></span>`
              : `<button class="add" data-plus="${esc(it.id)}" aria-label="${U.add}">+${gros ? " " + U.add : ""}</button>`;
@@ -395,7 +395,7 @@
   }
   // ce que le client a écrit reste gardé, même si la fenêtre se redessine (quand il change une quantité)
   const joursLoc = () => { if (!saisie.date || !saisie.fin) return 0; const n = Math.round((new Date(saisie.fin + "T12:00:00") - new Date(saisie.date + "T12:00:00")) / 864e5); return n > 0 ? n : 0; };
-  const saisie = { fin: "", table: tableQR ? "Table " + tableQR : "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "", gps: "", date: "", heure: "", pers: "" };
+  const saisie = { fin: "", hfin: "", table: tableQR ? "Table " + tableQR : "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "", gps: "", date: "", heure: "", pers: "" };
   function feuille() {
     const its = tousItems();
     const lignes = Object.entries(panier).map(([id, q]) => ({ it: its.find(x => x.id === id), q })).filter(x => x.it && x.q);
@@ -432,8 +432,9 @@
     const champ = (k, label, attrs) => `<label class="f">${label}<input id="c-${k}" value="${esc(saisie[k])}" ${attrs || ""}></label>`;
     if (M.type === "location") {
       const j = joursLoc();
-      return `<div class="grid2">${champ("date", "Date de départ", `type="date" min="${aujourdhui()}"`)}${champ("fin", "Date de retour", `type="date" min="${saisie.date || aujourdhui()}"`)}</div>
-        ${j ? `<div class="sous"><span>Durée</span><span>${j} jour${j > 1 ? "s" : ""}</span></div><div class="total"><span>${U.total} estimé</span><span>${esc(fmtPrix(arr(total * j)))}</span></div>` : `<p class="hint" style="margin:6px 0">Choisissez les dates pour voir le prix total.</p>`}
+      return `<div class="grid2">${champ("date", "📅 Je prends le", `type="date" min="${aujourdhui()}"`)}${champ("heure", "🕘 à", 'type="time" step="900"')}</div>
+        <div class="grid2">${champ("fin", "📅 Je rends le", `type="date" min="${saisie.date || aujourdhui()}"`)}${champ("hfin", "🕘 à", 'type="time" step="900"')}</div>
+        ${j ? `<div class="sous"><span>Durée</span><span>${j} jour${j > 1 ? "s" : ""}</span></div>${total > 0 ? `<div class="total"><span>${U.total} estimé</span><span>${esc(fmtPrix(arr(total * j)))}</span></div>` : ""}` : `<p class="hint" style="margin:6px 0">Choisissez les dates${total > 0 ? " pour voir le prix total" : ""}.</p>`}
         ${champ("nom", "Votre nom", 'maxlength="60" autocomplete="name"')}${champ("tel", "Téléphone", 'type="tel" inputmode="tel" maxlength="20" autocomplete="tel"')}
         ${champ("note", `Lieu de livraison du véhicule, remarque ${U.opt}`, 'maxlength="200"')}`;
     }
@@ -487,9 +488,10 @@
       const err = d.querySelector("#c-err"), j = joursLoc();
       if (!j) { err.textContent = "Choisissez la date de départ et la date de retour."; return; }
       if (!saisie.tel.trim()) { err.textContent = "Indiquez votre numéro de téléphone."; return; }
-      const liste2 = lignes.map(l => `• ${l.q > 1 ? l.q + " × " : ""}${tr(l.it.nom)} — ${fmtPrix(l.it.prix)} / jour`);
-      txt = [U.hello, "", ...liste2, "", `📅 Du ${dateFr(saisie.date)} au ${dateFr(saisie.fin)} (${j} jour${j > 1 ? "s" : ""})`, `💰 Total estimé : ${fmtPrix(arr(total * j))}`, ""]
-        .concat(saisie.nom.trim() ? [`Nom : ${saisie.nom.trim()}`] : [], [`Téléphone : ${saisie.tel.trim()}`], note.trim() ? [`Remarque : ${note.trim()}`] : []).join("\n");
+      const liste2 = lignes.map(l => `• ${l.q > 1 ? l.q + " × " : ""}${tr(l.it.nom)}${prixNum(l.it.prix) > 0 ? " — " + fmtPrix(l.it.prix) + " / jour" : ""}`);
+      const h = x => x ? " à " + x.replace(":", "h") : "";
+      txt = [U.hello, "", ...liste2, "", `🚗 Départ : ${dateFr(saisie.date)}${h(saisie.heure)}`, `🔑 Retour : ${dateFr(saisie.fin)}${h(saisie.hfin)}`, `⏱ Durée : ${j} jour${j > 1 ? "s" : ""}`].concat(total > 0 ? [`💰 Total estimé : ${fmtPrix(arr(total * j))}`] : [], [""])
+        .concat(saisie.nom.trim() ? [`Nom : ${saisie.nom.trim()}`] : [], [`Téléphone : ${saisie.tel.trim()}`], note.trim() ? [`Remarque : ${note.trim()}`] : [], ["", "Merci de me confirmer la disponibilité 🙏"]).join("\n");
     } else if (M.type === "salon") {
       const err = d.querySelector("#c-err");
       if (!saisie.date || !saisie.heure) { err.textContent = "Choisissez le jour et l’heure du rendez-vous."; return; }

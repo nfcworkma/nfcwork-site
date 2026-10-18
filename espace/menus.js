@@ -194,7 +194,7 @@
     entete("Menus digitaux", "Espace gestion", "./", "");
     const l = [...liste].sort((a, b) => (b.maj || 0) - (a.maj || 0));
     app.innerHTML = `<div class="row between"><div><h2>Menus digitaux</h2><div class="muted">${l.length} menu${l.length > 1 ? "s" : ""} · Standard, Pro, Premium</div></div>
-      <button class="btn primary" data-act="nouveau">＋ Nouveau menu</button></div>
+      <div class="row" style="gap:6px"><button class="btn" data-act="fichier-in" title="Ouvrir un menu tout prêt (.json)">📥 Fichier</button><button class="btn primary" data-act="nouveau">＋ Nouveau menu</button></div></div>
       ${l.length ? `<div class="mlist sec">${l.map(m => `<div class="paper mcard">
         <div class="row between"><span class="n">${esc(m.nom)}</span><span class="row"><span class="pill ${esc(m.formule)}">${esc((FORMULES[m.formule] || [m.formule])[0])}</span>${m.actif === false ? '<span class="pill off">Désactivé</span>' : ""}</span></div>
         <div class="l">${esc(lienPublic(m.slug).replace(/^https?:\/\//, ""))}</div>
@@ -306,7 +306,7 @@
     <section class="sec paper stack">
       <div class="row between"><h3>Infos du commerce</h3><label class="check"><input type="checkbox" data-b="actif" ${M.actif !== false ? "checked" : ""}> Menu en ligne</label></div>
       ${champ("nom", "Nom du commerce", 'maxlength="60"')}
-      <div class="row" style="gap:6px"><span class="muted" style="font-size:13.5px">Lien :</span><a href="${esc(lienPublic(M.slug))}" target="_blank" rel="noopener">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}</a><button class="btn sm ghost" data-act="copier" data-v="${esc(lienPublic(M.slug))}">Copier</button><button class="btn sm ghost" data-act="nfc">📲 Écrire sur la puce</button><button class="btn sm ghost" data-act="dupliquer">📄 Dupliquer</button><button class="btn sm ghost" data-act="historique">🕘 Historique</button></div>
+      <div class="row" style="gap:6px"><span class="muted" style="font-size:13.5px">Lien :</span><a href="${esc(lienPublic(M.slug))}" target="_blank" rel="noopener">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}</a><button class="btn sm ghost" data-act="copier" data-v="${esc(lienPublic(M.slug))}">Copier</button><button class="btn sm ghost" data-act="nfc">📲 Écrire sur la puce</button><button class="btn sm ghost" data-act="dupliquer">📄 Dupliquer</button><button class="btn sm ghost" data-act="historique">🕘 Historique</button><button class="btn sm ghost" data-act="fichier-out">💾 Fichier</button></div>
       ${photoPick("logo", "Logo", "logo", "Carré ou rond, fond uni de préférence.")}
       <label class="check"><input type="checkbox" data-b="logoCarre" ${M.logoCarre ? "checked" : ""}> Logo carré (au lieu de rond)</label>
       ${pro ? photoPick("couverture", "Photo de couverture", "cover", "Une belle photo de la salle ou d’un plat (format paysage).") : ""}
@@ -461,6 +461,8 @@
     const bouge = (arr, k, d) => { const j = k + d; if (j < 0 || j >= arr.length) return; [arr[k], arr[j]] = [arr[j], arr[k]]; renderEdit(); };
     switch (a) {
       case "nouveau": nouveauMenu(); break;
+      case "fichier-in": fichierIn(); break;
+      case "fichier-out": fichierOut(); break;
       case "copier": copier(b.dataset.v); break;
       case "enregistrer": enregistrer(b); break;
       case "apercu": apercu(); break;
@@ -507,6 +509,45 @@
   });
 
   /* ---------- dupliquer un menu (même produits et photos, nouveau nom) ---------- */
+  /* ---------- 💾 / 📥 menu en fichier (.json avec ses photos) : sauvegarde, ou menu tout prêt préparé par NFCWORK ---------- */
+  async function fichierOut() {
+    if (dirty()) { toast("Enregistrez d’abord ce menu."); return; }
+    const images = {};
+    for (const id of idsDe(M).filter(x => !enLigne(x))) { const d = IMG[id] || await chargerImg(id); if (d) images[id] = d; }
+    const blob = new Blob([JSON.stringify({ nfcworkMenu: 1, menu: M, images })], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "menu-" + M.slug + ".json"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast("💾 Fichier du menu téléchargé");
+  }
+  function fichierIn() {
+    const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".json,application/json";
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0]; if (!f) return;
+      let P; try { P = JSON.parse(await f.text()); } catch (e) { toast("Fichier illisible."); return; }
+      const c = P && P.menu; if (!c || !Array.isArray(c.categories)) { toast("Ce fichier n’est pas un menu NFCWORK."); return; }
+      const nom = prompt("Nom du menu :", c.nom || ""); if (!nom || !nom.trim()) return;
+      let s = slugify(prompt("Lien : nfcwork.ma/menu/…", c.slug || slugify(nom)) || nom); if (!s) return;
+      if (liste.some(x => x.slug === s)) { let i = 2; const s0 = s; while (liste.some(x => x.slug === s)) s = s0 + "-" + i++; if (!confirm("Ce lien existe déjà. Utiliser nfcwork.ma/menu/" + s + " ?")) return; }
+      const imgs = P.images || {}, ids = Object.keys(imgs).filter(id => /^data:image\//.test(imgs[id]));
+      const d = fenetre(`<h2>📥 Import du menu</h2><p class="muted">Envoi des photos… ne fermez pas la page.</p><div style="height:8px;border-radius:8px;background:var(--line);overflow:hidden"><i id="fp" style="display:block;height:100%;width:0;background:var(--accent);transition:width .2s"></i></div><p id="fpt" class="muted" style="margin-top:8px">0 / ${ids.length}</p>`);
+      try {
+        const map = {}; let n = 0;
+        for (const id of ids) {
+          const nid = rid(); await db.doc("settings/mimg-" + nid).set({ data: imgs[id], menu: s, maj: NOW() }); IMG[nid] = imgs[id]; map[id] = nid; n++;
+          const b = d.querySelector("#fp"); if (b) b.style.width = Math.round(n / ids.length * 100) + "%"; const t = d.querySelector("#fpt"); if (t) t.textContent = n + " / " + ids.length;
+        }
+        const r = id => map[id] || id;
+        c.slug = s; c.nom = nom.trim(); delete c.commandeRef;
+        c.logo = r(c.logo || ""); c.couverture = r(c.couverture || ""); c.pages = (c.pages || []).map(r);
+        c.categories.forEach(k => { k.id = k.id || rid(6); (k.items || []).forEach(it => { it.id = it.id || rid(6); if (it.photo) it.photo = r(it.photo); }); });
+        await db.doc("settings/menu-" + s).set({ json: JSON.stringify(c), v: String(Date.now()), maj: NOW(), par: user.email });
+        liste.push({ slug: s, nom: c.nom, formule: c.formule || "premium", actif: c.actif !== false, maj: Date.now() }); await ecrireListe();
+        d.remove(); toast("✅ Menu « " + c.nom + " » créé", true); location.hash = "#m=" + s;
+      } catch (x) { d.remove(); erreur(x); }
+    };
+    inp.click();
+  }
+
   async function dupliquerMenu() {
     if (dirty()) { toast("Enregistrez d’abord ce menu."); return; }
     const nom = prompt("Nom du nouveau menu :", M.nom + " 2"); if (!nom || !nom.trim()) return;
