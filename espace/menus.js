@@ -376,14 +376,14 @@
       <div class="drop" style="margin-top:12px" id="pg-drop"><div>Ajouter les photos de la carte</div>
         <div class="row" style="justify-content:center"><label class="btn primary sm">📷 Prendre une photo<input type="file" accept="image/*" capture="environment" hidden data-pages></label><label class="btn sm">Choisir des photos<input type="file" accept="image/*" multiple hidden data-pages></label></div></div>
     </section>` : `<section class="sec">
-      <div class="row between" style="margin-bottom:10px"><h3>Catégories & produits</h3><div class="row" style="gap:6px"><button class="btn sm" data-act="importer">📥 Importer</button><button class="btn sm" data-act="cat-add">＋ Catégorie</button></div></div>
+      <div class="row between" style="margin-bottom:10px"><h3>${M.type === "location" ? "Voitures" : "Catégories & produits"}</h3><div class="row" style="gap:6px"><button class="btn sm primary" data-act="prix-rapides">💰 Prix</button><button class="btn sm" data-act="importer">📥 Importer</button><button class="btn sm" data-act="cat-add">＋ Catégorie</button></div></div>
       ${M.categories.some(c => (c.items || []).some(i => !i.photo)) ? `<div class="paper row between" style="padding:12px 14px;border-radius:14px;margin-bottom:12px;gap:10px"><div style="flex:1;min-width:0"><b>✨ Photos automatiques</b><div class="muted" style="font-size:13px">${M.categories.reduce((n, c) => n + (c.items || []).filter(i => !i.photo).length, 0)} produit(s) sans photo : on cherche la bonne photo à partir du nom (Coca-Cola, Poms, café crème…).</div></div><button class="btn sm primary" data-act="photos-auto">Remplir</button></div>` : ""}
       ${M.categories.map((c, ci) => `<div class="cat" data-cat="${esc(c.id)}">
         <div class="cat-h"><div class="names">${ls.map(l => `<input data-cb="nom.${l}" value="${esc(T(c.nom, l))}" placeholder="Nom de la catégorie${ls.length > 1 ? " (" + LCOURT[l] + ")" : ""}" maxlength="60" ${l === "ar" ? 'dir="rtl"' : ""}>`).join("")}</div>
           <div class="cat-tools"><button class="btn icon sm" data-act="cat-up" data-i="${ci}" ${ci ? "" : "disabled"} title="Monter">↑</button><button class="btn icon sm" data-act="cat-down" data-i="${ci}" ${ci < M.categories.length - 1 ? "" : "disabled"} title="Descendre">↓</button><button class="btn icon sm danger" data-act="cat-del" data-i="${ci}" title="Supprimer">🗑</button></div></div>
         <div class="items">${(c.items || []).map((it, ii) => `<div class="row" style="gap:6px;flex-wrap:nowrap">
           <button class="it${it.dispo === false ? " off" : ""}" data-act="it-edit" data-ci="${ci}" data-ii="${ii}">${it.photo ? imgTag(it.photo, "", "") : '<span class="noimg">🍽</span>'}
-            <span class="tx"><b>${esc(T(it.nom, ls[0]) || "Sans nom")}</b><small>${esc(T(it.desc, ls[0]).slice(0, 60))}${it.dispo === false ? " · Épuisé" : ""}</small></span><span class="p">${esc(it.prix || "")}</span></button>
+            <span class="tx"><b>${esc(T(it.nom, ls[0]) || "Sans nom")}</b><small>${esc(T(it.desc, ls[0]).slice(0, 60))}${it.dispo === false ? " · Épuisé" : ""}</small></span><span class="p">${it.prix ? esc(it.prix) + (M.type === "location" ? "/j" : "") : '<span class="muted" style="font-weight:500">💰 prix ?</span>'}</span><span class="edit-ic" aria-hidden="true">✏️</span></button>
           <div style="display:grid;gap:4px"><button class="btn icon sm" data-act="it-up" data-ci="${ci}" data-ii="${ii}" ${ii ? "" : "disabled"} title="Monter">↑</button><button class="btn icon sm" data-act="it-down" data-ci="${ci}" data-ii="${ii}" ${ii < c.items.length - 1 ? "" : "disabled"} title="Descendre">↓</button></div></div>`).join("")}</div>
         <button class="btn sm" style="margin-top:10px;width:100%" data-act="it-add" data-ci="${ci}">＋ Ajouter un produit</button>
       </div>`).join("") || `<div class="empty paper"><h3>Aucune catégorie</h3><p>Commencez par « Boissons », « Petit-déjeuner »…</p></div>`}
@@ -503,6 +503,7 @@
       case "photos-auto": photosAuto(b); break;
       case "importer": importer(); break;
       case "it-edit": editerItem(ci, ii); break;
+      case "prix-rapides": prixRapides(); break;
       case "it-up": bouge(M.categories[ci].items, ii, -1); break;
       case "it-down": bouge(M.categories[ci].items, ii, 1); break;
     }
@@ -572,6 +573,21 @@
         d.remove(); toast("✅ Menu « " + c.nom + " » prêt avec " + n + " photos", true); location.hash = "#m=" + s;
       } catch (x) { d.remove(); erreur(x); }
     }
+  }
+
+  /* ---------- 💰 tous les prix sur une seule page ---------- */
+  function prixRapides() {
+    const ls = langsEdition(), loc = M.type === "location";
+    const d = fenetre(`<h2>💰 ${loc ? "Prix par jour" : "Prix"}</h2><p class="muted" style="margin-top:2px">Tapez le prix de chaque ${loc ? "voiture (DH / jour)" : "produit"}, puis « Enregistrer ». Pour changer une photo : fermez, et touchez la ${loc ? "voiture" : "ligne"} ✏️.</p>
+      <div class="stack" style="gap:6px;margin-top:10px;max-height:60vh;overflow:auto">${M.categories.map((c, ci) => `<div class="eyebrow" style="margin:10px 0 2px">${esc(T(c.nom, ls[0]))}</div>${(c.items || []).map((it, ii) => `<label class="row" style="gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:6px 10px">${it.photo ? imgTag(it.photo, "", "") : ""}<span style="flex:1;min-width:0;font-weight:600">${esc(T(it.nom, ls[0]))}</span><input data-pr="${ci}.${ii}" value="${esc(it.prix || "")}" inputmode="decimal" placeholder="0" style="width:90px;text-align:end;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:16px"><span class="muted">${loc ? "DH/j" : "DH"}</span></label>`).join("")}`).join("")}</div>
+      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn ghost" data-fermer>Annuler</button><button class="btn primary" id="pr-ok">💾 Enregistrer les prix</button></div>`, "big");
+    d.querySelectorAll(".row img").forEach(im => { im.style.cssText = "width:56px;height:42px;object-fit:cover;border-radius:8px;flex:none"; });
+    chargerVisibles();
+    d.querySelector("#pr-ok").onclick = async () => {
+      d.querySelectorAll("[data-pr]").forEach(inp => { const [ci, ii] = inp.dataset.pr.split(".").map(Number); const v = inp.value.trim().replace(/\s*(dh|mad)\s*$/i, ""); M.categories[ci].items[ii].prix = v; });
+      d.remove(); renderEdit(); majBarre();
+      const b = document.querySelector('[data-act="enregistrer"]'); if (b) await enregistrer(b);
+    };
   }
 
   async function dupliquerMenu() {
