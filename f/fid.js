@@ -124,7 +124,8 @@
           : `<div class="big">${pts} <small>/ ${obj} ${unite(p)}</small></div><div class="bar"><i style="width:${Math.min(100, pts / obj * 100)}%"></i></div>`}
         <div class="reward">🎁 <b>${esc(p.recompense)}</b> · ${pret ? "prête !" : `encore ${reste} ${unite(p)}`}${c.recompenses ? ` · déjà ${c.recompenses} gagnée${c.recompenses > 1 ? "s" : ""}` : ""}</div>
       </section>
-      <div class="qrbox">${window.QRGEN.svg(SITE + "/f/?c=" + c.id, { marge: 1 })}<small>Montrez ce code à la caisse</small></div>
+      ${p.modeClient === "caisse" ? `<div class="msg info">📱 À chaque visite : scannez le QR affiché sur le téléphone de la caisse, le point s’ajoute tout seul.</div>` : ""}
+      <div class="qrbox">${window.QRGEN.svg(SITE + "/f/?c=" + c.id, { marge: 1 })}<small>${p.modeClient === "caisse" ? "Code de votre carte (pour la récompense)" : "Montrez ce code à la caisse"}</small></div>
       <p class="tip">${esc(regle(p))}${p.guide ? "<br>" + p.guide.split(/\n+/).filter(Boolean).map(esc).join(" · ") : ""}</p>
       <p class="tip">📲 Gardez votre carte : <b>Partager</b> → <b>Sur l’écran d’accueil</b> (iPhone) ou <b>⋮</b> → <b>Ajouter à l’écran d’accueil</b> (Android).</p>
       ${pro ? `<div class="pro"><b>Espace commerçant</b><a class="btn primary" href="/espace/fidelite.html#c=${esc(c.id)}">Ouvrir cette carte (ajouter des points)</a></div>` : ""}
@@ -175,6 +176,34 @@
     rendreCarte(msg, nouveau); suivre();
   }
 
+  /* ---------- 📱 téléphone caisse : le client scanne le QR qui change toutes les 30 s ---------- */
+  // /f/?k=<programme>&w=<fenêtre de 30 s>&j=<code>  → +1 point si le code est bon, s'il n'a pas expiré et si le délai entre 2 points est passé (vérifié par Firebase)
+  const SCAN = "nfcwork-fid-scan";
+  async function scanCaisse(pid, w, j) {
+    const cid = lsGet("nfcwork-fid-" + pid);
+    const c = cid ? await lire("fidCartes/" + cid).catch(() => null) : null;
+    if (!c) { try { sessionStorage.setItem(SCAN, JSON.stringify({ pid, w, j, t: Date.now() })); } catch (e) {} await inscription(pid); return; }
+    await pointCaisse(c.id, w, j);
+  }
+  async function pointCaisse(cid, w, j) {
+    try { sessionStorage.removeItem(SCAN); } catch (e) {}
+    etat("", "Ajout de votre point…", true);
+    try {
+      await commit({ update: { name: nomDoc("fidCartes/" + cid), fields: { jeton: enc(j), jw: enc(w) } }, updateMask: { fieldPaths: ["jeton", "jw"] },
+        updateTransforms: [{ fieldPath: "points", increment: { integerValue: "1" } }, { fieldPath: "total", increment: { integerValue: "1" } }, { fieldPath: "lastAt", setToServerValue: "REQUEST_TIME" }],
+        currentDocument: { exists: true } });
+      history.replaceState(null, "", "/f/?c=" + cid);
+      await ouvrirCarte(cid, ["ok", "✓ +1 point ajouté. Merci et à bientôt !"], true);
+    } catch (x) {
+      console.warn(x); history.replaceState(null, "", "/f/?c=" + cid);
+      const c = await lire("fidCartes/" + cid).catch(() => null), p = c ? await lire("fidProgrammes/" + c.pid).catch(() => null) : null;
+      const prochain = c && p ? tsMs(c.lastAt) + (p.delaiH || 3) * 3600000 : 0;
+      const msg = prochain > Date.now() ? `Vous avez déjà eu votre point. Prochain point possible à ${new Date(prochain).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}.`
+        : "Ce QR a expiré : scannez le code affiché maintenant sur le téléphone de la caisse.";
+      await ouvrirCarte(cid, ["info", msg]);
+    }
+  }
+
   /* ---------- inscription ---------- */
   async function inscription(pid) {
     prog = await lire("fidProgrammes/" + pid);
@@ -207,6 +236,8 @@
             points: enc(0), total: enc(0), recompenses: enc(0), lastAt: enc({ ts: "1970-01-01T00:00:00Z" }) } },
           updateTransforms: [{ fieldPath: "createdAt", setToServerValue: "REQUEST_TIME" }], currentDocument: { exists: false } });
         lsSet("nfcwork-fid-" + pid, cid);
+        let sc = null; try { sc = JSON.parse(sessionStorage.getItem(SCAN) || "null"); } catch (e) {}
+        if (sc && sc.pid === pid && Date.now() - sc.t < 10 * 60000) { await pointCaisse(cid, sc.w, sc.j); return; }
         await ouvrirCarte(cid, ["ok", "✓ Carte créée ! Montrez-la à la caisse à chaque visite."]);
       } catch (x) {
         console.error(x); b.disabled = false; b.textContent = "Créer ma carte";
@@ -236,7 +267,8 @@
   }
 
   /* ---------- aiguillage ---------- */
-  const c = clean(qs.get("c")), p = clean(qs.get("p")), e = clean(qs.get("e"));
-  (c ? ouvrirCarte(c) : p ? inscription(p) : e ? employe(e) : Promise.resolve(etat("Carte fidélité", "Scannez le QR de votre commerce pour obtenir votre carte.")))
+  const c = clean(qs.get("c")), p = clean(qs.get("p")), e = clean(qs.get("e")), k = clean(qs.get("k"), 60);
+  const kw = parseInt(qs.get("w"), 10), kj = String(qs.get("j") || "").replace(/[^0-9a-f]/g, "").slice(0, 64);
+  (k && kw && kj.length === 64 ? scanCaisse(k, kw, kj) : c ? ouvrirCarte(c) : p ? inscription(p) : e ? employe(e) : Promise.resolve(etat("Carte fidélité", "Scannez le QR de votre commerce pour obtenir votre carte.")))
     .catch(err => { console.error(err); etat("Connexion impossible", "Vérifiez votre connexion Internet et réessayez."); });
 })();

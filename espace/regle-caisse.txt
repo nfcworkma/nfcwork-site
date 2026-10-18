@@ -1,0 +1,19 @@
+    // 📱 Fidélité « téléphone caisse » : le client scanne un QR qui change toutes les 30 secondes
+    // À AJOUTER (sans rien effacer) juste avant « // Tout le reste est fermé », puis « Publier ».
+    function fidScanCaisse() {
+      let avant = resource.data;
+      let apres = request.resource.data;
+      let p = fidProg(avant.pid);
+      let s = get(/databases/$(database)/documents/fidSecrets/$(avant.pid)).data.caisse;
+      let w = math.floor(request.time.toMillis() / 30000);
+      return p.actif == true && p.get('modeClient', '') == 'caisse'
+        && apres.diff(avant).affectedKeys().hasOnly(['points', 'total', 'lastAt', 'jeton', 'jw'])
+        && apres.points == avant.points + 1 && apres.total == avant.total + 1
+        && apres.lastAt == request.time
+        && request.time > avant.lastAt + duration.value(p.get('delaiH', 3), 'h')
+        && (apres.jw == w || apres.jw == w - 1)
+        && apres.jeton == hashing.sha256(s + ':' + string(apres.jw)).toHexString().lower();
+    }
+    match /fidCartes/{cid} {
+      allow update: if fidScanCaisse();
+    }

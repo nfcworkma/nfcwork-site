@@ -21,6 +21,7 @@
   const SITE = "https://nfcwork.ma";
   const TYPES = { visites: ["Visites", "1 point par visite"], articles: ["Articles", "1 point par article acheté"], montant: ["Montant", "Points selon le montant en DH"] };
   // points des employés, toujours liés à une vraie visite enregistrée par le commerçant
+  const MODES_C = { commercant: ["Le commerçant scanne", "Il scanne la carte du client"], caisse: ["Téléphone caisse", "Le client scanne un QR qui change toutes les 30 s"] };
   const MODES_E = { visite: ["À la caisse", "Le commerçant choisit qui a servi"], confirme: ["Le client", "Il confirme qui l’a servi"], les2: ["Les deux", "Caisse, sinon le client"] };
   // modèles prêts à l'emploi par métier (tout reste modifiable)
   // modèles par défaut ; la liste modifiée par l'admin (Métiers & prix) est gardée dans settings/fidMetiers
@@ -210,6 +211,9 @@
           <label class="f">Unité (coupes, cafés…)<input id="p-unite" maxlength="20" value="${esc(p.unite)}"></label></div>
         <label class="f">Récompense<input id="p-rec" required maxlength="80" value="${esc(p.recompense)}" placeholder="1 café offert · -20 % · 1 coupe gratuite"></label>
         <div><div class="muted" style="font-size:13px;margin-bottom:6px">💡 Idées : touchez pour remplir</div><div class="idees" id="p-idees"></div></div>
+        <div class="eyebrow">4 · Qui donne les points au client</div>
+        ${seg("modeClient", MODES_C, MODES_C[p.modeClient] ? p.modeClient : "commercant")}
+        <label class="f" id="w-delai">Un point maximum toutes les (heures)<input id="p-delai" type="number" min="1" max="72" inputmode="numeric" value="${esc(p.delaiH || 3)}"></label>
         <label class="check"><input type="checkbox" id="p-emp" ${p.employes ? "checked" : ""}> Points des employés (classement du mois)</label>
         <details id="plus"><summary class="muted" style="cursor:pointer;padding:6px 0">Plus d’options</summary><div class="stack" style="margin-top:10px">
           <div><div class="eyebrow" style="margin-bottom:6px">Comment le client gagne ses points</div>${seg("type", TYPES, p.type)}</div>
@@ -224,8 +228,8 @@
         <p class="err" id="perr"></p>
         <div class="row"><button class="btn primary" style="flex:1">Enregistrer</button><button type="button" class="btn ghost" data-fermer>Annuler</button></div>
       </form>`);
-    const val = { type: p.type, modeEmploye: p.modeEmploye }; let logoData = p.logoData || "", metier = p.metier;
-    const maj = () => { $("#w-dh", d).hidden = val.type !== "montant"; $("#w-emp", d).hidden = !$("#p-emp", d).checked; };
+    const val = { type: p.type, modeEmploye: p.modeEmploye, modeClient: MODES_C[p.modeClient] ? p.modeClient : "commercant" }; let logoData = p.logoData || "", metier = p.metier;
+    const maj = () => { $("#w-dh", d).hidden = val.type !== "montant"; $("#w-emp", d).hidden = !$("#p-emp", d).checked; $("#w-delai", d).hidden = val.modeClient !== "caisse"; };
     const dessinerIdees = () => {
       const l = [...((METIERS[metier] || {}).idees || []), ...IDEES_TOUS];
       $("#p-idees", d).innerHTML = l.map((x, i) => `<button type="button" data-idee="${i}">${esc(x[3] === "montant" ? `${x[4] || 10} DH = 1 pt · ${x[0]} pts` : `${x[0]} ${x[1]}`)} → ${esc(x[2])}</button>`).join("");
@@ -266,7 +270,7 @@
       const data = {
         metier: metier || "autre", nom: $("#p-nom", d).value.trim(), ownerEmail: $("#p-mail", d).value.trim().toLowerCase(), couleur: $("#p-coul", d).value,
         logoData, logo: "", type: val.type, objectif: num("#p-obj", 1, 1000, 10), unite: $("#p-unite", d).value.trim() || "visites", dhParPoint: num("#p-dh", 1, 1000, 10),
-        recompense: $("#p-rec", d).value.trim(), modeClient: "commercant", employes: $("#p-emp", d).checked, modeEmploye: val.modeEmploye,
+        recompense: $("#p-rec", d).value.trim(), modeClient: val.modeClient, delaiH: num("#p-delai", 1, 72, 3), employes: $("#p-emp", d).checked, modeEmploye: val.modeEmploye,
         primeEmploye: $("#p-prime", d).value.trim(), actif: $("#p-actif", d).checked, maj: NOW(),
         prix: parseInt($("#p-prix", d).value, 10) || 0, periode: $("#p-per", d).value, guide: $("#p-guide", d).value.trim().slice(0, 400)
       };
@@ -276,7 +280,9 @@
         const id = pid || slugify(data.nom) + "-" + rid(4);
         if (!pid) data.createdAt = NOW();
         await db.doc("fidProgrammes/" + id).set(data, { merge: true });
-        db.doc("fidSecrets/" + id).delete().catch(() => {});   // l'ancien QR « caisse » ne donne plus de points
+        // téléphone caisse : un secret qui sert à fabriquer le QR qui change toutes les 30 s (le client ne le voit jamais)
+        if (data.modeClient === "caisse") { const s = await db.doc("fidSecrets/" + id).get().catch(() => null); if (!(s && s.exists && s.data().caisse)) await db.doc("fidSecrets/" + id).set({ caisse: rid(16) + rid(16) }); }
+        else db.doc("fidSecrets/" + id).delete().catch(() => {});
         const local = { id, ...data, maj: Date.now() };
         const i = progs.findIndex(x => x.id === id); if (i >= 0) progs[i] = { ...progs[i], ...local }; else progs.push(local);
         d.remove(); toast("Programme enregistré ✓");
@@ -379,6 +385,7 @@
         ${admin ? `<button class="btn sm" data-reglages="${esc(P.id)}">Réglages</button>` : ""}</div>
       ${P.actif === false ? `<div class="notice" style="margin-top:10px">Programme désactivé : les clients ne peuvent pas créer de carte.</div>` : ""}
       <div class="big2"><button class="btn primary" data-act="scan">📷 Scanner</button><button class="btn" data-act="affiches">🖨 Affiches & QR</button></div>
+      ${P.modeClient === "caisse" ? `<a class="btn block" href="caisse.html#p=${esc(P.id)}" style="margin-top:8px">📱 Écran caisse : le client scanne le QR qui change</a>` : ""}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-4px 0 14px"><button class="btn sm" data-act="lienqr">🔗 Lien & QR code de la carte</button><button class="btn sm" data-act="rapport">📊 Rapport du mois</button></div>
       <div class="stats"><div><b>${cartes.length}</b><span>Clients</span></div><div><b>${prets}</b><span>Récompenses prêtes</span></div><div><b>${offerts}</b><span>Offertes</span></div></div>
       ${P.employes ? `<div class="tabs2"><button data-vue="clients" aria-pressed="${vue === "clients"}">Clients</button><button data-vue="employes" aria-pressed="${vue === "employes"}">Employés</button></div>` : ""}

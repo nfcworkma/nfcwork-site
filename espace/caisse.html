@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Écran caisse · Fidélité</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#05080f">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/img/icons/favicon-32.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Écran caisse : un vieux téléphone posé au comptoir, branché au chargeur.
+   Le QR change toutes les 30 s : le client le scanne avec son téléphone et gagne 1 point, sans l'aide des employés. */
+:root{--bg:#05080f;--fg:#eef3fb;--muted:#93a3be;--line:#1d2b45;--accent:#1e90ff;--ok:#25d366}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:"Readex Pro",system-ui,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;padding:16px;text-align:center;overflow:hidden}
+.logo{width:76px;height:76px;border-radius:20px;object-fit:cover;background:#fff;margin-bottom:8px}
+h1{margin:0;font-size:24px}.rule{color:var(--muted);margin:4px 0 14px;font-size:15px}
+.qrw{position:relative;background:#fff;border-radius:22px;padding:14px;width:min(78vw,52vh);aspect-ratio:1}
+.qrw svg{width:100%;height:100%;display:block}
+.ring{position:absolute;inset:-7px;border-radius:28px;padding:5px;background:conic-gradient(var(--accent) calc(var(--p,1)*360deg),transparent 0);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.big{font-size:21px;font-weight:700;margin:16px 0 2px}.small{color:var(--muted);font-size:14px}
+.flash{position:fixed;inset:auto 12px 14px;border-radius:16px;padding:14px;background:var(--ok);color:#05301a;font-weight:700;font-size:18px;transform:translateY(calc(100% + 40px));transition:transform .35s}
+.flash.on{transform:none}
+.rec{position:fixed;top:10px;left:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.rec button{border:0;border-radius:12px;padding:9px 12px;background:#f5b301;color:#2a1d00;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.btn{border:1px solid var(--line);background:#0b1220;color:var(--fg);border-radius:12px;padding:12px 16px;font:inherit;font-weight:600;cursor:pointer}
+.fs{position:fixed;bottom:12px;right:12px;opacity:.35}
+form{display:grid;gap:10px;width:min(340px,92vw);text-align:start}input{padding:12px;border-radius:12px;border:1px solid var(--line);background:#0b1220;color:var(--fg);font:inherit;font-size:16px}
+.err{color:#ff6b6b;min-height:1em;margin:0}
+</style>
+</head>
+<body>
+<div id="app"><p class="small">Chargement…</p></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="../assets/js/qrgen.js"></script>
+<script>
+(function () {
+  "use strict";
+  firebase.initializeApp(window.FIREBASE_CONFIG);
+  const auth = firebase.auth(), db = firebase.firestore();
+  const app = document.getElementById("app"), SITE = location.origin;
+  const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const pid = (location.hash.match(/p=([A-Za-z0-9_-]+)/) || [])[1] || "";
+  let prog = null, secret = "", offset = 0, fen = -1, unsub = null;
+  const hex = async t => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, "0")).join("");
+
+  function login() {
+    app.innerHTML = `<h1>Écran caisse</h1><p class="rule">Connectez-vous avec le compte du commerce (une seule fois).</p>
+      <form id="lf"><input id="le" type="email" placeholder="E-mail" autocomplete="email" required><input id="lp" type="password" placeholder="Mot de passe" autocomplete="current-password" required><p class="err" id="lerr"></p><button class="btn" style="background:var(--accent);border-color:var(--accent)">Se connecter</button></form>`;
+    document.getElementById("lf").onsubmit = async e => {
+      e.preventDefault();
+      try { await auth.signInWithEmailAndPassword(document.getElementById("le").value.trim(), document.getElementById("lp").value); }
+      catch (x) { document.getElementById("lerr").textContent = "E-mail ou mot de passe incorrect."; }
+    };
+  }
+  const stop = (t, s) => { app.innerHTML = `<h1>${esc(t)}</h1><p class="rule">${esc(s || "")}</p><a class="btn" href="fidelite.html">Retour à la fidélité</a>`; };
+
+  // heure du serveur (le QR doit suivre l'heure de Firebase, même si l'heure du téléphone est fausse)
+  async function heure() { try { const r = await fetch(location.pathname + "?t=" + Date.now(), { method: "HEAD", cache: "no-store" }); const d = Date.parse(r.headers.get("date")); if (d) offset = d - Date.now(); } catch (e) {} }
+
+  async function demarrer() {
+    if (!pid) { stop("Programme manquant", "Ouvrez l’écran caisse depuis la page Fidélité."); return; }
+    try { const d = await db.doc("fidProgrammes/" + pid).get(); prog = d.exists ? { id: d.id, ...d.data() } : null; } catch (e) {}
+    if (!prog) { stop("Programme introuvable"); return; }
+    if (prog.modeClient !== "caisse") { stop("Mode caisse désactivé", "Dans Fidélité → Réglages, choisissez « Téléphone caisse »."); return; }
+    try { const s = await db.doc("fidSecrets/" + pid).get(); secret = s.exists ? s.data().caisse || "" : ""; } catch (e) {}
+    if (!secret) { stop("Accès refusé", "Connectez-vous avec le compte du commerce, puis réessayez."); return; }
+    await heure(); setInterval(heure, 10 * 60 * 1000);
+    const logo = /^data:image\//.test(prog.logoData || "") ? prog.logoData : "";
+    const regle = prog.type === "montant" ? `${prog.objectif} points = ${prog.recompense}` : `${prog.objectif} ${prog.unite || "visites"} = ${prog.recompense}`;
+    app.innerHTML = `<div class="rec" id="rec"></div>${logo ? `<img class="logo" src="${logo}" alt="">` : ""}<h1>${esc(prog.nom)}</h1><p class="rule">🎁 ${esc(regle)}</p>
+      <div class="qrw"><div class="ring" id="ring"></div><div id="qr"></div></div>
+      <div class="big">📷 Scannez pour gagner 1 point</div><div class="small">Appareil photo du téléphone · sans application</div>
+      <div class="flash" id="flash"></div><button class="btn fs" id="fs">⛶</button>`;
+    document.documentElement.style.setProperty("--accent", /^#[0-9a-f]{6}$/i.test(prog.couleur || "") ? prog.couleur : "#1e90ff");
+    document.getElementById("fs").onclick = () => { const d = document.documentElement; (d.requestFullscreen || d.webkitRequestFullscreen || function () {}).call(d); eveil(); };
+    tic(); setInterval(tic, 1000); eveil(); suivre();
+  }
+  async function tic() {
+    const now = Date.now() + offset, w = Math.floor(now / 30000);
+    document.getElementById("ring").style.setProperty("--p", (1 - (now % 30000) / 30000).toFixed(3));
+    if (w === fen) return; fen = w;
+    const j = await hex(secret + ":" + w);
+    document.getElementById("qr").innerHTML = window.QRGEN.svg(`${SITE}/f/?k=${pid}&w=${w}&j=${j}`, { marge: 0, couleur: "#05080f" });
+  }
+  async function eveil() { try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {} }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { eveil(); fen = -1; tic(); } });
+
+  // nouveaux points (affichés en vert) et récompenses prêtes (bouton « Donner »)
+  const vus = {};
+  function suivre() {
+    if (unsub) unsub();
+    unsub = db.collection("fidCartes").where("ownerEmail", "==", prog.ownerEmail).onSnapshot(s => {
+      const L = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.pid === pid), obj = Math.max(1, prog.objectif || 10);
+      L.forEach(c => { const t = c.lastAt && c.lastAt.toMillis ? c.lastAt.toMillis() : 0; if (vus[c.id] !== undefined && t > vus[c.id] && Date.now() + offset - t < 90000) flash(`✓ ${c.nom || "Client"} : +1 point (${c.points}/${obj})`); vus[c.id] = t; });
+      const prets = L.filter(c => (c.points || 0) >= obj);
+      document.getElementById("rec").innerHTML = prets.map(c => `<button data-don="${esc(c.id)}">🎁 ${esc(c.nom || "Client")} : donner</button>`).join("");
+      document.querySelectorAll("[data-don]").forEach(b => b.onclick = async () => {
+        const c = prets.find(x => x.id === b.dataset.don); if (!c || !confirm(`Donner « ${prog.recompense} » à ${c.nom} ?`)) return;
+        try { await db.doc("fidCartes/" + c.id).update({ points: (c.points || 0) - obj, recompenses: (c.recompenses || 0) + 1 }); flash(`🎁 Récompense donnée à ${c.nom}`); } catch (e) { alert("Échec. Vérifiez la connexion."); }
+      });
+    }, () => {});
+  }
+  let ft = 0;
+  function flash(t) { const f = document.getElementById("flash"); if (!f) return; f.textContent = t; f.classList.add("on"); clearTimeout(ft); ft = setTimeout(() => f.classList.remove("on"), 5000); }
+
+  auth.onAuthStateChanged(u => { if (!u) login(); else demarrer(); });
+})();
+</script>
+</body>
+</html>
