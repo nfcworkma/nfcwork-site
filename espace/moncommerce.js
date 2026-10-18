@@ -30,6 +30,8 @@
   /* ================= ADMIN : réglage de l'accès ================= */
   async function admin(c, box) {
     const ap = A(), [menus, pages] = await Promise.all([liste("menus"), liste("pages")]);
+    let progs = []; try { progs = (await ap.fs.collection("fidProgrammes").get()).docs.map(x => ({ id: x.id, ...x.data() })); } catch (e) {}
+    const em = String(c.email || "").trim().toLowerCase();
     const ac = c.acces || null, nc = norm(c.name);
     const proche = s => { const x = norm(s); return x && nc && (x.includes(nc) || nc.includes(x)); };
     const selM = new Set(ac ? ac.menus || [] : menus.filter(m => proche(m.nom)).map(m => m.slug));
@@ -43,12 +45,14 @@
         <div class="mcchk">${menus.length ? menus.map(m => `<label><input type="checkbox" data-mcm="${esc(m.slug)}"${selM.has(m.slug) ? " checked" : ""}> ${esc(m.nom)} <small>/${esc(m.slug)}</small></label>`).join("") : `<span class="muted">Aucun menu.</span>`}</div>
         <b style="font-size:14px">📄 Ses cartes et pages</b>
         <div class="mcchk">${pages.length ? pages.map(p => `<label><input type="checkbox" data-mcp="${esc(p.slug)}"${selP.has(p.slug) ? " checked" : ""}> ${ICP[p.type] || "📄"} ${esc(p.nom)} <small>/${esc(p.slug)}</small></label>`).join("") : `<span class="muted">Aucune page.</span>`}</div>
+        <b style="font-size:14px">🎁 Ses cartes fidélité <small class="muted" style="font-weight:400">(il scanne, voit ses clients et le rapport)</small></b>
+        <div class="mcchk">${progs.length ? progs.map(p => `<label><input type="checkbox" data-mcf="${esc(p.id)}"${(em && String(p.ownerEmail || "").toLowerCase() === em) || (!ac && proche(p.nom)) ? " checked" : ""}> ${esc(p.nom)} <small>${p.ownerEmail && String(p.ownerEmail).toLowerCase() !== em ? "· " + esc(p.ownerEmail) : ""}</small></label>`).join("") : `<span class="muted">Aucune carte fidélité.</span>`}</div>
         <b style="font-size:14px">✅ Ce qu’il peut faire</b>
         <div class="mcchk"><label><input type="checkbox" id="mc-ep"${dr.epuise ? " checked" : ""}> <span>🚫 Cocher lui-même les plats <b>épuisés</b></span></label>
           <label><input type="checkbox" id="mc-vi"${dr.visites ? " checked" : ""}> <span>📊 Voir ses <b>visites</b></span></label>
           <label><input type="checkbox" id="mc-ed"${dr.edit ? " checked" : ""}> <span>✏️ Modifier lui-même ses <b>prix, photos et produits</b></span></label>
           <label class="muted" style="font-size:13px">🧾 Factures, 🛒 commandes et ✏️ demandes de modification : toujours visibles.</label></div>
-        <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" id="mc-save"${c.email ? "" : " disabled"}>💾 Enregistrer l’accès</button>${ac ? `<button class="btn ghost" id="mc-off">⛔ Couper l’accès</button>` : ""}</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" id="mc-save"${c.email ? "" : " disabled"}>💾 Enregistrer l’accès</button>${c.email ? `<button class="btn" id="mc-send">📲 Envoyer l’accès au client</button>` : ""}${ac ? `<button class="btn ghost" id="mc-off">⛔ Couper l’accès</button>` : ""}</div>
       </div>`;
     box.appendChild(el);
     const sauver = async acces => {
@@ -60,6 +64,11 @@
       const acces = { menus: [...el.querySelectorAll("[data-mcm]:checked")].map(x => x.dataset.mcm), pages: [...el.querySelectorAll("[data-mcp]:checked")].map(x => x.dataset.mcp), epuise: el.querySelector("#mc-ep").checked, visites: el.querySelector("#mc-vi").checked, edit: el.querySelector("#mc-ed").checked, maj: new Date().toISOString() };
       if (!(await sauver(acces))) return;
       c.acces = acces;
+      // cartes fidélité cochées → elles appartiennent à son e-mail (ses cartes clients et employés suivent)
+      for (const p of progs) {
+        const coche = !!el.querySelector(`[data-mcf="${p.id}"]:checked`), a = String(p.ownerEmail || "").toLowerCase();
+        if (coche && a !== em) { await changerProprio(ap.fs, p.id, em); p.ownerEmail = em; }
+      }
       if (acces.epuise || acces.edit) {
         let refus = false;
         for (const s of acces.menus) {
@@ -70,8 +79,20 @@
       }
       ap.toast("✅ Accès enregistré");
     };
+    const send = el.querySelector("#mc-send");
+    if (send) send.onclick = () => {
+      const w = (() => { let d = String(c.phone || "").replace(/\D/g, ""); if (d.startsWith("00")) d = d.slice(2); if (d.startsWith("0")) d = "212" + d.slice(1); return d.length >= 9 ? d : ""; })();
+      const txt = `Bonjour ${c.name || ""} 👋\n\nVotre espace NFCWORK est prêt. Vous y gérez vos services vous-même : carte fidélité (scanner, clients, rapport), menu, factures.\n\n1️⃣ Ouvrez : https://nfcwork.ma/espace\n2️⃣ Touchez « Créer un compte »\n3️⃣ E-mail : ${c.email}\n4️⃣ Choisissez un mot de passe\n5️⃣ Ouvrez l’e-mail de confirmation reçu, puis revenez sur nfcwork.ma/espace\n\n💡 Ajoutez la page sur l’écran d’accueil de votre téléphone pour l’ouvrir comme une application.\n\nNFCWORK · nfcwork.ma`;
+      window.open((w ? "https://wa.me/" + w : "https://wa.me/") + "?text=" + encodeURIComponent(txt), "_blank");
+    };
     const off = el.querySelector("#mc-off");
     if (off) off.onclick = async () => { if (!confirm("Couper son accès à « Mon commerce » ?")) return; if (await sauver(null)) { c.acces = null; ap.toast("Accès coupé"); el.remove(); admin(c, box); } };
+  }
+  async function changerProprio(fs, pid, email) {
+    await fs.doc("fidProgrammes/" + pid).set({ ownerEmail: email }, { merge: true });
+    for (const col of ["fidCartes", "fidEmployes"]) {
+      try { const s = await fs.collection(col).where("pid", "==", pid).get(); for (const d of s.docs) await d.ref.update({ ownerEmail: email }); } catch (e) { console.warn(col, e); }
+    }
   }
   function regle() {
     const ap = A();
@@ -88,15 +109,18 @@
     const [a, b] = await Promise.all([lire(mois(0)), lire(mois(1))]);
     return (cache.vis[k] = { a, b });
   }
-  async function client(c) {
+  async function client(c, fid) {
     const box = document.getElementById("mcBox"); if (!box) return;
-    const ac = c && c.acces; if (!ac || (!(ac.menus || []).length && !(ac.pages || []).length)) { box.innerHTML = ""; return; }
+    const F = fid || [], ac = (c && c.acces) || { menus: [], pages: [] };
+    if (!(ac.menus || []).length && !(ac.pages || []).length && !F.length) { box.innerHTML = ""; return; }
     if (!cache.noms.ok) { const [m, p] = await Promise.all([liste("menus"), liste("pages")]); m.forEach(x => cache.noms["menu-" + x.slug] = x.nom); p.forEach(x => { cache.noms["page-" + x.slug] = x.nom; cache.noms["t-" + x.slug] = x.type; }); cache.noms.ok = 1; }
     const L = [...(ac.menus || []).map(s => ["menu", s]), ...(ac.pages || []).map(s => ["page", s])];
     const ligne = ([t, s], v) => `<div class="grow" style="flex-wrap:wrap"><span style="font-size:22px">${t === "menu" ? "🍽" : ICP[cache.noms["t-" + s]] || "📄"}</span>
         <div style="flex:1;min-width:0"><b>${esc(cache.noms[t + "-" + s] || s)}</b><div class="muted" style="font-size:12.5px;direction:ltr;text-align:start">nfcwork.ma/${t === "menu" ? "menu" : "p"}/${esc(s)}</div>${v && v.a != null ? `<div style="font-size:13px;margin-top:2px">📊 <b>${v.a}</b> visites ce mois · ${v.b} le mois dernier</div>` : ""}</div>
         <div class="row" style="gap:6px;width:100%;justify-content:flex-end;flex-wrap:wrap"><a class="btn sm" href="/${t === "menu" ? "menu" : "p"}/${esc(s)}" target="_blank" rel="noopener">👁 Voir</a>${t === "menu" && ac.edit ? `<a class="btn sm primary" href="menus.html#m=${esc(s)}">✏️ Modifier</a>` : ""}${t === "menu" && ac.epuise ? `<button class="btn sm${ac.edit ? "" : " primary"}" data-mcdispo="${esc(s)}">🚫 ${ac.edit ? "Indispo" : "Épuisés"}</button>` : ""}</div></div>`;
-    const dessiner = V => { const b = document.getElementById("mcBox"); if (b) b.innerHTML = `<div class="section-head" style="margin-top:4px"><h3>🏪 Mon commerce</h3></div><div class="stack" style="gap:8px;margin-bottom:16px">${L.map((x, i) => ligne(x, V[i])).join("")}</div>`; };
+    const fidL = F.map(p => `<div class="grow" style="flex-wrap:wrap"><span style="font-size:22px">🎁</span><div style="flex:1;min-width:0"><b>${esc(p.nom)}</b><div class="muted" style="font-size:12.5px">Carte fidélité · ${esc(p.objectif || "")} ${esc(p.unite || "")} = ${esc(p.recompense || "")}</div></div>
+        <div class="row" style="gap:6px;width:100%;justify-content:flex-end;flex-wrap:wrap"><a class="btn sm primary" href="fidelite.html#p=${esc(p.id)}">📷 Scanner · clients · rapport</a>${p.modeClient === "caisse" ? `<a class="btn sm" href="caisse.html#p=${esc(p.id)}">📱 Écran caisse</a>` : ""}</div></div>`).join("");
+    const dessiner = V => { const b = document.getElementById("mcBox"); if (b) b.innerHTML = `<div class="section-head" style="margin-top:4px"><h3>🏪 Mon commerce</h3></div><div class="stack" style="gap:8px;margin-bottom:16px">${fidL}${L.map((x, i) => ligne(x, V[i])).join("")}</div>`; };
     dessiner([]);
     if (ac.visites) dessiner(await Promise.all(L.map(([t, s]) => visites(t, s))));
   }

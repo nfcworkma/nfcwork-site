@@ -280,6 +280,9 @@
         const id = pid || slugify(data.nom) + "-" + rid(4);
         if (!pid) data.createdAt = NOW();
         await db.doc("fidProgrammes/" + id).set(data, { merge: true });
+        if (ex && String(ex.ownerEmail || "").toLowerCase() !== data.ownerEmail) {   // nouvel e-mail : ses cartes clients et employés suivent
+          for (const col of ["fidCartes", "fidEmployes"]) { try { const s = await db.collection(col).where("pid", "==", id).get(); for (const x of s.docs) await x.ref.update({ ownerEmail: data.ownerEmail }); } catch (e) { console.warn(col, e); } }
+        }
         // téléphone caisse : un secret qui sert à fabriquer le QR qui change toutes les 30 s (le client ne le voit jamais)
         if (data.modeClient === "caisse") { const s = await db.doc("fidSecrets/" + id).get().catch(() => null); if (!(s && s.exists && s.data().caisse)) await db.doc("fidSecrets/" + id).set({ caisse: rid(16) + rid(16) }); }
         else db.doc("fidSecrets/" + id).delete().catch(() => {});

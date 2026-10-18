@@ -530,7 +530,7 @@ function renderPHome(){
   ${P.creations.length?`<div class="section-head" style="margin-top:4px"><h3>Mes produits NFC</h3><button class="btn sm ghost" data-ptab="nfc">Tout voir</button></div>
   <div class="nfc-mini">${P.creations.slice(0,3).map(c=>`<a class="nmini" href="${esc(c.lien)}" target="_blank" rel="noopener"><span>${(NFC_TYPES[c.type]||[ico("help-circle")])[0]}</span><b>${esc(c.titre||c.slug)}</b><small>${(NFC_TYPES[c.type]||["",""])[1]}</small></a>`).join("")}</div>
   <button class="btn block" data-modreq="" style="margin:10px 0 16px"><i class="ico ico-pencil" aria-hidden="true"></i> Demander une modification</button>`:""}
-  ${P.fid&&P.fid.length?`<a class="btn primary block" href="fidelite.html" style="margin:0 0 16px">${ico("star")} Ma carte fidélité · scanner & gérer</a>`:""}
+  ${P.fid&&P.fid.length&&!window.NFCW_MC?`<a class="btn primary block" href="fidelite.html" style="margin:0 0 16px">${ico("star")} Ma carte fidélité · scanner & gérer</a>`:""}
   ${P.ready&&!P.client?`<div class="notice" style="margin-bottom:14px">Votre e-mail <b>${esc(user.email)}</b> n’est pas encore relié à une fiche client. Vous pouvez déjà commander ; ${esc(S.settings.name||"nfcwork.ma")} créera votre fiche.</div>`:""}
   ${missing?`<div class="notice row between" style="margin-bottom:14px"><span>Complétez votre profil (téléphone, adresse de livraison) pour être livré plus vite.</span><button class="btn sm primary" data-profile>Mon profil</button></div>`:""}
   <div class="section-head" style="margin-top:4px"><h3>Commande en cours</h3>${P.orders.length?`<button class="btn sm ghost" data-ptab="ord">Tout voir</button>`:""}</div>
@@ -668,7 +668,7 @@ function renderPortal(){
   if(bd){bd.textContent=n;bd.hidden=!n}
   const v={home:renderPHome,cat:renderCatalog,ord:renderMyOrders,nfc:renderMyNfc,inv:renderMyInvoices,help:renderHelp}[ptab]||renderPHome;
   app.innerHTML=v()+cartBar();
-  if(window.NFCW_MC&&(ptab==="home"||!ptab))window.NFCW_MC.client(P.client);
+  if(window.NFCW_MC&&(ptab==="home"||!ptab))window.NFCW_MC.client(P.client,P.fid);
 }
 
 /* ---------- Produits NFC (créations de l’outil) & demandes de modification ---------- */
