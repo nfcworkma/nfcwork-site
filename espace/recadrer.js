@@ -72,7 +72,7 @@
     const auto = () => { const [x, y, w, h] = A.box; cx = x + w / 2; cy = y + h / 2; vue = A.rond ? Math.max(w, h) : Math.hypot(w, h) / 0.9; };
     const remplir = () => { cx = W / 2; cy = H / 2; vue = Math.min(W, H); };
     auto();
-    const d = modal(`<h2 style="margin:0">⭕ Logo du menu</h2><p class="muted" style="margin:4px 0 0;font-size:14px">Glissez le logo avec le doigt et zoomez : ce qui est dans le rond sera affiché sur le menu.</p>
+    const d = modal(`<h2 style="margin:0">⭕ Logo</h2><p class="muted" style="margin:4px 0 0;font-size:14px">Glissez le logo avec le doigt et zoomez : ce qui est dans le rond sera affiché.</p>
       <div class="rc-stage" style="width:${S}px;height:${S}px"><canvas width="${S * 2}" height="${S * 2}"></canvas><div class="rc-ring"></div></div>
       <div class="rc-row">➖<input type="range" id="rc-z" min="0" max="1000" value="500">➕</div>
       <div class="rc-row"><button class="btn sm primary" id="rc-auto">✨ Ajuster tout seul</button><button class="btn sm" id="rc-fill">⬛ Remplir le rond</button>

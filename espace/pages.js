@@ -307,12 +307,19 @@
   });
   app.addEventListener("change", async e => {
     const t = e.target; if (!t.dataset.up || !t.files.length || !P) return;
+    const fichiers = [...t.files]; t.value = "";
+    // ⭕ logo : on le cadre dans le rond (même outil que les menus)
+    let f0 = fichiers[0];
+    if (t.dataset.up === "photo" && window.NFCW_RECADRER) {
+      try { const r = await window.NFCW_RECADRER(f0, "logo"); if (!r) return; f0 = r.blob; }
+      catch (x) { console.error(x); toast("Photo illisible : faites une capture d’écran du logo, puis réessayez.", true); return; }
+    }
     const box = t.closest("section"); box.classList.add("busy");
     try {
-      if (t.dataset.up === "photo") P.photo = await envoyerPhoto(t.files[0], 700, 300000);
-      else for (const f of [...t.files].slice(0, 6 - (P.galerie || []).length)) { P.galerie = P.galerie || []; P.galerie.push(await envoyerPhoto(f, 1000, 380000)); }
+      if (t.dataset.up === "photo") P.photo = await envoyerPhoto(f0, 700, 300000);
+      else for (const f of fichiers.slice(0, 6 - (P.galerie || []).length)) { P.galerie = P.galerie || []; P.galerie.push(await envoyerPhoto(f, 1000, 380000)); }
       renderEdit(); toast("📷 Photo ajoutée — pensez à Enregistrer");
-    } catch (x) { toast(/illisible|lourde/.test(x.message) ? "Photo illisible : choisissez un JPG ou PNG." : "Échec de l’envoi de la photo.", true); box.classList.remove("busy"); }
+    } catch (x) { console.error(x); toast(/illisible|lourde/.test(x && x.message) ? "Photo illisible : faites une capture d’écran du logo, puis réessayez." : "Échec de l’envoi de la photo (" + ((x && (x.code || x.message)) || "erreur") + ").", true); box.classList.remove("busy"); }
   });
   document.addEventListener("click", async e => {
     if (e.target.closest(".modal")) return;
