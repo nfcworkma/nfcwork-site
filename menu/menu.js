@@ -280,7 +280,7 @@
     if (prem) {
       const vedettes = cats.flatMap(c => c.items || []).filter(i => i.vedette && i.photo && i.dispo !== false);
       app.innerHTML = `${barreDemo()}
-        <header class="phero">${M.couverture ? `<img data-img="${esc(M.couverture)}" data-w="900" alt=""${posCouv()}>` : ""}
+        <header class="phero">${M.couverture ? `<img class="bgf" data-img="${esc(M.couverture)}" data-w="900" alt="" aria-hidden="true"${posCouv()}><img class="fg" data-img="${esc(M.couverture)}" data-w="900" alt=""${posCouv()}>` : ""}
           <div class="in">${logoTag()}<h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}<div class="orn">${U.carte}</div></div></header>
         <div class="wrap pinfo">${puces()}${tableQR ? `<div style="text-align:center"><span class="tablechip">${M.type === "hotel" ? "🛏 Chambre " : "🪑 Table "}${esc(tableQR)}</span></div>` : ""}</div>
         ${bandeau}

@@ -37,9 +37,11 @@
     .rc-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;margin:8px 0}
     .rc-row input[type=range]{flex:1;min-width:160px;accent-color:var(--accent,#2f7bff)}
     .rc-prev{display:flex;gap:12px;justify-content:center;align-items:flex-end;flex-wrap:wrap;margin:6px 0 4px}
-    .rc-tel{position:relative;width:150px;height:230px;border-radius:18px;overflow:hidden;border:3px solid #222;background:#111;touch-action:none;cursor:grab}
-    .rc-pc{position:relative;width:300px;height:140px;border-radius:8px;overflow:hidden;border:3px solid #222;background:#111;touch-action:none;cursor:grab}
+    .rc-tel{position:relative;width:160px;height:200px;border-radius:18px;overflow:hidden;border:3px solid #222;background:#111;touch-action:none;cursor:grab}
+    .rc-pc{position:relative;width:320px;height:150px;border-radius:8px;overflow:hidden;border:3px solid #222;background:#111;touch-action:none;cursor:grab}
     .rc-tel img,.rc-pc img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+    .rc-pc img.fg{left:50%;width:120px;transform:translateX(-50%);-webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent)}
+    .rc-pc img.bgf{filter:blur(10px) brightness(.55);transform:scale(1.2)}
     .rc-tel::after,.rc-pc::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgb(0 0 0/.1),rgb(0 0 0/.05) 40%,rgb(0 0 0/.7));pointer-events:none}
     .rc-ov{position:absolute;left:0;right:0;bottom:12px;z-index:1;text-align:center;color:#fff;pointer-events:none}
     .rc-ov i{display:block;width:30px;height:30px;border-radius:50%;margin:0 auto 4px;border:2px solid #fff;background-size:cover;background-position:center}
@@ -122,16 +124,16 @@
     const estLogo = A.rond || aire < 0.8;               // logo sur fond uni → bannière avec le logo entier
     let mode = estLogo ? "logo" : "photo";
     let fx = 0.5, fy = 0.5, zoom = 1;                   // mode photo
-    let taille = 0.5, ly = 0.36, fond = A.rond ? couleurBadge(img, A.box) : A.bg;   // mode logo
+    let taille = 0.42, ly = 0.36, fond = A.rond ? couleurBadge(img, A.box) : A.bg;   // mode logo
     const prev = document.createElement("canvas"), pg = prev.getContext("2d");
     const crop = () => { const w = W / zoom, h = H / zoom; const x0 = clamp(fx * W - w / 2, 0, W - w), y0 = clamp(fy * H - h / 2, 0, H - h); return { x0, y0, w, h, px: clamp((fx * W - x0) / w, 0, 1), py: clamp((fy * H - y0) / h, 0, 1) }; };
     function banniere(cv, BW) {
-      const BH = Math.round(BW * 9 / 16); cv.width = BW; cv.height = BH; const g = cv.getContext("2d");
+      const BH = Math.round(BW * 5 / 4); cv.width = BW; cv.height = BH; const g = cv.getContext("2d");
       g.fillStyle = fond; g.fillRect(0, 0, BW, BH);
       const rg = g.createRadialGradient(BW / 2, BH * ly, BH * 0.1, BW / 2, BH * ly, BW * 0.7);
       rg.addColorStop(0, "rgba(255,255,255,0.10)"); rg.addColorStop(1, "rgba(0,0,0,0.28)"); g.fillStyle = rg; g.fillRect(0, 0, BW, BH);
       const [bx, by, bw, bh] = A.box; let h = BH * taille, w = h * bw / bh;
-      const wmax = BH * 0.62; if (w > wmax) { w = wmax; h = w * bh / bw; }       // reste visible sur téléphone
+      const wmax = BW * 0.84; if (w > wmax) { w = wmax; h = w * bh / bw; }       // reste visible sur téléphone
       const x = BW / 2 - w / 2, y = BH * ly - h / 2;
       g.save(); if (A.rond) { g.beginPath(); g.ellipse(BW / 2, BH * ly, w / 2 - 1, h / 2 - 1, 0, 0, Math.PI * 2); g.clip(); }
       g.imageSmoothingQuality = "high"; g.drawImage(img, bx, by, bw, bh, x, y, w, h); g.restore();
@@ -140,7 +142,7 @@
     const d = modal(`<h2 style="margin:0">🖼 Photo de couverture</h2><p class="muted" style="margin:4px 0 0;font-size:14px" id="rc-aide"></p>
       <div class="rc-row" id="rc-modes"><button class="btn sm" data-mode="logo">✨ Bannière avec le logo</button><button class="btn sm" data-mode="photo">📷 Photo normale</button></div>
       <div class="rc-prev"><div><div class="rc-tel" data-f="tel"><img alt="">${ov}</div><div class="rc-lab">📱 Téléphone</div></div>
-        <div><div class="rc-pc" data-f="pc"><img alt="">${ov}</div><div class="rc-lab">💻 Ordinateur</div></div></div>
+        <div><div class="rc-pc" data-f="pc"><img class="bgf" alt=""><img class="fg" alt="">${ov}</div><div class="rc-lab">💻 Ordinateur</div></div></div>
       <div class="rc-row">➖<input type="range" id="rc-z" min="100" max="300" value="100">➕</div>
       <div class="rc-row"><button class="btn sm" id="rc-c">🎯 Centrer</button><label class="btn sm" id="rc-bgl">🎨 Couleur du fond <input type="color" id="rc-bg" value="${fond}" style="width:30px;height:22px;padding:0;border:0;background:none"></label></div>
       <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px"><button class="btn ghost" id="rc-no">Annuler</button><button class="btn primary" id="rc-ok">✅ Utiliser cette photo</button></div>`);
@@ -150,13 +152,13 @@
       d.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("primary", b.dataset.mode === mode));
       d.querySelector("#rc-bgl").style.display = mode === "logo" ? "" : "none";
       d.querySelector("#rc-aide").innerHTML = mode === "logo" ? "Votre logo entier sur une bannière de sa couleur : rien n’est coupé. Glissez pour le monter ou le descendre, ➖➕ pour sa taille." : "Glissez la photo dans un des écrans et zoomez : vous voyez tout de suite le menu sur <b>téléphone</b> et sur <b>ordinateur</b>.";
-      if (mode === "logo") { z.min = 30; z.max = 75; z.value = Math.round(taille * 100); } else { z.min = 100; z.max = 300; z.value = Math.round(zoom * 100); }
+      if (mode === "logo") { z.min = 25; z.max = 65; z.value = Math.round(taille * 100); } else { z.min = 100; z.max = 300; z.value = Math.round(zoom * 100); }
       maj();
     };
     const maj = () => {
       if (rq) return; rq = requestAnimationFrame(() => {
         rq = 0; let url, pos = "50% 50%";
-        if (mode === "logo") { banniere(prev, 800); url = prev.toDataURL("image/jpeg", 0.85); }
+        if (mode === "logo") { banniere(prev, 560); url = prev.toDataURL("image/jpeg", 0.85); }
         else {
           const c = crop(), k = Math.min(1, 700 / Math.max(c.w, c.h));
           prev.width = Math.round(c.w * k); prev.height = Math.round(c.h * k);
@@ -167,13 +169,13 @@
       });
     };
     d.querySelectorAll("[data-f]").forEach(fr => glisser(fr, (dx, dy) => {
-      const r = fr.getBoundingClientRect();
-      if (mode === "logo") { ly = clamp(ly + dy / (r.width * 9 / 16 > r.height ? r.width * 9 / 16 : r.height), 0.25, 0.6); maj(); return; }
+      const r = (fr.querySelector("img.fg") || fr).getBoundingClientRect();
+      if (mode === "logo") { ly = clamp(ly + dy / r.height, 0.2, 0.6); maj(); return; }
       const c = crop(), s = Math.max(r.width / c.w, r.height / c.h);
       fx = clamp(fx - dx / (s * W), 0, 1); fy = clamp(fy - dy / (s * H), 0, 1); maj();
     }));
     z.oninput = () => { if (mode === "logo") taille = +z.value / 100; else zoom = +z.value / 100; maj(); };
-    d.querySelector("#rc-c").onclick = () => { if (mode === "logo") { taille = 0.5; ly = 0.36; } else { fx = fy = 0.5; zoom = 1; } ui(); };
+    d.querySelector("#rc-c").onclick = () => { if (mode === "logo") { taille = 0.42; ly = 0.36; } else { fx = fy = 0.5; zoom = 1; } ui(); };
     d.querySelector("#rc-bg").oninput = e => { fond = e.target.value; maj(); };
     d.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { mode = b.dataset.mode; ui(); });
     ui();
@@ -182,7 +184,7 @@
       d.addEventListener("click", e => { if (e.target === d) { d.remove(); ok(null); } });
       d.querySelector("#rc-ok").onclick = async () => {
         const out = document.createElement("canvas"); let pos = "50% 50%";
-        if (mode === "logo") banniere(out, 1600);
+        if (mode === "logo") banniere(out, 1200);
         else {
           const c = crop(), k = Math.min(1, 1800 / Math.max(c.w, c.h));
           out.width = Math.round(c.w * k); out.height = Math.round(c.h * k);

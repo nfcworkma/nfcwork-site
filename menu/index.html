@@ -136,8 +136,13 @@ button{font:inherit;color:inherit;cursor:pointer}
 .wafab svg{width:28px;height:28px;color:#fff}
 
 /* ===== PREMIUM : couverture plein écran, incontournables, grandes photos ===== */
-.phero{position:relative;min-height:min(78vh,560px);display:flex;align-items:flex-end;color:#fff;background:var(--sunk);overflow:hidden}
+/* même cadre 4:5 sur téléphone ET ordinateur : la photo est coupée pareil partout */
+.phero{position:relative;aspect-ratio:4/5;max-height:640px;display:flex;align-items:flex-end;color:#fff;background:var(--sunk);overflow:hidden}
 .phero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.phero>img.bgf{display:none}
+@media (min-width:600px){.phero{aspect-ratio:auto;height:560px;max-height:none}
+  .phero>img.fg{left:50%;width:448px;transform:translateX(-50%);-webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent)}
+  .phero>img.bgf{display:block;filter:blur(34px) brightness(.45) saturate(1.1);transform:scale(1.2)}}
 .phero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgb(0 0 0/.15) 0%,rgb(0 0 0/.05) 35%,rgb(0 0 0/.72) 100%)}
 .phero .in{position:relative;z-index:1;width:100%;max-width:720px;margin:0 auto;padding:0 20px 34px;text-align:center}
 .phero .logo{border-color:rgb(255 255 255/.85);width:84px;height:84px;margin-bottom:14px}
