@@ -19,6 +19,7 @@
   firebase.initializeApp(window.FIREBASE_CONFIG);
   const auth = firebase.auth(), db = firebase.firestore();
   const ADMIN = String(window.ADMIN_EMAIL || "").trim().toLowerCase();
+  const norm = v => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "");
   const NOW = () => firebase.firestore.FieldValue.serverTimestamp();
 
   const SERVICES = { menu: "Menu digital", fid: "Carte fidélité", profil: "Carte NFC · Avis Google · Wi-Fi", autre: "Autre (suivi des paiements)" };
@@ -52,6 +53,8 @@
     if (!u) { renderLogin(); return; }
     if ((u.email || "").toLowerCase() !== ADMIN) { app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Cette page est réservée à l’administrateur NFCWORK.</p><a class="btn" href="./">Retour à l’Espace</a></div>`; return; }
     await charger(); rendre();
+    const hc = decodeURIComponent((location.hash.match(/client=([^&]+)/) || [])[1] || "");
+    if (hc && /new=1/.test(location.hash) && !abos.some(a => norm(a.client) === norm(hc))) { formulaire(null); const i = document.getElementById("a-client"); if (i) i.value = hc; }
   });
   function renderLogin() {
     app.innerHTML = `<div class="auth paper"><h2>Connexion</h2><p class="muted">Connectez-vous avec le compte administrateur.</p>
@@ -90,13 +93,15 @@
     const aEncaisser = E.filter(([, e]) => e.k !== "ok" && e.k !== "off").reduce((s, [a]) => s + (+a.prix || 0), 0);
     const parMois = abos.filter(a => a.actif !== false).reduce((s, a) => s + (+a.prix || 0), 0);
     const ordre = { retard: 0, bientot: 1, ok: 2, off: 3 };
-    const vis = E.filter(([, e]) => filtre === "tous" || e.k === filtre).sort((x, y) => ordre[x[1].k] - ordre[y[1].k] || String(x[0].echeance).localeCompare(String(y[0].echeance)));
+    const CL = decodeURIComponent((location.hash.match(/client=([^&]+)/) || [])[1] || "");
+    const vis = E.filter(([a, e]) => (filtre === "tous" || e.k === filtre) && (!CL || norm(a.client) === norm(CL))).sort((x, y) => ordre[x[1].k] - ordre[y[1].k] || String(x[0].echeance).localeCompare(String(y[0].echeance)));
     app.innerHTML = `
       <div class="paper row between" style="gap:10px"><div><div class="muted" style="font-size:13px">Revenu mensuel actif</div><b style="font-family:var(--display);font-size:24px">${parMois.toLocaleString("fr-FR")} DH</b></div>
         <div style="text-align:end"><div class="muted" style="font-size:13px">À encaisser</div><b style="font-family:var(--display);font-size:24px;color:${aEncaisser ? "var(--warn)" : "var(--ok)"}">${aEncaisser.toLocaleString("fr-FR")} DH</b></div></div>
       <div class="stats">
         ${[["tous", "Tous", abos.length], ["retard", "En retard", n("retard")], ["bientot", "Bientôt", n("bientot")], ["off", "Désactivés", n("off")]].map(([k, t, v]) => `<button data-f="${k}" aria-pressed="${filtre === k}"><b>${v}</b><span>${t}</span></button>`).join("")}
       </div>
+      ${CL ? `<div class="paper row between" style="gap:8px;margin-top:10px"><b>👤 ${esc(CL)}</b><a class="btn sm ghost" href="#" onclick="location.hash='';location.reload();return false">Voir tous</a></div>` : ""}
       <div class="alist">${vis.map(([a, e]) => ligne(a, e)).join("") || `<div class="empty paper"><h3>${abos.length ? "Rien ici" : "Aucun abonnement"}</h3><p>${abos.length ? "Aucun abonnement dans ce filtre." : "Ajoutez vos clients avec « ＋ Nouveau » : menu digital, carte fidélité, site…"}</p></div>`}</div>`;
   }
   function ligne(a, e) {
