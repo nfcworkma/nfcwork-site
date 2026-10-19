@@ -1133,18 +1133,21 @@
  "demo-thony": {
   "v": 1,
   "nom": "THONY",
+  "slug": "demo-thony",
+  "formule": "premium",
+  "theme": "lagon",
+  "couleur": "#2a86a8",
   "actif": true,
   "devise": "DH",
   "logo": "/menu/demo/thony/logo.jpg",
   "logoCarre": false,
-  "slogan": "Sandwich Express 🔥 · Kénitra",
   "couverture": "/menu/demo/thony/cover.jpg",
-  "theme": "lagon",
-  "couleur": "#2a86a8",
+  "slogan": "Sandwich Express 🔥 · Kénitra",
   "infos": {
-   "horaires": "7j/7",
+   "horaires": "",
    "adresse": "Kénitra : Le Vallon · La Ville Haute",
-   "tel": "06 20 66 60 27",
+   "maps": "",
+   "tel": "0620666027",
    "instagram": "@thonymaroc",
    "whatsapp": "0620666027"
   },
@@ -1152,12 +1155,11 @@
   "langues": [
    "fr"
   ],
-  "slug": "demo-thony",
-  "formule": "premium",
+  "pages": [],
   "promos": [
    {
     "id": "p1",
-    "texte": "🥘 Mercredi : Rfissa 45 DH",
+    "texte": "🥘 Mercredi : Rfissa maison",
     "jours": [
      3
     ],
@@ -1167,7 +1169,7 @@
    },
    {
     "id": "p2",
-    "texte": "🍲 Vendredi : Couscous avec tfaya & lben · poulet 45 DH · viande 55 DH",
+    "texte": "🍲 Vendredi : Couscous avec tfaya & lben",
     "jours": [
      5
     ],
@@ -1177,7 +1179,7 @@
    },
    {
     "id": "p3",
-    "texte": "🍟 Tous nos sandwichs sont accompagnés de frites",
+    "texte": "🍟 Nos sandwichs chauds sont servis avec frites",
     "jours": [
      0,
      1,
@@ -1185,6 +1187,14 @@
      4,
      6
     ],
+    "de": "",
+    "a": "",
+    "actif": true
+   },
+   {
+    "id": "p4",
+    "texte": "🎁 Carte fidélité THONY : 10 sandwichs = 1 offert",
+    "jours": [],
     "de": "",
     "a": "",
     "actif": true
@@ -1198,174 +1208,165 @@
   },
   "categories": [
    {
-    "id": "chaud",
-    "nom": "Sandwichs chauds",
-    "items": [
-     {
-      "id": "c1",
-      "nom": "Sandwich Steak Poulet",
-      "desc": "Steak poulet, laitue, fromage, sauce maison · servi avec frites",
-      "prix": "35",
-      "photo": "u:1540713434306-58505cf1b6fc",
-      "vedette": false,
-      "dispo": true
-     },
-     {
-      "id": "c2",
-      "nom": "Sandwich Saucisse Poulet",
-      "desc": "Saucisses de poulet, cornichons, fromage, sauce maison · servi avec frites",
-      "prix": "40",
-      "photo": "/menu/demo/thony/express.jpg",
-      "vedette": true,
-      "dispo": true
-     },
-     {
-      "id": "c3",
-      "nom": "Sandwich Steak",
-      "desc": "Filet de bœuf, oignons caramélisés, cornichons, fromage, sauce maison · servi avec frites",
-      "prix": "45",
-      "photo": "u:1496113269490-84ffe1a410cb",
-      "vedette": false,
-      "dispo": true
-     },
-     {
-      "id": "c4",
-      "nom": "Sandwich Viande Hachée",
-      "desc": "Viande hachée, cheddar, laitue, tomates, sauce maison · servi avec frites",
-      "prix": "45",
-      "photo": "u:1554433607-66b5efe9d304",
-      "vedette": false,
-      "dispo": true
-     },
-     {
-      "id": "c5",
-      "nom": "Le 17",
-      "desc": "Pain ciabatta, viande hachée, cheddar, edam, laitue, tomates, sauce maison · servi avec frites",
-      "prix": "45",
-      "photo": "/menu/demo/thony/victoire.jpg",
-      "vedette": true,
-      "dispo": true
-     }
-    ]
-   },
-   {
     "id": "thon",
-    "nom": "Sandwichs Thon",
+    "nom": "🐟 Sandwichs Thon",
     "items": [
      {
-      "id": "h1",
-      "nom": "Thon Normal",
-      "desc": "Base : pomme de terre, harissa maison, oignons, olives, laitue, ketchup et mayonnaise",
-      "prix": "10",
+      "id": "royal",
+      "nom": "Royal",
+      "desc": "Thon, Kiri, fromage rouge, cachir, luncheon, double thon, fromage slice, pain, pomme de terre, harissa maison, oignons, olives, laitue, ketchup, mayonnaise",
+      "prix": "39",
+      "photo": "/menu/demo/thony/a-royal.jpg",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "special",
+      "nom": "Thon Spécial",
+      "desc": "Thon, fromage blanc, fromage rouge, cachir, luncheon, pain, pomme de terre, harissa maison, oignons, olives, laitue, ketchup, mayonnaise",
+      "prix": "32",
+      "photo": "/menu/demo/thony/a-special.jpg",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "double-rouge",
+      "nom": "Double Thon Fromage Rouge",
+      "desc": "Double portion de thon, fromage rouge, pain, pomme de terre, harissa maison, oignons, olives, laitue, ketchup, mayonnaise",
+      "prix": "28",
+      "photo": "/menu/demo/thony/b-double-rouge.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "double-dinde",
+      "nom": "Double Thon Dinde Fumée",
+      "desc": "Double thon, dinde fumée, salade",
+      "prix": "28",
+      "photo": "/menu/demo/thony/a-double-dinde.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "cachir-luncheon",
+      "nom": "Thon Fromage Cachir Luncheon",
+      "desc": "Thon, fromage, cachir, luncheon, laitue",
+      "prix": "25",
+      "photo": "/menu/demo/thony/a-cachir-luncheon.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "fromage-dinde",
+      "nom": "Thon Fromage Dinde Fumée",
+      "desc": "Thon, fromage, dinde fumée, salade",
+      "prix": "25",
+      "photo": "/menu/demo/thony/a-fromage-dinde.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "fromage-rouge",
+      "nom": "Thon Fromage Rouge",
+      "desc": "Thon, fromage rouge, pain, pomme de terre, harissa maison, oignons, olives, laitue, ketchup, mayonnaise",
+      "prix": "22",
       "photo": "u:1650921220338-f970ce97f884",
       "vedette": false,
       "dispo": true
      },
      {
-      "id": "h2",
-      "nom": "Thon Luncheon",
-      "desc": "Thon, luncheon + base maison",
-      "prix": "13",
-      "photo": "",
-      "vedette": false,
-      "dispo": true
-     },
-     {
-      "id": "h3",
-      "nom": "Thon Fromage Luncheon",
-      "desc": "Thon, fromage, luncheon + base maison",
-      "prix": "15",
-      "photo": "",
-      "vedette": false,
-      "dispo": true
-     },
-     {
-      "id": "h4",
-      "nom": "Thon Fromage Rouge",
-      "desc": "Thon, fromage rouge + base maison",
-      "prix": "14",
-      "photo": "",
-      "vedette": false,
-      "dispo": true
-     },
-     {
-      "id": "h5",
+      "id": "dinde",
       "nom": "Thon Dinde Fumée",
-      "desc": "Thon, dinde fumée + base maison",
-      "prix": "18",
-      "photo": "",
-      "vedette": false,
-      "dispo": true
-     },
-     {
-      "id": "h6",
-      "nom": "Double Thon Fromage Rouge",
-      "desc": "Double thon, fromage rouge + base maison",
-      "prix": "20",
-      "photo": "",
-      "vedette": false,
-      "dispo": true
-     },
-     {
-      "id": "h7",
-      "nom": "Double Thon Dinde Fumée",
-      "desc": "Double thon, dinde fumée + base maison",
-      "prix": "20",
-      "photo": "",
-      "vedette": false,
-      "dispo": true
-     },
-     {
-      "id": "h8",
-      "nom": "Thon Fromage Rouge Dinde Fumée",
-      "desc": "Thon, fromage rouge, dinde fumée + base maison",
+      "desc": "Thon, dinde fumée, pain, pomme de terre, harissa maison, oignons, olives, laitue, ketchup, mayonnaise",
       "prix": "22",
-      "photo": "",
+      "photo": "/menu/demo/thony/b-dinde.jpg",
       "vedette": false,
       "dispo": true
      },
      {
-      "id": "h9",
-      "nom": "Thon Spécial",
-      "desc": "Fromage normal, fromage rouge, cachir et luncheon",
-      "prix": "23",
-      "photo": "",
+      "id": "fromage-luncheon",
+      "nom": "Thon Fromage Luncheon",
+      "desc": "Thon, fromage, luncheon, pain, pomme de terre, harissa maison, oignons, olives, laitue, ketchup, mayonnaise",
+      "prix": "21",
+      "photo": "/menu/demo/thony/b-fromage-luncheon.jpg",
       "vedette": false,
       "dispo": true
      },
      {
-      "id": "h10",
-      "nom": "Spécial + Dinde Fumée",
-      "desc": "Le Thon Spécial avec dinde fumée",
-      "prix": "27",
-      "photo": "",
+      "id": "cachir",
+      "nom": "Thon Cachir",
+      "desc": "Thon, cachir, salade",
+      "prix": "18",
+      "photo": "/menu/demo/thony/a-cachir.jpg",
       "vedette": false,
       "dispo": true
      },
      {
-      "id": "h11",
-      "nom": "Royal",
-      "desc": "Fromage Kiri, fromage rouge, cachir, luncheon, double thon et fromage slice",
-      "prix": "28",
-      "photo": "",
+      "id": "luncheon",
+      "nom": "Thon Luncheon",
+      "desc": "Thon, luncheon, pain, pomme de terre, harissa maison, oignons, olives, laitue, ketchup, mayonnaise",
+      "prix": "18",
+      "photo": "/menu/demo/thony/a-luncheon.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "normal",
+      "nom": "Thon Normal",
+      "desc": "Thon, pain, pomme de terre, harissa maison, oignons, olives, laitue, ketchup, mayonnaise",
+      "prix": "14",
+      "photo": "/menu/demo/thony/a-normal.jpg",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "chauds",
+    "nom": "🔥 Sandwichs chauds",
+    "items": [
+     {
+      "id": "steak",
+      "nom": "Sandwich Steak",
+      "desc": "Filet de bœuf, oignons caramélisés, cornichons, fromage, sauce maison · servi avec frites",
+      "prix": "63",
+      "photo": "/menu/demo/thony/steak.jpg",
       "vedette": true,
       "dispo": true
      },
      {
-      "id": "h12",
-      "nom": "Royal + Dinde Fumée",
-      "desc": "Le Royal avec dinde fumée",
-      "prix": "32",
-      "photo": "",
+      "id": "viande-hachee",
+      "nom": "Sandwich Viande Hachée",
+      "desc": "Viande hachée, cheddar, laitue, tomates, sauce maison · servi avec frites",
+      "prix": "63",
+      "photo": "/menu/demo/thony/viande-hachee.jpg",
       "vedette": false,
       "dispo": true
      },
      {
-      "id": "h13",
-      "nom": "Supplément frites",
-      "desc": "",
-      "prix": "10",
-      "photo": "u:1630384060421-cb20d0e0649d",
+      "id": "steak-poulet",
+      "nom": "Sandwich Steak Poulet",
+      "desc": "Steak de poulet, laitue, fromage, sauce maison · servi avec frites",
+      "prix": "49",
+      "photo": "/menu/demo/thony/steak-poulet.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "saucisse-poulet",
+      "nom": "Sandwich Saucisse Poulet",
+      "desc": "Saucisses de poulet, cornichons, fromage, sauce maison · servi avec frites",
+      "prix": "40",
+      "photo": "/menu/demo/thony/express.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "le-17",
+      "nom": "Le 17",
+      "desc": "Pain ciabatta, viande hachée, cheddar, edam, laitue, tomates, sauce maison · servi avec frites",
+      "prix": "45",
+      "photo": "/menu/demo/thony/victoire.jpg",
       "vedette": false,
       "dispo": true
      }
@@ -1373,19 +1374,19 @@
    },
    {
     "id": "tacos",
-    "nom": "Tacos",
+    "nom": "🌯 Tacos",
     "items": [
      {
-      "id": "t1",
+      "id": "tacos-poulet",
       "nom": "Tacos Poulet",
-      "desc": "Poulet, frites, sauce maison",
-      "prix": "35",
-      "photo": "/menu/demo/thony/wrap.jpg",
+      "desc": "Poulet, frites, sauce",
+      "prix": "49",
+      "photo": "/menu/demo/thony/tacos-poulet.jpg",
       "vedette": false,
       "dispo": true
      },
      {
-      "id": "t2",
+      "id": "tacos-viande",
       "nom": "Tacos Viande Hachée",
       "desc": "Viande hachée, frites, sauce maison",
       "prix": "40",
@@ -1394,9 +1395,9 @@
       "dispo": true
      },
      {
-      "id": "t3",
+      "id": "tacos-burger",
       "nom": "Tacos Burger",
-      "desc": "Viande hachée, cheddar, tomates, laitue et sauce maison",
+      "desc": "Viande hachée, cheddar, tomates, laitue, sauce maison",
       "prix": "45",
       "photo": "/menu/demo/thony/smash.jpg",
       "vedette": true,
@@ -1405,77 +1406,77 @@
     ]
    },
    {
-    "id": "burger",
-    "nom": "Burgers",
+    "id": "burgers",
+    "nom": "🍔 Burgers",
     "items": [
      {
-      "id": "b1",
-      "nom": "Chicken Burger",
-      "desc": "Poulet crispy, laitue, double fromage, oignons caramélisés, cornichons, sauce maison",
-      "prix": "35",
-      "photo": "u:1569691899455-88464f6d3ab1",
-      "vedette": false,
+      "id": "burger-classique",
+      "nom": "Burger Classique",
+      "desc": "Viande hachée, double fromage, oignons, laitue, cornichons, sauce maison, frites",
+      "prix": "56",
+      "photo": "/menu/demo/thony/burger-classique.jpg",
+      "vedette": true,
       "dispo": true
      },
      {
-      "id": "b2",
-      "nom": "Burger Classique",
-      "desc": "Viande hachée, double fromage, oignons caramélisés, laitue, cornichons, sauce maison",
-      "prix": "40",
-      "photo": "u:1572802419224-296b0aeee0d9",
+      "id": "chicken-burger",
+      "nom": "Chicken Burger",
+      "desc": "Poulet crispy, laitue, double fromage, oignons, cornichons, sauce maison, frites",
+      "prix": "49",
+      "photo": "/menu/demo/thony/chicken-burger.jpg",
       "vedette": false,
       "dispo": true
      }
     ]
    },
    {
-    "id": "semaine",
-    "nom": "Plats de la semaine",
+    "id": "traditionnel",
+    "nom": "🥘 Plats traditionnels",
     "items": [
      {
-      "id": "s1",
-      "nom": "Rfissa (chaque mercredi)",
-      "desc": "Rfissa maison",
-      "prix": "45",
+      "id": "rfissa",
+      "nom": "Rfissa (mercredi)",
+      "desc": "Msemen, poulet, lentilles, épices",
+      "prix": "63",
       "photo": "/menu/demo/thony/rfissa.jpg",
       "vedette": true,
       "dispo": true
      },
      {
-      "id": "s2",
-      "nom": "Couscous Poulet (chaque vendredi)",
-      "desc": "Avec tfaya & lben",
-      "prix": "45",
-      "photo": "u:1778850790390-c1ba244fbc85",
+      "id": "couscous-poulet",
+      "nom": "Couscous Poulet (vendredi)",
+      "desc": "Couscous, poulet, légumes, tfaya, lben",
+      "prix": "63",
+      "photo": "/menu/demo/thony/couscous-poulet.jpg",
       "vedette": false,
       "dispo": true
      },
      {
-      "id": "s3",
-      "nom": "Couscous Viande (chaque vendredi)",
-      "desc": "Avec tfaya & lben",
-      "prix": "55",
-      "photo": "u:1741217375528-4cf4ad2e2545",
+      "id": "couscous-viande",
+      "nom": "Couscous Viande (vendredi)",
+      "desc": "Couscous, bœuf, légumes, tfaya, lben",
+      "prix": "77",
+      "photo": "/menu/demo/thony/couscous-viande.jpg",
       "vedette": false,
       "dispo": true
      }
     ]
    },
    {
-    "id": "bois",
-    "nom": "Boissons",
+    "id": "jus",
+    "nom": "🍊 Jus frais",
     "items": [
      {
-      "id": "j1",
+      "id": "jus-orange",
       "nom": "Jus d'orange",
-      "desc": "250 ml",
-      "prix": "10",
-      "photo": "u:1600271886742-f049cd451bba",
+      "desc": "Oranges pressées",
+      "prix": "14",
+      "photo": "/menu/demo/thony/jus-orange.jpg",
       "vedette": false,
       "dispo": true
      },
      {
-      "id": "j2",
+      "id": "jus-citron",
       "nom": "Jus de citron",
       "desc": "250 ml",
       "prix": "13",
@@ -1484,7 +1485,7 @@
       "dispo": true
      },
      {
-      "id": "j3",
+      "id": "panache",
       "nom": "Panaché",
       "desc": "250 ml",
       "prix": "13",
@@ -1493,7 +1494,7 @@
       "dispo": true
      },
      {
-      "id": "j4",
+      "id": "jus-banane",
       "nom": "Jus de banane",
       "desc": "250 ml",
       "prix": "13",
@@ -1502,20 +1503,161 @@
       "dispo": true
      },
      {
-      "id": "j5",
+      "id": "jus-fraise",
       "nom": "Jus de fraise",
       "desc": "250 ml",
       "prix": "13",
       "photo": "u:1589733955941-5eeaf752f6dd",
       "vedette": false,
       "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "boissons",
+    "nom": "🥤 Boissons",
+    "items": [
+     {
+      "id": "ice-cola",
+      "nom": "Ice Cola (25 cl, bouteille)",
+      "desc": "Star Soda",
+      "prix": "10",
+      "photo": "/menu/demo/thony/ice-cola.jpg",
+      "vedette": false,
+      "dispo": true
      },
      {
-      "id": "j6",
-      "nom": "Soda",
+      "id": "ice-citron",
+      "nom": "Ice Citron (25 cl, bouteille)",
+      "desc": "Star Soda",
+      "prix": "10",
+      "photo": "/menu/demo/thony/ice-citron.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "ice-orange",
+      "nom": "Ice Orange (25 cl, bouteille)",
+      "desc": "Star Soda",
+      "prix": "10",
+      "photo": "/menu/demo/thony/ice-orange.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "ice-pomme",
+      "nom": "Ice Pomme (25 cl, bouteille)",
+      "desc": "Star Soda",
+      "prix": "10",
+      "photo": "/menu/demo/thony/ice-pomme.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "coca",
+      "nom": "Coca-Cola (25 cl)",
       "desc": "Canette",
-      "prix": "6",
-      "photo": "u:1527960471264-932f39eb5846",
+      "prix": "8",
+      "photo": "/menu/demo/thony/coca.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "coca-zero",
+      "nom": "Coca-Cola Zero (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/coca-zero.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "pepsi",
+      "nom": "Pepsi (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/pepsi.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "sprite",
+      "nom": "Sprite (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/sprite.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "7up",
+      "nom": "7up (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/7up.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "fanta-orange",
+      "nom": "Fanta Orange (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/fanta-orange.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "fanta-citron",
+      "nom": "Fanta Citron (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/fanta-citron.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "mirinda-orange",
+      "nom": "Mirinda Orange (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/mirinda-orange.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "mirinda-citron",
+      "nom": "Mirinda Citron (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/mirinda-citron.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "mirinda-ananas",
+      "nom": "Mirinda Tropical (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/mirinda-ananas.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "hawaii",
+      "nom": "Hawaï Tropical (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/hawaii.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "poms",
+      "nom": "Pom's Pomme (25 cl)",
+      "desc": "Canette",
+      "prix": "8",
+      "photo": "/menu/demo/thony/poms.jpg",
       "vedette": false,
       "dispo": true
      }
