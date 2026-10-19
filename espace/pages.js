@@ -211,7 +211,12 @@
         ${(P.galerie || []).length < 6 ? `<label class="btn sm">＋ Ajouter des photos<input type="file" accept="image/*" multiple hidden data-up="galerie"></label>` : ""}</section>`;
     if (P.type === "avis") corps = `<section class="sec paper stack"><h3>⭐ Avis Google</h3>${photoBloc}${champ("nom", "Nom du commerce", 'maxlength="60"')}
         ${champ("lienGoogle", "Lien Google pour laisser un avis", 'inputmode="url" maxlength="400" autocapitalize="off" placeholder="https://g.page/r/…/review"')}
-        <div class="notice" style="font-size:13px">💡 Pour trouver le lien : Google Maps → la fiche du commerce → <b>Avis</b> → <b>Partager le lien d’avis</b> (ou « Demander des avis » dans Google Business).</div>
+        <div class="notice" style="font-size:13px;display:grid;gap:8px">
+          <b>🔎 Pas de lien ? Avec le Place ID, c’est automatique :</b>
+          <span>1️⃣ Touchez <a href="https://developers.google.com/maps/documentation/places/web-service/place-id#find-id" target="_blank" rel="noopener"><b>Trouver le Place ID</b></a> → tapez le nom du commerce + la ville → choisissez-le → copiez le code qui commence par <b>ChIJ…</b></span>
+          <span>2️⃣ Collez-le ici 👇 : le lien qui ouvre directement les ⭐ étoiles se crée tout seul.</span>
+          <input data-placeid placeholder="ChIJ…" autocapitalize="off" spellcheck="false" style="width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px">
+          <small class="muted">Ou : Google Business du commerce → <b>Demander des avis</b> → copier le lien (g.page/r/…/review).</small></div>
         ${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Votre avis compte 🙏"')}${champ("instagram", "Instagram (facultatif)", 'autocapitalize="off"')}</section>`;
     if (P.type === "wifi") corps = `<section class="sec paper stack"><h3>📶 Wi-Fi</h3>${photoBloc}${champ("nom", "Nom affiché en haut", 'maxlength="60"')}
         ${champ("ssid", "Nom du réseau Wi-Fi (exactement)", 'maxlength="64" autocapitalize="off" spellcheck="false"')}${champ("motdepasse", "Mot de passe", 'maxlength="64" autocapitalize="off" spellcheck="false"')}
@@ -300,6 +305,11 @@
   app.addEventListener("input", e => {
     if (!P) return;
     const t = e.target;
+    if (t.hasAttribute("data-placeid") || (t.dataset.k === "lienGoogle" && /ChIJ[\w-]{10,}/.test(t.value) && !/placeid=/.test(t.value))) {
+      const m = t.value.match(/ChIJ[\w-]{10,}/);
+      if (m) { P.lienGoogle = "https://search.google.com/local/writereview?placeid=" + m[0]; const f = app.querySelector('[data-k="lienGoogle"]'); if (f) f.value = P.lienGoogle; toast("✅ Lien Google créé : il ouvre directement les étoiles."); majBarre(); }
+      if (t.hasAttribute("data-placeid")) return;
+    }
     if (t.dataset.k) { P[t.dataset.k] = t.type === "checkbox" ? t.checked : t.value; if (t.dataset.k === "nom") $("#topTitle").textContent = (TYPES[P.type] || [""])[0] + " " + t.value; }
     else if (t.dataset.h != null) { P.horaires = P.horaires || {}; P.horaires[t.dataset.h] = t.value; }
     else if (t.dataset.l) { const [i, k] = t.dataset.l.split("."); P.liens[+i][k] = t.value; }
