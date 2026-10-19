@@ -85,6 +85,7 @@
 
   // Photos : un id ne change jamais → gardée dans le cache du navigateur
   const imgCache = {};
+  const posCouv = () => /^\d{1,3}% \d{1,3}%$/.test(M && M.couvPos || "") ? ` style="object-position:${M.couvPos}"` : "";
   const unsplash = (id, w) => "https://images.unsplash.com/photo-" + id + "?auto=format&fit=crop&w=" + w + "&q=75";
   async function photo(id, w) {
     if (!id) return "";
@@ -279,7 +280,7 @@
     if (prem) {
       const vedettes = cats.flatMap(c => c.items || []).filter(i => i.vedette && i.photo && i.dispo !== false);
       app.innerHTML = `${barreDemo()}
-        <header class="phero">${M.couverture ? `<img data-img="${esc(M.couverture)}" data-w="900" alt="">` : ""}
+        <header class="phero">${M.couverture ? `<img data-img="${esc(M.couverture)}" data-w="900" alt=""${posCouv()}>` : ""}
           <div class="in">${logoTag()}<h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}<div class="orn">${U.carte}</div></div></header>
         <div class="wrap pinfo">${puces()}${tableQR ? `<div style="text-align:center"><span class="tablechip">${M.type === "hotel" ? "🛏 Chambre " : "🪑 Table "}${esc(tableQR)}</span></div>` : ""}</div>
         ${bandeau}
@@ -291,7 +292,7 @@
     } else {
       const cover = !!M.couverture;
       app.innerHTML = `${barreDemo()}
-        ${cover ? `<div class="hero"><img class="cover" data-img="${esc(M.couverture)}" data-w="760" alt=""></div>` : ""}
+        ${cover ? `<div class="hero"><img class="cover" data-img="${esc(M.couverture)}" data-w="760" alt=""${posCouv()}></div>` : ""}
         <div class="head wrap">${logoTag()}<h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}${puces()}</div>
         ${promo}
         ${nav}

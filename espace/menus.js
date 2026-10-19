@@ -162,6 +162,17 @@
     IMG[id] = data; pending.add(id);
     return id;
   }
+  // ✂️ recadrer le logo / la couverture (nouvelle photo, ou celle déjà en place)
+  async function recadrer(cle, kind, fichier) {
+    try {
+      if (!fichier) { const id = M[cle], src = id.startsWith("u:") && window.BANQUE_URL ? window.BANQUE_URL(id.slice(2), 1600) : IMG[id] || await chargerImg(id); if (!src) { toast("Photo introuvable."); return; } fichier = await (await fetch(src)).blob(); }
+      const logoSrc = M.logo ? (IMG[M.logo] || "") : "";
+      const r = await window.NFCW_RECADRER(fichier, kind, { logo: kind === "cover" ? logoSrc : "", nom: M.nom || "" });
+      if (!r) return;
+      const box = document.querySelector(`.imgpick[data-pick="${cle}"]`);
+      await occupe(box, async () => { M[cle] = await televerser(r.blob, kind); if (kind === "cover") M.couvPos = r.pos; renderEdit(); toast("✅ Photo prête — pensez à enregistrer"); });
+    } catch (e) { console.error(e); toast("Photo illisible : essayez une autre photo.", true); }
+  }
   async function televerser(fichier, kind) {
     return envoyerPhoto(await compresser(fichier, OPTS[kind]));
   }
@@ -308,7 +319,7 @@
     return `<div class="imgpick" data-pick="${cle}">
       ${id ? imgTag(id, "prev" + (kind === "cover" ? " wide" : ""), label) : `<div class="prev${kind === "cover" ? " wide" : ""}"></div>`}
       <div class="stack" style="gap:6px"><b>${esc(label)}</b>${aide ? `<small class="muted">${esc(aide)}</small>` : ""}
-        <div class="row"><label class="btn sm">${id ? "Changer" : "Ajouter"}<input type="file" accept="image/*" hidden data-up="${cle}" data-kind="${kind}"></label>${kind === "cover" ? `<button class="btn sm" data-act="banque-cover">Banque de photos</button>` : ""}${id ? `<button class="btn sm ghost" data-act="retirer" data-cle="${cle}">Retirer</button>` : ""}</div></div></div>`;
+        <div class="row"><label class="btn sm">${id ? "Changer" : "Ajouter"}<input type="file" accept="image/*" hidden data-up="${cle}" data-kind="${kind}"></label>${id && (kind === "logo" || kind === "cover") ? `<button class="btn sm" data-recadrer="${cle}" data-kind="${kind}">✂️ Recadrer</button>` : ""}${kind === "cover" ? `<button class="btn sm" data-act="banque-cover">Banque de photos</button>` : ""}${id ? `<button class="btn sm ghost" data-act="retirer" data-cle="${cle}">Retirer</button>` : ""}</div></div></div>`;
   }
 
   function renderEdit() {
@@ -451,7 +462,9 @@
     }
     if (t.dataset.up && t.files[0]) {
       const cle = t.dataset.up, kind = t.dataset.kind;
-      await occupe(t.closest(".imgpick"), async () => { M[cle] = await televerser(t.files[0], kind); renderEdit(); toast("Photo ajoutée — pensez à enregistrer"); });
+      const f = t.files[0]; t.value = "";
+      if ((kind === "logo" || kind === "cover") && window.NFCW_RECADRER) { await recadrer(cle, kind, f); return; }
+      await occupe(t.closest(".imgpick"), async () => { M[cle] = await televerser(f, kind); renderEdit(); toast("Photo ajoutée — pensez à enregistrer"); });
       return;
     }
     if (t.hasAttribute("data-pages") && t.files.length) {
@@ -467,6 +480,8 @@
   /* ---------- boutons ---------- */
   document.addEventListener("click", async e => {
     if (e.target.closest(".modal")) return;
+    const rc = e.target.closest("[data-recadrer]");
+    if (rc && M) { e.preventDefault(); recadrer(rc.dataset.recadrer, rc.dataset.kind); return; }
     const fo = e.target.closest("[data-formule]");
     if (fo && M && app.contains(fo)) { changerFormule(fo.dataset.formule); return; }
     const th = e.target.closest("[data-theme]");
@@ -484,7 +499,7 @@
       case "apercu": apercu(); break;
       case "supprimer": supprimer(); break;
       case "retirer": M[b.dataset.cle] = ""; renderEdit(); break;
-      case "banque-cover": banque("Salle", "", id => { M.couverture = id; renderEdit(); }); break;
+      case "banque-cover": banque("Salle", "", id => { M.couverture = id; M.couvPos = ""; renderEdit(); }); break;
       case "couleur0": M.couleur = ""; renderEdit(); break;
       case "pg-up": bouge(M.pages, i, -1); break;
       case "pg-down": bouge(M.pages, i, 1); break;
