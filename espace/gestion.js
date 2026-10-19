@@ -50,7 +50,7 @@
     box.innerHTML = `<input id="gq" type="search" placeholder="🔎 Chercher : client, menu, carte, facture…" autocomplete="off" style="width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px;margin-bottom:10px">
       <div id="gres"></div>
       <div class="gacts"><button class="ga" data-g="demo"><span>🎯</span><b>Démo 2 min</b></button><button class="ga" data-g="devis"><span>📝</span><b>Devis</b></button><button class="ga" data-g="contrat"><span>✍️</span><b>Contrat</b></button><button class="ga" data-g="prospects"><span>🗂</span><b>Prospects</b><i id="gpb"></i></button>
-        <button class="ga" data-g="stats"><span>📊</span><b>Visites</b></button><button class="ga" data-new-inv><span>🧾</span><b>Facture</b></button><button class="ga" data-g="guide"><span>📖</span><b>Guide</b></button><button class="ga" data-g="app" id="gapp"><span>📲</span><b>Application</b></button></div>
+        <button class="ga" data-g="ventes"><span>💰</span><b>Ventes</b></button><button class="ga" data-g="stats"><span>📊</span><b>Visites</b></button><button class="ga" data-new-inv><span>🧾</span><b>Facture</b></button><button class="ga" data-g="guide"><span>📖</span><b>Guide</b></button><button class="ga" data-g="app" id="gapp"><span>📲</span><b>Application</b></button></div>
       <div id="grel"></div>`;
     try { if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) document.getElementById("gapp").remove(); } catch (e) {}
     const q = document.getElementById("gq"); q.oninput = () => chercher(q.value);
