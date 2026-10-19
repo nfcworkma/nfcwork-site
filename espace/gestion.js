@@ -19,7 +19,7 @@
   const prix = n => (+n || 0).toLocaleString("fr-FR").replace(/ | /g, " ");
   const b64 = x => btoa(unescape(encodeURIComponent(JSON.stringify(x)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const RULE = `match /prospects/{id} { allow read, write: if isAdmin(); }`;
-  const MOI = { nom: "Oualid Fahfouhi", qualite: "Fondateur", cin: "GI13259", tel: "06 20 66 60 27", mail: "nfcworkmacontact@gmail.com", site: "nfcwork.ma" };
+  const MOI = { nom: "Oualid Fahfouhi", qualite: "Fondateur", cin: "", tel: "06 20 66 60 27", mail: "nfcworkmacontact@gmail.com", site: "nfcwork.ma" };
 
   // tarifs 2026 (mêmes prix que le site et le PDF)
   const CATA = [
@@ -228,7 +228,7 @@
       <div class="bar"><button onclick="print()">🖨 Imprimer / Enregistrer en PDF</button></div>
       <div class="h"><img src="${location.origin}/assets/img/logo-nfcwork.png" alt="NFCWORK"><div style="text-align:right;font-size:9.5pt">${MOI.site} · WhatsApp ${MOI.tel}<br>${MOI.mail}</div></div>
       <h1>Contrat de prestation · NFCWORK × ${esc(k.client)}</h1><div style="color:#555">Fait le ${frDate(auj())}</div>
-      <h2>1. Les parties</h2><div class="two"><div class="p"><b>NFCWORK</b><br>Représenté par ${MOI.nom}, ${MOI.qualite}<br>CIN : ${MOI.cin}<br>Tél. : ${MOI.tel}</div>
+      <h2>1. Les parties</h2><div class="two"><div class="p"><b>NFCWORK</b><br>Représenté par ${MOI.nom}, ${MOI.qualite}${(() => { let c = ""; try { c = localStorage.getItem("nfcw-cin") || ""; } catch (e) {} if (!c) { c = (prompt("Votre numéro de CIN (gardé seulement sur cet appareil) :", "") || "").trim().toUpperCase(); try { if (c) localStorage.setItem("nfcw-cin", c); } catch (e) {} } return c ? "<br>CIN : " + c : ""; })()}<br>Tél. : ${MOI.tel}</div>
         <div class="p"><b>${esc(k.client)}</b>${k.gerant ? "<br>Représenté par " + esc(k.gerant) : ""}${k.ident ? "<br>" + esc(k.ident) : ""}${k.tel ? "<br>Tél. : " + esc(k.tel) : ""}${k.adresse ? "<br>" + esc(k.adresse) : ""}</div></div>
       <h2>2. Objet</h2><p>NFCWORK met en place pour le client la formule <b>${esc(k.formule)}</b>${k.options ? ", avec : " + esc(k.options) : ""}, et assure l’hébergement, les mises à jour et le support pendant toute la durée de l’abonnement.</p>
       <h2>3. Prix</h2><table><tr><td>Mise en place (payée une seule fois, à la signature)</td><td class="r">${prix(k.setup)} DH</td></tr><tr><td>Abonnement mensuel, à partir du ${frDate(k.debut)}</td><td class="r">${prix(k.mois)} DH / mois</td></tr></table>

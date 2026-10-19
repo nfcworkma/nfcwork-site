@@ -1,1 +1,0 @@
-match /ventes/{id} { allow read, write: if isAdmin(); }
