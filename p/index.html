@@ -275,6 +275,8 @@ a:active,button:active{transform:scale(.98)}
     } catch (e) { if (!P) etat("Connexion impossible", "Réessayez dans un instant."); }
   }
   // aperçu depuis l'Espace (sans enregistrer)
+  // dans un cadre (aperçu de l'espace) : Google, WhatsApp, Instagram… s'ouvrent dans un nouvel onglet (ils refusent de s'afficher dans un cadre)
+  if (window.parent !== window) document.addEventListener("click", e => { const a = e.target.closest("a[href]"); if (a && /^(https?:|tel:|mailto:|sms:)/.test(a.getAttribute("href")) && !a.href.startsWith(location.origin)) a.target = "_blank"; }, true);
   window.addEventListener("message", e => { if (e.origin === location.origin && e.data && e.data.type === "nfcwork-page-apercu") { Object.assign(imgs, e.data.images || {}); rendre(e.data.page); } });
   if (apercu && window.parent !== window) { etat("", ""); window.parent.postMessage({ type: "nfcwork-page-pret" }, location.origin); } else charger();
 })();
