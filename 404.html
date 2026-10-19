@@ -9,16 +9,17 @@
 <script>
   // nfcwork.ma/menu/<nom> → page du menu digital ; nfcwork.ma/q/<CODE> → stand QR
   (function () {
-    var m = location.pathname.match(/^\/menu\/([a-z0-9-]+)\/?$/i);
+    var path = decodeURIComponent(location.pathname).replace(/[\s*)\]}>.,;:!'"`]+$/, "");   // tolère « **), espace » collés au lien
+    var m = path.match(/^\/menu\/([a-z0-9-]+)\/?$/i);
     if (m) location.replace("/menu/?m=" + m[1].toLowerCase() + (location.search ? "&" + location.search.slice(1) : "") + location.hash);
     // nfcwork.ma/p/<nom> → carte digitale, avis Google, Wi-Fi ou page liens créés dans l'Espace
-    var pg = location.pathname.match(/^\/p\/([a-z0-9-]+)\/?$/i);
+    var pg = path.match(/^\/p\/([a-z0-9-]+)\/?$/i);
     if (pg) location.replace("/p/?s=" + pg[1].toLowerCase());
     // nfcwork.ma/tv/<nom> → vidéo du menu sur écran TV (en boucle)
-    var tv = location.pathname.match(/^\/tv\/([a-z0-9-]+)\/?$/i);
+    var tv = path.match(/^\/tv\/([a-z0-9-]+)\/?$/i);
     if (tv) location.replace("/tv/?v=" + tv[1].toLowerCase());
     // nfcwork.ma/q/<CODE> → stand QR (lien modifiable depuis l'Espace)
-    var q = location.pathname.match(/^\/q\/([A-Za-z0-9]+)\/?$/);
+    var q = path.match(/^\/q\/([A-Za-z0-9]{4,10})/);
     if (q) location.replace("/q/?c=" + q[1].toUpperCase());
   })();
 </script>
@@ -33,6 +34,7 @@
   <div>
     <h1>Page introuvable</h1>
     <p>Le lien est peut-être incorrect.</p>
+    <p style="font-size:12px;opacity:.6;word-break:break-all" id="u"></p><script>document.getElementById("u").textContent=location.href</script>
     <a href="/">Retour à nfcwork.ma</a>
   </div>
 </body>
