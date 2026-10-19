@@ -66,5 +66,38 @@
   "theme": "noir",
   "couleur": "#c9a37a",
   "langue": "fr"
+ },
+ "demo-thony": {
+  "type": "liens",
+  "nom": "THONY",
+  "slogan": "Sandwich Express 🔥 · 3 restaurants à Kénitra",
+  "photo": "/menu/demo/thony/logo.jpg",
+  "whatsapp": "0620666027",
+  "liens": [
+   {
+    "titre": "🍔 Menu et commande WhatsApp",
+    "url": "https://nfcwork.ma/menu/demo-thony"
+   },
+   {
+    "titre": "📍 THONY Le Vallon",
+    "url": "https://maps.google.com/?q=Thony+Le+Vallon+Kenitra"
+   },
+   {
+    "titre": "📍 THONY La Ville Haute",
+    "url": "https://maps.google.com/?q=Thony+Ville+Haute+Kenitra"
+   },
+   {
+    "titre": "⭐ Laisser un avis Google",
+    "url": "https://nfcwork.ma/p/demo-avis"
+   },
+   {
+    "titre": "📸 Instagram",
+    "url": "https://instagram.com/thonymaroc"
+   }
+  ],
+  "localisation": "Kénitra",
+  "theme": "nuit",
+  "couleur": "#3c8fac",
+  "langue": "fr"
  }
 }

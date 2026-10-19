@@ -1129,5 +1129,398 @@
    "min": "100",
    "zone": "Kénitra"
   }
+ },
+ "demo-thony": {
+  "v": 1,
+  "nom": "THONY",
+  "actif": true,
+  "devise": "DH",
+  "logo": "/menu/demo/thony/logo.jpg",
+  "logoCarre": false,
+  "slogan": "Sandwich Express 🔥 · Kénitra",
+  "couverture": "/menu/demo/thony/cover.jpg",
+  "theme": "lagon",
+  "couleur": "#2a86a8",
+  "infos": {
+   "horaires": "7j/7",
+   "adresse": "Kénitra : Le Vallon · La Ville Haute",
+   "tel": "06 20 66 60 27",
+   "instagram": "@thonymaroc",
+   "whatsapp": "0620666027"
+  },
+  "commande": true,
+  "langues": [
+   "fr"
+  ],
+  "slug": "demo-thony",
+  "formule": "premium",
+  "promos": [
+   {
+    "id": "p1",
+    "texte": "🥘 Mercredi : Rfissa 45 DH",
+    "jours": [
+     3
+    ],
+    "de": "",
+    "a": "",
+    "actif": true
+   },
+   {
+    "id": "p2",
+    "texte": "🍲 Vendredi : Couscous avec tfaya & lben · poulet 45 DH · viande 55 DH",
+    "jours": [
+     5
+    ],
+    "de": "",
+    "a": "",
+    "actif": true
+   },
+   {
+    "id": "p3",
+    "texte": "🍟 Tous nos sandwichs sont accompagnés de frites",
+    "jours": [
+     0,
+     1,
+     2,
+     4,
+     6
+    ],
+    "de": "",
+    "a": "",
+    "actif": true
+   }
+  ],
+  "livraison": {
+   "actif": true,
+   "frais": "10",
+   "min": "50",
+   "zone": "Kénitra"
+  },
+  "categories": [
+   {
+    "id": "chaud",
+    "nom": "Sandwichs chauds",
+    "items": [
+     {
+      "id": "c1",
+      "nom": "Sandwich Steak Poulet",
+      "desc": "Steak poulet, laitue, fromage, sauce maison · servi avec frites",
+      "prix": "35",
+      "photo": "u:1540713434306-58505cf1b6fc",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c2",
+      "nom": "Sandwich Saucisse Poulet",
+      "desc": "Saucisses de poulet, cornichons, fromage, sauce maison · servi avec frites",
+      "prix": "40",
+      "photo": "/menu/demo/thony/express.jpg",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "c3",
+      "nom": "Sandwich Steak",
+      "desc": "Filet de bœuf, oignons caramélisés, cornichons, fromage, sauce maison · servi avec frites",
+      "prix": "45",
+      "photo": "u:1496113269490-84ffe1a410cb",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c4",
+      "nom": "Sandwich Viande Hachée",
+      "desc": "Viande hachée, cheddar, laitue, tomates, sauce maison · servi avec frites",
+      "prix": "45",
+      "photo": "u:1554433607-66b5efe9d304",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "c5",
+      "nom": "Le 17",
+      "desc": "Pain ciabatta, viande hachée, cheddar, edam, laitue, tomates, sauce maison · servi avec frites",
+      "prix": "45",
+      "photo": "/menu/demo/thony/victoire.jpg",
+      "vedette": true,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "thon",
+    "nom": "Sandwichs Thon",
+    "items": [
+     {
+      "id": "h1",
+      "nom": "Thon Normal",
+      "desc": "Base : pomme de terre, harissa maison, oignons, olives, laitue, ketchup et mayonnaise",
+      "prix": "10",
+      "photo": "u:1650921220338-f970ce97f884",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h2",
+      "nom": "Thon Luncheon",
+      "desc": "Thon, luncheon + base maison",
+      "prix": "13",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h3",
+      "nom": "Thon Fromage Luncheon",
+      "desc": "Thon, fromage, luncheon + base maison",
+      "prix": "15",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h4",
+      "nom": "Thon Fromage Rouge",
+      "desc": "Thon, fromage rouge + base maison",
+      "prix": "14",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h5",
+      "nom": "Thon Dinde Fumée",
+      "desc": "Thon, dinde fumée + base maison",
+      "prix": "18",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h6",
+      "nom": "Double Thon Fromage Rouge",
+      "desc": "Double thon, fromage rouge + base maison",
+      "prix": "20",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h7",
+      "nom": "Double Thon Dinde Fumée",
+      "desc": "Double thon, dinde fumée + base maison",
+      "prix": "20",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h8",
+      "nom": "Thon Fromage Rouge Dinde Fumée",
+      "desc": "Thon, fromage rouge, dinde fumée + base maison",
+      "prix": "22",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h9",
+      "nom": "Thon Spécial",
+      "desc": "Fromage normal, fromage rouge, cachir et luncheon",
+      "prix": "23",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h10",
+      "nom": "Spécial + Dinde Fumée",
+      "desc": "Le Thon Spécial avec dinde fumée",
+      "prix": "27",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h11",
+      "nom": "Royal",
+      "desc": "Fromage Kiri, fromage rouge, cachir, luncheon, double thon et fromage slice",
+      "prix": "28",
+      "photo": "",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "h12",
+      "nom": "Royal + Dinde Fumée",
+      "desc": "Le Royal avec dinde fumée",
+      "prix": "32",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "h13",
+      "nom": "Supplément frites",
+      "desc": "",
+      "prix": "10",
+      "photo": "u:1630384060421-cb20d0e0649d",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "tacos",
+    "nom": "Tacos",
+    "items": [
+     {
+      "id": "t1",
+      "nom": "Tacos Poulet",
+      "desc": "Poulet, frites, sauce maison",
+      "prix": "35",
+      "photo": "/menu/demo/thony/wrap.jpg",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "t2",
+      "nom": "Tacos Viande Hachée",
+      "desc": "Viande hachée, frites, sauce maison",
+      "prix": "40",
+      "photo": "u:1719282431565-3b30bb7d2658",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "t3",
+      "nom": "Tacos Burger",
+      "desc": "Viande hachée, cheddar, tomates, laitue et sauce maison",
+      "prix": "45",
+      "photo": "/menu/demo/thony/smash.jpg",
+      "vedette": true,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "burger",
+    "nom": "Burgers",
+    "items": [
+     {
+      "id": "b1",
+      "nom": "Chicken Burger",
+      "desc": "Poulet crispy, laitue, double fromage, oignons caramélisés, cornichons, sauce maison",
+      "prix": "35",
+      "photo": "u:1569691899455-88464f6d3ab1",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "b2",
+      "nom": "Burger Classique",
+      "desc": "Viande hachée, double fromage, oignons caramélisés, laitue, cornichons, sauce maison",
+      "prix": "40",
+      "photo": "u:1572802419224-296b0aeee0d9",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "semaine",
+    "nom": "Plats de la semaine",
+    "items": [
+     {
+      "id": "s1",
+      "nom": "Rfissa (chaque mercredi)",
+      "desc": "Rfissa maison",
+      "prix": "45",
+      "photo": "/menu/demo/thony/rfissa.jpg",
+      "vedette": true,
+      "dispo": true
+     },
+     {
+      "id": "s2",
+      "nom": "Couscous Poulet (chaque vendredi)",
+      "desc": "Avec tfaya & lben",
+      "prix": "45",
+      "photo": "u:1778850790390-c1ba244fbc85",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "s3",
+      "nom": "Couscous Viande (chaque vendredi)",
+      "desc": "Avec tfaya & lben",
+      "prix": "55",
+      "photo": "u:1741217375528-4cf4ad2e2545",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   },
+   {
+    "id": "bois",
+    "nom": "Boissons",
+    "items": [
+     {
+      "id": "j1",
+      "nom": "Jus d'orange",
+      "desc": "250 ml",
+      "prix": "10",
+      "photo": "u:1600271886742-f049cd451bba",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "j2",
+      "nom": "Jus de citron",
+      "desc": "250 ml",
+      "prix": "13",
+      "photo": "u:1607690506833-498e04ab3ffa",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "j3",
+      "nom": "Panaché",
+      "desc": "250 ml",
+      "prix": "13",
+      "photo": "u:1514995428455-447d4443fa7f",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "j4",
+      "nom": "Jus de banane",
+      "desc": "250 ml",
+      "prix": "13",
+      "photo": "",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "j5",
+      "nom": "Jus de fraise",
+      "desc": "250 ml",
+      "prix": "13",
+      "photo": "u:1589733955941-5eeaf752f6dd",
+      "vedette": false,
+      "dispo": true
+     },
+     {
+      "id": "j6",
+      "nom": "Soda",
+      "desc": "Canette",
+      "prix": "6",
+      "photo": "u:1527960471264-932f39eb5846",
+      "vedette": false,
+      "dispo": true
+     }
+    ]
+   }
+  ]
  }
 }
