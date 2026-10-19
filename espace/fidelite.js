@@ -200,6 +200,7 @@
         <div><div class="eyebrow" style="margin-bottom:6px">1 · Le métier</div>
           <div class="seg3" id="metiers" style="grid-template-columns:repeat(4,1fr)">${Object.entries(METIERS).filter(([k]) => k[0] !== "_").map(([k, m]) => `<button type="button" data-metier="${k}" aria-pressed="${p.metier === k}"><b style="font-size:22px">${m.ico}</b><small>${esc(m.nom.split(" (")[0])}</small>${m.prix ? `<small class="muted">${esc(prixTxt(m))}</small>` : ""}</button>`).join("")}</div></div>
         <div class="eyebrow">2 · Le commerce</div>
+        ${!ex && window.NFCW_SOURCES ? `<button type="button" class="btn" id="p-src">📋 Remplir depuis un client existant (menu, avis, carte…)</button>` : ""}
         <label class="f">Nom du commerce<input id="p-nom" required maxlength="60" value="${esc(p.nom)}" placeholder="Barber Atlas"></label>
         <label class="f">E-mail du compte commerçant (il scannera les cartes)<input id="p-mail" type="email" list="mails" value="${esc(p.ownerEmail)}" placeholder="client@gmail.com" autocapitalize="off">
           <datalist id="mails">${emails.map(([m, n]) => `<option value="${esc(m)}">${esc(n)}</option>`).join("")}</datalist></label>
@@ -259,6 +260,14 @@
       const b = e.target.closest("[data-seg] [data-v]"); if (b) { choisirSeg(b.closest("[data-seg]").dataset.seg, b.dataset.v); maj(); }
     });
     $("#p-emp", d).onchange = maj; maj(); dessinerIdees();
+    const src = $("#p-src", d);
+    if (src) src.onclick = async () => {
+      const D = await window.NFCW_SOURCES.choisir(db, "🎁 Nouvelle carte fidélité"); if (!D || D.vide) return;
+      $("#p-nom", d).value = D.nom; if (D.ownerEmail || D.email) $("#p-mail", d).value = (D.ownerEmail || D.email).toLowerCase();
+      if (D.logo) { try { const b = await (await fetch(D.logo)).blob(), r = await lireLogo(new File([b], "logo", { type: b.type || "image/png" })); logoData = r.data; $("#p-logo-prev", d).innerHTML = `<img class="prev" src="${r.data}" alt="">`; if (r.couleur) $("#p-coul", d).value = r.couleur; } catch (x) {} }
+      if (D.couleur) $("#p-coul", d).value = D.couleur;
+      src.textContent = "✅ Rempli avec : " + D.trouve.join(", ");
+    };
     $("#p-logo", d).onchange = async e => {
       const f = e.target.files[0]; if (!f) return;
       try { const r = await lireLogo(f); logoData = r.data; $("#p-logo-prev", d).innerHTML = `<img class="prev" src="${r.data}" alt="">`; if (r.couleur) $("#p-coul", d).value = r.couleur; }

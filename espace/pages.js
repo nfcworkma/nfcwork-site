@@ -134,13 +134,43 @@
     if (type === "liens") Object.assign(p, { slogan: "", whatsapp: "", localisation: "", liens: [{ titre: "Instagram", url: "" }] });
     return p;
   }
-  function nouveau(type) {
+  async function nouveau(type) {
     const q = { profil: "Nom de la personne (ex. Dr Saib Aziz) :", avis: "Nom du commerce :", wifi: "Nom du commerce (affiché en haut) :", liens: "Nom du commerce ou de la personne :" }[type];
-    const nom = prompt(q, "");
+    // 📋 client existant : tout ce qu'on connaît déjà est rempli
+    let D = null;
+    if (window.NFCW_SOURCES && !PROPRIO) {
+      D = await window.NFCW_SOURCES.choisir(db, `${(TYPES[type] || ["", ""])[0]} Nouveau : ${(TYPES[type] || ["", "page"])[1]}`);
+      if (!D) { if (location.hash.startsWith("#new")) history.replaceState(null, "", "#"); renderListe(); return; }
+      if (D.vide) D = null;
+    }
+    const nom = prompt(q, D ? D.nom : "");
     if (!nom || !nom.trim()) { if (location.hash.startsWith("#new")) location.hash = ""; return; }
     P = base(type, nom); saved = "";
     history.replaceState(null, "", "#e=" + P.slug);
+    if (D) await preRemplir(D);
     renderEdit();
+    if (D) toast("✨ Rempli avec : " + D.trouve.join(", ") + ". Complétez ce qui manque puis Enregistrer.", true);
+  }
+  async function preRemplir(D) {
+    const lien = l => ({ titre: l.titre, url: l.url });
+    const insta = D.instagram ? { titre: "📸 Instagram", url: /^https?:/.test(D.instagram) ? D.instagram : "https://instagram.com/" + D.instagram.replace(/^@/, "") } : null;
+    if (D.couleur) P.couleur = D.couleur;
+    if (P.type === "profil") {
+      ["tel", "whatsapp", "email", "instagram", "facebook", "tiktok", "adresse", "maps"].forEach(k => { if (D[k]) P[k] = D[k]; });
+      if (Object.keys(D.horairesJ || {}).length) P.horaires = Object.assign({}, D.horairesJ);
+      if (D.slogan) P.bio = D.slogan;
+      P.liens = D.liens.filter(l => l.k !== "profil").map(lien);
+    }
+    if (P.type === "avis") { if (D.instagram) P.instagram = D.instagram; if (D.lienGoogle) P.lienGoogle = D.lienGoogle; }
+    if (P.type === "liens") {
+      if (D.slogan) P.slogan = D.slogan; if (D.whatsapp) P.whatsapp = D.whatsapp;
+      P.localisation = D.adresse || D.maps || "";
+      P.liens = [...D.liens.map(lien), ...(insta ? [insta] : [])];
+      if (!P.liens.length) P.liens = [{ titre: "Instagram", url: "" }];
+    }
+    if (D.logo && D.logo.length < 950000) {
+      try { const id = rid(); await db.doc("settings/mimg-" + id).set({ data: D.logo, page: P.slug, maj: NOW() }); IMG[id] = D.logo; P.photo = id; if (P.type === "profil" || P.type === "liens") P.photoContain = true; } catch (e) { console.warn(e); }
+    }
   }
   async function ouvrir(slug) {
     if (!P || P.slug !== slug) {

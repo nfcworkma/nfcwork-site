@@ -237,6 +237,7 @@
     let formule = fp.includes("premium") ? "premium" : fp.includes("pro") ? "pro" : "standard";
     const d = fenetre(`<h2>Nouveau menu</h2><p class="muted">Le lien sera nfcwork.ma/menu/<b id="nm-prev">…</b></p>
       <form class="stack" id="nm">
+        ${window.NFCW_SOURCES ? `<button type="button" class="btn" id="nm-src">📋 Remplir depuis un client existant (carte fidélité, avis…)</button>` : ""}
         <label class="f">Nom du commerce<input id="nm-nom" required maxlength="60" placeholder="Café Chocco Latte"></label>
         <div><div class="eyebrow" style="margin-bottom:6px">Formule</div>${segFormule(formule)}</div>
         <label class="f">Lien du menu<input id="nm-slug" required maxlength="40" pattern="[a-z0-9\\-]+" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
@@ -247,6 +248,9 @@
     const nom = $("#nm-nom", d), sl = $("#nm-slug", d), prev = () => ($("#nm-prev", d).textContent = sl.value || "…");
     if (pre.nom) { nom.value = pre.nom; sl.value = (pre.demo ? "essai-" : "") + slugify(pre.nom); prev(); if (pre.demo) auto = false; }
     nom.oninput = () => { if (auto) sl.value = slugify(nom.value); prev(); };
+    let SRC = null;
+    const bs = $("#nm-src", d);
+    if (bs) bs.onclick = async () => { const D = await window.NFCW_SOURCES.choisir(db, "🍽 Nouveau menu"); if (!D || D.vide) return; SRC = D; nom.value = D.nom; if (auto) sl.value = slugify(D.nom); prev(); bs.textContent = "✅ Rempli avec : " + D.trouve.join(", "); };
     sl.oninput = () => { auto = false; sl.value = sl.value.toLowerCase().replace(/[^a-z0-9-]/g, ""); prev(); };
     d.addEventListener("click", e => { const b = e.target.closest("[data-formule]"); if (b) { formule = b.dataset.formule; d.querySelectorAll("[data-formule]").forEach(x => x.setAttribute("aria-pressed", x === b)); } });
     $("#nm", d).onsubmit = async e => {
@@ -268,6 +272,12 @@
           ...(pre.demo ? { demo7: true, expire: (() => { const d = new Date(); d.setDate(d.getDate() + 7); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })() } : {}),
           categories: formule === "standard" ? [] : [{ id: rid(6), nom: { [lang]: lang === "ar" ? "المشروبات" : lang === "en" ? "Drinks" : "Boissons" }, items: [] }]
         };
+        if (SRC) {
+          const D = SRC, inf = m.infos;
+          inf.tel = inf.tel || D.tel || ""; inf.whatsapp = inf.whatsapp || D.whatsapp || D.tel || ""; inf.instagram = D.instagram || ""; inf.adresse = D.adresse || ""; inf.maps = D.maps || ""; inf.horaires = D.horaires || "";
+          if (D.couleur) m.couleur = D.couleur; if (D.slogan) m.slogan = { [lang]: D.slogan };
+          if (D.logo && D.logo.length < 950000) { try { const id = rid(); await db.doc("settings/mimg-" + id).set({ data: D.logo, menu: s, maj: NOW() }); IMG[id] = D.logo; m.logo = id; } catch (x) {} }
+        }
         await db.doc("settings/menu-" + s).set({ json: JSON.stringify(m), v: String(Date.now()), maj: NOW(), par: user.email });
         liste.push({ slug: s, nom: m.nom, formule, actif: true, maj: Date.now() });
         await ecrireListe();
