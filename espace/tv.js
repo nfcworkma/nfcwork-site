@@ -27,7 +27,7 @@
   const rid = (n = 10) => { const a = "abcdefghijkmnpqrstuvwxyz23456789"; let s = ""; for (let i = 0; i < n; i++) s += a[Math.floor(Math.random() * a.length)]; return s; };
   const slugify = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/&/g, " et ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 
-  let user = null, liste = [], E = null, saved = "";
+  let user = null, liste = [], E = null, saved = "", PROPRIO = null;
   const IMG = {};
   const dirty = () => E && JSON.stringify(E) !== saved;
 
@@ -36,8 +36,13 @@
     user = u;
     if (!u) { renderLogin(); return; }
     if ((u.email || "").toLowerCase() !== ADMIN) {
-      app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Cette page est réservée à l’administrateur NFCWORK.</p><a class="btn" href="./">Retour à l’Espace</a></div>`;
-      return;
+      // ✏️ mode commerçant : seulement ses menus TV (cochés dans sa fiche client)
+      const ok = window.NFCW_PROPRIO && await window.NFCW_PROPRIO(db, u, "tvs", "editTv");
+      if (!ok) { (window.NFCW_REFUS || (a => a.innerHTML = "<div class='empty'><h3>Accès réservé</h3></div>"))(app); return; }
+      PROPRIO = ok; await chargerListe();
+      liste = liste.filter(x => ok.includes(x.slug));
+      if (liste.length === 1 && !location.hash.startsWith("#e=")) history.replaceState(null, "", "#e=" + liste[0].slug);
+      route(); return;
     }
     await chargerListe(); route();
   });
@@ -54,14 +59,14 @@
   }
   function erreur(e) {
     console.error(e);
-    toast(e && e.code === "permission-denied" ? "Refusé par Firebase : connectez-vous avec l’e-mail admin." : "Échec. Vérifiez la connexion et réessayez.", true);
+    toast(e && e.code === "permission-denied" ? (PROPRIO ? "Pas encore autorisé : demandez à NFCWORK d’activer la modification." : "Refusé par Firebase : connectez-vous avec l’e-mail admin.") : "Échec. Vérifiez la connexion et réessayez.", true);
   }
 
   /* ---------- données ---------- */
   async function chargerListe() {
     try { const d = await db.doc("settings/tvs").get(); liste = d.exists ? JSON.parse(d.data().json || "[]") : []; } catch (e) { liste = []; erreur(e); }
   }
-  const ecrireListe = () => db.doc("settings/tvs").set({ json: JSON.stringify(liste), maj: NOW(), par: user.email });
+  const ecrireListe = () => PROPRIO ? Promise.resolve() : db.doc("settings/tvs").set({ json: JSON.stringify(liste), maj: NOW(), par: user.email });
   async function img(id) {
     if (!id || IMG[id]) return IMG[id];
     try { const d = await db.doc("settings/mimg-" + id).get(); if (d.exists) IMG[id] = d.data().data; } catch (e) {}
@@ -74,7 +79,8 @@
   /* ---------- navigation ---------- */
   function route() {
     const m = location.hash.match(/^#e=([a-z0-9-]+)/);
-    if (location.hash === "#nouveau") { history.replaceState(null, "", "#"); renderListe(); nouveau(); return; }
+    if (PROPRIO && m && !PROPRIO.includes(m[1])) { location.hash = ""; return; }
+    if (location.hash === "#nouveau" && !PROPRIO) { history.replaceState(null, "", "#"); renderListe(); nouveau(); return; }
     if (m) ouvrir(m[1]); else renderListe();
   }
   window.addEventListener("hashchange", () => { if (dirty() && !(E && location.hash === "#e=" + E.slug) && !confirm("Modifications non enregistrées : quitter quand même ?")) return; route(); });
@@ -83,12 +89,12 @@
     E = null; saved = "";
     $("#topTitle").textContent = "Menus TV"; $("#topSub").textContent = "PDF → écran TV"; $("#backBtn").href = "./";
     app.innerHTML = `<div class="row between"><div><h2>Menus TV</h2><div class="muted">Importez le PDF du menu : vous obtenez un lien à ouvrir sur la TV, qui défile tout seul, en boucle.</div></div>
-      <button class="btn primary" data-act="nouveau">＋ Nouveau menu TV</button></div>
+      <button class="btn primary" data-act="nouveau" data-adm>＋ Nouveau menu TV</button></div>
       ${liste.length ? `<div class="tvlist sec">${liste.map(t => `<a class="tvrow" href="#e=${esc(t.slug)}" style="text-decoration:none;color:inherit">
           <div class="mini">${t.apercu ? imgTag(t.apercu) : "📺"}</div>
           <div class="tx"><b>${esc(t.nom)}</b><div class="u">nfcwork.ma/tv/${esc(t.slug)} · ${t.n || 0} page${(t.n || 0) > 1 ? "s" : ""}</div></div>
           <span class="btn sm">Ouvrir</span></a>`).join("")}</div>`
-      : `<div class="empty paper sec"><h3>Aucun menu TV</h3><p>Créez le premier : donnez un nom, importez le PDF, copiez le lien.</p><button class="btn primary" data-act="nouveau">＋ Créer un menu TV</button></div>`}`;
+      : `<div class="empty paper sec"><h3>Aucun menu TV</h3><p>Créez le premier : donnez un nom, importez le PDF, copiez le lien.</p><button class="btn primary" data-act="nouveau" data-adm>＋ Créer un menu TV</button></div>`}`;
     remplir();
   }
 
@@ -144,7 +150,7 @@
       <label class="check"><input type="checkbox" data-k="actif" ${E.actif !== false ? "checked" : ""}> Écran en ligne</label>
     </section>
 
-    <section class="sec paper row between"><div><b>Supprimer ce menu TV</b><div class="muted" style="font-size:13px">Le lien ne marchera plus.</div></div><button class="btn sm danger" data-act="supprimer">Supprimer</button></section>
+    <section class="sec paper row between" data-adm><div><b>Supprimer ce menu TV</b><div class="muted" style="font-size:13px">Le lien ne marchera plus.</div></div><button class="btn sm danger" data-act="supprimer">Supprimer</button></section>
     <div class="savebar"><div class="in"><span class="st" id="st"></span><button class="btn primary" data-act="enregistrer" id="saveBtn">Enregistrer</button></div></div>`;
     majBarre(); remplir();
   }
@@ -232,6 +238,7 @@
     b.disabled = true; $("#st").textContent = "Enregistrement…";
     try {
       const avant = saved ? (JSON.parse(saved).pages || []) : [];
+      if (PROPRIO) { if (!saved) throw { code: "permission-denied" }; const s0 = JSON.parse(saved); E.slug = s0.slug; }
       const json = JSON.stringify(E);
       await db.doc("settings/tv-" + E.slug).set({ json, v: String(Date.now()), maj: NOW(), par: user.email });
       const info = { slug: E.slug, nom: E.nom, n: E.pages.length, apercu: E.pages[0] || "", maj: Date.now() };
@@ -274,13 +281,13 @@
     const b = e.target.closest("[data-act]"); if (!b) return;
     const a = b.dataset.act, i = +b.dataset.i;
     const bouge = d => { const j = i + d; if (j < 0 || j >= E.pages.length) return; [E.pages[i], E.pages[j]] = [E.pages[j], E.pages[i]]; renderEdit(); };
-    if (a === "nouveau") nouveau();
+    if (a === "nouveau" && !PROPRIO) nouveau();
     if (a === "nfc") window.NFCW_ECRIRE(lienTV(E.slug), E.nom);
     if (a === "up") bouge(-1);
     if (a === "down") bouge(1);
     if (a === "del" && confirm("Supprimer la page " + (i + 1) + " ?")) { E.pages.splice(i, 1); renderEdit(); }
     if (a === "enregistrer") enregistrer(b);
-    if (a === "supprimer") supprimer();
+    if (a === "supprimer" && !PROPRIO) supprimer();
     if (a === "copier") { const l = lienTV(E.slug); try { await navigator.clipboard.writeText(l); toast("Lien copié ✓"); } catch (x) { prompt("Copiez le lien :", l); } }
   });
   window.addEventListener("beforeunload", e => { if (dirty()) { e.preventDefault(); e.returnValue = ""; } });

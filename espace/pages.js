@@ -41,9 +41,18 @@
   auth.onAuthStateChanged(async u => {
     user = u;
     if (!u) { renderLogin(); return; }
-    if ((u.email || "").toLowerCase() !== ADMIN) { app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Cette page est réservée à l’administrateur NFCWORK.</p><a class="btn" href="./">Retour à l’Espace</a></div>`; return; }
+    if ((u.email || "").toLowerCase() !== ADMIN) {
+      // ✏️ mode commerçant : seulement ses pages (cochées dans sa fiche client)
+      const ok = window.NFCW_PROPRIO && await window.NFCW_PROPRIO(db, u, "pages", "editPages");
+      if (!ok) { (window.NFCW_REFUS || (a => a.innerHTML = "<div class='empty'><h3>Accès réservé</h3></div>"))(app); return; }
+      PROPRIO = ok; await chargerListe();
+      liste = liste.filter(x => ok.includes(x.slug));
+      if (liste.length === 1 && !location.hash.startsWith("#e=")) history.replaceState(null, "", "#e=" + liste[0].slug);
+      route(); return;
+    }
     await chargerListe(); route();
   });
+  let PROPRIO = null;
   function renderLogin() {
     app.innerHTML = `<div class="auth paper"><h2>Connexion</h2><p class="muted">Connectez-vous avec le compte administrateur.</p>
       <form id="lf" class="stack"><label class="f">E-mail<input id="le" type="email" autocomplete="email" required></label>
@@ -51,11 +60,11 @@
       <button class="btn primary">Se connecter</button></form></div>`;
     $("#lf").onsubmit = async e => { e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true; try { await auth.signInWithEmailAndPassword($("#le").value.trim(), $("#lp").value); } catch (x) { $("#lerr").textContent = "E-mail ou mot de passe incorrect."; b.disabled = false; } };
   }
-  function erreur(e) { console.error(e); toast(e && e.code === "permission-denied" ? "Refusé par Firebase : connectez-vous avec l’e-mail admin." : "Échec. Vérifiez la connexion et réessayez.", true); }
+  function erreur(e) { console.error(e); toast(e && e.code === "permission-denied" ? (PROPRIO ? "Pas encore autorisé : demandez à NFCWORK d’activer la modification." : "Refusé par Firebase : connectez-vous avec l’e-mail admin.") : "Échec. Vérifiez la connexion et réessayez.", true); }
 
   /* ---------- données ---------- */
   async function chargerListe() { try { const d = await db.doc("settings/pages").get(); liste = d.exists ? JSON.parse(d.data().json || "[]") : []; } catch (e) { liste = []; erreur(e); } }
-  const ecrireListe = () => db.doc("settings/pages").set({ json: JSON.stringify(liste), maj: NOW(), par: user.email });
+  const ecrireListe = () => PROPRIO ? Promise.resolve() : db.doc("settings/pages").set({ json: JSON.stringify(liste), maj: NOW(), par: user.email });
   async function img(id) {
     if (!id || IMG[id]) return IMG[id];
     try { const d = await db.doc("settings/mimg-" + id).get(); if (d.exists) IMG[id] = d.data().data; } catch (e) {}
@@ -92,24 +101,25 @@
   /* ---------- navigation ---------- */
   function route() {
     const h = location.hash, e = h.match(/^#e=([a-z0-9-]+)/), n = h.match(/^#new=([a-z]+)/);
-    if (e) ouvrir(e[1]); else if (n && TYPES[n[1]]) nouveau(n[1]); else renderListe();
+    if (PROPRIO && e && !PROPRIO.includes(e[1])) { location.hash = ""; return; }
+    if (e) ouvrir(e[1]); else if (n && TYPES[n[1]] && !PROPRIO) nouveau(n[1]); else renderListe();
   }
   window.addEventListener("hashchange", () => { if (dirty() && !(P && location.hash === "#e=" + P.slug) && !confirm("Modifications non enregistrées : quitter quand même ?")) return; route(); });
 
   function renderListe() {
     P = null; saved = "";
-    $("#topTitle").textContent = "Cartes, avis, Wi-Fi"; $("#topSub").textContent = "Créer sans Mac"; $("#backBtn").href = "./";
+    $("#topTitle").textContent = PROPRIO ? "Mes pages" : "Cartes, avis, Wi-Fi"; $("#topSub").textContent = PROPRIO ? "Mon commerce" : "Créer sans Mac"; $("#backBtn").href = "./";
     const q = recherche.toLowerCase();
     const l = liste.filter(x => (filtre === "tous" || x.type === filtre) && (!q || (x.nom + " " + x.slug).toLowerCase().includes(q))).sort((a, b) => (b.maj || 0) - (a.maj || 0));
-    app.innerHTML = `<h2 style="margin-bottom:10px">＋ Créer</h2>
-      <div class="types">${Object.entries(TYPES).map(([k, [ic, n, s]]) => `<button data-new="${k}"><span>${ic}</span><b>${n}</b><small>${s}</small></button>`).join("")}</div>
+    app.innerHTML = `<div data-adm><h2 style="margin-bottom:10px">＋ Créer</h2>
+      <div class="types">${Object.entries(TYPES).map(([k, [ic, n, s]]) => `<button data-new="${k}"><span>${ic}</span><b>${n}</b><small>${s}</small></button>`).join("")}</div></div>
       <div class="row between" style="margin-top:24px"><h2>📋 Mes pages (${liste.length})</h2></div>
       <input id="rech" placeholder="🔎 Chercher un nom…" value="${esc(recherche)}" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px">
       <div class="chipsf">${[["tous", "Tout"], ...Object.entries(TYPES).map(([k, v]) => [k, v[0] + " " + v[1]])].map(([k, n]) => `<button class="chip" data-f="${k}" aria-pressed="${filtre === k}">${n}</button>`).join("")}</div>
       ${l.length ? `<div class="plist">${l.map(x => `<a class="prow" href="#e=${esc(x.slug)}"><span class="ph">${x.photo ? imgTag(x.photo) : (TYPES[x.type] || ["📄"])[0]}</span>
         <span class="tx"><b>${esc(x.nom)}</b><div class="u">${(TYPES[x.type] || ["", ""])[1]} · nfcwork.ma/p/${esc(x.slug)}</div></span>${x.actif === false ? '<span class="pill" style="color:var(--warn)">⏸ Pause</span>' : ""}</a>`).join("")}</div>`
       : `<div class="empty paper"><h3>Rien pour l’instant</h3><p>Touchez un bouton en haut pour créer votre première page.</p></div>`}
-      <p class="muted" style="font-size:12.5px;margin-top:16px">ℹ️ Les anciennes pages faites avec l’outil du Mac (nfcworkma.github.io/profils/…) continuent de marcher.</p>`;
+      <p data-adm class="muted" style="font-size:12.5px;margin-top:16px">ℹ️ Les anciennes pages faites avec l’outil du Mac (nfcworkma.github.io/profils/…) continuent de marcher.</p>`;
     remplir();
     const r = $("#rech"); r.oninput = () => { recherche = r.value; const pos = r.selectionStart; renderListe(); const n = $("#rech"); n.focus(); n.setSelectionRange(pos, pos); };
   }
@@ -182,14 +192,14 @@
     app.innerHTML = `
     <section class="sec linkbox" style="margin-top:0"><div class="row between" style="align-items:flex-start;gap:12px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><div style="color:#c5d4ee;font-size:13px">${ic} ${tn} · lien à mettre dans la puce</div><code>${esc(L.replace(/^https?:\/\//, ""))}</code></div>${qr ? `<div class="qr">${qr}</div>` : ""}</div>
       ${!saved ? `<div style="color:#ffd27a;font-size:13px">⚠️ Pas encore enregistrée : touchez « Enregistrer » en bas.</div>` : dirty() ? `<div style="color:#ffd27a;font-size:13px">⚠️ Modifications pas encore enregistrées.</div>` : ""}
-      <div class="acts"><button class="btn sm primary" data-act="copier">📋 Copier le lien</button><button class="btn sm" data-act="nfc">📲 Écrire sur la puce</button><a class="btn sm" href="/p/${esc(P.slug)}" target="_blank" rel="noopener">👀 Voir</a>
-        <a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(P.nom + " : " + L)}">💬 WhatsApp</a><button class="btn sm" data-act="qrpng">⬇️ QR en image</button><button class="btn sm" data-act="dupliquer">📄 Dupliquer</button></div></section>
+      <div class="acts"><button class="btn sm primary" data-act="copier">📋 Copier le lien</button><button class="btn sm" data-act="nfc" data-adm>📲 Écrire sur la puce</button><a class="btn sm" href="/p/${esc(P.slug)}" target="_blank" rel="noopener">👀 Voir</a>
+        <a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(P.nom + " : " + L)}">💬 WhatsApp</a><button class="btn sm" data-act="qrpng">⬇️ QR en image</button><button class="btn sm" data-act="dupliquer" data-adm>📄 Dupliquer</button></div></section>
     ${corps}
     <section class="sec paper stack"><h3>🎨 Style</h3><div class="themes2">${Object.entries(THEMES).map(([k, [n, bg, fg]]) => `<button data-theme="${k}" aria-pressed="${P.theme === k}" style="background:${bg};color:${fg}">${n}</button>`).join("")}</div>
       <label class="f">Couleur principale<input type="color" data-k="couleur" value="${esc(/^#[0-9a-f]{6}$/i.test(P.couleur || "") ? P.couleur : "#2F7BFF")}" style="height:46px;padding:4px"></label>
       <div class="seg" style="grid-template-columns:1fr 1fr"><button type="button" data-lang="fr" aria-pressed="${P.langue !== "ar"}"><b>🇫🇷 Français</b></button><button type="button" data-lang="ar" aria-pressed="${P.langue === "ar"}"><b>🇲🇦 العربية</b></button></div>
-      <label class="check"><input type="checkbox" data-k="actif" ${P.actif !== false ? "checked" : ""}> ✅ Page en ligne (décochez pour la mettre en pause)</label></section>
-    <section class="sec paper row between"><div><b>🗑 Supprimer</b><div class="muted" style="font-size:13px">Le lien ne marchera plus.</div></div><button class="btn sm danger" data-act="supprimer">Supprimer</button></section>
+      <label class="check" data-adm><input type="checkbox" data-k="actif" ${P.actif !== false ? "checked" : ""}> ✅ Page en ligne (décochez pour la mettre en pause)</label></section>
+    <section class="sec paper row between" data-adm><div><b>🗑 Supprimer</b><div class="muted" style="font-size:13px">Le lien ne marchera plus.</div></div><button class="btn sm danger" data-act="supprimer">Supprimer</button></section>
     <div class="savebar"><div class="in"><span class="st" id="st"></span><button class="btn" data-act="apercu">👀 Aperçu</button><button class="btn primary" data-act="enregistrer" id="saveBtn">💾 Enregistrer</button></div></div>`;
     majBarre(); remplir();
   }
@@ -204,6 +214,7 @@
     try {
       const avant = saved ? JSON.parse(saved) : {};
       nettoyer();
+      if (PROPRIO) { if (!saved) throw { code: "permission-denied" }; for (const k of ["slug", "type", "actif"]) if (k in avant) P[k] = avant[k]; else delete P[k]; }
       const json = JSON.stringify(P);
       await db.doc("settings/page-" + P.slug).set({ json, v: String(Date.now()), maj: NOW(), par: user.email });
       const info = { slug: P.slug, nom: P.nom, type: P.type, photo: P.photo || "", actif: P.actif !== false, maj: Date.now() };
@@ -284,10 +295,10 @@
     if (a === "copier") { try { await navigator.clipboard.writeText(lien(P.slug)); toast("📋 Lien copié"); } catch (x) { prompt("Copiez :", lien(P.slug)); } }
     if (a === "nfc") { if (!saved) toast("Enregistrez d’abord la page, puis écrivez la puce.", true); window.NFCW_ECRIRE(lien(P.slug), P.nom); }
     if (a === "qrpng") qrPng();
-    if (a === "dupliquer") dupliquer();
+    if (a === "dupliquer" && !PROPRIO) dupliquer();
     if (a === "apercu") apercu();
     if (a === "enregistrer") enregistrer(b);
-    if (a === "supprimer") supprimer();
+    if (a === "supprimer" && !PROPRIO) supprimer();
     if (a === "photo-del") { P.photo = ""; renderEdit(); }
     if (a === "g-del") { P.galerie.splice(i, 1); renderEdit(); }
     if (a === "l-add") { P.liens = P.liens || []; P.liens.push({ titre: "", url: "" }); renderEdit(); }
