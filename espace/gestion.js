@@ -104,9 +104,11 @@
       <div class="section-head" style="margin-top:10px"><h3>📱 Ses produits (${P.length})</h3><button class="btn sm" data-creer>＋ Créer</button></div>
       ${P.length ? `<div class="list">${P.map(([i, t, s, h]) => `<a class="item" href="${esc(h)}" ${/^https?:/.test(h) ? 'target="_blank" rel="noopener"' : ""} style="text-decoration:none"><div class="avatar" style="font-size:18px">${i}</div><div class="main"><div class="t">${esc(t)}</div><div class="s">${esc(s)}</div></div></a>`).join("")}</div>`
         : `<p class="muted" style="font-size:13.5px">Aucun produit trouvé avec le nom « ${esc(c.name)} ». Astuce : donnez au menu ou à la carte le même nom que le client.</p>`}
+      <div id="gVentes"></div>
       <div id="gAcces"></div>
       ${ab.length ? `<div class="section-head" style="margin-top:10px"><h3>🔁 Abonnements</h3><a class="btn sm ghost" href="abonnements.html">Gérer</a></div>
         <div class="list">${ab.map(a => { const j = ecart(a.echeance); return `<div class="item" style="cursor:default"><div class="avatar">🔁</div><div class="main"><div class="t">${esc(a.libelle || a.service)} · ${prix(a.prix)} DH/mois</div><div class="s">${a.actif === false ? "⏸ arrêté" : j < 0 ? `⚠️ en retard de ${-j} j` : "prochaine échéance " + frDate(a.echeance)}</div></div></div>`; }).join("")}</div>` : ""}`;
+    const gv = document.getElementById("gVentes"); if (gv && window.NFCW_VENTES) window.NFCW_VENTES.client(c, gv);
     const ga = document.getElementById("gAcces"); if (ga && window.NFCW_MC) window.NFCW_MC.admin(c, ga);
   }
 

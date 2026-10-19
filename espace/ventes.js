@@ -57,24 +57,48 @@
       <button class="btn primary block" id="vnew" style="margin:12px 0">＋ Nouvelle vente</button>
       <input id="vq" type="search" placeholder="🔎 Client, produit…" value="${esc(recherche)}" style="width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px">
       <div class="vf">${[["jour", "Aujourd’hui"], ["mois", "Ce mois"], ["tout", "Tout"], ["reste", "À encaisser"]].map(([k, n]) => `<button data-vf="${k}" aria-pressed="${filtre === k}">${n}</button>`).join("")}</div>
-      ${topP.length ? `<div class="vtop"><div><b>🏆 Produits</b>${topP.map(([n, [qq, s]]) => `<span><em>${qq} × ${esc(n)}</em><strong>${dh(s)}</strong></span>`).join("")}</div>
-        <div><b>👥 Clients</b>${topC.map(([n, s]) => `<span><em>${esc(n)}</em><strong>${dh(s)}</strong></span>`).join("")}</div></div>` : ""}
-      <div class="stack" style="gap:8px;margin-top:10px">${L.length ? L.map(v => { const r = reste(v); return `<button class="vrow" data-vid="${esc(v.id)}"><div style="flex:1;min-width:0;text-align:start"><b>${esc(v.client || "Client")}</b>
-          <small>${frD(v.date)} · ${esc((v.lignes || []).map(l => (l.q > 1 ? l.q + " × " : "") + l.nom).join(", "))}</small></div>
-          <div style="text-align:end"><b>${dh(total(v))}</b>${r ? `<small class="r">reste ${dh(r)}</small>` : `<small class="ok">✅ payé</small>`}</div></button>`; }).join("")
-        : `<p class="muted" style="text-align:center">Aucune vente ici. Touchez « Nouvelle vente ».</p>`}</div>
+      <div class="stack" style="gap:8px;margin-top:10px">${parClient(L)}</div>
       ${L.length ? `<p class="muted" style="text-align:center;font-size:13px;margin-top:10px">Sélection : <b>${dh(somme(L))}</b> · ${nb(L.length)}</p>` : ""}
-      <button class="btn ghost block" id="vcsv" style="margin-top:6px">⬇️ Exporter (Excel / CSV)</button>`);
+`);
     document.getElementById("vnew").onclick = () => editer(null);
     const qi = document.getElementById("vq"); qi.oninput = () => { recherche = qi.value; const p = qi.selectionStart; dessiner(); const n = document.getElementById("vq"); n.focus(); n.setSelectionRange(p, p); };
     document.querySelectorAll("[data-vf]").forEach(b => b.onclick = () => { filtre = b.dataset.vf; dessiner(); });
-    document.querySelectorAll("[data-vid]").forEach(b => b.onclick = () => editer(V.find(v => v.id === b.dataset.vid)));
-    document.getElementById("vcsv").onclick = () => exporter(L);
+    document.querySelectorAll("[data-vcl]").forEach(b => b.onclick = () => { const S = A().S || {}, c = (S.clients || []).find(x => x.name === b.dataset.vcl); if (c && A().clientView) { A().closeModal && A().closeModal(); A().clientView(c); } else { recherche = b.dataset.vcl; dessiner(); } });
   }
 
-  function editer(v0) {
+  // une carte par client : ce qu'il a acheté, payé, reste
+  function parClient(L) {
+    if (!L.length) return `<p class="muted" style="text-align:center">Aucune vente ici. Touchez « Nouvelle vente ».</p>`;
+    const G = {};
+    L.forEach(v => { const k = v.client || "Client"; (G[k] = G[k] || []).push(v); });
+    return Object.entries(G).sort((a, b) => b[1].reduce((s, v) => s + total(v), 0) - a[1].reduce((s, v) => s + total(v), 0)).map(([n, vs]) => {
+      const t = vs.reduce((s, v) => s + total(v), 0), p = vs.reduce((s, v) => s + (+v.paye || 0), 0), r = vs.reduce((s, v) => s + reste(v), 0);
+      const prods = {}; vs.forEach(v => (v.lignes || []).forEach(l => prods[l.nom] = (prods[l.nom] || 0) + (+l.q || 0)));
+      return `<button class="vrow" data-vcl="${esc(n)}"><div style="flex:1;min-width:0;text-align:start"><b>👤 ${esc(n)}</b>
+        <small>${esc(Object.entries(prods).map(([k, q]) => (q > 1 ? q + " × " : "") + k).join(", "))}</small><small>Payé ${dh(p)}</small></div>
+        <div style="text-align:end"><b>${dh(t)}</b>${r ? `<small class="r">reste ${dh(r)}</small>` : `<small class="ok">✅ payé</small>`}</div></button>`;
+    }).join("");
+  }
+
+  // 📦 dans la fiche client : ce qu'on lui a vendu
+  async function client(c, box) {
+    if (V === null && !(await charger())) { box.innerHTML = `<div class="section-head" style="margin-top:14px"><h3>💰 Ce qu’il a acheté</h3></div><button class="btn block" id="vrg">🔒 Activer le suivi des ventes</button>`; box.querySelector("#vrg").onclick = regle; return; }
+    const nm = String(c.name || "").toLowerCase(), L = V.filter(v => v.clientId === c.id || String(v.client || "").toLowerCase() === nm);
+    const t = L.reduce((s, v) => s + total(v), 0), p = L.reduce((s, v) => s + (+v.paye || 0), 0), r = t - p > 0 ? t - p : 0;
+    box.innerHTML = `<div class="section-head" style="margin-top:14px"><h3>💰 Ce qu’il a acheté</h3></div>
+      <div class="vk" style="grid-template-columns:1fr 1fr 1fr"><div><small>Total</small><b>${dh(t)}</b></div><div><small>Payé</small><b style="color:var(--ok,#30a46c)">${dh(p)}</b></div><div class="${r ? "bad" : ""}"><small>Reste</small><b>${dh(r)}</b></div></div>
+      <div class="stack" style="gap:8px;margin:10px 0">${L.map(v => { const rr = reste(v); return `<button class="vrow" data-vfid="${esc(v.id)}"><div style="flex:1;min-width:0;text-align:start"><b>${esc((v.lignes || []).map(l => (l.q > 1 ? l.q + " × " : "") + l.nom).join(", "))}</b><small>${frD(v.date)}${v.note ? " · " + esc(v.note) : ""}</small></div>
+        <div style="text-align:end"><b>${dh(total(v))}</b>${rr ? `<small class="r">reste ${dh(rr)}</small>` : `<small class="ok">✅ payé</small>`}</div></button>`; }).join("") || `<p class="muted" style="margin:0">Rien encore.</p>`}</div>
+      <button class="btn primary block" id="vfnew">＋ Ajouter une vente pour ${esc(c.name || "ce client")}</button>`;
+    const retour = () => { A().clientView ? A().clientView(c) : dessiner(); };
+    box.querySelector("#vfnew").onclick = () => editer(null, { client: c.name, clientId: c.id }, retour);
+    box.querySelectorAll("[data-vfid]").forEach(b => b.onclick = () => editer(V.find(v => v.id === b.dataset.vfid), null, retour));
+  }
+
+  function editer(v0, pre, apres) {
+    apres = apres || dessiner;
     const ap = A(), S = ap.S || {};
-    const v = v0 ? JSON.parse(JSON.stringify(v0)) : { client: "", clientId: "", date: auj(), lignes: [{ nom: "", q: 1, p: 0 }], paye: null, mode: "Espèces", note: "" };
+    const v = v0 ? JSON.parse(JSON.stringify(v0)) : { client: (pre && pre.client) || "", clientId: (pre && pre.clientId) || "", date: auj(), lignes: [{ nom: "", q: 1, p: 0 }], paye: null, mode: "Espèces", note: "" };
     const draw = () => {
       const tot = total(v);
       ap.openModal(`${ap.head(v0 ? "✏️ Modifier la vente" : "＋ Nouvelle vente")}
@@ -108,9 +132,9 @@
       });
       document.getElementById("v-add").onclick = () => { lire(); v.lignes.push({ nom: "", q: 1, p: 0 }); draw(); };
       document.querySelectorAll("[data-lx]").forEach(b => b.onclick = () => { lire(); v.lignes.splice(+b.dataset.lx, 1); if (!v.lignes.length) v.lignes.push({ nom: "", q: 1, p: 0 }); draw(); });
-      document.getElementById("v-back").onclick = () => dessiner();
+      document.getElementById("v-back").onclick = () => apres();
       const del = document.getElementById("v-del");
-      if (del) del.onclick = async () => { if (!confirm("Supprimer cette vente ?")) return; try { await ap.fs.doc("ventes/" + v0.id).delete(); V = V.filter(x => x.id !== v0.id); ap.toast("Vente supprimée"); dessiner(); } catch (e) { ap.toast("Échec.", true); } };
+      if (del) del.onclick = async () => { if (!confirm("Supprimer cette vente ?")) return; try { await ap.fs.doc("ventes/" + v0.id).delete(); V = V.filter(x => x.id !== v0.id); ap.toast("Vente supprimée"); apres(); } catch (e) { ap.toast("Échec.", true); } };
       f.onsubmit = async e => {
         e.preventDefault(); lire();
         v.lignes = v.lignes.filter(l => l.nom || +l.p);
@@ -121,19 +145,11 @@
         try {
           if (v0) { await ap.fs.doc("ventes/" + v0.id).set(Object.assign({ cree: v0.cree || data.maj }, data)); Object.assign(v0, data); }
           else { const r = ap.fs.collection("ventes").doc(); data.cree = data.maj; await r.set(data); V.unshift({ id: r.id, ...data }); V.sort((a, b) => String(b.date).localeCompare(String(a.date))); }
-          ap.toast("✅ Vente enregistrée : " + dh(data.total)); dessiner();
+          ap.toast("✅ Vente enregistrée : " + dh(data.total)); apres();
         } catch (x) { console.error(x); if (x && x.code === "permission-denied") regle(); else ap.toast("Échec de l’enregistrement.", true); }
       };
     };
     draw();
-  }
-
-  function exporter(L) {
-    const c = s => `"${String(s == null ? "" : s).replace(/"/g, '""')}"`;
-    const rows = [["Date", "Client", "Produit", "Quantité", "Prix", "Montant", "Total vente", "Payé", "Reste", "Paiement", "Note"]];
-    L.forEach(v => (v.lignes || []).forEach((l, i) => rows.push([v.date, v.client, l.nom, l.q, l.p, l.q * l.p, i ? "" : total(v), i ? "" : v.paye, i ? "" : reste(v), i ? "" : v.mode, i ? "" : v.note])));
-    const blob = new Blob(["﻿" + rows.map(r => r.map(c).join(";")).join("\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ventes-nfcwork-" + auj() + ".csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
   document.addEventListener("click", e => { const b = e.target.closest("[data-g='ventes']"); if (b) { e.preventDefault(); e.stopPropagation(); ouvrir(); } }, true);
@@ -145,5 +161,5 @@
     .vl{display:grid;grid-template-columns:minmax(0,1fr) 54px 76px 32px;gap:5px;align-items:center;margin-bottom:5px}.vl input{min-width:0;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:15px}.vl button{border:0;background:none;color:var(--muted);font-size:16px}.vlh span{font-size:11.5px;color:var(--muted)}
     .vtot{font-size:16px;text-align:end}.vtot b{font-size:22px}`;
   document.head.appendChild(st);
-  window.NFCW_VENTES = { ouvrir };
+  window.NFCW_VENTES = { ouvrir, client };
 })();
