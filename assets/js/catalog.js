@@ -71,7 +71,7 @@ const CATALOG = [
    {k:"a4",n:"A4 · 21 × 29,7 cm",p:499,launch:1,f:{ar:["إضاءة LED قوية","تصميم مخصص لنشاطك","تركيب سهل","استهلاك منخفض"],fr:["Éclairage LED puissant","Visuel personnalisé","Installation simple","Faible consommation"]}},
    {k:"a3",n:"A3 · 29,7 × 42 cm",p:699,launch:1,rec:1,f:{ar:["إضاءة LED قوية","تصميم مخصص لنشاطك","رؤية أكبر ووضوح أعلى","تركيب سهل"],fr:["Éclairage LED puissant","Visuel personnalisé","Grande visibilité","Installation simple"]}}]},
 
- {id:"packs", img:"assets/img/packs.jpg",
+ {id:"packs", img:"",
   name:{ar:"الباقات",fr:"Packs"},
   short:{ar:"حلول متكاملة بثمن أحسن",fr:"Solutions complètes, meilleur prix"},
   intro:{ar:"باقات متكاملة بثمن أحسن، مع تصميم وإعداد كامل.",fr:"Des solutions complètes à meilleur prix, design et configuration inclus."},

@@ -36,7 +36,7 @@ function status(inv){
   return["sent","Envoyée"];
 }
 /* images produits du site (assets/img/) proposées pour les services */
-const IMAGES=[["assets/img/carte.jpg","Carte de visite NFC"],["assets/img/google.jpg","Plaque avis Google"],["assets/img/menu.jpg","Menu digital NFC + QR"],["assets/img/wifi.jpg","Plaque Wi-Fi"],["assets/img/produits/cle-nfc-cover.webp","Clé NFC"],["assets/img/led.jpg","Caisson LED"],["assets/img/packs.jpg","Packs"]];
+const IMAGES=[["assets/img/carte.jpg","Carte de visite NFC"],["assets/img/google.jpg","Plaque avis Google"],["assets/img/menu.jpg","Menu digital NFC + QR"],["assets/img/wifi.jpg","Plaque Wi-Fi"],["assets/img/produits/cle-nfc-cover.webp","Clé NFC"],["assets/img/led.jpg","Caisson LED"],];
 const imgSrc=p=>IMAGES.some(x=>x[0]===p)?"../"+p:"";
 /* commandes */
 const OSTEPS=[["new","Nouvelle"],["confirmed","Confirmée"],["preparing","En préparation"],["ready","Prête"],["delivered","Livrée"]];
