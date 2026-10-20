@@ -15,7 +15,7 @@
    "whatsapp": "0620666027"
   },
   "commande": true,
-  "couverture": "u:1504754524776-8f4f37790ca0",
+  "couverture": "/menu/demo/cover-cafe.jpg",
   "categories": [],
   "langues": [
    "fr"
@@ -44,7 +44,7 @@
    "whatsapp": "0620666027"
   },
   "commande": true,
-  "couverture": "u:1504754524776-8f4f37790ca0",
+  "couverture": "/menu/demo/cover-cafe.jpg",
   "categories": [
    {
     "id": "chaud",
@@ -271,7 +271,7 @@
    "whatsapp": "0620666027"
   },
   "commande": true,
-  "couverture": "u:1504754524776-8f4f37790ca0",
+  "couverture": "/menu/demo/cover-cafe.jpg",
   "categories": [
    {
     "id": "chaud",
@@ -844,7 +844,7 @@
    "whatsapp": "0620666027"
   },
   "commande": true,
-  "couverture": "u:1504754524776-8f4f37790ca0",
+  "couverture": "/menu/demo/cover-cafe.jpg",
   "categories": [
    {
     "id": "pd",
