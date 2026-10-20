@@ -8,11 +8,7 @@
 const VERSION = "v46";
 const CACHE = "nfcwork-" + VERSION;
 const CORE = [
-  "./", "index.html", "produits.html", "commande.html", "contact.html",
-  "reclamation.html", "a-propos.html", "faq.html", "conditions.html",
-  "assets/css/style.css", "assets/js/config.js", "assets/js/catalog.js",
-  "assets/js/i18n.js", "assets/js/app.js", "assets/js/solutions.js", "solutions.html", "assets/img/logo.png", "assets/img/logo-nfcwork.png",
-  "assets/img/logo-nfcwork-blanc.png", "manifest.json"
+  "./", "index.html", "assets/img/logo-nfcwork.png", "assets/img/logo-nfcwork-blanc.png", "manifest.json"
 ];
 
 self.addEventListener("install", e => {

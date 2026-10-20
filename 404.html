@@ -10,6 +10,8 @@
   // nfcwork.ma/menu/<nom> → page du menu digital ; nfcwork.ma/q/<CODE> → stand QR
   (function () {
     var path = decodeURIComponent(location.pathname).replace(/[\s*)\]}>.,;:!'"`]+$/, "");   // tolère « **), espace » collés au lien
+    // anciennes pages (produits, solutions, commande, contact…) → accueil
+    if (/^\/(produits|solutions|commande|contact|reclamation|a-propos|faq|conditions)(\.html)?\/?$/i.test(path)) { location.replace("/"); return; }
     var m = path.match(/^\/menu\/([a-z0-9-]+)\/?$/i);
     if (m) location.replace("/menu/?m=" + m[1].toLowerCase() + (location.search ? "&" + location.search.slice(1) : "") + location.hash);
     // nfcwork.ma/p/<nom> → carte digitale, avis Google, Wi-Fi ou page liens créés dans l'Espace
