@@ -13,54 +13,53 @@
 <meta property="og:description" content="Menu digital, carte fidélité, avis Google et cartes NFC pour les commerces au Maroc.">
 <meta property="og:url" content="https://nfcwork.ma/"><meta property="og:image" content="https://nfcwork.ma/assets/img/icons/icon-512.png"><meta property="og:locale" content="fr_MA">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"NFCWORK","alternateName":["NFC WORK","nfcwork.ma"],"url":"https://nfcwork.ma/","logo":"https://nfcwork.ma/assets/img/logo-nfcwork.png","image":"https://nfcwork.ma/assets/img/icons/icon-512.png","description":"Menu digital avec commande WhatsApp, carte fidélité digitale, plaques avis Google, cartes de visite NFC au Maroc.","telephone":"+212620666027","email":"nfcworkmacontact@gmail.com","address":{"@type":"PostalAddress","addressLocality":"Kénitra","addressCountry":"MA"},"areaServed":{"@type":"Country","name":"Maroc"}}</script>
-<meta name="theme-color" content="#05080f">
+<meta name="theme-color" content="#f8f4ec">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
-:root{--bg:#05080f;--bg2:#0a1020;--card:#0e1628;--line:#1c2742;--fg:#e9effa;--mut:#93a3be;--blue:#2f7bff;--cyan:#3fd0ff;--wa:#25d366;--r:20px}
+:root{--bg:#f8f4ec;--bg2:#f1ebdf;--card:#ffffff;--line:#e6ddcc;--fg:#18202f;--mut:#5f6b7f;--blue:#1f6bff;--cyan:#12a8e0;--wa:#1fbf5b;--r:22px;--navy:#0e1b33}
 *{box-sizing:border-box}html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:"Readex Pro",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
 [dir=rtl] body{font-family:"IBM Plex Sans Arabic","Readex Pro",system-ui,sans-serif}
 a{color:inherit;text-decoration:none}img{max-width:100%;display:block}
 .wrap{width:min(1120px,100%);margin:0 auto;padding:0 18px}
 /* barre */
-.top{position:sticky;top:0;z-index:20;background:rgb(5 8 15/.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.top{position:sticky;top:0;z-index:20;background:rgb(248 244 236/.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;gap:10px;height:62px}
 .top .logo img{height:24px;width:auto}.top .sp{flex:1}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-weight:600;font-size:15px;cursor:pointer;white-space:nowrap}
 .btn.sm{padding:8px 12px;font-size:13.5px;border-radius:11px}
-.btn.wa{background:var(--wa);border-color:var(--wa);color:#04210f}
+.btn.wa{background:var(--wa);border-color:var(--wa);color:#fff}
 .btn.pri{background:linear-gradient(135deg,var(--blue),var(--cyan));border-color:transparent;color:#fff}
 .btn.lg{padding:15px 22px;font-size:16px;border-radius:16px}
 .btn svg{width:18px;height:18px;flex:none}
 .lang{background:none;border:1px solid var(--line);color:var(--mut);border-radius:11px;padding:8px 10px;font:inherit;font-size:13.5px;cursor:pointer}
 @media(max-width:560px){.top .hide-s{display:none}}
 /* hero */
-.hero{position:relative;overflow:hidden;padding:56px 0 40px}
-.hero:before{content:"";position:absolute;inset:-30% -10% auto;height:620px;background:radial-gradient(closest-side,rgb(47 123 255/.30),transparent),radial-gradient(closest-side at 80% 30%,rgb(63 208 255/.18),transparent);pointer-events:none}
+.hero{position:relative;overflow-x:clip;padding:48px 0 30px}
+body{overflow-x:hidden}
+.hero:before{content:"";position:absolute;inset:-20% -10% auto;height:640px;background:radial-gradient(closest-side at 75% 40%,rgb(242 163 58/.22),transparent),radial-gradient(closest-side at 20% 20%,rgb(31 107 255/.12),transparent);pointer-events:none}
 .hero .wrap{position:relative;display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center}
 @media(max-width:860px){.hero .wrap{grid-template-columns:1fr}.phone{width:220px;height:440px}}
-.kick{display:inline-flex;gap:8px;align-items:center;font-size:13px;color:var(--cyan);border:1px solid rgb(63 208 255/.35);background:rgb(63 208 255/.08);padding:6px 12px;border-radius:30px;font-weight:600}
+.kick{display:inline-flex;gap:8px;align-items:center;font-size:13px;color:var(--blue);border:1px solid rgb(31 107 255/.25);background:#fff;padding:6px 12px;border-radius:30px;font-weight:600}
 h1{font-size:clamp(34px,6.4vw,58px);line-height:1.06;margin:16px 0 14px;letter-spacing:-.02em}
 h1 em{font-style:normal;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
 .lead{color:var(--mut);font-size:17.5px;max-width:560px;margin:0 0 22px}
 .cta{display:flex;gap:10px;flex-wrap:wrap}
-.trust{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:22px;color:var(--mut);font-size:14px}.trust span:before{content:"✓ ";color:var(--wa)}
-/* téléphone */
-.mock{display:flex;justify-content:center}
-.phone{width:250px;height:500px;border-radius:40px;background:#0b0f1a;border:8px solid #1a2134;box-shadow:0 40px 90px rgb(0 0 0/.55),0 0 0 1px #2a3550;position:relative;overflow:hidden;animation:fl 6s ease-in-out infinite}
-@keyframes fl{50%{transform:translateY(-10px)}}
-.phone .sc{position:absolute;inset:0;padding:22px 14px;display:flex;flex-direction:column;gap:9px;background:linear-gradient(180deg,#141c30,#0b0f1a)}
-.phone .cv{height:96px;border-radius:16px;background:linear-gradient(135deg,#c8102e,#f2a33a);display:grid;place-items:center;font-size:40px}
-.phone b{font-size:17px;text-align:center;margin-top:2px}.phone small{color:var(--mut);text-align:center;font-size:11.5px;margin-top:-6px}
-.phone .it{display:flex;gap:9px;align-items:center;background:#141d33;border-radius:12px;padding:8px}.phone .it i{width:38px;height:38px;border-radius:9px;background:#24304d;display:grid;place-items:center;font-style:normal;font-size:20px;flex:none}
-.phone .it div{flex:1;font-size:12px;line-height:1.3}.phone .it div em{display:block;color:var(--mut);font-style:normal;font-size:10.5px}
-.phone .it span{font-size:11px;background:var(--wa);color:#04210f;border-radius:8px;padding:4px 7px;font-weight:700}
-.phone .go{margin-top:auto;background:var(--wa);color:#04210f;border-radius:12px;text-align:center;padding:10px;font-weight:700;font-size:13px}
-.tap{position:absolute;margin:0;display:grid;place-items:center}
+.trust{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:22px;color:var(--mut);font-size:14px}.trust span:before{content:"✓ ";color:var(--wa);font-weight:700}
+/* téléphones (vraies captures) */
+.mock{position:relative;height:600px;display:flex;justify-content:center}
+.ph{position:absolute;width:250px;border-radius:38px;background:#111;padding:9px;box-shadow:0 30px 70px rgb(24 32 47/.28),0 0 0 1px #2a2f3a}
+.ph img{border-radius:30px;width:100%;height:auto;aspect-ratio:1/2;object-fit:cover;object-position:top}
+.ph.a{left:50%;transform:translateX(-62%) rotate(-4deg);top:10px;z-index:2;animation:fl 7s ease-in-out infinite}
+.ph.b{left:50%;transform:translateX(-2%) rotate(5deg);top:60px;width:210px}
+@keyframes fl{50%{transform:translateX(-62%) rotate(-4deg) translateY(-10px)}}
+.bub{position:absolute;z-index:3;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 14px;font-size:13.5px;font-weight:600;box-shadow:0 12px 30px rgb(24 32 47/.15);display:flex;gap:8px;align-items:center}
+.bub.x{left:2%;top:70%}.bub.y{right:0;top:12%}
+@media(max-width:860px){.mock{height:500px}.ph{width:210px}.ph.b{width:180px}.bub.x{left:0}}
 /* sections */
 .sec{padding:54px 0}.sec.alt{background:var(--bg2);border-block:1px solid var(--line)}
 .sh{max-width:680px;margin-bottom:26px}.sh.c{text-align:center;margin-inline:auto}
@@ -70,18 +69,24 @@ h2{font-size:clamp(26px,4.4vw,40px);line-height:1.12;margin:8px 0 10px;letter-sp
 /* services */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.grid{grid-template-columns:1fr}}
-.sv{position:relative;display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);overflow:hidden}
-.sv:after{content:"";position:absolute;inset:auto -40px -60px auto;width:160px;height:160px;border-radius:50%;background:var(--g,rgb(47 123 255/.18));filter:blur(30px);pointer-events:none}
-.sv .ic{width:52px;height:52px;border-radius:15px;display:grid;place-items:center;font-size:27px;background:var(--gi,rgb(47 123 255/.16))}
-.sv h3{margin:2px 0 0;font-size:19px}.sv p{margin:0;color:#aebbd3;font-size:14.5px;flex:1}
-.sv ul{margin:0;padding:0;list-style:none;display:grid;gap:4px;font-size:13.5px}.sv li:before{content:"✓ ";color:var(--cyan)}
-[dir=rtl] .sv:after{inset:auto auto -60px -40px}
+.sv{position:relative;display:flex;flex-direction:column;gap:10px;padding:0 0 20px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);overflow:hidden;box-shadow:0 8px 24px rgb(24 32 47/.06)}
+.sv>*:not(.pic){margin-inline:20px}
+.pic{height:210px;background:var(--g);display:flex;justify-content:center;align-items:flex-end;overflow:hidden;position:relative}
+.pic img{width:150px;border-radius:22px 22px 0 0;border:7px solid #111;border-bottom:0;aspect-ratio:1/1.25;object-fit:cover;object-position:top;box-shadow:0 10px 30px rgb(24 32 47/.25)}
+.pic.w{align-items:center}.pic.w img{width:auto;max-width:88%;max-height:170px;object-fit:contain;border:0;border-radius:14px;aspect-ratio:auto;margin:0}
+.pic.e{align-items:center;font-size:74px}
+.pic .ic{position:absolute;top:14px;inset-inline-start:14px;margin:0}
+
+.sv .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:#fff;box-shadow:0 4px 12px rgb(24 32 47/.12)}
+.sv h3{margin:6px 0 0;font-size:19px}.sv p{margin:0;color:var(--mut);font-size:14.5px;flex:1}
+.sv ul{margin:0;padding:0;list-style:none;display:grid;gap:4px;font-size:13.5px}.sv li:before{content:"✓ ";color:var(--wa);font-weight:700}
+
 .sv .ac{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;position:relative;z-index:1}
 .sv.big{grid-column:span 2}@media(max-width:600px){.sv.big{grid-column:auto}}
-.tag{position:absolute;top:14px;inset-inline-end:14px;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:20px;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff}
+.tag{position:absolute;z-index:2;top:14px;inset-inline-end:14px;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:20px;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff}
 /* métiers */
 .mt{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
-.mt a{display:flex;align-items:center;gap:8px;padding:11px 16px;border-radius:30px;background:var(--card);border:1px solid var(--line);font-weight:500;font-size:15px}
+.mt a{display:flex;align-items:center;gap:8px;padding:11px 16px;border-radius:30px;background:var(--card);border:1px solid var(--line);font-weight:500;font-size:15px;box-shadow:0 4px 12px rgb(24 32 47/.05)}
 .mt a:hover{border-color:var(--blue)}
 /* étapes */
 .st{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;counter-reset:s}
@@ -91,10 +96,10 @@ h2{font-size:clamp(26px,4.4vw,40px);line-height:1.12;margin:8px 0 10px;letter-sp
 .st b{display:block;font-size:16.5px;margin-bottom:4px}.st p{margin:0;color:var(--mut);font-size:14.5px}
 /* pourquoi */
 .why{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media(max-width:760px){.why{grid-template-columns:1fr}}
-.why div{padding:18px 20px;border-radius:var(--r);border:1px solid var(--line);background:linear-gradient(180deg,var(--card),transparent)}
+.why div{padding:18px 20px;border-radius:var(--r);border:1px solid var(--line);background:var(--card)}
 .why b{display:block;font-size:16.5px;margin:6px 0 4px}.why p{margin:0;color:var(--mut);font-size:14.5px}.why span{font-size:26px}
 /* cta final */
-.fin{border-radius:28px;padding:34px 26px;background:linear-gradient(135deg,#0f2a66,#0b1430 60%);border:1px solid #23407e;display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.fin{border-radius:28px;padding:34px 26px;background:linear-gradient(135deg,#0e1b33,#1f3f86);border:0;color:#fff;display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .fin h2{margin:0 0 6px}.fin p{margin:0;color:#c5d4ee}
 .cli{display:flex;gap:14px;align-items:center;padding:18px 20px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);margin-top:14px;flex-wrap:wrap}
 .cli div{flex:1;min-width:200px}.cli b{display:block}.cli p{margin:0;color:var(--mut);font-size:14px}
@@ -103,6 +108,8 @@ footer .wrap{display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between;
 footer nav{display:flex;gap:16px;flex-wrap:wrap}
 .fab{position:fixed;bottom:18px;inset-inline-end:18px;z-index:30;width:58px;height:58px;border-radius:50%;background:var(--wa);display:grid;place-items:center;box-shadow:0 10px 30px rgb(0 0 0/.4)}
 .fab svg{width:30px;height:30px;color:#fff}
+.top .logo img,footer img{filter:none}
+.fc{width:220px;margin:0 0 18px;border-radius:18px;padding:16px;background:linear-gradient(135deg,#1f6bff,#12a8e0);color:#fff;box-shadow:0 14px 30px rgb(31 107 255/.35);font-size:13px}.fc b{display:block;font-size:17px}.fc .pts{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:8px 0 6px}.fc .pts i{aspect-ratio:1;border-radius:50%;background:rgb(255 255 255/.25);display:grid;place-items:center;font-style:normal;font-size:13px}.fc .pts i.on{background:#fff;color:#1f6bff}
 .rv{opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}.rv.on{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.phone{animation:none}.rv{opacity:1;transform:none;transition:none}}
 </style>
@@ -130,14 +137,13 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap}
     </div>
     <div class="trust"><span data-fr="Sans application" data-ar="بلا تطبيق">Sans application</span><span data-fr="Au logo de votre commerce" data-ar="باللوغو ديالك">Au logo de votre commerce</span><span data-fr="Installation sur place" data-ar="التركيب فـ المحل">Installation sur place</span><span data-fr="Support WhatsApp" data-ar="دعم فـ واتساب">Support WhatsApp</span></div>
   </div>
-  <div class="mock" aria-hidden="true"><div class="phone"><div class="sc">
-    <div class="cv">🍔</div><b>Votre Restaurant</b><small data-fr="Menu · commande WhatsApp" data-ar="المنيو · الطلب فـ واتساب">Menu · commande WhatsApp</small>
-    <div class="it"><i>🥙</i><div>Doner spécial<em data-fr="Pain maison, frites" data-ar="خبز الدار، فريت">Pain maison, frites</em></div><span>＋</span></div>
-    <div class="it"><i>🌯</i><div>Tacos poulet<em data-fr="Sauce maison" data-ar="صوص الدار">Sauce maison</em></div><span>＋</span></div>
-    <div class="it"><i>🍹</i><div>Jus frais<em data-fr="Pressé minute" data-ar="معصور فـ الحين">Pressé minute</em></div><span>＋</span></div>
-    <div class="it"><i>🎁</i><div data-fr="Ma carte fidélité" data-ar="كارط الوفاء ديالي">Ma carte fidélité<em>7 / 10</em></div></div>
-    <div class="go" data-fr="Commander sur WhatsApp" data-ar="كوموندي فـ واتساب">Commander sur WhatsApp</div>
-  </div></div></div>
+  <div class="mock" aria-hidden="true">
+    <div class="ph a"><img src="assets/img/site/menu.jpg" alt="" width="390" height="780"></div>
+    <div class="ph b"><img src="assets/img/site/avis.jpg" alt="" width="390" height="780"></div>
+    <div class="bub y">💬 <span data-fr="Nouvelle commande WhatsApp" data-ar="كوموند جديدة فـ واتساب">Nouvelle commande WhatsApp</span></div>
+    <div class="bub x">⭐⭐⭐⭐⭐ <span data-fr="+1 avis Google" data-ar="+1 تقييم Google">+1 avis Google</span></div>
+  </div>
+
 </div></section>
 
 <section class="sec" id="services"><div class="wrap">
@@ -191,15 +197,15 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap}
 (function(){
   const WA="212620666027";
   const SV=[
-    {ic:"🍽",g:"rgb(242 163 58/.22)",tag:{fr:"Le plus demandé",ar:"الأكثر طلباً"},fr:["Menu digital + commande WhatsApp","Votre carte avec photos sur le téléphone du client. Il choisit, la commande arrive sur votre WhatsApp, sans commission.",["Photos, prix, produits épuisés en direct","Livraison, réservation, promos du jour","Plusieurs langues · QR et NFC sur les tables"]],ar:["منيو رقمي + الطلب فـ واتساب","المنيو ديالك بالتصاور فـ التيليفون ديال الزبون. كيختار، والطلب كيوصل لواتساب ديالك، بلا عمولة.",["التصاور، الأثمنة، واللي سالا فـ الحين","التوصيل، الحجز، عروض النهار","بزاف ديال اللغات · QR و NFC على الطوابل"]],demo:"/menu/demo-premium",q:"le menu digital"},
-    {ic:"🎁",g:"rgb(47 123 255/.22)",fr:["Carte fidélité digitale","Une carte à votre logo dans le téléphone du client : 10 visites = 1 offert. Il revient chez vous.",["Sans application, sans carte en papier","Écran caisse : le client scanne seul","Rapport du mois : vos clients fidèles"]],ar:["كارط الوفاء الرقمية","كارط باللوغو ديالك فـ التيليفون ديال الزبون: 10 زيارات = 1 فابور. كيرجع عندك.",["بلا تطبيق، بلا كارط ديال الكاغط","شاشة الكاسة: الزبون كيسكاني بوحدو","تقرير الشهر: الزبناء الأوفياء"]],q:"la carte fidélité"},
-    {ic:"⭐",g:"rgb(52 168 83/.22)",fr:["Plaque avis Google","Le client approche son téléphone ou scanne : il arrive direct sur vos 5 étoiles Google.",["NFC + QR, à votre logo","Plus d’avis = plus haut sur Google Maps"]],ar:["بلاكة تقييمات Google","الزبون كيقرب التيليفون ولا كيسكاني: كيوصل نيشان للنجوم ديالك فـ Google.",["NFC + QR، باللوغو ديالك","تقييمات كثر = فوق فـ Google Maps"]],demo:"/p/demo-avis",q:"la plaque avis Google"},
-    {ic:"👤",g:"rgb(63 208 255/.2)",fr:["Carte de visite NFC","Une carte qui partage votre numéro, WhatsApp, réseaux et adresse d’un seul geste.",["Enregistrement du contact en 1 clic","Modifiable à tout moment, sans réimprimer"]],ar:["كارط الزيارة NFC","كارط كتعطي النيمرو، واتساب، الريزو والعنوان بحركة وحدة.",["تسجيل النيمرو بضغطة وحدة","كتبدلها فوقما بغيتي بلا ما تعاود تطبع"]],demo:"/p/demo-medecin",q:"la carte de visite NFC"},
-    {ic:"🔑",g:"rgb(200 16 46/.2)",fr:["Porte-clés & stands de table","Porte-clés NFC, stands numérotés et stickers QR qui ouvrent votre menu.",["Le client approche son téléphone : le menu s’ouvre","Même lien pour toujours, contenu modifiable"]],ar:["پورت-كليه وستاندات الطوابل","پورت-كليه NFC، ستاندات مرقمين وستيكرات QR كيحلو المنيو ديالك.",["الزبون كيقرب التيليفون: المنيو كيتحل","نفس الرابط ديما، والمحتوى كيتبدل"]],demo:"/menu/demo-standard",q:"les porte-clés et stands NFC"},
-    {ic:"📶",g:"rgb(155 89 255/.2)",fr:["Plaque Wi-Fi","Vos clients se connectent au Wi-Fi sans demander le mot de passe.",["NFC + QR au design du commerce"]],ar:["بلاكة Wi-Fi","الزبناء كيتكونيكطاو للويفي بلا ما يسولو على الكود.",["NFC + QR بالتصميم ديال المحل"]],demo:"/p/demo-wifi",q:"la plaque Wi-Fi"},
-    {ic:"📺",g:"rgb(242 163 58/.2)",fr:["Menu sur écran TV","Votre menu défile sur la TV du commerce et se met à jour depuis le téléphone.",["Un prix change, la TV change toute seule"]],ar:["المنيو على شاشة التلفاز","المنيو ديالك كيدور فـ التلفاز ديال المحل وكيتبدل من التيليفون.",["ثمن كيتبدل، التلفاز كيتبدل بوحدو"]],demo:"/menu/tv/?m=demo-premium",q:"le menu sur écran TV"},
-    {ic:"🚗",g:"rgb(212 160 23/.2)",fr:["Catalogue location de voitures","Toutes vos voitures avec photos : le client choisit dates et heures, la demande arrive sur WhatsApp.",["Voitures louées / disponibles en direct"]],ar:["كاتالوگ كراء الطوموبيلات","جميع الطوموبيلات بالتصاور: الزبون كيختار التاريخ والساعة، والطلب كيوصل لواتساب.",["المكرية / المتوفرة فـ الحين"]],demo:"/menu/demo-location",q:"le catalogue de location de voitures"},
-    {ic:"🔗",g:"rgb(225 48 108/.2)",fr:["Page liens Instagram","Une page à votre image pour la bio Instagram : menu, adresse, avis, WhatsApp.",["Tous vos liens au même endroit"]],ar:["صفحة الروابط ديال إنستغرام","صفحة بالصورة ديالك للبيو ديال إنستغرام: المنيو، العنوان، التقييمات، واتساب.",["جميع الروابط فـ بلاصة وحدة"]],demo:"/p/demo-liens",q:"la page liens Instagram"}
+    {ic:"🍽",g:"#fde7c8",img:"menu",tag:{fr:"Le plus demandé",ar:"الأكثر طلباً"},fr:["Menu digital + commande WhatsApp","Votre carte avec photos sur le téléphone du client. Il choisit, la commande arrive sur votre WhatsApp, sans commission.",["Photos, prix, produits épuisés en direct","Livraison, réservation, promos du jour","Plusieurs langues · QR et NFC sur les tables"]],ar:["منيو رقمي + الطلب فـ واتساب","المنيو ديالك بالتصاور فـ التيليفون ديال الزبون. كيختار، والطلب كيوصل لواتساب ديالك، بلا عمولة.",["التصاور، الأثمنة، واللي سالا فـ الحين","التوصيل، الحجز، عروض النهار","بزاف ديال اللغات · QR و NFC على الطوابل"]],demo:"/menu/demo-premium",q:"le menu digital"},
+    {ic:"🎁",g:"#dbe7ff",fid:1,fr:["Carte fidélité digitale","Une carte à votre logo dans le téléphone du client : 10 visites = 1 offert. Il revient chez vous.",["Sans application, sans carte en papier","Écran caisse : le client scanne seul","Rapport du mois : vos clients fidèles"]],ar:["كارط الوفاء الرقمية","كارط باللوغو ديالك فـ التيليفون ديال الزبون: 10 زيارات = 1 فابور. كيرجع عندك.",["بلا تطبيق، بلا كارط ديال الكاغط","شاشة الكاسة: الزبون كيسكاني بوحدو","تقرير الشهر: الزبناء الأوفياء"]],q:"la carte fidélité"},
+    {ic:"⭐",g:"#dcf3e3",img:"avis",fr:["Plaque avis Google","Le client approche son téléphone ou scanne : il arrive direct sur vos 5 étoiles Google.",["NFC + QR, à votre logo","Plus d’avis = plus haut sur Google Maps"]],ar:["بلاكة تقييمات Google","الزبون كيقرب التيليفون ولا كيسكاني: كيوصل نيشان للنجوم ديالك فـ Google.",["NFC + QR، باللوغو ديالك","تقييمات كثر = فوق فـ Google Maps"]],demo:"/p/demo-avis",q:"la plaque avis Google"},
+    {ic:"👤",g:"#d9f1f6",img:"profil",fr:["Carte de visite NFC","Une carte qui partage votre numéro, WhatsApp, réseaux et adresse d’un seul geste.",["Enregistrement du contact en 1 clic","Modifiable à tout moment, sans réimprimer"]],ar:["كارط الزيارة NFC","كارط كتعطي النيمرو، واتساب، الريزو والعنوان بحركة وحدة.",["تسجيل النيمرو بضغطة وحدة","كتبدلها فوقما بغيتي بلا ما تعاود تطبع"]],demo:"/p/demo-medecin",q:"la carte de visite NFC"},
+    {ic:"🔑",g:"#e7ecf6",img:"cle",wide:1,fr:["Porte-clés & stands de table","Porte-clés NFC, stands numérotés et stickers QR qui ouvrent votre menu.",["Le client approche son téléphone : le menu s’ouvre","Même lien pour toujours, contenu modifiable"]],ar:["پورت-كليه وستاندات الطوابل","پورت-كليه NFC، ستاندات مرقمين وستيكرات QR كيحلو المنيو ديالك.",["الزبون كيقرب التيليفون: المنيو كيتحل","نفس الرابط ديما، والمحتوى كيتبدل"]],demo:"/menu/demo-standard",q:"les porte-clés et stands NFC"},
+    {ic:"📶",g:"#ece3ff",img:"wifi",fr:["Plaque Wi-Fi","Vos clients se connectent au Wi-Fi sans demander le mot de passe.",["NFC + QR au design du commerce"]],ar:["بلاكة Wi-Fi","الزبناء كيتكونيكطاو للويفي بلا ما يسولو على الكود.",["NFC + QR بالتصميم ديال المحل"]],demo:"/p/demo-wifi",q:"la plaque Wi-Fi"},
+    {ic:"📺",g:"#fde7c8",img:"tv",wide:1,fr:["Menu sur écran TV","Votre menu défile sur la TV du commerce et se met à jour depuis le téléphone.",["Un prix change, la TV change toute seule"]],ar:["المنيو على شاشة التلفاز","المنيو ديالك كيدور فـ التلفاز ديال المحل وكيتبدل من التيليفون.",["ثمن كيتبدل، التلفاز كيتبدل بوحدو"]],demo:"/menu/tv/?m=demo-premium",q:"le menu sur écran TV"},
+    {ic:"🚗",g:"#f5ecd2",img:"location",fr:["Catalogue location de voitures","Toutes vos voitures avec photos : le client choisit dates et heures, la demande arrive sur WhatsApp.",["Voitures louées / disponibles en direct"]],ar:["كاتالوگ كراء الطوموبيلات","جميع الطوموبيلات بالتصاور: الزبون كيختار التاريخ والساعة، والطلب كيوصل لواتساب.",["المكرية / المتوفرة فـ الحين"]],demo:"/menu/demo-location",q:"le catalogue de location de voitures"},
+    {ic:"🔗",g:"#fde0ea",img:"liens",fr:["Page liens Instagram","Une page à votre image pour la bio Instagram : menu, adresse, avis, WhatsApp.",["Tous vos liens au même endroit"]],ar:["صفحة الروابط ديال إنستغرام","صفحة بالصورة ديالك للبيو ديال إنستغرام: المنيو، العنوان، التقييمات، واتساب.",["جميع الروابط فـ بلاصة وحدة"]],demo:"/p/demo-liens",q:"la page liens Instagram"}
   ];
   const MT=[["🍽",{fr:"Restaurant & café",ar:"ريسطو و كافي"},"/menu/demo-premium"],["🚗",{fr:"Location de voitures",ar:"كراء الطوموبيلات"},"/menu/demo-location"],["💈",{fr:"Salon & barber",ar:"صالون و حلاق"},"/menu/demo-salon"],["🏨",{fr:"Hôtel & riad",ar:"فندق و رياض"},"/menu/demo-hotel?table=12"],["🛍",{fr:"Boutique & pâtisserie",ar:"بوتيك و حلويات"},"/menu/demo-boutique"],["🩺",{fr:"Médecin & cabinet",ar:"طبيب و عيادة"},"/p/demo-medecin"],["👀",{fr:"Tous les exemples",ar:"جميع الأمثلة"},"/demo/"]];
   let L="fr"; try{L=localStorage.getItem("nfcw-lang")==="ar"?"ar":"fr"}catch(e){}
@@ -210,7 +216,8 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap}
     document.querySelectorAll("[data-fr]").forEach(e=>e.innerHTML=e.dataset[L]);
     document.getElementById("lang").textContent=A?"Français":"العربية";
     document.getElementById("sv").innerHTML=SV.map(s=>{const t=s[L];const msg=(A?"السلام عليكم NFCWORK 👋 بغيت نعرف الثمن ديال ":"Bonjour NFCWORK 👋 Je voudrais le prix de ")+(A?t[0]:s.q)+(A?" 🙏":" 🙏");
-      return `<article class="sv${s.big?" big":""}" style="--g:${s.g};--gi:${s.g}">${s.tag?`<span class="tag">${esc(s.tag[L])}</span>`:""}<div class="ic">${s.ic}</div><h3>${esc(t[0])}</h3><p>${esc(t[1])}</p><ul>${t[2].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+      const pic=s.fid?`<div class="pic" style="align-items:center"><div class="ic">${s.ic}</div><div class="fc"><b>${A?"كارط الوفاء":"Ma carte fidélité"}</b>${A?"المحل ديالك":"Votre commerce"}<div class="pts">${[1,2,3,4,5,6,7,8,9,"🎁"].map((x,i)=>`<i class="${i<7?"on":""}">${i<7?"✓":x==="🎁"?"🎁":""}</i>`).join("")}</div>${A?"7 / 10 · باقي 3 وتربح هدية":"7 / 10 · encore 3 pour le cadeau"}</div></div>`:`<div class="pic${s.wide?" w":""}"><div class="ic">${s.ic}</div><img src="assets/img/site/${s.img}.jpg" alt="" loading="lazy"></div>`;
+      return `<article class="sv${s.big?" big":""}" style="--g:${s.g}">${s.tag?`<span class="tag">${esc(s.tag[L])}</span>`:""}${pic}<h3>${esc(t[0])}</h3><p>${esc(t[1])}</p><ul>${t[2].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
         <div class="ac">${s.demo?`<a class="btn sm" href="${s.demo}" target="_blank" rel="noopener">👀 ${A?"شوف المثال":"Voir l’exemple"}</a>`:""}<a class="btn sm wa" href="${wa(msg)}" target="_blank" rel="noopener"><svg><use href="#wa"/></svg>${A?"الثمن فـ واتساب":"Prix sur WhatsApp"}</a></div></article>`}).join("");
     document.getElementById("mt").innerHTML=MT.map(([i,n,u])=>`<a href="${u}" target="_blank" rel="noopener"><span>${i}</span>${esc(n[L])}</a>`).join("");
     document.querySelectorAll("[data-wa]").forEach(a=>a.href=wa(a.dataset.wa?(A?"السلام عليكم NFCWORK 👋":a.dataset.wa):""));
