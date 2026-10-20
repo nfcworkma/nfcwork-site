@@ -13,62 +13,86 @@
 <meta property="og:description" content="Menu digital, carte fidélité, avis Google et cartes NFC pour les commerces au Maroc.">
 <meta property="og:url" content="https://nfcwork.ma/"><meta property="og:image" content="https://nfcwork.ma/assets/img/icons/icon-512.png"><meta property="og:locale" content="fr_MA">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"NFCWORK","alternateName":["NFC WORK","nfcwork.ma"],"url":"https://nfcwork.ma/","logo":"https://nfcwork.ma/assets/img/logo-nfcwork.png","image":"https://nfcwork.ma/assets/img/icons/icon-512.png","description":"Menu digital avec commande WhatsApp, carte fidélité digitale, plaques avis Google, cartes de visite NFC au Maroc.","telephone":"+212620666027","email":"nfcworkmacontact@gmail.com","address":{"@type":"PostalAddress","addressLocality":"Kénitra","addressCountry":"MA"},"areaServed":{"@type":"Country","name":"Maroc"}}</script>
-<meta name="theme-color" content="#f6f1e7">
+<meta name="theme-color" content="#07090f">
+<script>(function(){var t="a";try{var q=new URLSearchParams(location.search).get("theme");t=q||JSON.parse(localStorage.getItem("nfcw-site")||"{}").theme||t}catch(e){}if(t!=="a")document.documentElement.setAttribute("data-theme",t)})()</script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&display=swap">
 <style>
-:root{--bg:#f6f1e7;--bg2:#efe7d8;--paper:#fffdf8;--line:#e3d8c4;--ink:#141a26;--mut:#5d6677;--navy:#0f1a30;--blue:#1f5eff;--gold:#b8873b;--wa:#1faa59;--r:26px;
-  --serif:"Fraunces",Georgia,serif;--sans:"Inter",system-ui,sans-serif}
+:root{--bg:#07090f;--bg2:#0c1019;--paper:#111723;--line:#222b3d;--ink:#f4f6fb;--mut:#9aa5ba;--navy:#d6a64f;--bfg:#0b0d12;--blue:#e8bd6a;--gold:#d6a64f;--wa:#1faa59;--r:26px;
+  --hdr:rgb(7 9 15/.78);--band:#d6a64f;--bandfg:#0b0d12;--fin:linear-gradient(135deg,#151b29,#0b0f18);--glow1:rgb(214 166 79/.22);--glow2:rgb(70 110 255/.14);--tm:16%;--sh:rgb(0 0 0/.45);--grid:rgb(255 255 255/.035);
+  --serif:"Fraunces",Georgia,serif;--sans:"Inter",system-ui,sans-serif;color-scheme:dark}
+/* 🎨 Thème B : bleu électrique */
+html[data-theme=b]{--bg:#040a1d;--bg2:#08122c;--paper:#0d1a3a;--line:#1c2d5a;--ink:#fff;--mut:#a7b6d9;--navy:#2f7bff;--bfg:#fff;--blue:#5cc8ff;--gold:#5cc8ff;
+  --hdr:rgb(4 10 29/.78);--band:linear-gradient(90deg,#1f5eff,#2fb6ff);--bandfg:#fff;--fin:linear-gradient(135deg,#1f5eff,#0a2a8a);--glow1:rgb(47 123 255/.35);--glow2:rgb(92 200 255/.2);--grid:rgb(120 170 255/.06)}
+/* 🎨 Thème C : blanc & bleu */
+html[data-theme=c]{--bg:#ffffff;--bg2:#f2f5fb;--paper:#fff;--line:#e4e9f2;--ink:#0b1220;--mut:#566175;--navy:#0b1220;--bfg:#fff;--blue:#1f5eff;--gold:#1f5eff;
+  --hdr:rgb(255 255 255/.82);--band:#0b1220;--bandfg:#fff;--fin:linear-gradient(135deg,#0b1220,#1b2a55);--glow1:rgb(31 94 255/.16);--glow2:rgb(0 200 255/.12);--tm:100%;--sh:rgb(15 26 48/.18);--grid:rgb(11 18 32/.045);color-scheme:light}
 [dir=rtl]{--serif:"Noto Kufi Arabic",sans-serif;--sans:"Noto Kufi Arabic",system-ui,sans-serif}
 *{box-sizing:border-box}html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 a{color:inherit;text-decoration:none}img{max-width:100%;display:block}
 .wrap{width:min(1180px,100%);margin:0 auto;padding:0 20px}
-.top{position:sticky;top:0;z-index:30;background:rgb(246 241 231/.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgb(227 216 196/.7)}
+.top{position:sticky;top:0;z-index:30;background:var(--hdr);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;gap:22px;height:70px}
 .top .logo img{height:24px;width:auto}
 .top nav{display:flex;gap:26px;font-size:14.5px;color:var(--mut);font-weight:500}.top nav a:hover{color:var(--ink)}
 .top .sp{flex:1}
 @media(max-width:860px){.top nav{display:none}}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:12px 20px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:inherit;font-weight:600;font-size:15px;cursor:pointer;white-space:nowrap;transition:transform .2s,box-shadow .2s}
-.btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgb(20 26 38/.08)}
-.btn.dark{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px var(--sh)}
+.btn.dark{background:var(--navy);border-color:var(--navy);color:var(--bfg)}
 .btn.wa{background:var(--wa);border-color:var(--wa);color:#fff}
 .btn.lg{padding:16px 26px;font-size:16px}.btn.sm{padding:9px 14px;font-size:13.5px}
 .btn svg{width:18px;height:18px;flex:none}
 .lang{background:none;border:0;color:var(--mut);font:inherit;font-size:14px;cursor:pointer;padding:8px}
 @media(max-width:520px){.top .wtxt{display:none}.top .btn.wa{padding:10px}}
-.hero{position:relative;padding:70px 0 90px;overflow-x:clip}
-.hero .wrap{display:grid;grid-template-columns:1.08fr .92fr;gap:40px;align-items:center}
-@media(max-width:900px){.hero{padding:40px 0 60px}.hero .wrap{grid-template-columns:1fr}}
+.hero{position:relative;padding:56px 0 70px;overflow-x:clip;min-height:calc(100vh - 70px);display:flex;align-items:center;isolation:isolate}
+.hero:before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(700px 520px at 78% 38%,var(--glow1),transparent 70%),radial-gradient(600px 460px at 8% 85%,var(--glow2),transparent 70%)}
+.hero:after{content:"";position:absolute;inset:0;z-index:-1;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:56px 56px;-webkit-mask:radial-gradient(ellipse at 60% 40%,#000 30%,transparent 75%);mask:radial-gradient(ellipse at 60% 40%,#000 30%,transparent 75%)}
+.hero .wrap{display:grid;grid-template-columns:1.02fr .98fr;gap:30px;align-items:center;width:min(1240px,100%)}
+.hero .wrap>*{min-width:0}
+@media(max-width:960px){.hero{padding:34px 0 50px;min-height:0}.hero .wrap{grid-template-columns:1fr}}
 .eye{display:inline-flex;align-items:center;gap:10px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
 .eye:before{content:"";width:28px;height:1px;background:currentColor}
 [dir=rtl] .eye{letter-spacing:0}
-h1{font-family:var(--serif);font-weight:600;font-size:clamp(40px,6.2vw,76px);line-height:1.02;letter-spacing:-.025em;margin:18px 0 20px}
-h1 i{font-style:italic;color:var(--blue)}
+.badge{display:inline-flex;align-items:center;gap:10px;padding:7px 14px 7px 8px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,var(--paper) 70%,transparent);font-size:13.5px;color:var(--mut);font-weight:500}
+.badge i{font-style:normal;background:var(--navy);color:var(--bfg);font-weight:700;font-size:12px;padding:3px 9px;border-radius:999px}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(42px,6.4vw,84px);line-height:1;letter-spacing:-.03em;margin:22px 0 20px}
+h1 i{font-style:italic;color:var(--blue);background:linear-gradient(90deg,var(--blue),var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-inline-end:.06em}
 [dir=rtl] h1{line-height:1.3;letter-spacing:0}[dir=rtl] h1 i{font-style:normal}
 .lead{font-size:18.5px;color:var(--mut);max-width:560px;margin:0 0 30px}
 .cta{display:flex;gap:12px;flex-wrap:wrap}
-.proof{display:flex;gap:26px;flex-wrap:wrap;margin-top:36px;padding-top:24px;border-top:1px solid var(--line)}
-.proof div{font-size:13.5px;color:var(--mut)}.proof b{display:block;font-family:var(--serif);font-size:24px;color:var(--ink);font-weight:600}
-.stage{position:relative;height:640px;display:flex;justify-content:center;align-items:center}
-.stage:before{content:"";position:absolute;width:520px;height:520px;max-width:100%;border-radius:50%;background:radial-gradient(closest-side,#fff,rgb(255 255 255/0));opacity:.9}
-.phone{position:relative;width:290px;height:600px;border-radius:46px;background:#0c0f16;padding:11px;box-shadow:0 50px 100px rgb(15 26 48/.28),inset 0 0 0 2px #2a2f3a}
+.svc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:34px;max-width:560px}
+.svc a{display:flex;align-items:center;gap:10px;padding:12px 12px;border-radius:16px;border:1px solid var(--line);background:color-mix(in srgb,var(--paper) 72%,transparent);font-size:14px;font-weight:600;transition:transform .2s,border-color .2s}
+.svc a:hover{transform:translateY(-2px);border-color:var(--gold)}
+.svc a span{width:34px;height:34px;flex:none;border-radius:11px;display:grid;place-items:center;font-size:17px;background:color-mix(in srgb,var(--gold) 16%,transparent)}
+@media(max-width:600px){.hero h1{font-size:40px;margin:16px 0 14px}.lead{font-size:16px;margin-bottom:22px}.badge{font-size:12.5px}.cta .btn.lg{padding:13px 18px;font-size:15px}
+  .svc{display:flex;overflow-x:auto;gap:8px;margin:24px -20px 0;padding:0 20px 4px;scrollbar-width:none;max-width:none}.svc::-webkit-scrollbar{display:none}.svc a{flex:none;padding:8px 12px 8px 8px;font-size:13px}.svc a span{width:28px;height:28px;font-size:15px}}
+.stage{position:relative;height:660px;display:flex;justify-content:center;align-items:center}
+.stage .ring{position:absolute;left:50%;top:50%;width:560px;height:560px;max-width:120%;border-radius:50%;transform:translate(-50%,-50%);border:1px solid color-mix(in srgb,var(--gold) 30%,transparent);animation:pulse 4s ease-out infinite}
+.stage .ring.r2{animation-delay:2s}
+@keyframes pulse{0%{transform:translate(-50%,-50%) scale(.55);opacity:.9}100%{transform:translate(-50%,-50%) scale(1.15);opacity:0}}
+.phone{position:relative;z-index:2;width:290px;height:600px;border-radius:46px;background:#0c0f16;padding:11px;box-shadow:0 50px 100px var(--sh),0 0 0 1px rgb(255 255 255/.06),inset 0 0 0 2px #2a2f3a}
 .phone .scr{width:100%;height:100%;border-radius:36px;overflow:hidden;background:#111;position:relative}
 .phone iframe{border:0;width:390px;height:833px;transform:scale(.6923);transform-origin:0 0;pointer-events:none}
 .phone .scr img{width:100%;height:100%;object-fit:cover;object-position:top}
 .phone:after{content:"";position:absolute;top:20px;left:50%;transform:translateX(-50%);width:90px;height:24px;border-radius:20px;background:#0c0f16}
-.chip{position:absolute;z-index:3;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:12px 16px;box-shadow:0 18px 40px rgb(15 26 48/.14);font-size:13.5px;display:flex;gap:10px;align-items:center}
+.phone.side{position:absolute;z-index:1;width:230px;height:476px;border-radius:38px;padding:9px;opacity:.96}
+.phone.side .scr{border-radius:30px}.phone.side:after{width:70px;height:19px;top:16px}
+.phone.l{left:2%;top:96px;transform:rotate(-9deg)}.phone.r{right:2%;top:96px;transform:rotate(9deg)}
+.chip{position:absolute;z-index:3;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:12px 16px;box-shadow:0 18px 40px var(--sh);font-size:13.5px;display:flex;gap:10px;align-items:center;animation:flot 6s ease-in-out infinite}
 .chip b{display:block;font-size:14px}.chip small{color:var(--mut)}
-.chip .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:19px}
-.chip.c1{left:-4%;top:18%}.chip.c2{right:-6%;top:52%}.chip.c3{left:2%;bottom:9%}
-@media(max-width:900px){.stage{height:580px}.chip.c1{left:0}.chip.c2{right:0}.phone{width:262px;height:540px}.phone iframe{transform:scale(.6205)}}
-.band{background:var(--navy);color:#dfe6f3;overflow:hidden;padding:18px 0}
+.chip .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:19px;background:color-mix(in srgb,var(--gold) 18%,transparent)}
+.chip.c1{left:-2%;top:8%}.chip.c2{right:-4%;top:46%;animation-delay:-2s}.chip.c3{left:0;bottom:6%;animation-delay:-4s}
+@keyframes flot{50%{transform:translateY(-10px)}}
+@media(max-width:960px){.stage{height:560px}.phone{width:250px;height:518px}.phone iframe{transform:scale(.5897)}.phone.side{width:190px;height:394px}.phone.l{left:0;top:80px}.phone.r{right:0;top:80px}.chip.c1{left:0}.chip.c2{right:0}}
+@media(max-width:520px){.stage{height:500px}.phone{width:226px;height:470px}.phone iframe{transform:scale(.5282)}.phone.side{width:150px;height:312px;border-radius:28px;padding:7px}.phone.side .scr{border-radius:22px}.phone.l{left:-14px;top:84px}.phone.r{right:-14px;top:84px}.chip{padding:9px 12px;font-size:12px}.chip b{font-size:12.5px}.chip .ic{width:30px;height:30px;font-size:15px}}
+.band{background:var(--band);color:var(--bandfg);font-weight:500;overflow:hidden;padding:18px 0}
 .band .tr{display:flex;gap:46px;white-space:nowrap;width:max-content;animation:mq 38s linear infinite;font-family:var(--serif);font-size:20px}
-.band span{display:inline-flex;gap:12px;align-items:center}.band span:after{content:"✦";color:var(--gold);font-size:13px;margin-inline-start:34px}
+.band span{display:inline-flex;gap:12px;align-items:center}.band span:after{content:"✦";opacity:.6;font-size:13px;margin-inline-start:34px}
 @keyframes mq{to{transform:translateX(-50%)}}[dir=rtl] .band .tr{animation-name:mqr}@keyframes mqr{to{transform:translateX(50%)}}
 .sec{padding:100px 0}.sec.alt{background:var(--bg2)}
 @media(max-width:700px){.sec{padding:70px 0}}
@@ -80,13 +104,13 @@ h2{font-family:var(--serif);font-weight:600;font-size:clamp(32px,4.8vw,54px);lin
 .row:first-child{border-top:0;padding-top:0}
 .row.rev .vis{order:2}
 @media(max-width:900px){.row{grid-template-columns:1fr;gap:28px}.row.rev .vis{order:0}}
-.vis{position:relative;border-radius:var(--r);background:var(--t,#e9dfcd);min-height:460px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;padding:40px 30px 0}
-.vis .ph{width:250px;border-radius:34px 34px 0 0;background:#0c0f16;padding:9px 9px 0;box-shadow:0 30px 60px rgb(15 26 48/.25)}
+.vis{position:relative;border-radius:var(--r);background:color-mix(in srgb,var(--t,#e9dfcd) var(--tm),var(--paper));border:1px solid var(--line);min-height:460px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;padding:40px 30px 0}
+.vis .ph{width:250px;border-radius:34px 34px 0 0;background:#0c0f16;padding:9px 9px 0;box-shadow:0 30px 60px var(--sh)}
 .vis .ph .scr{border-radius:26px 26px 0 0;overflow:hidden;height:420px;background:#111}
 .vis .ph .scr img{width:100%;height:100%;object-fit:cover;object-position:top}
 .vis .ph iframe{border:0;width:390px;height:780px;transform:scale(.5949);transform-origin:0 0;pointer-events:none}
 .vis.wide{align-items:center;padding:30px}.vis.wide .scr{display:flex;justify-content:center}.vis.wide img.free{max-height:360px;width:auto;border-radius:18px;box-shadow:0 24px 50px rgb(15 26 48/.2)}
-.vis.wide img.free.flat{box-shadow:none;mix-blend-mode:multiply}
+.vis.wide img.free.flat{box-shadow:none;border-radius:14px}html[data-theme=c] .vis.wide img.free.flat{mix-blend-mode:multiply}
 .vis .duo{display:flex;gap:16px;align-items:flex-end}.vis .duo .ph{width:210px}.vis .duo .ph .scr{height:370px}.vis .duo .ph iframe{transform:scale(.4923)}
 @media(max-width:520px){.vis{min-height:380px;padding:30px 14px 0}.vis .duo{gap:10px}.vis .duo .ph{width:150px}.vis .duo .ph .scr{height:290px}.vis .duo .ph iframe{transform:scale(.3385)}}
 .num{font-family:var(--serif);font-size:15px;color:var(--gold);font-weight:600;letter-spacing:.1em}
@@ -95,12 +119,12 @@ h2{font-family:var(--serif);font-weight:600;font-size:clamp(32px,4.8vw,54px);lin
 .row p.d{color:var(--mut);font-size:17px;margin:0 0 20px}
 .li{list-style:none;margin:0 0 26px;padding:0;display:grid;gap:10px}
 .li li{display:flex;gap:12px;align-items:flex-start;font-size:15.5px}
-.li li:before{content:"";flex:none;width:20px;height:20px;margin-top:3px;border-radius:50%;background:var(--navy) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/12px no-repeat}
+.li li:before{content:"";flex:none;width:20px;height:20px;margin-top:3px;border-radius:50%;background:var(--blue) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/12px no-repeat}
 .acts{display:flex;gap:10px;flex-wrap:wrap}
 .mini{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
 @media(max-width:1000px){.mini{grid-template-columns:repeat(3,1fr)}}@media(max-width:620px){.mini{grid-template-columns:1fr 1fr}}
-.mc{background:var(--paper);border:1px solid var(--line);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}.mc:hover{transform:translateY(-3px);box-shadow:0 18px 36px rgb(20 26 38/.08)}
-.mc .im{height:170px;background:var(--t,#e9dfcd);display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.mc{background:var(--paper);border:1px solid var(--line);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}.mc:hover{transform:translateY(-3px);box-shadow:0 18px 36px var(--sh)}
+.mc .im{height:170px;background:color-mix(in srgb,var(--t,#e9dfcd) var(--tm),var(--paper));display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
 .mc .im img{width:56%;border-radius:16px 16px 0 0;border:6px solid #0c0f16;border-bottom:0;aspect-ratio:1/1.2;object-fit:cover;object-position:top}
 .mc .im.w{align-items:center}.mc .im.w img{width:auto;max-width:86%;max-height:140px;border:0;border-radius:12px;aspect-ratio:auto;object-fit:contain}
 .mc .tx{padding:16px 16px 18px;flex:1;display:flex;flex-direction:column;gap:6px}
@@ -111,9 +135,9 @@ h2{font-family:var(--serif);font-weight:600;font-size:clamp(32px,4.8vw,54px);lin
 .steps div{padding:30px 24px 10px 0}[dir=rtl] .steps div{padding:30px 0 10px 24px}
 .steps .n{font-family:var(--serif);font-size:44px;color:var(--gold);line-height:1}
 .steps b{display:block;font-size:18px;margin:12px 0 6px}.steps p{margin:0;color:var(--mut);font-size:15px}
-.fin{border-radius:34px;background:var(--navy);color:#fff;padding:64px 50px;display:grid;grid-template-columns:1.3fr .7fr;gap:30px;align-items:center;position:relative;overflow:hidden}
-.fin:after{content:"";position:absolute;right:-120px;top:-120px;width:380px;height:380px;border-radius:50%;background:radial-gradient(closest-side,rgb(31 94 255/.5),transparent)}
-.fin h2{color:#fff;margin:10px 0 12px}.fin p{color:#b9c4d8;margin:0;font-size:17px}
+.fin{border-radius:34px;background:var(--fin);color:#fff;border:1px solid var(--line);padding:64px 50px;display:grid;grid-template-columns:1.3fr .7fr;gap:30px;align-items:center;position:relative;overflow:hidden}
+.fin:after{content:"";position:absolute;right:-120px;top:-120px;width:380px;height:380px;border-radius:50%;background:radial-gradient(closest-side,var(--glow1),transparent)}
+.fin h2{color:#fff;margin:10px 0 12px}.fin p{color:rgb(255 255 255/.75);margin:0;font-size:17px}
 .fin .acts{justify-content:flex-end;position:relative;z-index:1}
 @media(max-width:800px){.fin{grid-template-columns:1fr;padding:44px 26px}.fin .acts{justify-content:flex-start}}
 .cli{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:18px;padding:22px 26px;border-radius:24px;background:var(--paper);border:1px solid var(--line)}
@@ -141,24 +165,30 @@ footer img{height:22px;width:auto}footer nav{display:flex;gap:20px;flex-wrap:wra
 <main>
 <section class="hero"><div class="wrap">
   <div class="rv">
-    <span class="eye" data-fr="NFC · QR · Kénitra · Maroc" data-ar="NFC · QR · القنيطرة · المغرب">NFC · QR · Kénitra · Maroc</span>
-    <h1 data-fr="Le digital qui fait <i>revenir</i> vos clients." data-ar="الرقمي اللي كيرجّع ليك <i>الزبناء</i>.">Le digital qui fait <i>revenir</i> vos clients.</h1>
-    <p class="lead" data-fr="Menu digital avec commande WhatsApp, carte fidélité, avis Google et cartes NFC. Pensés pour votre commerce, à votre image, et que vous gérez depuis votre téléphone." data-ar="منيو رقمي بالطلب فـ واتساب، كارط الوفاء، تقييمات Google وكارطات NFC. مصممين للمحل ديالك، بالصورة ديالك، وكتسيرهم من التيليفون ديالك.">Menu digital avec commande WhatsApp, carte fidélité, avis Google et cartes NFC. Pensés pour votre commerce, à votre image, et que vous gérez depuis votre téléphone.</p>
+    <span class="badge"><i data-fr="Nouveau" data-ar="جديد">Nouveau</i><span data-fr="Commandes WhatsApp + carte fidélité, sans application" data-ar="طلبات واتساب + كارط الوفاء، بلا تطبيق">Commandes WhatsApp + carte fidélité, sans application</span></span>
+    <h1 data-fr="Vos clients commandent, notent et <i>reviennent.</i>" data-ar="الزبناء ديالك كيطلبو، كيقيّمو و<i>كيرجعو.</i>">Vos clients commandent, notent et <i>reviennent.</i></h1>
+    <p class="lead" data-fr="Un geste du téléphone sur une plaque NFC : votre menu s’ouvre, la commande arrive sur WhatsApp, l’avis Google est laissé et la carte fidélité se remplit. Tout à votre image." data-ar="حركة وحدة بالتيليفون على بلاكة NFC: المنيو كيتحل، الطلب كيوصل لواتساب، التقييم فـ Google كيتزاد، وكارط الوفاء كتعمر. كلشي بالصورة ديالك.">Un geste du téléphone sur une plaque NFC : votre menu s’ouvre, la commande arrive sur WhatsApp, l’avis Google est laissé et la carte fidélité se remplit. Tout à votre image.</p>
     <div class="cta">
-      <a class="btn dark lg" href="#services" data-fr="Découvrir nos services" data-ar="اكتشف الخدمات">Découvrir nos services</a>
+      <a class="btn dark lg" href="/menu/demo-premium" target="_blank" rel="noopener" data-fr="Voir un menu en vrai →" data-ar="شوف منيو حقيقي ←">Voir un menu en vrai →</a>
       <a class="btn wa lg" data-wa="Bonjour NFCWORK 👋 Je voudrais des informations pour mon commerce." target="_blank" rel="noopener"><svg><use href="#wa"/></svg><span data-fr="Nous écrire" data-ar="كتب لينا">Nous écrire</span></a>
     </div>
-    <div class="proof">
-      <div><b data-fr="48 h" data-ar="48 ساعة">48 h</b><span data-fr="pour tout préparer" data-ar="باش نوجدو كلشي">pour tout préparer</span></div>
-      <div><b data-fr="0 appli" data-ar="0 تطبيق">0 appli</b><span data-fr="pour vos clients" data-ar="للزبناء ديالك">pour vos clients</span></div>
-      <div><b data-fr="Sur place" data-ar="فـ المحل">Sur place</b><span data-fr="installation & formation" data-ar="التركيب والتكوين">installation & formation</span></div>
+    <div class="svc">
+      <a href="#services"><span>🍽</span><b data-fr="Menu digital" data-ar="منيو رقمي">Menu digital</b></a>
+      <a href="#services"><span>🎁</span><b data-fr="Fidélité" data-ar="الوفاء">Fidélité</b></a>
+      <a href="#services"><span>⭐</span><b data-fr="Avis Google" data-ar="تقييمات Google">Avis Google</b></a>
+      <a href="#services"><span>📲</span><b data-fr="Plaques NFC" data-ar="بلاكات NFC">Plaques NFC</b></a>
+      <a href="#services"><span>📶</span><b data-fr="Wi-Fi" data-ar="الويفي">Wi-Fi</b></a>
+      <a href="#services"><span>📺</span><b data-fr="Écran TV" data-ar="التلفاز">Écran TV</b></a>
     </div>
   </div>
   <div class="stage rv" aria-hidden="true">
+    <span class="ring"></span><span class="ring r2"></span>
+    <div class="phone side l"><div class="scr" data-slot="heroL" data-img="fidelite.jpg"></div></div>
+    <div class="phone side r"><div class="scr" data-slot="heroR" data-img="avis.jpg"></div></div>
     <div class="phone"><div class="scr" data-slot="hero" data-frame="/menu/?m=demo-premium&cadre=1"></div></div>
-    <div class="chip c1"><span class="ic" style="background:#e6f6ec">💬</span><div><b data-fr="Nouvelle commande" data-ar="طلب جديد">Nouvelle commande</b><small data-fr="Table 4 · 3 articles" data-ar="الطابلة 4 · 3 منتجات">Table 4 · 3 articles</small></div></div>
-    <div class="chip c2"><span class="ic" style="background:#e8eeff">🎁</span><div><b data-fr="Carte fidélité" data-ar="كارط الوفاء">Carte fidélité</b><small data-fr="7 / 10 visites" data-ar="7 / 10 زيارات">7 / 10 visites</small></div></div>
-    <div class="chip c3"><span class="ic" style="background:#fff4dc">⭐</span><div><b>★★★★★</b><small data-fr="Nouvel avis Google" data-ar="تقييم جديد فـ Google">Nouvel avis Google</small></div></div>
+    <div class="chip c1"><span class="ic">💬</span><div><b data-fr="Nouvelle commande" data-ar="طلب جديد">Nouvelle commande</b><small data-fr="Table 4 · 3 articles · 120 DH" data-ar="الطابلة 4 · 3 منتجات · 120 درهم">Table 4 · 3 articles · 120 DH</small></div></div>
+    <div class="chip c2"><span class="ic">🎁</span><div><b data-fr="Carte fidélité" data-ar="كارط الوفاء">Carte fidélité</b><small data-fr="7 / 10 visites" data-ar="7 / 10 زيارات">7 / 10 visites</small></div></div>
+    <div class="chip c3"><span class="ic">⭐</span><div><b>★★★★★</b><small data-fr="Nouvel avis Google" data-ar="تقييم جديد فـ Google">Nouvel avis Google</small></div></div>
   </div>
 </div></section>
 
