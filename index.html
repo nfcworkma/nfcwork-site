@@ -265,7 +265,7 @@ footer img{height:22px;width:auto}footer nav{display:flex;gap:20px;flex-wrap:wra
     document.querySelectorAll("[data-wa]").forEach(a=>a.href=wa(a.dataset.wa?(A?"السلام عليكم NFCWORK 👋":a.dataset.wa):""));
     remplir(); obs();
   }
-  let io=null;function obs(){const els=document.querySelectorAll(".rv:not(.on)");if(!("IntersectionObserver" in window)){els.forEach(e=>e.classList.add("on"));return}io=io||new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){x.target.classList.add("on");io.unobserve(x.target)}}),{threshold:.1});els.forEach(e=>io.observe(e))}
+  let io=null;function obs(){const els=document.querySelectorAll(".rv:not(.on)");if(!("IntersectionObserver" in window)){els.forEach(e=>e.classList.add("on"));return}io=io||new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){x.target.classList.add("on");io.unobserve(x.target)}}),{threshold:0,rootMargin:"0px 0px 120px 0px"});els.forEach(e=>io.observe(e))}
   document.getElementById("lang").onclick=()=>{L=L==="ar"?"fr":"ar";try{localStorage.setItem("nfcw-lang",L)}catch(e){}draw()};
   draw();
   // 🌐 images choisies dans l'Espace → « Mon site » (settings/site + settings/mimg-<id>)

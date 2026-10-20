@@ -113,7 +113,7 @@
       while (i < els.length) {
         const el = els[i++];
         const d = await photo(el.dataset.img, +el.dataset.w || 400);
-        if (d) el.src = d; else el.removeAttribute("data-img");
+        if (d) { el.onerror = () => { el.style.visibility = "hidden"; }; el.src = d; } else el.removeAttribute("data-img");
       }
     };
     await Promise.all(Array.from({ length: 6 }, suivant));
