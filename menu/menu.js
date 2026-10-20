@@ -196,7 +196,7 @@
   const logoTag = () => M.logo ? `<img class="logo${M.logoCarre ? " sq" : ""}" data-img="${esc(M.logo)}" data-w="120" alt="${esc(M.nom || "")}">` : "";
 
   function barreDemo() {
-    if (!demo) return "";
+    if (!demo || qs.has("cadre")) return "";
     if (!/^demo-(standard|pro|premium)$/.test(slug)) return `<div class="demobar"><b>Exemple NFCWORK</b><a href="/demo/" class="on">Voir tous les métiers</a></div>`;
     const f = slug.slice(5), th = M.theme || "nuit";
     return `<div class="demobar"><b>Exemple NFCWORK</b>${["standard", "pro", "premium"].map(k => `<a href="/menu/?m=demo-${k}" class="${f === k ? "on" : ""}">${k[0].toUpperCase() + k.slice(1)}</a>`).join("")}
@@ -275,7 +275,7 @@
     const bandeau = promo + resa + (liv ? `<div class="wrap"><div class="livban"><b>🛵 ${liv.frais ? "Livraison " + esc(fmtPrix(arr(liv.frais))) : "Livraison gratuite"}</b><span>${liv.zone ? esc(liv.zone) + " · " : ""}${liv.min ? "dès " + esc(fmtPrix(arr(liv.min))) + " · " : ""}commandez ici, recevez chez vous</span></div></div>` : "");
     const nav = cats.length > 1 ? `<nav class="cats"><div class="cats-in">${cats.map(c => `<a href="#c-${esc(c.id)}" data-cat="${esc(c.id)}">${esc(tr(c.nom))}</a>`).join("")}</div></nav>` : "";
     const fin = `${pied}${waOk ? `<button class="cartbar" id="cartbar" hidden></button>` : ""}
-      ${prem && waNum(inf.whatsapp) && !waOk ? `<a class="wafab" href="https://wa.me/${waNum(inf.whatsapp)}" target="_blank" rel="noopener" aria-label="WhatsApp">${I.wa}</a>` : ""}`;
+      ${prem && !qs.has("cadre") && waNum(inf.whatsapp) && !waOk ? `<a class="wafab" href="https://wa.me/${waNum(inf.whatsapp)}" target="_blank" rel="noopener" aria-label="WhatsApp">${I.wa}</a>` : ""}`;
 
     if (prem) {
       const vedettes = cats.flatMap(c => c.items || []).filter(i => i.vedette && i.photo && i.dispo !== false);
