@@ -239,7 +239,12 @@
       <form class="stack" id="nm">
         ${window.NFCW_SOURCES ? `<button type="button" class="btn" id="nm-src">📋 Remplir depuis un client existant (carte fidélité, avis…)</button>` : ""}
         <label class="f">Nom du commerce<input id="nm-nom" required maxlength="60" placeholder="Café Chocco Latte"></label>
-        <div><div class="eyebrow" style="margin-bottom:6px">Formule</div>${segFormule(formule)}</div>
+        <div><div class="eyebrow" style="margin-bottom:6px">Choisissez le style du menu</div>${segVisuel(formule)}</div>
+        <div class="paper" style="padding:12px 14px;border-radius:14px"><b>📷 Photo du menu papier</b> <span class="muted">(facultatif)</span>
+          <div class="muted" style="font-size:13px;margin:2px 0 8px" id="nm-ph-aide">${formule === "standard" ? "Les photos s’affichent telles quelles dans le menu." : "Le menu est lu sur la photo : catégories, produits et prix se remplissent tout seuls."}</div>
+          <div class="row" style="gap:8px;flex-wrap:wrap"><label class="btn sm primary">📷 Prendre une photo<input type="file" accept="image/*" capture="environment" hidden data-nmph></label><label class="btn sm">🖼 Choisir des photos<input type="file" accept="image/*" multiple hidden data-nmph></label>
+          <select id="nm-lg" style="width:auto;padding:6px 10px;font-size:14px"><option value="fra">Menu en français</option><option value="fra+ara">Français + عربي</option><option value="ara">عربي فقط</option></select></div>
+          <div id="nm-ph-l" class="muted" style="font-size:13px;margin-top:6px"></div></div>
         <label class="f">Lien du menu<input id="nm-slug" required maxlength="40" pattern="[a-z0-9\\-]+" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
         <p class="err" id="nm-err"></p>
         <div class="row"><button class="btn primary" style="flex:1">Créer le menu</button><button type="button" class="btn ghost" data-fermer>Annuler</button></div>
@@ -252,7 +257,11 @@
     const bs = $("#nm-src", d);
     if (bs) bs.onclick = async () => { const D = await window.NFCW_SOURCES.choisir(db, "🍽 Nouveau menu"); if (!D || D.vide) return; SRC = D; nom.value = D.nom; if (auto) sl.value = slugify(D.nom); prev(); bs.textContent = "✅ Rempli avec : " + D.trouve.join(", "); };
     sl.oninput = () => { auto = false; sl.value = sl.value.toLowerCase().replace(/[^a-z0-9-]/g, ""); prev(); };
-    d.addEventListener("click", e => { const b = e.target.closest("[data-formule]"); if (b) { formule = b.dataset.formule; d.querySelectorAll("[data-formule]").forEach(x => x.setAttribute("aria-pressed", x === b)); } });
+    d.addEventListener("click", e => { const b = e.target.closest("[data-formule]"); if (b) { formule = b.dataset.formule; d.querySelectorAll("[data-formule]").forEach(x => x.setAttribute("aria-pressed", x === b)); $("#nm-ph-aide", d).textContent = formule === "standard" ? "Les photos s’affichent telles quelles dans le menu." : "Le menu est lu sur la photo : catégories, produits et prix se remplissent tout seuls."; } });
+    const echelle = () => d.querySelectorAll(".segv .mini").forEach(m => m.style.setProperty("--k", (m.clientWidth || 100) / 390));
+    echelle(); setTimeout(echelle, 60); window.addEventListener("resize", echelle);
+    let PH = [];
+    d.addEventListener("change", e => { if (e.target.hasAttribute("data-nmph") && e.target.files.length) { PH = PH.concat([...e.target.files]); $("#nm-ph-l", d).textContent = "✅ " + PH.length + " photo(s) choisie(s)"; } });
     $("#nm", d).onsubmit = async e => {
       e.preventDefault();
       const s = slugify(sl.value), err = $("#nm-err", d);
@@ -283,6 +292,7 @@
         await ecrireListe();
         d.remove();
         location.hash = "m=" + s;
+        if (PH.length) { const lg = $("#nm-lg", d).value; apresOuverture(s, () => formule === "standard" ? pagesDepuis(PH) : depuisPhoto(PH, lg)); }
         if (pre.demo) setTimeout(() => { toast("🎯 Démo créée (7 jours) : importez le menu depuis Glovo.", true); importer(); }, 900);
       } catch (x) { erreur(x); btn.disabled = false; }
     };
@@ -304,6 +314,60 @@
     } catch (e) { console.error(e); app.innerHTML = `<div class="empty"><h3>Impossible d’ouvrir ce menu</h3><a class="btn" href="#">Retour aux menus</a></div>`; }
   }
 
+  const segVisuel = f => `<div class="seg segv">${Object.entries(FORMULES).map(([k, [n, sub]]) => `<button type="button" data-formule="${k}" aria-pressed="${f === k}"><span class="mini"><iframe src="../menu/?m=demo-${k}&cadre=1" loading="lazy" tabindex="-1" title="${n}"></iframe></span><b>${n}</b><small>${sub}</small><a href="../menu/?m=demo-${k}" target="_blank" rel="noopener" class="voir" onclick="event.stopPropagation()">Voir ↗</a></button>`).join("")}</div>`;
+  // attend que le menu créé soit ouvert dans l'éditeur
+  function apresOuverture(slug, fn) { let n = 0; const t = setInterval(() => { if (M && M.slug === slug && $("#st")) { clearInterval(t); setTimeout(fn, 300); } else if (++n > 60) clearInterval(t); }, 250); }
+  // Standard : les photos deviennent les pages du menu
+  async function pagesDepuis(fs) {
+    const d = fenetre(`<h2>📷 Ajout des photos…</h2><p class="muted" id="pd-t">Envoi…</p>`);
+    try { let n = 0; for (const f of fs) { $("#pd-t", d).textContent = `Envoi de la photo ${++n} / ${fs.length}…`; M.pages.push(await televerser(f, "page")); } d.remove(); renderEdit(); toast("Photos ajoutées ✓ Cliquez « Enregistrer ».", true); }
+    catch (e) { d.remove(); renderEdit(); toast("Une photo n’a pas pu être envoyée.", true); }
+  }
+  // Pro / Premium : lire la photo du menu papier → catégories + produits
+  async function depuisPhoto(fs, lg) {
+    const P = window.NFCW_MENU_PHOTO;
+    if (!P) { toast("Lecture de photo indisponible.", true); return; }
+    const d = fenetre(`<div class="row between"><h2>📷 Menu depuis la photo</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
+      <div id="mp-run"><p class="muted" id="mp-t" style="margin:6px 0 8px">Préparation…</p><div style="height:8px;border-radius:9px;background:var(--sunk,#eee);overflow:hidden"><i id="mp-b" style="display:block;height:100%;width:3%;background:var(--accent);transition:width .3s"></i></div>
+        <p class="muted" style="font-size:12.5px;margin-top:10px">💡 Restez sur cette page. La lecture se fait dans votre téléphone (30 s à 1 min par photo).</p></div>
+      <div id="mp-ok" hidden>
+        <p class="muted" style="margin:4px 0 8px;font-size:13.5px">Vérifiez et corrigez le texte lu. Une ligne = un produit : <b>Nom = prix</b> (ajoutez <b>| description</b> si besoin). Une ligne qui commence par <b>#</b> = une catégorie. Les lignes avec <b>= ?</b> n’ont pas de prix lu : corrigez-les.</p>
+        <textarea id="mp-x" rows="14" style="width:100%;font-family:ui-monospace,Menlo,monospace;font-size:14px;line-height:1.5" spellcheck="false"></textarea>
+        <label class="check" style="margin-top:8px"><input type="checkbox" id="mp-ph" checked> Ajouter les photos des produits automatiquement</label>
+        <label class="check"><input type="checkbox" id="mp-rep" checked> Remplacer les produits actuels</label>
+        <p class="err" id="mp-err"></p>
+        <button class="btn primary block" id="mp-go">Créer le menu</button></div>`);
+    const bar = $("#mp-b", d), txt = $("#mp-t", d);
+    let res;
+    try { res = await P.lire(fs, lg || "fra", (t, p) => { txt.textContent = t; bar.style.width = Math.max(3, Math.round((p || 0) * 100)) + "%"; }); }
+    catch (e) { console.error(e); txt.innerHTML = "❌ La photo n’a pas pu être lue. Vérifiez la connexion internet, puis réessayez avec une photo nette, bien à plat et bien éclairée."; bar.style.background = "var(--bad,#c33)"; return; }
+    if (!document.body.contains(d)) return;
+    $("#mp-run", d).hidden = true; $("#mp-ok", d).hidden = false;
+    const x = $("#mp-x", d), go = $("#mp-go", d), compte = () => { const c = P.lireTexte(x.value), n = c.reduce((k, c) => k + c.items.length, 0); go.textContent = n ? `Créer le menu · ${c.length} catégorie(s), ${n} produit(s)` : "Aucun produit"; go.disabled = !n; return c; };
+    x.value = res.texte || ""; if (!res.texte) $("#mp-err", d).textContent = "Aucun texte lu : écrivez le menu ici (Nom = prix) ou essayez une photo plus nette.";
+    x.oninput = compte; compte();
+    go.onclick = () => {
+      const cats = compte(); if (!cats.length) return;
+      const l0 = M.langues[0] || "fr";
+      if ($("#mp-rep", d).checked) M.categories = [];
+      for (const c of cats) {
+        let cible = M.categories.find(y => (T(y.nom, l0) || "").trim().toLowerCase() === c.nom.trim().toLowerCase());
+        if (!cible) { cible = { id: rid(6), nom: { [l0]: c.nom }, items: [] }; M.categories.push(cible); }
+        for (const i of c.items) cible.items.push({ id: rid(6), nom: { [l0]: i.nom }, desc: { [l0]: i.desc || "" }, prix: i.prix, photo: "", dispo: true });
+      }
+      M.categories = M.categories.filter(c => (c.items || []).length);
+      const ph = $("#mp-ph", d).checked;
+      d.remove(); renderEdit();
+      toast("Menu créé depuis la photo ✓ Vérifiez puis « Enregistrer ».", true);
+      if (ph) { const b = document.querySelector('[data-act="photos-auto"]'); if (b) photosAuto(b); }
+    };
+  }
+  function choisirPhotoMenu() {
+    const d = fenetre(`<h2>📷 Menu depuis une photo</h2><p class="muted">Prenez la carte bien à plat et bien éclairée. Plusieurs photos = plusieurs pages.</p>
+      <label class="f">Langue du menu<select id="cp-lg"><option value="fra">Français</option><option value="fra+ara">Français + عربي</option><option value="ara">عربي فقط</option></select></label>
+      <div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap"><label class="btn primary">📷 Prendre une photo<input type="file" accept="image/*" capture="environment" hidden data-cp></label><label class="btn">🖼 Choisir des photos<input type="file" accept="image/*" multiple hidden data-cp></label><button class="btn ghost" data-fermer>Annuler</button></div>`);
+    d.addEventListener("change", e => { if (e.target.hasAttribute("data-cp") && e.target.files.length) { const fs = [...e.target.files], lg = $("#cp-lg", d).value; d.remove(); depuisPhoto(fs, lg); } });
+  }
   const segFormule = f => `<div class="seg">${Object.entries(FORMULES).map(([k, [n, s]]) => `<button type="button" data-formule="${k}" aria-pressed="${f === k}"><b>${n}</b><small>${s}</small></button>`).join("")}</div>`;
 
   // champ texte multilingue : un input par langue éditée
@@ -413,7 +477,7 @@
       <div class="drop" style="margin-top:12px" id="pg-drop"><div>Ajouter les photos de la carte</div>
         <div class="row" style="justify-content:center"><label class="btn primary sm">📷 Prendre une photo<input type="file" accept="image/*" capture="environment" hidden data-pages></label><label class="btn sm">Choisir des photos<input type="file" accept="image/*" multiple hidden data-pages></label></div></div>
     </section>` : `<section class="sec">
-      <div class="row between" style="margin-bottom:10px"><h3>${M.type === "location" ? "Voitures" : "Catégories & produits"}</h3><div class="row" style="gap:6px"><button class="btn sm primary" data-act="prix-rapides">💰 Prix</button><button class="btn sm" data-act="importer">📥 Importer</button><button class="btn sm" data-act="cat-add">＋ Catégorie</button></div></div>
+      <div class="row between" style="margin-bottom:10px"><h3>${M.type === "location" ? "Voitures" : "Catégories & produits"}</h3><div class="row" style="gap:6px"><button class="btn sm primary" data-act="prix-rapides">💰 Prix</button><button class="btn sm" data-act="photo-menu">📷 Photo</button><button class="btn sm" data-act="importer">📥 Importer</button><button class="btn sm" data-act="cat-add">＋ Catégorie</button></div></div>
       ${M.categories.some(c => (c.items || []).some(i => !i.photo)) ? `<div class="paper row between" style="padding:12px 14px;border-radius:14px;margin-bottom:12px;gap:10px"><div style="flex:1;min-width:0"><b>✨ Photos automatiques</b><div class="muted" style="font-size:13px">${M.categories.reduce((n, c) => n + (c.items || []).filter(i => !i.photo).length, 0)} produit(s) sans photo : on cherche la bonne photo à partir du nom (Coca-Cola, Poms, café crème…).</div></div><button class="btn sm primary" data-act="photos-auto">Remplir</button></div>` : ""}
       ${M.categories.map((c, ci) => `<div class="cat" data-cat="${esc(c.id)}">
         <div class="cat-h"><div class="names">${ls.map(l => `<input data-cb="nom.${l}" value="${esc(T(c.nom, l))}" placeholder="Nom de la catégorie${ls.length > 1 ? " (" + LCOURT[l] + ")" : ""}" maxlength="60" ${l === "ar" ? 'dir="rtl"' : ""}>`).join("")}</div>
@@ -543,6 +607,7 @@
       case "promo-jour": { const p = M.promos[i], j = +b.dataset.j; p.jours = p.jours || []; p.jours = p.jours.includes(j) ? p.jours.filter(x => x !== j) : [...p.jours, j].sort(); renderEdit(); break; }
       case "photos-auto": photosAuto(b); break;
       case "importer": importer(); break;
+      case "photo-menu": choisirPhotoMenu(); break;
       case "it-edit": editerItem(ci, ii); break;
       case "prix-rapides": prixRapides(); break;
       case "it-up": bouge(M.categories[ci].items, ii, -1); break;
