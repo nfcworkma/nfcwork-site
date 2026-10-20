@@ -13,8 +13,8 @@
 <meta property="og:description" content="Menu digital, carte fidélité, avis Google et cartes NFC pour les commerces au Maroc.">
 <meta property="og:url" content="https://nfcwork.ma/"><meta property="og:image" content="https://nfcwork.ma/assets/img/icons/icon-512.png"><meta property="og:locale" content="fr_MA">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"LocalBusiness","name":"NFCWORK","alternateName":["NFC WORK","nfcwork.ma"],"url":"https://nfcwork.ma/","logo":"https://nfcwork.ma/assets/img/logo-nfcwork.png","image":"https://nfcwork.ma/assets/img/icons/icon-512.png","description":"Menu digital avec commande WhatsApp, carte fidélité digitale, plaques avis Google, cartes de visite NFC au Maroc.","telephone":"+212620666027","email":"nfcworkmacontact@gmail.com","address":{"@type":"PostalAddress","addressLocality":"Kénitra","addressCountry":"MA"},"areaServed":{"@type":"Country","name":"Maroc"}}</script>
-<meta name="theme-color" content="#07090f">
-<script>(function(){var t="a";try{var q=new URLSearchParams(location.search).get("theme");t=q||JSON.parse(localStorage.getItem("nfcw-site")||"{}").theme||t}catch(e){}if(t!=="a")document.documentElement.setAttribute("data-theme",t)})()</script>
+<meta name="theme-color" content="#040a1d">
+<script>(function(){var t="b";try{var q=new URLSearchParams(location.search).get("theme");t=q||JSON.parse(localStorage.getItem("nfcw-site")||"{}").theme||t}catch(e){}if(t!=="a")document.documentElement.setAttribute("data-theme",t)})()</script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/img/icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/img/icons/favicon-32.png">
@@ -224,7 +224,7 @@ footer img{height:22px;width:auto}footer nav{display:flex;gap:20px;flex-wrap:wra
 
 <section class="sec"><div class="wrap">
   <div class="fin rv">
-    <div><span class="eye" style="color:#d9b26b" data-fr="Parlons de votre commerce" data-ar="نهضرو على المحل ديالك">Parlons de votre commerce</span>
+    <div><span class="eye" style="color:#bfe3ff" data-fr="Parlons de votre commerce" data-ar="نهضرو على المحل ديالك">Parlons de votre commerce</span>
       <h2 data-fr="Une question, une démo, une offre ?" data-ar="سؤال، تجربة، ولا عرض؟">Une question, une démo, une offre ?</h2>
       <p data-fr="Écrivez-nous sur WhatsApp : on vous répond rapidement avec une proposition adaptée à votre activité." data-ar="كتب لينا فـ واتساب: كنجاوبوك بسرعة باقتراح يناسب النشاط ديالك.">Écrivez-nous sur WhatsApp : on vous répond rapidement avec une proposition adaptée à votre activité.</p></div>
     <div class="acts"><a class="btn wa lg" data-wa="Bonjour NFCWORK 👋 Je voudrais une proposition pour mon commerce." target="_blank" rel="noopener"><svg><use href="#wa"/></svg><span data-fr="Demander une proposition" data-ar="طلب اقتراح">Demander une proposition</span></a></div>
@@ -242,7 +242,10 @@ footer img{height:22px;width:auto}footer nav{display:flex;gap:20px;flex-wrap:wra
 
 <script>
 (function(){
-  const WA="212620666027", IMG="assets/img/site/";
+  // ✏️ textes, couleurs et WhatsApp modifiés en mode édition (settings/site), gardés aussi dans ce navigateur
+  let SITE={}; try{SITE=JSON.parse(localStorage.getItem("nfcw-site")||"{}")||{}}catch(e){}
+  let TX=SITE.textes||{fr:{},ar:{}}; TX.fr=TX.fr||{}; TX.ar=TX.ar||{};
+  let WA=SITE.wa||"212620666027"; const IMG="assets/img/site/";
   const ROWS=[
     {k:"menu",t:"#f3e3c7",vis:'<div class="duo"><div class="ph"><div class="scr" data-slot="menu" data-frame="/menu/?m=demo-premium&cadre=1"></div></div><div class="ph"><div class="scr" data-slot="menu2" data-img="menu-commande.jpg"></div></div></div>',demo:"/menu/demo-premium",
      fr:["Menu digital & commande WhatsApp","Votre carte en photos sur le téléphone du client. Il choisit, et la commande arrive directement sur votre WhatsApp, prête à préparer.",["Sur place, à emporter ou en livraison","Livraison gratuite ou payante, zone et minimum de commande","Position GPS du client pour le livreur","Promos automatiques selon le jour et l’heure","Réservation de table, produits épuisés en un clic","Français, arabe et anglais"]],
@@ -272,6 +275,8 @@ footer img{height:22px;width:auto}footer nav{display:flex;gap:20px;flex-wrap:wra
   let L="fr"; try{L=localStorage.getItem("nfcw-lang")==="ar"?"ar":"fr"}catch(e){}
   const wa=t=>"https://wa.me/"+WA+(t?"?text="+encodeURIComponent(t):"");
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const tx=(s,html)=>TX[L]&&TX[L][s]!=null?TX[L][s]:(html?s:esc(s));
+  const T=s=>`<span data-ek="${esc(s)}">${tx(s)}</span>`;
   const SLOTS={};
   function remplir(){
     document.querySelectorAll("[data-slot]").forEach(el=>{
@@ -282,29 +287,42 @@ footer img{height:22px;width:auto}footer nav{display:flex;gap:20px;flex-wrap:wra
   }
   function draw(){
     const A=L==="ar";document.documentElement.lang=L;document.documentElement.dir=A?"rtl":"ltr";
-    document.querySelectorAll("[data-fr]").forEach(e=>e.innerHTML=e.dataset[L]);
+    document.querySelectorAll("[data-fr]").forEach(e=>{const o=e.dataset[L];e.dataset.ek=o;e.innerHTML=tx(o,1)});
     document.getElementById("lang").textContent=A?"Français":"العربية";
-    const b=BAND[L].map(x=>`<span>${esc(x)}</span>`).join(""); document.getElementById("band").innerHTML=b+b;
+    const b=BAND[L].map(x=>`<span>${tx(x)}</span>`).join(""); document.getElementById("band").innerHTML=b+b;
     const plus=t=>(A?"السلام عليكم NFCWORK 👋 بغيت نعرف أكثر على: ":"Bonjour NFCWORK 👋 Je voudrais en savoir plus sur : ")+t;
     document.getElementById("rows").innerHTML=ROWS.map((r,i)=>{const t=r[L];
       return `<div class="row rv${i%2?" rev":""}"><div class="vis${r.wide?" wide":""}" style="--t:${r.t}">${r.vis}</div>
-        <div><span class="num">0${i+1}</span><h3>${esc(t[0])}</h3><p class="d">${esc(t[1])}</p><ul class="li">${t[2].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+        <div><span class="num">0${i+1}</span><h3>${T(t[0])}</h3><p class="d">${T(t[1])}</p><ul class="li">${t[2].map(x=>`<li>${T(x)}</li>`).join("")}</ul>
         <div class="acts">${r.demo?`<a class="btn" href="${r.demo}" target="_blank" rel="noopener">${A?"شوف المثال":"Voir l’exemple"}</a>`:""}<a class="btn wa" href="${wa(plus(t[0]))}" target="_blank" rel="noopener"><svg><use href="#wa"/></svg>${A?"طلب فـ واتساب":"Demander sur WhatsApp"}</a></div></div></div>`}).join("");
-    document.getElementById("mini").innerHTML=MINI.map(m=>{const t=m[L];return `<a class="mc rv" href="${m.demo||wa(plus(t[0]))}" target="_blank" rel="noopener"><div class="im${m.w?" w":""}" style="--t:${m.t}"><span data-slot="${m.k}" data-img="${m.img}" style="display:contents"></span></div><div class="tx"><b>${esc(t[0])}</b><p>${esc(t[1])}</p><span class="lk">${m.demo?(A?"شوف المثال ←":"Voir l’exemple →"):(A?"طلب فـ واتساب ←":"Demander →")}</span></div></a>`}).join("");
-    document.getElementById("mt").innerHTML=MT.map(([i,n,u])=>`<a class="btn" href="${u}" target="_blank" rel="noopener"><span>${i}</span>${esc(n[L])}</a>`).join("");
+    document.getElementById("mini").innerHTML=MINI.map(m=>{const t=m[L];return `<a class="mc rv" href="${m.demo||wa(plus(t[0]))}" target="_blank" rel="noopener"><div class="im${m.w?" w":""}" style="--t:${m.t}"><span data-slot="${m.k}" data-img="${m.img}" style="display:contents"></span></div><div class="tx"><b>${T(t[0])}</b><p>${T(t[1])}</p><span class="lk">${m.demo?(A?"شوف المثال ←":"Voir l’exemple →"):(A?"طلب فـ واتساب ←":"Demander →")}</span></div></a>`}).join("");
+    document.getElementById("mt").innerHTML=MT.map(([i,n,u])=>`<a class="btn" href="${u}" target="_blank" rel="noopener"><span>${i}</span>${T(n[L])}</a>`).join("");
     document.querySelectorAll("[data-wa]").forEach(a=>a.href=wa(a.dataset.wa?(A?"السلام عليكم NFCWORK 👋":a.dataset.wa):""));
     remplir(); obs();
+    document.dispatchEvent(new Event("nfcw-draw"));
   }
   let io=null;function obs(){const els=document.querySelectorAll(".rv:not(.on)");if(!("IntersectionObserver" in window)){els.forEach(e=>e.classList.add("on"));return}io=io||new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){x.target.classList.add("on");io.unobserve(x.target)}}),{threshold:0,rootMargin:"0px 0px 120px 0px"});els.forEach(e=>io.observe(e))}
   document.getElementById("lang").onclick=()=>{L=L==="ar"?"fr":"ar";try{localStorage.setItem("nfcw-lang",L)}catch(e){}draw()};
   draw();
+  function appliquer(o){
+    SITE=o||{}; TX=SITE.textes||{fr:{},ar:{}}; TX.fr=TX.fr||{}; TX.ar=TX.ar||{}; if(SITE.wa) WA=SITE.wa;
+    const t=new URLSearchParams(location.search).get("theme")||SITE.theme||"b";
+    if(t==="a") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme",t);
+    try{localStorage.setItem("nfcw-site",JSON.stringify({theme:SITE.theme||"b",textes:TX,wa:SITE.wa||""}))}catch(e){}
+    draw();
+  }
+  window.NFCW_SITE={draw,remplir,appliquer,SLOTS,get L(){return L},get TX(){return TX},get WA(){return WA},esc};
+  if(/[?&]edition=1/.test(location.search)){const sc=document.createElement("script");sc.src="assets/js/edition.js?v=1";document.body.appendChild(sc)}
   // 🌐 images choisies dans l'Espace → « Mon site » (settings/site + settings/mimg-<id>)
   (async()=>{
     const API="https://firestore.googleapis.com/v1/projects/nfcwork-espace/databases/(default)/documents/settings/", KEY="AIzaSyDFJGerneuM-Og0Hs9IKIcFqVbLlS9Yqjc";
     const lire=async id=>{const r=await fetch(API+id+"?key="+KEY);if(!r.ok)return null;return (await r.json()).fields||{}};
     try{
       const f=await lire("site"); if(!f||!f.json) return;
-      const S=JSON.parse(f.json.stringValue||"{}").slots||{};
+      const J=JSON.parse(f.json.stringValue||"{}"), S=J.slots||{};
+      const avant=localStorage.getItem("nfcw-site")||"";
+      const nv=JSON.stringify({theme:J.theme||"b",textes:J.textes||{fr:{},ar:{}},wa:J.wa||""});
+      if(nv!==avant && !document.body.classList.contains("edit")) appliquer(J);
       let box=null; try{box=await caches.open("nfcwork-site-img")}catch(e){}
       await Promise.all(Object.entries(S).map(async([k,id])=>{
         if(!id) return; const u="/__site-img/"+id; let d=null;

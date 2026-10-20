@@ -5,7 +5,7 @@
   const A = () => window.NFCW_APP;
   const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const SLOTS = [
-    ["hero", "📱 Grand téléphone en haut", ""], ["menu", "🍽 Menu digital · téléphone 1", ""], ["menu2", "🍽 Menu digital · téléphone 2", "menu-commande.jpg"],
+    ["hero", "📱 Grand téléphone en haut", ""], ["heroL", "📱 Téléphone gauche (haut)", "fidelite.jpg"], ["heroR", "📱 Téléphone droite (haut)", "avis.jpg"], ["menu", "🍽 Menu digital · téléphone 1", ""], ["menu2", "🍽 Menu digital · téléphone 2", "menu-commande.jpg"],
     ["fidelite", "🎁 Carte fidélité", "fidelite.jpg"], ["avis", "⭐ Avis Google", "avis.jpg"], ["stand", "🪑 Plaques de table", "stand.png"],
     ["profil", "👤 Carte de visite NFC", "profil.jpg"], ["wifi", "📶 Wi-Fi", "wifi.jpg"], ["tv", "📺 Menu TV", "tv.jpg"],
     ["location", "🚗 Location de voitures", "location.jpg"], ["liens", "🔗 Page liens", "liens.jpg"], ["cle", "🔑 Porte-clés", "cle.jpg"]
@@ -29,9 +29,9 @@
     try { const d = await fs.doc("settings/site").get(); if (d.exists) S = JSON.parse(d.data().json || "{}").slots || {}; } catch (e) {}
     const imgs = {};
     await Promise.all(Object.values(S).filter(Boolean).map(async id => { try { const d = await fs.doc("settings/mimg-" + id).get(); if (d.exists) imgs[id] = d.data().data; } catch (e) {} }));
-    const sauver = async () => { await fs.doc("settings/site").set({ json: JSON.stringify({ slots: S }), maj: new Date().toISOString() }); };
+    const sauver = async () => { let cur = {}; try { const d = await fs.doc("settings/site").get(); if (d.exists) cur = JSON.parse(d.data().json || "{}") || {}; } catch (e) {} cur.slots = S; await fs.doc("settings/site").set({ json: JSON.stringify(cur), maj: new Date().toISOString() }); };
     const draw = () => {
-      ap.openModal(`${ap.head("🌐 Mon site · images")}<p class="muted" style="margin:0 0 12px">Changez les images de <b>nfcwork.ma</b>. Elles apparaissent sur le site en quelques secondes. « Par défaut » remet l’image d’origine.</p>
+      ap.openModal(`${ap.head("🌐 Mon site · images")}<a class="btn primary block" href="../index.html?edition=1" style="margin-bottom:12px">✏️ Modifier tout le site (textes, images, couleurs)</a><p class="muted" style="margin:0 0 12px">Ou changez seulement les images de <b>nfcwork.ma</b> ici. Elles apparaissent sur le site en quelques secondes. « Par défaut » remet l’image d’origine.</p>
         <div class="stack" style="gap:10px">${SLOTS.map(([k, n, def]) => { const src = S[k] && imgs[S[k]] ? imgs[S[k]] : def ? "../assets/img/site/" + def : "";
           return `<div class="grow" style="gap:12px;flex-wrap:wrap"><div style="width:64px;height:84px;border-radius:12px;overflow:hidden;background:var(--surface);border:1px solid var(--line);flex:none;display:grid;place-items:center">${src ? `<img src="${esc(src)}" style="width:100%;height:100%;object-fit:cover;object-position:top">` : `<span style="font-size:11px;text-align:center;color:var(--muted)">menu<br>animé</span>`}</div>
             <div style="flex:1;min-width:140px"><b>${esc(n)}</b><div class="muted" style="font-size:12.5px">${S[k] ? "✅ Votre image" : def ? "Image par défaut" : "Menu exemple animé (par défaut)"}</div></div>

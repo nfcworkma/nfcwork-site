@@ -1,14 +1,14 @@
 /* NFCWORK — styles communs des outils admin (Menus digitaux, Stands QR) */
 /* Même thème que l'Espace : sombre, bleu électrique NFCWORK */
 :root{
-  --bg:#f6f1e7; --surface:#fffdf8; --sunk:#efe7d8; --fg:#141a26; --muted:#5d6677; --line:#e3d8c4;
-  --accent:#1f5eff; --accent-2:#1f5eff; --accent-fg:#FFFFFF; --accent-soft:#e3ebff; --gold:#b8873b;
-  --ok:#1f9d55; --ok-soft:#e1f3e8; --warn:#b7791f; --warn-soft:#fbf0dc; --bad:#d64545; --bad-soft:#fbe4e4;
+  --bg:#040a1d; --surface:#0d1a3a; --sunk:#08122c; --fg:#ffffff; --muted:#a7b6d9; --line:#1c2d5a;
+  --accent:#2f7bff; --accent-2:#5cc8ff; --accent-fg:#FFFFFF; --accent-soft:rgb(47 123 255 / .18); --gold:#5cc8ff;
+  --ok:#1f9d55; --ok-soft:rgb(31 157 85 / .18); --warn:#e0a43a; --warn-soft:rgb(224 164 58 / .16); --bad:#ff6b6b; --bad-soft:rgb(255 107 107 / .15);
   --display:"Fraunces","Noto Kufi Arabic",Georgia,serif;
   --body:"Inter","Noto Kufi Arabic",system-ui,sans-serif;
   --mono:"Inter","Noto Kufi Arabic",system-ui,sans-serif;
   --r:18px;
-  color-scheme:light;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}

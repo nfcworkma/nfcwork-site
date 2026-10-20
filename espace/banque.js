@@ -262,6 +262,5 @@ window.BANQUE = [
   /* Salle (photo de couverture) */
   ["1567880905822-56f8e06fe630", "Coffee shop", "Salle", "salle cafe interieur couverture"],
   ["1521017432531-fbd92d768814", "Café", "Salle", "salle cafe interieur couverture"],
-  ["1511081692775-05d0f180a065", "Café lumières", "Salle", "salle cafe interieur couverture"]
 ];
 window.BANQUE_URL = (id, w) => "https://images.unsplash.com/photo-" + id + "?auto=format&fit=crop&w=" + (w || 800) + "&q=75";
