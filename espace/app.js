@@ -95,7 +95,7 @@ const authMsg=e=>({
 /* ---------- state ---------- */
 const S={services:[],clients:[],invoices:[],orders:[],claims:[],creations:[],mods:[],settings:{}};
 const P={client:null,invoices:[],orders:[],claims:[],creations:[],mods:[],ready:false};
-let role=null,user=null,tab="home",ptab="home",invFilter="all",ordFilter="open",oseg="orders",catFilter="all",subs=[],confirmKey=null,draft=null;
+let role=null,user=null,tab="home",ptab="home",invFilter="all",ordFilter="open",oseg="quotes",catFilter="all",subs=[],confirmKey=null,draft=null;
 let cart={},cartNote="",sending=false;
 const clientById=id=>S.clients.find(c=>c.id===id);
 const unsubAll=()=>{subs.forEach(u=>{try{u()}catch(e){}});subs=[]};
@@ -235,7 +235,7 @@ function todo(){
 }
 function todoTiles(){
   const t=todo(),tile=(seg,n,lab,sub)=>`<button class="todo${n?" on":""}" data-goseg="${seg}"><span class="todo-n num">${n}</span><span class="todo-l">${lab}</span><span class="todo-s">${sub}</span></button>`;
-  return `<div class="todos">${tile("orders",t.o,"Nouvelles commandes","à confirmer")}${tile("quotes",t.q,"Devis demandés","à chiffrer")}${tile("claims",t.c,"Réclamations","ouvertes")}${tile("mods",t.m,"Demandes de modif.","nouvelles")}</div>${nfcActifsHtml()}`;
+  return `<div class="todos">${tile("quotes",t.q,"Devis demandés","à chiffrer")}${tile("claims",t.c,"Réclamations","ouvertes")}${tile("mods",t.m,"Demandes de modif.","nouvelles")}</div>${nfcActifsHtml()}`;
 }
 // tuile Abonnements : nombre de clients à relancer (en retard ou échéance dans 7 jours)
 async function aboBadge(){
@@ -266,8 +266,7 @@ function renderHome(){
     <a class="qa" href="abonnements.html" style="position:relative">${ico("file-text")}<b>Abonnements</b><span id="aboInfo">Paiements & activation</span></a></div>
   <div id="gHome"></div>
   <div class="eyebrow" style="margin-bottom:8px">À traiter</div>${todoTiles()}
-  ${!S.services.length?`<div class="notice row between" style="margin-bottom:12px"><span>Votre catalogue est vide : importez les produits du site en un clic.</span><button class="btn sm primary" data-goto="services">Catalogue</button></div>`:""}
-  ${!all.length&&!S.clients.length?`<div class="notice">Pour démarrer : remplissez les <b>Paramètres</b>, ajoutez vos <b>services</b>, puis vos <b>clients</b> (avec leur e-mail), et créez votre première facture.</div>`:""}
+  ${!all.length&&!S.clients.length?`<div class="notice">Pour démarrer : remplissez les <b>Paramètres</b>, ajoutez vos <b>clients</b> (avec leur e-mail), et créez votre première facture.</div>`:""}
   <div class="kpis">
     <div class="kpi lead"><div class="eyebrow">Encaissé ${y}</div><b>${fmt(paidYear)} <small>DH</small></b></div>
     <div class="kpi"><div class="eyebrow">À encaisser</div><b>${fmt(openAmt)} <small>DH</small></b></div>
@@ -350,8 +349,8 @@ function renderOrders(){
     body=`<div class="filters">${Object.entries(f).map(([k,v])=>`<button class="chip" data-ofilter="${k}" aria-pressed="${ordFilter===k}">${v}</button>`).join("")}</div>
     ${list.length?`<div class="stack">${list.map(orderCard).join("")}</div>`:`<div class="empty"><h3>Aucune commande ici</h3><p>${base.length?"Aucune commande avec ce statut.":"Les commandes de vos clients apparaîtront ici."}</p></div>`}`;
   }
-  app.innerHTML=`<div class="section-head"><div><h2>Suivi clients</h2><div class="muted" style="font-size:13.5px">Commandes du site, devis, réclamations et demandes de modification envoyés depuis le site et l’espace client.</div></div></div>
-  <div class="seg seg4">${seg("orders","Commandes",t.o)}${seg("quotes","Devis",t.q)}${seg("claims","Réclam.",t.c)}${seg("mods","Modifs",t.m)}</div>${body}`;
+  app.innerHTML=`<div class="section-head"><div><h2>Suivi clients</h2><div class="muted" style="font-size:13.5px">Devis, réclamations et demandes de modification envoyés par vos clients depuis leur espace.</div></div></div>
+  <div class="seg seg3">${seg("quotes","Devis",t.q)}${seg("claims","Réclam.",t.c)}${seg("mods","Modifs",t.m)}</div>${body}`;
 }
 function quoteHtml(q){
   if(!q)return"";

@@ -1,12 +1,14 @@
 /* NFCWORK — styles communs des outils admin (Menus digitaux, Stands QR) */
 /* Même thème que l'Espace : sombre, bleu électrique NFCWORK */
 :root{
-  --bg:#05080f;--surface:#0b1220;--sunk:#111b2e;--fg:#e9effa;--muted:#93a3be;--line:#1d2b45;
-  --accent:#1e90ff;--accent-2:#3fd0ff;--accent-fg:#fff;--accent-soft:color-mix(in srgb,#1e90ff 18%,#0b1220);
-  --ok:#25d366;--ok-soft:color-mix(in srgb,#25d366 14%,#0b1220);--warn:#f2b53a;--bad:#ff6b6b;--bad-soft:color-mix(in srgb,#ff6b6b 14%,#0b1220);
-  --display:"Readex Pro","IBM Plex Sans Arabic",system-ui,sans-serif;
-  --body:"IBM Plex Sans Arabic","Readex Pro",system-ui,sans-serif;
-  --r:16px;color-scheme:dark;
+  --bg:#f6f1e7; --surface:#fffdf8; --sunk:#efe7d8; --fg:#141a26; --muted:#5d6677; --line:#e3d8c4;
+  --accent:#1f5eff; --accent-2:#1f5eff; --accent-fg:#FFFFFF; --accent-soft:#e3ebff; --gold:#b8873b;
+  --ok:#1f9d55; --ok-soft:#e1f3e8; --warn:#b7791f; --warn-soft:#fbf0dc; --bad:#d64545; --bad-soft:#fbe4e4;
+  --display:"Fraunces","Noto Kufi Arabic",Georgia,serif;
+  --body:"Inter","Noto Kufi Arabic",system-ui,sans-serif;
+  --mono:"Inter","Noto Kufi Arabic",system-ui,sans-serif;
+  --r:18px;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
