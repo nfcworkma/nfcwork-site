@@ -391,19 +391,26 @@
     const tot = orders.reduce((a, o) => a + num(o.total), 0);
     let mode = "Espèces", recu = 0;
     const d = document.createElement("div"); d.className = "modal";
-    const dessiner = () => {
-      const diff = recu - tot;
+    const blocRendu = () => { const diff = recu - tot; return recu ? `<div class="rendu ${diff >= 0 ? "ok" : "ko"}">${diff >= 0 ? `↩️ ${t("rendre")} : <b>${fmt(diff)}</b>` : `⚠️ ${t("manque")} : <b>${fmt(-diff)}</b>`}</div>` : ""; };
+    const dessiner = (focus) => {
       d.innerHTML = `<div class="box pay"><h2>💰 ${t("encaisser")}${titre ? " · " + esc(titre) : ""}</h2><div class="bigtot">${fmt(tot)}</div>
         <div class="pm"><button data-pm="Espèces" aria-pressed="${mode === "Espèces"}">💵<b>${t("especes")}</b></button><button data-pm="Carte" aria-pressed="${mode === "Carte"}">💳<b>${t("carte")}</b></button></div>
         ${mode === "Espèces" ? `<p class="mut" style="margin:6px 0">${t("donne")} :</p>
           <div class="bills">${[[20, "#8b5cf6"], [50, "#1faa59"], [100, "#b7791f"], [200, "#2f7bff"]].map(([b, c]) => `<button data-b="${b}" style="--b:${c}">${b}</button>`).join("")}<button data-b="ex" class="ex">${t("exact")}</button></div>
-          <div class="recu"><span>💵 ${fmt(recu)}</span>${recu ? `<button data-b="0" class="btn sm">${t("effacer")}</button>` : ""}</div>
-          ${recu ? `<div class="rendu ${diff >= 0 ? "ok" : "ko"}">${diff >= 0 ? `↩️ ${t("rendre")} : <b>${fmt(diff)}</b>` : `⚠️ ${t("manque")} : <b>${fmt(-diff)}</b>`}</div>` : ""}` : ""}
+          <div class="recu"><span class="ri">💵<input id="recu" type="number" inputmode="decimal" min="0" step="any" placeholder="0" value="${recu || ""}" aria-label="${t("donne")}"><em>${esc(DEV)}</em></span>${recu ? `<button data-b="0" class="btn sm">${t("effacer")}</button>` : ""}</div>
+          <div id="rendu">${blocRendu()}</div>` : ""}
         <label class="chk"><input type="checkbox" id="pt" ${LS.get("ticketPay", true) ? "checked" : ""}> 🧾 ${t("ticket")}</label>
         <button class="btn ok huge" id="pok" style="width:100%" ${mode === "Espèces" && recu && recu < tot ? "disabled" : ""}>✔ ${t("valider")}</button>
         <button class="btn" id="px" style="width:100%;margin-top:8px">${t("fermer")}</button></div>`;
       d.querySelectorAll("[data-pm]").forEach(b => b.onclick = () => { mode = b.dataset.pm; dessiner(); });
       d.querySelectorAll("[data-b]").forEach(b => b.onclick = () => { const v = b.dataset.b; recu = v === "ex" ? tot : v === "0" ? 0 : recu + +v; ton([990], .12); dessiner(); });
+      const ri = d.querySelector("#recu");
+      if (ri) {
+        // le caissier tape ce que le client a donné : la monnaie à rendre s'affiche tout de suite
+        ri.oninput = () => { recu = num(ri.value); d.querySelector("#rendu").innerHTML = blocRendu(); d.querySelector("#pok").disabled = !!(recu && recu < tot); };
+        ri.onkeydown = e => { if (e.key === "Enter" && !d.querySelector("#pok").disabled) d.querySelector("#pok").click(); };
+        if (focus !== false) setTimeout(() => { ri.focus(); ri.select(); }, 30);
+      }
       d.querySelector("#px").onclick = () => d.remove();
       d.querySelector("#pok").onclick = () => {
         const pt = d.querySelector("#pt").checked; LS.set("ticketPay", pt);
