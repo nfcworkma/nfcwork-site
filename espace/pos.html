@@ -143,6 +143,18 @@ h1{font-size:32px;margin:6px 0 4px;letter-spacing:-.02em}h2{margin:0 0 12px;font
 .alarm{position:fixed;bottom:20px;inset-inline-end:20px;z-index:40;background:var(--warn);color:#241500;font-weight:800;padding:14px 18px;border-radius:20px;border:0;box-shadow:0 14px 40px rgb(0 0 0/.5);display:flex;gap:12px;align-items:center;font-size:19px;animation:pul 1.2s infinite}
 .alarm .big{font-size:30px}.alarm .go{background:#241500;color:var(--warn);border-radius:12px;padding:8px 12px}
 .panne{position:fixed;left:0;right:0;top:0;z-index:70;background:var(--bad);color:#fff;font-weight:800;font-size:17px;padding:14px 16px;text-align:center;box-shadow:0 10px 30px rgb(0 0 0/.4)}
+/* historique */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:12px}
+.kpis div{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px;font-size:22px}.kpis div span{display:block;color:var(--mut);font-size:14px;margin-top:2px}.kpis div b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
+.kpis .k1{background:linear-gradient(160deg,rgb(31 170 89/.35),var(--card));border-color:var(--ok)}
+.hgrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px}@media(max-width:900px){.hgrid{grid-template-columns:1fr}}
+.hb{display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,1.2fr) 52px 110px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed rgb(255 255 255/.08);font-size:16px}
+.hb .hm{text-align:end}.hb .hn{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hb .hq{font-variant-numeric:tabular-nums;min-width:40px;text-align:end}.hb .hm{color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar{height:12px;border-radius:9px;background:rgb(255 255 255/.06);overflow:hidden}.bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+.tl{display:grid;gap:6px;max-height:60vh;overflow:auto}
+.tr2{display:grid;grid-template-columns:110px 80px minmax(0,1fr) minmax(0,1fr) 40px auto;gap:10px;align-items:center;text-align:start;border:1px solid var(--line);background:var(--bg2);border-radius:12px;padding:10px 12px;font-size:15px}
+.tr2.annulee{opacity:.5;text-decoration:line-through}.tr2 b{font-variant-numeric:tabular-nums}
+@media(max-width:700px){.tr2{grid-template-columns:90px 70px 1fr auto;font-size:13px}.tr2 span:nth-child(4),.tr2 span:nth-child(5){display:none}}
 .empty{text-align:center;color:var(--mut);padding:28px 10px;border:2px dashed var(--line);border-radius:18px;font-size:17px}
 @media print{body *{visibility:hidden}}
 </style>

@@ -372,6 +372,7 @@
         <p class="muted" style="margin:-4px 0 0;font-size:12.5px">Le compte doit exister dans l’Espace (inscription avec ce même e-mail). Vous, l’admin, avez toujours accès.</p>
         <label class="f">Nombre de tables<input id="cr-t" type="number" min="1" max="80" value="${esc(C.tables || 12)}"></label>
         <label class="f">Employés et code PIN à 4 chiffres (un par ligne : Nom = PIN)<textarea id="cr-p" rows="4" placeholder="Aymen = 1234&#10;Sara = 5678">${esc((C.employes || []).map(e => e.nom + " = " + e.pin).join("\n"))}</textarea></label>
+        <label class="f">🔐 Code du patron pour voir l’historique (4 chiffres, facultatif)<input id="cr-x" inputmode="numeric" maxlength="4" pattern="\\d{4}" value="${esc(C.pinPatron || "")}" placeholder="ex. 2580"></label>
         <label class="f">En-tête du ticket (adresse, téléphone)<textarea id="cr-h" rows="2" placeholder="Bd Mohammed V, Kénitra · 06 00 00 00 00">${esc((C.ticket || {}).entete || "")}</textarea></label>
         <label class="f">Bas du ticket<input id="cr-f" value="${esc((C.ticket || {}).pied || "Merci de votre visite !")}" maxlength="80"></label>
         <p class="err" id="cr-err"></p><button class="btn primary">Enregistrer</button></form>`);
@@ -381,7 +382,9 @@
       const employes = $("#cr-p", d).value.split("\n").map(l => l.split("=")).filter(x => x.length === 2 && x[0].trim() && /^\d{4}$/.test(x[1].trim())).map(x => ({ nom: x[0].trim().slice(0, 30), pin: x[1].trim() }));
       if (new Set(employes.map(x => x.pin)).size !== employes.length) { $("#cr-err", d).textContent = "Deux employés ont le même PIN."; return; }
       try {
-        await db.doc("caisses/" + M.slug).set({ emails, tables: Math.max(1, Math.min(80, +$("#cr-t", d).value || 12)), employes, ticket: { entete: $("#cr-h", d).value.trim().slice(0, 200), pied: $("#cr-f", d).value.trim().slice(0, 80), largeur: (C.ticket || {}).largeur || 80 }, maj: NOW() });
+        const px = $("#cr-x", d).value.trim();
+        if (px && !/^\d{4}$/.test(px)) { $("#cr-err", d).textContent = "Le code du patron doit avoir 4 chiffres."; return; }
+        await db.doc("caisses/" + M.slug).set({ emails, pinPatron: px, tables: Math.max(1, Math.min(80, +$("#cr-t", d).value || 12)), employes, ticket: { entete: $("#cr-h", d).value.trim().slice(0, 200), pied: $("#cr-f", d).value.trim().slice(0, 80), largeur: (C.ticket || {}).largeur || 80 }, maj: NOW() });
         d.remove(); toast("✅ Caisse enregistrée");
       } catch (x) { console.error(x); $("#cr-err", d).textContent = "Échec : les règles Firebase de la caisse sont-elles ajoutées ?"; }
     };

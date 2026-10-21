@@ -26,7 +26,10 @@
       tel: "Téléphone", nom: "Nom", adresse: "Adresse", note: "Remarque pour la cuisine", panier: "Ma commande", serveur: "Serveur", menuQR: "Menu QR", reglages: "Réglages",
       oui: "Oui", non: "Non", annulerQ: "Annuler cette commande ?", pin: "Changer de serveur", livr: "Livraison", depuis: "il y a", min: "min", instant: "à l’instant",
       choisir: "Choisissez une table", lang: "عربي", ticketTest: "Ticket test", papier: "Largeur du papier", bonAuto: "Imprimer le bon cuisine en envoyant", auto: "Imprimer chaque nouvelle commande du menu automatiquement",
-      sauver: "Enregistrer", changer: "Changer de caisse", deco: "Déconnecter cette caisse", telReq: "Écrivez le téléphone du client", touch: "Touchez les produits", tableW: "Table" },
+      sauver: "Enregistrer", changer: "Changer de caisse", deco: "Déconnecter cette caisse", telReq: "Écrivez le téléphone du client", touch: "Touchez les produits", tableW: "Table",
+      histo: "Historique", histoTx: "Ventes, produits, serveurs", patron: "Code du patron", jour: "Aujourd’hui", hier: "Hier", j7: "7 jours", mois: "Ce mois", moisP: "Mois dernier",
+      ca: "Chiffre d’affaires", tickets: "Tickets", moyen: "Ticket moyen", produits: "Produits vendus", serveurs: "Par serveur", parJour: "Par jour", liste: "Tous les tickets",
+      qte: "Qté", montant: "Montant", annulees: "Annulées", rapport: "Imprimer le rapport", csv: "Télécharger (Excel)", chargement: "Chargement…", du: "Du", au: "au", voirP: "Voir" },
     ar: { start: "بدا الكيسة", startTx: "الطلبات ديال المنيو كيوصلو هنا مباشرة.", who: "ورك على سميتك", code: "دخل الكود ديالك", wrong: "الكود غالط", hello: "مرحبا", what: "شنو بغيتي دير؟",
       place: "فالمحل", emporter: "ديها معاك", livraison: "توصيل", commandes: "الطلبات", tables: "الطوابل", libre: "خاوية", occ: "عامرين",
       nouvelle: "جديدة", cuisine: "فالكوزينة", prete: "واجدة", payee: "تخلصات", annulee: "تلغات", lancer: "صيفط للكوزينة", lancerTout: "صيفط للكوزينة", pret: "واجدة",
@@ -37,7 +40,10 @@
       tel: "التيليفون", nom: "السمية", adresse: "العنوان", note: "ملاحظة للكوزينة", panier: "الطلب", serveur: "السرفور", menuQR: "منيو QR", reglages: "الإعدادات",
       oui: "إيه", non: "لا", annulerQ: "تلغي هاد الطلب؟", pin: "بدل السرفور", livr: "التوصيل", depuis: "هادي", min: "دقيقة", instant: "دابا",
       choisir: "اختار الطابلة", lang: "Français", ticketTest: "تيكي تجربة", papier: "عرض الورقة", bonAuto: "طبع ورقة الكوزينة ملي تصيفط", auto: "طبع كل طلب جديد من المنيو بوحدو",
-      sauver: "سجل", changer: "بدل الكيسة", deco: "خرج من هاد الكيسة", telReq: "كتب التيليفون ديال الكليان", touch: "ورك على المنتوجات", tableW: "الطابلة" }
+      sauver: "سجل", changer: "بدل الكيسة", deco: "خرج من هاد الكيسة", telReq: "كتب التيليفون ديال الكليان", touch: "ورك على المنتوجات", tableW: "الطابلة",
+      histo: "الحسابات", histoTx: "المبيعات، المنتوجات، السرفورات", patron: "الكود ديال مول المحل", jour: "اليوم", hier: "البارح", j7: "7 أيام", mois: "هاد الشهر", moisP: "الشهر اللي فات",
+      ca: "المدخول", tickets: "التيكيات", moyen: "معدل التيكي", produits: "المنتوجات اللي تباعو", serveurs: "على حساب السرفور", parJour: "على حساب النهار", liste: "كاع التيكيات",
+      qte: "العدد", montant: "المبلغ", annulees: "تلغاو", rapport: "طبع الحساب", csv: "تحميل (Excel)", chargement: "كيتشارجا…", du: "من", au: "حتى", voirP: "شوف" }
   };
   const t = k => (W[LG] || W.fr)[k] || W.fr[k] || k;
   const setLang = () => { document.documentElement.lang = LG; document.documentElement.dir = LG === "ar" ? "rtl" : "ltr"; };
@@ -259,6 +265,7 @@
     if (vue.k === "ligne") return enligne();
     if (vue.k === "table") return table();
     if (vue.k === "nouvelle") return nouvelleCmd();
+    if (vue.k === "histo") return historique();
   }
   const retour = (k, lab) => `<button class="btn back" data-ret="${k}">${LG === "ar" ? "›" : "‹"} ${lab || t("retour")}</button>`;
   const brancherRetour = () => app.querySelectorAll("[data-ret]").forEach(b => b.onclick = () => go({ k: b.dataset.ret }));
@@ -272,10 +279,11 @@
         <button class="tile c1${O.some(o => o.statut === "nouvelle" && o.mode === "place" && numTable(o.table)) ? " alert" : ""}" data-go="tables"><span class="ic">🍽</span><b>${t("place")}</b><small>🪑 ${occ} ${t("occ")}</small></button>
         <button class="tile c2" data-go="emporter"><span class="ic">🥡</span><b>${t("emporter")}</b><small>➕</small></button>
         <button class="tile c3" data-go="livraison"><span class="ic">🛵</span><b>${t("livraison")}</b><small>➕</small></button>
+        <button class="tile c0" data-go="histo"><span class="ic">📊</span><b>${t("histo")}</b><small>${t("histoTx")}</small></button>
         <button class="tile c4${nNew ? " alert" : ""}" data-go="ligne">${nNew ? `<span class="bdg">${nNew}</span>` : ""}<span class="ic">📲</span><b>${t("commandes")}</b><small>🔔 ${nNew} · 👨‍🍳 ${O.filter(o => o.statut === "cuisine").length} · ✅ ${O.filter(o => o.statut === "prete").length}</small></button>
       </div>
       <div class="stats"><div>💰 <span class="mut">${t("encaisse")}</span><b>${fmt(ca)}</b></div><div>🧾 <span class="mut">${t("payees")}</span><b>${pay.length}</b></div><div>⏳ <span class="mut">${t("encours")}</span><b>${O.length}</b></div></div>`;
-    app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const g = b.dataset.go; if (g === "emporter" || g === "livraison") go({ k: "nouvelle", mode: g }); else go({ k: g }); });
+    app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const g = b.dataset.go; if (g === "emporter" || g === "livraison") go({ k: "nouvelle", mode: g }); else if (g === "histo") patron(() => go({ k: "histo", per: "jour" })); else go({ k: g }); });
   }
 
   function tables() {
@@ -384,6 +392,88 @@
     };
     app.querySelector("[data-send]").onclick = () => creer(false);
     const s2 = app.querySelector("[data-sendpay]"); if (s2) s2.onclick = () => creer(true);
+  }
+
+  /* ---------- 📊 historique pour le patron : ventes, produits, serveurs, tickets ---------- */
+  let patronOk = 0;
+  function patron(fn) {
+    const P = String(C.pinPatron || "");
+    if (!P || Date.now() - patronOk < 10 * 60000) return fn();
+    let code = "";
+    const d = document.createElement("div"); d.className = "modal";
+    d.innerHTML = `<div class="box" style="text-align:center;width:min(380px,100%)"><div style="font-size:44px">🔐</div><h2>${t("patron")}</h2><div class="dots" id="xd">${"<i></i>".repeat(P.length)}</div>
+      <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "✖", 0, "⌫"].map(k => `<button data-k="${k}">${k}</button>`).join("")}</div><p class="err" id="xe"></p></div>`;
+    document.body.appendChild(d);
+    const maj = () => d.querySelectorAll("#xd i").forEach((x, n) => x.classList.toggle("f", n < code.length));
+    d.querySelectorAll("[data-k]").forEach(b => b.onclick = () => {
+      const k = b.dataset.k;
+      if (k === "✖") return d.remove();
+      if (k === "⌫") code = code.slice(0, -1); else code += k;
+      maj();
+      if (code.length === P.length) { if (code === P) { patronOk = Date.now(); d.remove(); fn(); } else { code = ""; maj(); d.querySelector("#xe").textContent = "❌ " + t("wrong"); bipPanne(); } }
+    });
+  }
+  function periode(k) {
+    const d0 = debutJour(), j = 864e5;
+    if (k === "jour") return [d0, new Date(+d0 + j)];
+    if (k === "hier") return [new Date(+d0 - j), d0];
+    if (k === "j7") return [new Date(+d0 - 6 * j), new Date(+d0 + j)];
+    const m = new Date(d0); m.setDate(1);
+    if (k === "mois") return [m, new Date(+d0 + j)];
+    const p = new Date(m); p.setMonth(p.getMonth() - 1);
+    return [p, m];
+  }
+  let HCACHE = {};
+  async function historique() {
+    const k = vue.per || "jour", [d1, d2] = periode(k);
+    const onglets = ["jour", "hier", "j7", "mois", "moisP"].map(x => `<button data-per="${x}" aria-pressed="${x === k}">${t(x)}</button>`).join("");
+    app.innerHTML = `${retour("home")}<h1>📊 ${t("histo")}</h1><div class="cats" style="margin:8px 0 14px">${onglets}</div><div id="hz"><div class="empty">⏳ ${t("chargement")}</div></div>`;
+    brancherRetour();
+    app.querySelectorAll("[data-per]").forEach(b => b.onclick = () => go({ k: "histo", per: b.dataset.per }));
+    let L;
+    try {
+      if (k === "jour") L = ORD.slice();
+      else {
+        const cle = k + "|" + d1.toISOString();
+        if (!HCACHE[cle]) {
+          const s = await db.collection("commandes").doc(slug).collection("liste").where("cree", ">=", d1).where("cree", "<", d2).orderBy("cree", "desc").limit(5000).get();
+          HCACHE[cle] = s.docs.map(x => { const o = x.data(); o.id = x.id; o.d = o.cree && o.cree.toDate ? o.cree.toDate() : null; o.items = o.items || []; return o; });
+        }
+        L = HCACHE[cle];
+      }
+    } catch (e) { console.error(e); document.getElementById("hz").innerHTML = `<div class="empty">⚠️ ${esc(e.message)}</div>`; return; }
+    if (vue.k !== "histo" || (vue.per || "jour") !== k) return;
+    L = L.filter(o => !o.d || (o.d >= d1 && o.d < d2)).sort((a, b) => (b.d || 0) - (a.d || 0));
+    const P = L.filter(o => o.statut === "payee"), ca = P.reduce((a, o) => a + num(o.total), 0);
+    const esp = P.filter(o => o.paiement !== "Carte").reduce((a, o) => a + num(o.total), 0), crt = ca - esp;
+    const prods = {}; P.forEach(o => o.items.forEach(i => { const c = i.n; prods[c] = prods[c] || { n: c, q: 0, m: 0 }; prods[c].q += +i.q || 0; prods[c].m += (+i.q || 0) * num(i.p); }));
+    const PR = Object.values(prods).sort((a, b) => b.q - a.q), maxQ = PR.length ? PR[0].q : 1;
+    const serv = {}; P.forEach(o => { const s = o.employe || (o.source === "menu" ? t("menuQR") : "—"); serv[s] = serv[s] || { n: s, c: 0, m: 0 }; serv[s].c++; serv[s].m += num(o.total); });
+    const jours = {}; P.forEach(o => { const j = o.d ? o.d.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit" }) : "—"; jours[j] = (jours[j] || 0) + num(o.total); });
+    const JR = Object.entries(jours).reverse(), maxJ = Math.max(1, ...JR.map(x => x[1]));
+    const ann = L.filter(o => o.statut === "annulee").length;
+    document.getElementById("hz").innerHTML = `
+      <div class="kpis"><div class="k1">💰<span>${t("ca")}</span><b>${fmt(ca)}</b></div><div>🧾<span>${t("tickets")}</span><b>${P.length}</b></div><div>➗<span>${t("moyen")}</span><b>${fmt(P.length ? ca / P.length : 0)}</b></div><div>💵<span>${t("especes")}</span><b>${fmt(esp)}</b></div><div>💳<span>${t("carte")}</span><b>${fmt(crt)}</b></div>${ann ? `<div>✖<span>${t("annulees")}</span><b>${ann}</b></div>` : ""}</div>
+      <div class="acts" style="margin:4px 0 14px"><button class="btn p" id="hp">🖨 ${t("rapport")}</button><button class="btn" id="hc">⬇️ ${t("csv")}</button></div>
+      <div class="hgrid">
+        <div class="panel"><h2>🍽 ${t("produits")}</h2>${PR.length ? PR.map(p => `<div class="hb"><span class="hn">${esc(p.n)}</span><span class="bar"><i style="width:${Math.max(4, p.q / maxQ * 100)}%"></i></span><b class="hq">${p.q}</b><span class="hm">${fmt(p.m)}</span></div>`).join("") : `<div class="empty">${t("aucune")}</div>`}</div>
+        <div style="display:grid;gap:16px;align-content:start">
+          <div class="panel"><h2>👤 ${t("serveurs")}</h2>${Object.values(serv).sort((a, b) => b.m - a.m).map(s => `<div class="hb"><span class="hn">${esc(s.n)}</span><b class="hq">${s.c} 🧾</b><span class="hm">${fmt(s.m)}</span></div>`).join("") || `<div class="empty">${t("aucune")}</div>`}</div>
+          ${JR.length > 1 ? `<div class="panel"><h2>📅 ${t("parJour")}</h2>${JR.map(([j, v]) => `<div class="hb"><span class="hn">${esc(j)}</span><span class="bar"><i style="width:${Math.max(4, v / maxJ * 100)}%"></i></span><span class="hm">${fmt(v)}</span></div>`).join("")}</div>` : ""}
+        </div>
+      </div>
+      <div class="panel" style="margin-top:16px"><h2>🧾 ${t("liste")} <span class="mut">(${L.length})</span></h2><div class="tl">${L.map(o => `<button class="tr2 ${esc(o.statut)}" data-tk="${o.id}"><span>${o.d ? o.d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) + " " + heure(o.d) : ""}</span><span>N° ${esc(o.num)}</span><span>${o.mode === "livraison" ? "🛵" : o.mode === "emporter" ? "🥡" : "🍽 " + esc(o.table || "")}</span><span>${esc(o.employe || (o.source === "menu" ? "📲" : ""))}</span><span>${o.statut === "payee" ? (o.paiement === "Carte" ? "💳" : "💵") : ICO[o.statut] || ""}</span><b>${fmt(num(o.total))}</b></button>`).join("") || `<div class="empty">${t("aucune")}</div>`}</div></div>`;
+    document.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { const o = L.find(x => x.id === b.dataset.tk); if (o) imprimer(ticket([o], "DUPLICATA")); });
+    document.getElementById("hp").onclick = () => imprimer(`<h1>${esc(MENU.nom || "")}</h1><div class="c b">RAPPORT · ${esc(t(k).toUpperCase())}</div><div class="c">${d1.toLocaleDateString("fr-FR")} → ${new Date(+d2 - 1).toLocaleDateString("fr-FR")}</div><hr>
+      <div class="r b big"><span>TOTAL</span><span>${fmt(ca)}</span></div><div class="r"><span>Tickets</span><span>${P.length}</span></div><div class="r"><span>Espèces</span><span>${fmt(esp)}</span></div><div class="r"><span>Carte</span><span>${fmt(crt)}</span></div>${ann ? `<div class="r"><span>Annulées</span><span>${ann}</span></div>` : ""}<hr>
+      <div class="b">PRODUITS</div>${PR.map(p => `<div class="r"><span>${p.q} x ${esc(p.n)}</span><span>${fmt(p.m)}</span></div>`).join("")}<hr>
+      <div class="b">SERVEURS</div>${Object.values(serv).map(s => `<div class="r"><span>${esc(s.n)} (${s.c})</span><span>${fmt(s.m)}</span></div>`).join("")}<hr><div class="c">Imprimé le ${new Date().toLocaleString("fr-FR")}</div>`);
+    document.getElementById("hc").onclick = () => {
+      const q = v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+      const rows = [["Date", "Heure", "N°", "Mode", "Table", "Serveur", "Statut", "Paiement", "Produits", "Total"]].concat(L.map(o => [o.d ? o.d.toLocaleDateString("fr-FR") : "", heure(o.d), o.num, o.mode, o.table, o.employe || o.source, o.statut, o.paiement || "", o.items.map(i => i.q + " x " + i.n).join(" | "), String(num(o.total)).replace(".", ",")]));
+      const blob = new Blob(["\ufeff" + rows.map(r => r.map(q).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `ventes-${slug}-${k}-${d1.toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove();
+    };
   }
 
   /* ---------- encaisser : billets marocains, rendu en grand ---------- */
