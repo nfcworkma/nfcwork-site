@@ -372,7 +372,10 @@
         <p class="muted" style="margin:-4px 0 0;font-size:12.5px">Le compte doit exister dans l’Espace (inscription avec ce même e-mail). Vous, l’admin, avez toujours accès.</p>
         <label class="f">Nombre de tables<input id="cr-t" type="number" min="1" max="80" value="${esc(C.tables || 12)}"></label>
         <label class="f">Employés et code PIN à 4 chiffres (un par ligne : Nom = PIN)<textarea id="cr-p" rows="4" placeholder="Aymen = 1234&#10;Sara = 5678">${esc((C.employes || []).map(e => e.nom + " = " + e.pin).join("\n"))}</textarea></label>
+        <label class="check" style="align-items:flex-start"><input type="checkbox" id="cr-a" ${C.autonome ? "checked" : ""}> <span>🔓 <b>Le client gère lui-même</b> : avec le code patron, il change les serveurs, les codes PIN, le nombre de tables et l’adresse du ticket.<br><small class="muted">Décoché : tout passe par vous (modifications payantes). Pour les prix et produits, donnez-lui aussi l’accès « Menus » dans sa fiche client.</small></span></label>
         <label class="f">🔐 Code du patron pour voir l’historique (4 chiffres, facultatif)<input id="cr-x" inputmode="numeric" maxlength="4" pattern="\\d{4}" value="${esc(C.pinPatron || "")}" placeholder="ex. 2580"></label>
+        <p class="muted" style="margin:0;font-size:12.5px">🎨 La caisse prend le <b>logo du menu</b> et sa couleur (ou la couleur principale du menu). Vous pouvez forcer une autre couleur :</p>
+        <div class="row" style="gap:8px;align-items:center"><input id="cr-c" type="color" value="${esc(/^#[0-9a-f]{6}$/i.test(C.couleur || "") ? C.couleur : (/^#[0-9a-f]{6}$/i.test(M.couleur || "") ? M.couleur : "#2f7bff"))}" style="width:60px;height:44px;padding:2px"><label class="check" style="margin:0"><input type="checkbox" id="cr-cc" ${C.couleur ? "checked" : ""}> Utiliser cette couleur pour la caisse</label></div>
         <label class="f">En-tête du ticket (adresse, téléphone)<textarea id="cr-h" rows="2" placeholder="Bd Mohammed V, Kénitra · 06 00 00 00 00">${esc((C.ticket || {}).entete || "")}</textarea></label>
         <label class="f">Bas du ticket<input id="cr-f" value="${esc((C.ticket || {}).pied || "Merci de votre visite !")}" maxlength="80"></label>
         <p class="err" id="cr-err"></p><button class="btn primary">Enregistrer</button></form>`);
@@ -384,7 +387,7 @@
       try {
         const px = $("#cr-x", d).value.trim();
         if (px && !/^\d{4}$/.test(px)) { $("#cr-err", d).textContent = "Le code du patron doit avoir 4 chiffres."; return; }
-        await db.doc("caisses/" + M.slug).set({ emails, pinPatron: px, tables: Math.max(1, Math.min(80, +$("#cr-t", d).value || 12)), employes, ticket: { entete: $("#cr-h", d).value.trim().slice(0, 200), pied: $("#cr-f", d).value.trim().slice(0, 80), largeur: (C.ticket || {}).largeur || 80 }, maj: NOW() });
+        await db.doc("caisses/" + M.slug).set({ emails, pinPatron: px, autonome: $("#cr-a", d).checked, couleur: $("#cr-cc", d).checked ? $("#cr-c", d).value : "", tables: Math.max(1, Math.min(80, +$("#cr-t", d).value || 12)), employes, ticket: { entete: $("#cr-h", d).value.trim().slice(0, 200), pied: $("#cr-f", d).value.trim().slice(0, 80), largeur: (C.ticket || {}).largeur || 80 }, maj: NOW() });
         d.remove(); toast("✅ Caisse enregistrée");
       } catch (x) { console.error(x); $("#cr-err", d).textContent = "Échec : les règles Firebase de la caisse sont-elles ajoutées ?"; }
     };

@@ -29,7 +29,8 @@
       sauver: "Enregistrer", changer: "Changer de caisse", deco: "Déconnecter cette caisse", telReq: "Écrivez le téléphone du client", touch: "Touchez les produits", tableW: "Table",
       histo: "Historique", histoTx: "Ventes, produits, serveurs", patron: "Code du patron", jour: "Aujourd’hui", hier: "Hier", j7: "7 jours", mois: "Ce mois", moisP: "Mois dernier",
       ca: "Chiffre d’affaires", tickets: "Tickets", moyen: "Ticket moyen", produits: "Produits vendus", serveurs: "Par serveur", parJour: "Par jour", liste: "Tous les tickets",
-      qte: "Qté", montant: "Montant", annulees: "Annulées", rapport: "Imprimer le rapport", csv: "Télécharger (Excel)", chargement: "Chargement…", du: "Du", au: "au", voirP: "Voir" },
+      qte: "Qté", montant: "Montant", annulees: "Annulées", rapport: "Imprimer le rapport", csv: "Télécharger (Excel)", chargement: "Chargement…", du: "Du", au: "au", voirP: "Voir",
+      gerer: "Gérer la caisse", equipe: "Serveurs et codes", ajouterS: "Ajouter un serveur", nbTables: "Nombre de tables", entete: "Adresse sur le ticket", contact: "Pour changer les codes, les prix ou les produits, contactez NFCWORK", pinErr: "Chaque code doit avoir 4 chiffres, différents" },
     ar: { start: "بدا الكيسة", startTx: "الطلبات ديال المنيو كيوصلو هنا مباشرة.", who: "ورك على سميتك", code: "دخل الكود ديالك", wrong: "الكود غالط", hello: "مرحبا", what: "شنو بغيتي دير؟",
       place: "فالمحل", emporter: "ديها معاك", livraison: "توصيل", commandes: "الطلبات", tables: "الطوابل", libre: "خاوية", occ: "عامرين",
       nouvelle: "جديدة", cuisine: "فالكوزينة", prete: "واجدة", payee: "تخلصات", annulee: "تلغات", lancer: "صيفط للكوزينة", lancerTout: "صيفط للكوزينة", pret: "واجدة",
@@ -43,7 +44,8 @@
       sauver: "سجل", changer: "بدل الكيسة", deco: "خرج من هاد الكيسة", telReq: "كتب التيليفون ديال الكليان", touch: "ورك على المنتوجات", tableW: "الطابلة",
       histo: "الحسابات", histoTx: "المبيعات، المنتوجات، السرفورات", patron: "الكود ديال مول المحل", jour: "اليوم", hier: "البارح", j7: "7 أيام", mois: "هاد الشهر", moisP: "الشهر اللي فات",
       ca: "المدخول", tickets: "التيكيات", moyen: "معدل التيكي", produits: "المنتوجات اللي تباعو", serveurs: "على حساب السرفور", parJour: "على حساب النهار", liste: "كاع التيكيات",
-      qte: "العدد", montant: "المبلغ", annulees: "تلغاو", rapport: "طبع الحساب", csv: "تحميل (Excel)", chargement: "كيتشارجا…", du: "من", au: "حتى", voirP: "شوف" }
+      qte: "العدد", montant: "المبلغ", annulees: "تلغاو", rapport: "طبع الحساب", csv: "تحميل (Excel)", chargement: "كيتشارجا…", du: "من", au: "حتى", voirP: "شوف",
+      gerer: "تسيير الكيسة", equipe: "السرفورات والكودات", ajouterS: "زيد سرفور", nbTables: "عدد الطوابل", entete: "العنوان فالتيكي", contact: "باش تبدل الكودات ولا الأثمنة ولا المنتوجات، تواصل مع NFCWORK", pinErr: "كل كود خاصو 4 أرقام، وما يتعاودش" }
   };
   const t = k => (W[LG] || W.fr)[k] || W.fr[k] || k;
   const setLang = () => { document.documentElement.lang = LG; document.documentElement.dir = LG === "ar" ? "rtl" : "ltr"; };
@@ -116,6 +118,55 @@
   }
   const imgP = it => { const u = photoUrl(it.photo); return `<span class="pim">${it.photo ? `<img data-ph="${esc(it.photo)}" src="${esc(u)}" alt="" ${u ? "" : "hidden"} onerror="this.hidden=true">` : ""}<i>${esc(it.e || (tr(it.nom) || "?").trim().charAt(0).toUpperCase())}</i></span>`; };
 
+  /* ---------- 🎨 aux couleurs du commerce : son logo et sa couleur (menu), NFCWORK reste discret ---------- */
+  let LOGO = "";
+  function logoUrl() {
+    const id = C.logo || MENU.logo || "";
+    if (!id) return Promise.resolve("");
+    const u = photoUrl(id);
+    if (u || !id || id.startsWith("u:") || id.startsWith("/")) return Promise.resolve(u);
+    return db.doc("settings/mimg-" + id).get().then(d => (d.exists && d.data().data) || "").catch(() => "");
+  }
+  const hexRgb = h => { const m = String(h || "").match(/^#?([0-9a-f]{6})$/i); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, n >> 8 & 255, n & 255]; };
+  const hex = c => "#" + c.map(x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, "0")).join("");
+  function couleurLogo(url) {
+    return new Promise(ok => {
+      if (!url) return ok(null);
+      const im = new Image(); im.crossOrigin = "anonymous";
+      im.onload = () => {
+        try {
+          const c = document.createElement("canvas"); c.width = c.height = 40; const g = c.getContext("2d"); g.drawImage(im, 0, 0, 40, 40);
+          const d = g.getImageData(0, 0, 40, 40).data, B = {};
+          for (let i = 0; i < d.length; i += 4) {
+            const r = d[i], gg = d[i + 1], b = d[i + 2], a = d[i + 3]; if (a < 128) continue;
+            const mx = Math.max(r, gg, b), mn = Math.min(r, gg, b); if (mx < 50 || mx - mn < 40) continue;   // ni noir, ni blanc, ni gris
+            const k = (r >> 4) + "," + (gg >> 4) + "," + (b >> 4); B[k] = B[k] || Object.assign([0, 0, 0, 0], { n: 0 }); B[k][0] += r; B[k][1] += gg; B[k][2] += b; B[k].n++; B[k][3] += 1 + (mx - mn) / 60;
+          }
+          const best = Object.values(B).sort((a, b) => b[3] - a[3])[0];
+          ok(best ? hex([best[0], best[1], best[2]].map(v => v / best.n)) : null);
+        } catch (e) { ok(null); }
+      };
+      im.onerror = () => ok(null); im.src = url;
+    });
+  }
+  async function theme() {
+    LOGO = await logoUrl();
+    let col = /^#[0-9a-f]{6}$/i.test(C.couleur || "") ? C.couleur : /^#[0-9a-f]{6}$/i.test(MENU.couleur || "") ? MENU.couleur : await couleurLogo(LOGO);
+    const rgb = hexRgb(col);
+    if (rgb) {
+      const lum = (.2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]) / 255;
+      const R = document.documentElement.style;
+      R.setProperty("--acc", col); R.setProperty("--acc2", hex(rgb.map(v => v + (255 - v) * .35))); R.setProperty("--accfg", lum > .55 ? "#141414" : "#fff");
+      // fonds sombres teintés de la couleur du logo
+      [["--bg", 7, "#05060a"], ["--bg2", 10, "#0a0c12"], ["--card", 13, "#10131b"], ["--card2", 18, "#161a24"], ["--line", 28, "#232836"]].forEach(([k, p, base]) => R.setProperty(k, `color-mix(in srgb, ${col} ${p}%, ${base})`));
+      const mt = document.querySelector('meta[name="theme-color"]'); if (mt) mt.content = "#07080c";
+    }
+    document.title = (MENU.nom || "Caisse") + " · Caisse";
+    if (LOGO) { let l = document.querySelector('link[rel="icon"]'); if (l) l.href = LOGO; }
+    if (!document.querySelector(".par")) { const a = document.createElement("a"); a.className = "par"; a.href = "https://nfcwork.ma"; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Caisse par nfcwork.ma"; document.body.appendChild(a); }
+  }
+  const logoTag = cls => LOGO ? `<img class="${cls || "blogo"}" src="${esc(LOGO)}" alt="">` : `<div style="font-size:56px">🧾</div>`;
+
   /* ---------- impression : ticket 58 ou 80 mm dans un cadre caché ---------- */
   function imprimer(html) {
     const larg = (C.ticket || {}).largeur || LS.get("larg", 80);
@@ -132,7 +183,7 @@
   const modeTxt = o => o.mode === "livraison" ? "LIVRAISON" : o.mode === "emporter" ? "A EMPORTER" : o.mode === "chambre" ? (o.table || "CHAMBRE") : (o.table || "SUR PLACE");
   function ticket(orders, titre) {
     const T = C.ticket || {}, items = fusion(orders), tot = orders.reduce((a, o) => a + num(o.total), 0), o0 = orders[0] || {};
-    return `<h1>${esc(MENU.nom || "")}</h1>${T.entete ? `<div class="c">${esc(T.entete).replace(/\n/g, "<br>")}</div>` : ""}<hr>
+    return `${LOGO && T.logoTicket !== false ? `<div class="c"><img src="${esc(LOGO)}" style="max-height:60px;max-width:60%;filter:grayscale(1) contrast(1.3)"></div>` : ""}<h1>${esc(MENU.nom || "")}</h1>${T.entete ? `<div class="c">${esc(T.entete).replace(/\n/g, "<br>")}</div>` : ""}<hr>
       <div class="r"><span>${esc(titre || "TICKET")}</span><span>${new Date().toLocaleDateString("fr-FR")} ${heure(new Date())}</span></div>
       <div class="r b"><span>${esc(modeTxt(o0))}</span><span>N° ${orders.map(o => esc(o.num)).join(", ")}</span></div>${employe ? `<div>Serveur : ${esc(employe.nom)}</div>` : ""}<hr>
       ${lignesT(items)}${orders.some(o => num(o.frais)) ? `<div class="r"><span>Livraison</span><span>${fmt(orders.reduce((a, o) => a + num(o.frais), 0))}</span></div>` : ""}<hr>
@@ -180,6 +231,7 @@
       C = c.exists ? c.data() : {};
       MENU = m.exists ? JSON.parse(m.data().json || "{}") : {};
       DEV = MENU.devise || "DH";
+      await theme();
     } catch (e) {
       console.error(e);
       app.innerHTML = `<div class="center"><div class="pinbox"><div style="font-size:48px">🔒</div><h2>Accès refusé</h2><p class="mut">Ce compte (${esc(user.email)}) n’est pas autorisé sur cette caisse. Demandez à NFCWORK de l’ajouter.</p><button class="btn" id="out">Changer de compte</button></div></div>`;
@@ -190,7 +242,7 @@
   }
   function demarrage() {
     top.hidden = true;
-    app.innerHTML = `<div class="center"><div class="pinbox"><div style="font-size:56px">🧾</div><h2 style="margin:8px 0 4px">${esc(MENU.nom || "Caisse")}</h2><p class="mut">${t("startTx")}</p>
+    app.innerHTML = `<div class="center"><div class="pinbox">${logoTag()}<h2 style="margin:8px 0 4px">${esc(MENU.nom || "Caisse")}</h2><p class="mut">${t("startTx")}</p>
       <button class="btn ok huge" id="go" style="width:100%;margin-top:12px">▶ ${t("start")}</button>
       <button class="btn sm" id="lg" style="margin-top:12px">🌐 ${t("lang")}</button></div></div>`;
     document.getElementById("go").onclick = () => { try { AC = new (window.AudioContext || window.webkitAudioContext)(); AC.resume(); } catch (e) {} eveil(); pin(); };
@@ -204,7 +256,7 @@
     top.hidden = true;
     const qui = choisi != null ? E[choisi] : E.length === 1 ? E[0] : null;
     if (!qui) {
-      app.innerHTML = `<div class="center"><div class="pinbox" style="width:min(640px,100%)"><h2 style="margin:0 0 4px">${esc(MENU.nom || "")}</h2><p class="mut" style="margin:0 0 14px;font-size:18px">👆 ${t("who")}</p>
+      app.innerHTML = `<div class="center"><div class="pinbox" style="width:min(640px,100%)">${LOGO ? logoTag() : ""}<h2 style="margin:0 0 4px">${esc(MENU.nom || "")}</h2><p class="mut" style="margin:0 0 14px;font-size:18px">👆 ${t("who")}</p>
         <div class="faces">${E.map((e, i) => `<button data-e="${i}"><span class="av" style="background:${COUL[i % COUL.length]}">${esc(e.nom.trim().charAt(0).toUpperCase())}</span><b>${esc(e.nom)}</b></button>`).join("")}</div>
         <button class="btn sm" id="lg" style="margin-top:14px">🌐 ${t("lang")}</button></div></div>`;
       app.querySelectorAll("[data-e]").forEach(b => b.onclick = () => pin(+b.dataset.e));
@@ -229,7 +281,8 @@
     if (unsub) unsub();
     unsub = db.collection("commandes").doc(slug).collection("liste").where("cree", ">=", debutJour()).orderBy("cree", "desc").limit(500).onSnapshot({ includeMetadataChanges: true }, s => {
       if (s.metadata && navigator.onLine !== false) setEtat(!s.metadata.fromCache || enLigne);
-      ORD = s.docs.map(x => { const o = x.data(); o.id = x.id; o.d = o.cree && o.cree.toDate ? o.cree.toDate() : new Date(); o.items = o.items || []; return o; });
+      const d0 = debutJour();
+      ORD = s.docs.map(x => { const o = x.data(); o.id = x.id; o.d = o.cree && o.cree.toDate ? o.cree.toDate() : new Date(); o.items = o.items || []; return o; }).filter(o => o.d >= d0);
       const nouv = ORD.filter(o => o.statut === "nouvelle" && !vu.has(o.id));
       if (!premier && nouv.length && LS.get("auto", false)) nouv.forEach(o => imprimer(bonCuisine(o)));
       ORD.forEach(o => vu.add(o.id)); premier = false;
@@ -246,7 +299,7 @@
   function barre() {
     top.hidden = false;
     const i = Math.max(0, (C.employes || []).findIndex(e => employe && e.nom === employe.nom));
-    top.innerHTML = `<button class="nm" id="bh"><span>🏠</span><span class="tx">${esc(MENU.nom || "Caisse")}</span></button><span class="sp"></span>
+    top.innerHTML = `<button class="nm" id="bh">${LOGO ? `<img src="${esc(LOGO)}" alt="">` : "<span>🏠</span>"}<span class="tx">${esc(MENU.nom || "Caisse")}</span></button><span class="sp"></span>
       <span class="chip"><i class="dot${enLigne ? "" : " off"}" id="etat"></i></span>
       <button class="chip${sonOn ? " on" : ""}" id="bs" aria-label="son">${sonOn ? "🔊" : "🔇"}</button>
       <button class="chip" id="blg">🌐</button><button class="chip" id="bset" aria-label="${t("reglages")}">⚙️</button>
@@ -454,7 +507,7 @@
     const ann = L.filter(o => o.statut === "annulee").length;
     document.getElementById("hz").innerHTML = `
       <div class="kpis"><div class="k1">💰<span>${t("ca")}</span><b>${fmt(ca)}</b></div><div>🧾<span>${t("tickets")}</span><b>${P.length}</b></div><div>➗<span>${t("moyen")}</span><b>${fmt(P.length ? ca / P.length : 0)}</b></div><div>💵<span>${t("especes")}</span><b>${fmt(esp)}</b></div><div>💳<span>${t("carte")}</span><b>${fmt(crt)}</b></div>${ann ? `<div>✖<span>${t("annulees")}</span><b>${ann}</b></div>` : ""}</div>
-      <div class="acts" style="margin:4px 0 14px"><button class="btn p" id="hp">🖨 ${t("rapport")}</button><button class="btn" id="hc">⬇️ ${t("csv")}</button></div>
+      <div class="acts" style="margin:4px 0 14px"><button class="btn p" id="hp">🖨 ${t("rapport")}</button><button class="btn" id="hc">⬇️ ${t("csv")}</button><span class="sp2"></span>${C.autonome ? `<button class="btn" id="hg">⚙️ ${t("gerer")}</button>` : `<a class="btn sm" href="https://wa.me/212620666027?text=${encodeURIComponent("Bonjour NFCWORK, je voudrais une modification sur la caisse de " + (MENU.nom || slug))}" target="_blank" rel="noopener" title="${esc(t("contact"))}">💬 ${t("contact")}</a>`}</div>
       <div class="hgrid">
         <div class="panel"><h2>🍽 ${t("produits")}</h2>${PR.length ? PR.map(p => `<div class="hb"><span class="hn">${esc(p.n)}</span><span class="bar"><i style="width:${Math.max(4, p.q / maxQ * 100)}%"></i></span><b class="hq">${p.q}</b><span class="hm">${fmt(p.m)}</span></div>`).join("") : `<div class="empty">${t("aucune")}</div>`}</div>
         <div style="display:grid;gap:16px;align-content:start">
@@ -463,6 +516,7 @@
         </div>
       </div>
       <div class="panel" style="margin-top:16px"><h2>🧾 ${t("liste")} <span class="mut">(${L.length})</span></h2><div class="tl">${L.map(o => `<button class="tr2 ${esc(o.statut)}" data-tk="${o.id}"><span>${o.d ? o.d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) + " " + heure(o.d) : ""}</span><span>N° ${esc(o.num)}</span><span>${o.mode === "livraison" ? "🛵" : o.mode === "emporter" ? "🥡" : "🍽 " + esc(o.table || "")}</span><span>${esc(o.employe || (o.source === "menu" ? "📲" : ""))}</span><span>${o.statut === "payee" ? (o.paiement === "Carte" ? "💳" : "💵") : ICO[o.statut] || ""}</span><b>${fmt(num(o.total))}</b></button>`).join("") || `<div class="empty">${t("aucune")}</div>`}</div></div>`;
+    const hg = document.getElementById("hg"); if (hg) hg.onclick = gerer;
     document.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { const o = L.find(x => x.id === b.dataset.tk); if (o) imprimer(ticket([o], "DUPLICATA")); });
     document.getElementById("hp").onclick = () => imprimer(`<h1>${esc(MENU.nom || "")}</h1><div class="c b">RAPPORT · ${esc(t(k).toUpperCase())}</div><div class="c">${d1.toLocaleDateString("fr-FR")} → ${new Date(+d2 - 1).toLocaleDateString("fr-FR")}</div><hr>
       <div class="r b big"><span>TOTAL</span><span>${fmt(ca)}</span></div><div class="r"><span>Tickets</span><span>${P.length}</span></div><div class="r"><span>Espèces</span><span>${fmt(esp)}</span></div><div class="r"><span>Carte</span><span>${fmt(crt)}</span></div>${ann ? `<div class="r"><span>Annulées</span><span>${ann}</span></div>` : ""}<hr>
@@ -474,6 +528,34 @@
       const blob = new Blob(["\ufeff" + rows.map(r => r.map(q).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `ventes-${slug}-${k}-${d1.toISOString().slice(0, 10)}.csv`; document.body.appendChild(a); a.click(); a.remove();
     };
+  }
+
+  /* ---------- ⚙️ le patron gère lui-même (seulement si NFCWORK l'a autorisé : caisses/<slug>.autonome) ---------- */
+  function gerer() {
+    let E = (C.employes || []).map(e => ({ nom: e.nom, pin: String(e.pin) }));
+    const d = document.createElement("div"); d.className = "modal";
+    const dessiner = () => {
+      d.innerHTML = `<div class="box"><h2>⚙️ ${t("gerer")}</h2><h3 style="margin:6px 0">👥 ${t("equipe")}</h3>
+        <div style="display:grid;gap:8px">${E.map((e, i) => `<div style="display:grid;grid-template-columns:minmax(0,1fr) 110px 48px;gap:8px"><input class="gi" data-n="${i}" value="${esc(e.nom)}" placeholder="${t("nom")}" maxlength="30"><input class="gi" data-p="${i}" value="${esc(e.pin)}" inputmode="numeric" maxlength="4" placeholder="PIN"><button class="btn icon bad" data-x="${i}">✖</button></div>`).join("")}</div>
+        <button class="btn sm" id="ga" style="margin-top:8px">➕ ${t("ajouterS")}</button>
+        <label class="field">🔐 ${t("patron")}<input id="gp" inputmode="numeric" maxlength="4" value="${esc(C.pinPatron || "")}"></label>
+        <label class="field">🪑 ${t("nbTables")}<input id="gt" type="number" min="1" max="80" value="${esc(C.tables || 12)}"></label>
+        <label class="field">🧾 ${t("entete")}<input id="gh" maxlength="200" value="${esc((C.ticket || {}).entete || "")}"></label>
+        <p class="err" id="ge"></p><div class="acts"><button class="btn ok big" id="gs" style="flex:1">✔ ${t("sauver")}</button><button class="btn big" id="gx">${t("fermer")}</button></div></div>`;
+      const garder = () => d.querySelectorAll("[data-n]").forEach(x => { const i = +x.dataset.n; E[i].nom = x.value.trim(); E[i].pin = d.querySelector(`[data-p="${i}"]`).value.trim(); });
+      d.querySelector("#ga").onclick = () => { garder(); E.push({ nom: "", pin: "" }); dessiner(); };
+      d.querySelectorAll("[data-x]").forEach(b => b.onclick = () => { garder(); E.splice(+b.dataset.x, 1); dessiner(); });
+      d.querySelector("#gx").onclick = () => d.remove();
+      d.querySelector("#gs").onclick = async () => {
+        garder();
+        const L = E.filter(e => e.nom || e.pin), pp = d.querySelector("#gp").value.trim();
+        if (L.some(e => !e.nom || !/^\d{4}$/.test(e.pin)) || new Set(L.map(e => e.pin)).size !== L.length || (pp && !/^\d{4}$/.test(pp))) { d.querySelector("#ge").textContent = "❌ " + t("pinErr"); return; }
+        const up = { employes: L, pinPatron: pp, tables: Math.max(1, Math.min(80, +d.querySelector("#gt").value || 12)), ticket: Object.assign({}, C.ticket, { entete: d.querySelector("#gh").value.trim() }), maj: firebase.firestore.FieldValue.serverTimestamp() };
+        try { await db.doc("caisses/" + slug).update(up); Object.assign(C, up); d.remove(); toast("✔ " + t("sauver"), "ok"); rendre(); }
+        catch (e) { console.error(e); d.querySelector("#ge").textContent = "⚠️ " + e.message; }
+      };
+    };
+    dessiner(); document.body.appendChild(d);
   }
 
   /* ---------- encaisser : billets marocains, rendu en grand ---------- */
