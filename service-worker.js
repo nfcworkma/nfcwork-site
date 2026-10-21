@@ -8,7 +8,7 @@
 const VERSION = "v50";
 const CACHE = "nfcwork-" + VERSION;
 const CORE = [
-  "./", "index.html", "assets/img/logo-nfcwork.png", "assets/img/logo-nfcwork-blanc.png", "manifest.json"
+  "./", "index.html", "espace/pos.html", "espace/pos.js", "espace/config.js", "assets/img/logo-nfcwork.png", "assets/img/logo-nfcwork-blanc.png", "manifest.json"
 ];
 
 self.addEventListener("install", e => {
@@ -28,6 +28,11 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   const url = new URL(req.url);
   // Seulement les fichiers du site (pas WhatsApp, Google Sheets, polices...)
+  // 🧾 caisse hors connexion : la bibliothèque Firebase (gstatic) est gardée en cache
+  if (req.method === "GET" && url.host === "www.gstatic.com" && url.pathname.startsWith("/firebasejs/")) {
+    e.respondWith(caches.match(req).then(c => c || fetch(req).then(res => { if (res.ok || res.type === "opaque") { const copy = res.clone(); caches.open(CACHE).then(x => x.put(req, copy)); } return res; })));
+    return;
+  }
   if (req.method !== "GET" || url.origin !== location.origin) return;
   // vidéos (écran TV) : le navigateur et la page TV s'en occupent
   if (/\.(mp4|webm|mov)$/i.test(url.pathname)) return;

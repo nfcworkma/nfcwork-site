@@ -1,0 +1,29 @@
+{
+  "name": "Caisse NFCWORK",
+  "short_name": "Caisse",
+  "description": "Caisse : tables, commandes du menu, tickets",
+  "id": "/espace/pos.html",
+  "start_url": "/espace/pos.html",
+  "scope": "/espace/",
+  "display": "standalone",
+  "background_color": "#040a1d",
+  "theme_color": "#040a1d",
+  "icons": [
+    {
+      "src": "/assets/img/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/img/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/img/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
