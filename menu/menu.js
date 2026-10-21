@@ -265,7 +265,7 @@
 
     const inf = M.infos || {};
     const cats = (M.categories || []).filter(c => (c.items || []).length);   // une catégorie sans produit ne s’affiche pas
-    const waOk = prem && waNum(inf.whatsapp) && M.commande !== false;
+    const waOk = prem && (waNum(inf.whatsapp) || caisseOn()) && M.commande !== false;
     const L = M.livraison || {};
     liv = waOk && L.actif ? { frais: prixNum(L.frais), min: prixNum(L.min), zone: String(L.zone || "").trim() } : null;
     if (liv && !saisie.mode) saisie.mode = qs.has("livraison") ? "livraison" : "place";
@@ -408,7 +408,7 @@
     d.innerHTML = `<div class="box" role="dialog" aria-modal="true"><h2>${U.order}</h2>
       ${lignes.length ? lignes.map(l => `<div class="line"><div class="n">${esc(tr(l.it.nom))}<br><small>${esc(fmtPrix(l.it.prix))}</small></div><span class="qty"><button data-moins="${esc(l.it.id)}">−</button><b>${l.q}</b><button data-plus="${esc(l.it.id)}">+</button></span></div>`).join("")
         + blocFin(total)
-        + `<button class="wa" id="c-send">${I.wa.replace("<svg", '<svg width="22" height="22"')} ${U.send}</button><p class="cerr" id="c-err"></p>`
+        + (caisseOn() && !waOn() ? `<button class="wa" id="c-send" style="background:var(--accent,#1f5eff)">🧾 Envoyer la commande</button><p class="cerr" id="c-err"></p>` : `<button class="wa" id="c-send">${I.wa.replace("<svg", '<svg width="22" height="22"')} ${U.send}</button><p class="cerr" id="c-err"></p>`)
         : `<p>${U.empty}</p>`}
       <button class="ghost" data-fermer>${U.close}</button></div>`;
     document.body.appendChild(d);
@@ -516,7 +516,42 @@
       txt = [U.hello, "", ...liste, "", `${U.total} : ${fmtPrix(arr(total))}`]
         .concat(table.trim() ? [`${U.table} : ${table.trim()}`] : [], note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
     }
+    if (caisseOn() && M.type !== "location" && M.type !== "salon") { versCaisse(lignes, total, table, note, txt, d); return; }
     window.open(`https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt)}`, "_blank");
+  }
+
+  /* ---------- 🧾 commande envoyée directement à l'écran caisse (espace/pos.html) ---------- */
+  function caisseOn() { const r = (M && M.reception) || "wa"; return (r === "caisse" || r === "les2") && M.type !== "location" && M.type !== "salon"; }
+  function waOn() { const r = (M && M.reception) || "wa"; return r !== "caisse" && !!waNum((M.infos || {}).whatsapp); }
+  const FS = v => typeof v === "number" ? (Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v }) : { stringValue: String(v == null ? "" : v).slice(0, 300) };
+  async function versCaisse(lignes, total, table, note, txt, d) {
+    const lv = enLivraison(), frais = lv ? liv.frais : 0;
+    const num = String(Date.now() % 10000).padStart(4, "0");
+    const f = {
+      statut: FS("nouvelle"), source: FS("menu"), num: FS(num), cree: { timestampValue: new Date().toISOString() },
+      mode: FS(lv ? "livraison" : M.type === "hotel" ? "chambre" : (table.trim() ? "place" : "emporter")),
+      table: FS(table.trim()), nom: FS(saisie.nom.trim()), tel: FS(saisie.tel.trim()), adresse: FS(saisie.adresse.trim()),
+      pos: FS(lv ? (positionTexte()[1] || saisie.pos || "").replace(/^Google Maps : /, "") : ""), note: FS(note.trim()),
+      items: { arrayValue: { values: lignes.map(l => ({ mapValue: { fields: { id: FS(l.it.id), n: FS(tr(l.it.nom)), q: { integerValue: String(l.q) }, p: { doubleValue: prixNum(l.it.prix) } } } })) } },
+      total: { doubleValue: Number(arr(total + frais)) }, frais: { doubleValue: frais }, devise: FS(M.devise || "DH")
+    };
+    const btn = d.querySelector("#c-send"), err = d.querySelector("#c-err");
+    if (waOn()) window.open(`https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt + "\n\nN° " + num)}`, "_blank");
+    if (btn) { btn.disabled = true; btn.textContent = "Envoi…"; }
+    try {
+      const r = await fetch(DOC.replace(/settings\/$/, "") + "commandes/" + encodeURIComponent(slug) + "/liste", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: f }) });
+      if (!r.ok) throw new Error("http " + r.status);
+      panier = {}; majPanier(); document.querySelectorAll("[data-item]").forEach(el => { const id = el.dataset.item; rafraichirItem(id); });
+      d.querySelector(".box").innerHTML = `<div style="text-align:center;padding:10px 0 4px"><div style="font-size:54px;line-height:1">✅</div>
+        <h2 style="margin:10px 0 4px">Commande envoyée</h2><p class="hint" style="margin:0 0 14px">${lv ? "Elle est en préparation. Nous vous appelons si besoin." : "Elle est arrivée à la caisse et part en préparation."}</p>
+        <div style="display:inline-block;border:2px dashed currentColor;border-radius:16px;padding:10px 22px;margin-bottom:14px"><small style="display:block;opacity:.7">Votre numéro</small><b style="font-size:38px;letter-spacing:2px">${num}</b></div>
+        ${table.trim() ? `<p style="margin:0 0 12px">${esc(table.trim())}</p>` : ""}<button class="ghost" data-fermer>${U.close}</button></div>`;
+    } catch (e) {
+      console.error(e);
+      if (btn) { btn.disabled = false; btn.textContent = "Réessayer"; }
+      if (err) err.textContent = waNum((M.infos || {}).whatsapp) && !waOn() ? "La caisse ne répond pas. Réessayez, ou envoyez sur WhatsApp." : "Envoi impossible : vérifiez votre connexion et réessayez.";
+      if (!waOn() && waNum((M.infos || {}).whatsapp) && err && !d.querySelector("#c-wa2")) { const a = document.createElement("a"); a.id = "c-wa2"; a.className = "wa"; a.style.marginTop = "8px"; a.target = "_blank"; a.rel = "noopener"; a.href = `https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt)}`; a.innerHTML = I.wa.replace("<svg", '<svg width="22" height="22"') + " Envoyer sur WhatsApp"; err.after(a); }
+    }
   }
 
   /* ---------- réservation de table (envoyée sur WhatsApp) ---------- */

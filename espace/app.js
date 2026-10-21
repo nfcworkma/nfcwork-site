@@ -263,7 +263,7 @@ function renderHome(){
     <a class="qa" href="tv.html">${ico("device-tv")}<b>Menus TV</b><span>PDF → écran TV</span></a>
     <a class="qa" href="pages.html">${ico("user")}<b>Cartes, avis, Wi-Fi</b><span>Créer sans Mac</span></a>
     <a class="qa" href="fidelite.html">${ico("star")}<b>Fidélité</b><span>Cartes & employés</span></a>
-    <a class="qa" href="abonnements.html" style="position:relative">${ico("file-text")}<b>Abonnements</b><span id="aboInfo">Paiements & activation</span></a></div>
+    <a class="qa" href="abonnements.html" style="position:relative">${ico("file-text")}<b>Abonnements</b><span id="aboInfo">Paiements & activation</span></a><a class="qa" href="pos.html">${ico("device-tv")}<b>Caisse web</b><span>Commandes en direct</span></a></div>
   <div id="gHome"></div>
   <div class="eyebrow" style="margin-bottom:8px">À traiter</div>${todoTiles()}
   ${!all.length&&!S.clients.length?`<div class="notice">Pour démarrer : remplissez les <b>Paramètres</b>, ajoutez vos <b>clients</b> (avec leur e-mail), et créez votre première facture.</div>`:""}

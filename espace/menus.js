@@ -362,6 +362,30 @@
       if (ph) { const b = document.querySelector('[data-act="photos-auto"]'); if (b) photosAuto(b); }
     };
   }
+  // 🧾 caisses/<slug> : qui peut ouvrir la caisse, nombre de tables, employés et leur code PIN, texte du ticket
+  async function caisseReglages() {
+    let C = {};
+    try { const d = await db.doc("caisses/" + M.slug).get(); if (d.exists) C = d.data(); } catch (e) {}
+    const d = fenetre(`<div class="row between"><h2>⚙️ Caisse · ${esc(M.nom || M.slug)}</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
+      <form class="stack" id="cr">
+        <label class="f">E-mails autorisés à ouvrir la caisse (un par ligne)<textarea id="cr-e" rows="3" placeholder="caisse.campnou@gmail.com">${esc((C.emails || []).join("\n"))}</textarea></label>
+        <p class="muted" style="margin:-4px 0 0;font-size:12.5px">Le compte doit exister dans l’Espace (inscription avec ce même e-mail). Vous, l’admin, avez toujours accès.</p>
+        <label class="f">Nombre de tables<input id="cr-t" type="number" min="1" max="80" value="${esc(C.tables || 12)}"></label>
+        <label class="f">Employés et code PIN à 4 chiffres (un par ligne : Nom = PIN)<textarea id="cr-p" rows="4" placeholder="Aymen = 1234&#10;Sara = 5678">${esc((C.employes || []).map(e => e.nom + " = " + e.pin).join("\n"))}</textarea></label>
+        <label class="f">En-tête du ticket (adresse, téléphone)<textarea id="cr-h" rows="2" placeholder="Bd Mohammed V, Kénitra · 06 00 00 00 00">${esc((C.ticket || {}).entete || "")}</textarea></label>
+        <label class="f">Bas du ticket<input id="cr-f" value="${esc((C.ticket || {}).pied || "Merci de votre visite !")}" maxlength="80"></label>
+        <p class="err" id="cr-err"></p><button class="btn primary">Enregistrer</button></form>`);
+    $("#cr", d).onsubmit = async e => {
+      e.preventDefault();
+      const emails = $("#cr-e", d).value.split(/[\s,;]+/).map(x => x.trim().toLowerCase()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+      const employes = $("#cr-p", d).value.split("\n").map(l => l.split("=")).filter(x => x.length === 2 && x[0].trim() && /^\d{4}$/.test(x[1].trim())).map(x => ({ nom: x[0].trim().slice(0, 30), pin: x[1].trim() }));
+      if (new Set(employes.map(x => x.pin)).size !== employes.length) { $("#cr-err", d).textContent = "Deux employés ont le même PIN."; return; }
+      try {
+        await db.doc("caisses/" + M.slug).set({ emails, tables: Math.max(1, Math.min(80, +$("#cr-t", d).value || 12)), employes, ticket: { entete: $("#cr-h", d).value.trim().slice(0, 200), pied: $("#cr-f", d).value.trim().slice(0, 80), largeur: (C.ticket || {}).largeur || 80 }, maj: NOW() });
+        d.remove(); toast("✅ Caisse enregistrée");
+      } catch (x) { console.error(x); $("#cr-err", d).textContent = "Échec : les règles Firebase de la caisse sont-elles ajoutées ?"; }
+    };
+  }
   function choisirPhotoMenu() {
     const d = fenetre(`<h2>📷 Menu depuis une photo</h2><p class="muted">Prenez la carte bien à plat et bien éclairée. Plusieurs photos = plusieurs pages.</p>
       <label class="f">Langue du menu<select id="cp-lg"><option value="fra">Français</option><option value="fra+ara">Français + عربي</option><option value="ara">عربي فقط</option></select></label>
@@ -426,6 +450,10 @@
       <p class="muted" style="margin:0;font-size:13.5px">Le client choisit ses produits et envoie la commande sur ce numéro. Cochez « À ne pas manquer » sur vos meilleurs produits : ils s’affichent en grand en haut du menu.</p>
       ${champ("infos.whatsapp", "Numéro WhatsApp du commerce", 'type="tel" inputmode="tel" maxlength="30" placeholder="06 12 34 56 78"')}
       <label class="check"><input type="checkbox" data-b="commande" ${M.commande !== false ? "checked" : ""}> ${M.type === "salon" ? "Les clients choisissent leurs services, le jour et l’heure, et envoient la demande de rendez-vous sur WhatsApp" : "Les clients peuvent composer leur commande et l’envoyer sur WhatsApp"}</label>
+      ${M.type === "location" || M.type === "salon" ? "" : `<label class="f">📥 Où arrivent les commandes ?<select data-b="reception">${[["wa", "Sur WhatsApp"], ["caisse", "Sur l’écran caisse (ordinateur / tablette de la caisse)"], ["les2", "Sur l’écran caisse + WhatsApp"]].map(([k, n]) => `<option value="${k}" ${(M.reception || "wa") === k ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+      ${(M.reception || "wa") !== "wa" ? `<div class="notice" style="font-size:13.5px;display:grid;gap:8px">🧾 <b>Caisse web</b> : ouvrez ce lien sur l’ordinateur ou la tablette de la caisse, connectez-vous une fois, et les commandes arrivent en direct avec la table, une sonnerie, le bon cuisine et le ticket.
+        <a href="pos.html#m=${esc(M.slug)}" target="_blank" rel="noopener" style="font-weight:700;word-break:break-all">nfcwork.ma/espace/pos.html#m=${esc(M.slug)}</a>
+        <div class="row" style="gap:6px;flex-wrap:wrap"><a class="btn sm primary" href="pos.html#m=${esc(M.slug)}" target="_blank" rel="noopener">Ouvrir la caisse</a><button class="btn sm" data-act="caisse-reglages" data-adm>⚙️ Tables, employés (PIN), accès</button></div></div>` : ""}`}
       ${M.type === "location" ? `<div class="notice" style="font-size:13.5px">🚗 Mettez chaque voiture comme un produit : <b>nom</b> (Dacia Logan 2023), <b>prix par jour</b>, <b>photo</b>, et dans la description : Diesel · Manuelle · 5 places · Clim. Le client choisit les dates et envoie la réservation sur WhatsApp, avec le total.<br>💡 Sticker NFC caché dans la boîte à gants ou le coffre : le client touche ou scanne, et voit vos voitures et vos prix.</div>` : ""}
       ${M.type === "salon" || M.type === "boutique" || M.type === "location" ? "" : `<label class="check"><input type="checkbox" data-b="reservation.actif" ${(M.reservation || {}).actif ? "checked" : ""}> 📅 Bouton « Réserver une table » : jour, heure, nombre de personnes, envoyé sur WhatsApp</label>
       ${(M.reservation || {}).actif ? champ("reservation.note", "Message sous le formulaire (facultatif)", 'maxlength="140" placeholder="Réservation confirmée par WhatsApp. Groupes : appelez-nous."') : ""}`}
@@ -515,7 +543,7 @@
       const v = t.type === "checkbox" ? t.checked : t.value;
       setPath(M, t.dataset.b, typeof v === "string" && t.type !== "color" ? v.replace(/^\s+/, "") : v);
       if (t.dataset.b === "nom") $("#topTitle").textContent = t.value || "Menu";
-      if (t.dataset.b === "livraison.actif" || t.dataset.b === "reservation.actif") { renderEdit(); return; }
+      if (t.dataset.b === "livraison.actif" || t.dataset.b === "reservation.actif" || t.dataset.b === "reception") { renderEdit(); return; }
     } else if (t.dataset.pr) {
       const [i, k] = t.dataset.pr.split("."), p = (M.promos || [])[+i];
       if (p) p[k] = t.type === "checkbox" ? t.checked : t.value;
@@ -607,6 +635,7 @@
       case "promo-jour": { const p = M.promos[i], j = +b.dataset.j; p.jours = p.jours || []; p.jours = p.jours.includes(j) ? p.jours.filter(x => x !== j) : [...p.jours, j].sort(); renderEdit(); break; }
       case "photos-auto": photosAuto(b); break;
       case "importer": importer(); break;
+      case "caisse-reglages": caisseReglages(); break;
       case "photo-menu": choisirPhotoMenu(); break;
       case "it-edit": editerItem(ci, ii); break;
       case "prix-rapides": prixRapides(); break;
