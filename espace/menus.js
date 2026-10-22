@@ -475,6 +475,7 @@
       ${champ("infos.whatsapp", "Numéro WhatsApp du commerce", 'type="tel" inputmode="tel" maxlength="30" placeholder="06 12 34 56 78"')}
       <label class="check"><input type="checkbox" data-b="commande" ${M.commande !== false ? "checked" : ""}> ${M.type === "salon" ? "Les clients choisissent leurs services, le jour et l’heure, et envoient la demande de rendez-vous sur WhatsApp" : "Les clients peuvent composer leur commande et l’envoyer sur WhatsApp"}</label>
       ${M.type === "location" || M.type === "salon" ? "" : `<label class="f">📥 Où arrivent les commandes ?<select data-b="reception">${[["wa", "Sur WhatsApp"], ["caisse", "Sur l’écran caisse (ordinateur / tablette de la caisse)"], ["les2", "Sur l’écran caisse + WhatsApp"]].map(([k, n]) => `<option value="${k}" ${(M.reception || "wa") === k ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+      ${(M.reception || "wa") !== "wa" ? `<label class="check" data-adm><input type="checkbox" data-b="suivi" ${M.suivi ? "checked" : ""}> 🔔 Suivi de commande : le téléphone du client sonne quand la caisse met « Prête » <small class="muted">(option payante)</small></label>` : ""}
       ${(M.reception || "wa") !== "wa" ? `<div class="notice" style="font-size:13.5px;display:grid;gap:8px">🧾 <b>Caisse web</b> : ouvrez ce lien sur l’ordinateur ou la tablette de la caisse, connectez-vous une fois, et les commandes arrivent en direct avec la table, une sonnerie, le bon cuisine et le ticket.
         <a href="pos.html#m=${esc(M.slug)}" target="_blank" rel="noopener" style="font-weight:700;word-break:break-all">nfcwork.ma/espace/pos.html#m=${esc(M.slug)}</a>
         <div class="row" style="gap:6px;flex-wrap:wrap"><a class="btn sm primary" href="pos.html#m=${esc(M.slug)}" target="_blank" rel="noopener">Ouvrir la caisse</a><button class="btn sm" data-act="caisse-reglages" data-adm>⚙️ Tables, employés (PIN), accès</button><button class="btn sm" data-act="caisse-usb" data-adm>💾 Installation clé USB</button></div></div>` : `<button class="btn primary" data-act="caisse-creer" data-adm style="justify-self:start">🧾 Créer la caisse pour ce client</button>`}`}
@@ -884,7 +885,7 @@
     try {
       nettoyer(M);
       if (PROPRIO) {
-        try { const sv = JSON.parse((await db.doc("settings/menu-" + M.slug).get()).data().json || "{}"); ["formule", "type", "actif", "expire", "demo7", "slug", "commandeRef"].forEach(k => { if (k in sv) M[k] = sv[k]; else delete M[k]; }); } catch (x) {}
+        try { const sv = JSON.parse((await db.doc("settings/menu-" + M.slug).get()).data().json || "{}"); ["formule", "type", "actif", "expire", "demo7", "slug", "commandeRef", "suivi", "reception"].forEach(k => { if (k in sv) M[k] = sv[k]; else delete M[k]; }); } catch (x) {}
       }
       const json = JSON.stringify(M);
       // 🕘 l'ancienne version part dans l'historique (ses photos sont gardées tant qu'elle y reste)

@@ -538,20 +538,67 @@
     const btn = d.querySelector("#c-send"), err = d.querySelector("#c-err");
     if (waOn()) window.open(`https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt + "\n\nN° " + num)}`, "_blank");
     if (btn) { btn.disabled = true; btn.textContent = "Envoi…"; }
+    if (M.suivi) sonPret(true);   // le clic autorise le son et la vibration plus tard
     try {
       const r = await fetch(DOC.replace(/settings\/$/, "") + "commandes/" + encodeURIComponent(slug) + "/liste", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: f }) });
       if (!r.ok) throw new Error("http " + r.status);
+      const rep = await r.json().catch(() => ({})), oid = String(rep.name || "").split("/").pop();
       panier = {}; majPanier(); document.querySelectorAll("[data-item]").forEach(el => { const id = el.dataset.item; rafraichirItem(id); });
       d.querySelector(".box").innerHTML = `<div style="text-align:center;padding:10px 0 4px"><div style="font-size:54px;line-height:1">✅</div>
         <h2 style="margin:10px 0 4px">Commande envoyée</h2><p class="hint" style="margin:0 0 14px">${lv ? "Elle est en préparation. Nous vous appelons si besoin." : "Elle est arrivée à la caisse et part en préparation."}</p>
         <div style="display:inline-block;border:2px dashed currentColor;border-radius:16px;padding:10px 22px;margin-bottom:14px"><small style="display:block;opacity:.7">Votre numéro</small><b style="font-size:38px;letter-spacing:2px">${num}</b></div>
-        ${table.trim() ? `<p style="margin:0 0 12px">${esc(table.trim())}</p>` : ""}<button class="ghost" data-fermer>${U.close}</button></div>`;
+        ${table.trim() ? `<p style="margin:0 0 12px">${esc(table.trim())}</p>` : ""}
+        ${M.suivi && oid ? `<div id="suivi" class="suivi"></div><p class="hint" style="margin:6px 0 12px">🔔 Gardez cette page ouverte : votre téléphone sonnera quand la commande sera prête.</p>` : ""}<button class="ghost" data-fermer>${U.close}</button></div>`;
+      if (M.suivi && oid) suivre(oid, num, d);
     } catch (e) {
       console.error(e);
       if (btn) { btn.disabled = false; btn.textContent = "Réessayer"; }
       if (err) err.textContent = waNum((M.infos || {}).whatsapp) && !waOn() ? "La caisse ne répond pas. Réessayez, ou envoyez sur WhatsApp." : "Envoi impossible : vérifiez votre connexion et réessayez.";
       if (!waOn() && waNum((M.infos || {}).whatsapp) && err && !d.querySelector("#c-wa2")) { const a = document.createElement("a"); a.id = "c-wa2"; a.className = "wa"; a.style.marginTop = "8px"; a.target = "_blank"; a.rel = "noopener"; a.href = `https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt)}`; a.innerHTML = I.wa.replace("<svg", '<svg width="22" height="22"') + " Envoyer sur WhatsApp"; err.after(a); }
     }
+  }
+
+  /* ---------- 🔔 suivi : le téléphone du client sonne quand la caisse met « Prête » ---------- */
+  let AC = null, bipT = null, verrou = null;
+  function sonPret(init) {
+    try { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); AC.resume(); } catch (e) {}
+    if (init) return;
+    try { [0, .25, .5, .9, 1.15, 1.4].forEach((t, i) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.value = [880, 1175, 1568][i % 3]; g.gain.setValueAtTime(.0001, AC.currentTime + t); g.gain.exponentialRampToValueAtTime(.7, AC.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, AC.currentTime + t + .22); o.connect(g).connect(AC.destination); o.start(AC.currentTime + t); o.stop(AC.currentTime + t + .25); }); } catch (e) {}
+    try { navigator.vibrate && navigator.vibrate([400, 150, 400, 150, 800]); } catch (e) {}
+  }
+  function suivre(oid, num, d) {
+    const url = DOC.replace(/settings\/$/, "") + "commandes/" + encodeURIComponent(slug) + "/liste/" + oid;
+    const ETAPES = [["nouvelle", "📥", "Reçue"], ["cuisine", "👨‍🍳", "En préparation"], ["prete", "✅", "Prête !"]];
+    try { navigator.wakeLock && navigator.wakeLock.request("screen").then(l => { verrou = l; }).catch(() => {}); } catch (e) {}
+    let fini = false, n = 0, dernier = "";
+    const dessiner = st => {
+      const box = d.querySelector("#suivi"); if (!box) return;
+      const i = Math.max(0, ETAPES.findIndex(e => e[0] === st));
+      box.innerHTML = `<div class="etapes">${ETAPES.map((e, k) => `<div class="et${k <= i ? " on" : ""}${k === i ? " cur" : ""}"><span>${e[1]}</span><small>${e[2]}</small></div>`).join("")}</div>`;
+    };
+    const pret = () => {
+      if (document.querySelector(".pretfs")) return;
+      const f = document.createElement("div"); f.className = "pretfs";
+      f.innerHTML = `<div><div style="font-size:80px;line-height:1">✅</div><h1>Votre commande est prête !</h1><div class="pn">N° ${esc(num)}</div><p>${M.type === "hotel" ? "Elle arrive." : "Venez la récupérer au comptoir."}</p><button>OK</button></div>`;
+      document.body.appendChild(f);
+      sonPret(); bipT = setInterval(sonPret, 4000);
+      document.title = "✅ Commande prête !";
+      f.querySelector("button").onclick = () => { clearInterval(bipT); f.remove(); try { verrou && verrou.release(); } catch (e) {} };
+    };
+    const tick = async () => {
+      if (fini || !document.body.contains(d) && !document.querySelector(".pretfs")) { if (!document.body.contains(d)) { /* fenêtre fermée : on continue quand même */ } }
+      try {
+        const r = await fetch(url, { cache: "no-store" });
+        if (r.ok) {
+          const f = (await r.json()).fields || {}, st = (f.statut || {}).stringValue || "nouvelle";
+          if (st !== dernier) { dernier = st; dessiner(st); }
+          if (st === "prete") { fini = true; pret(); return; }
+          if (st === "payee" || st === "annulee") { fini = true; return; }
+        }
+      } catch (e) {}
+      if (++n < 900) setTimeout(tick, document.hidden ? 10000 : 6000);   // jusqu'à ~1 h 30
+    };
+    dessiner("nouvelle"); setTimeout(tick, 3000);
   }
 
   /* ---------- réservation de table (envoyée sur WhatsApp) ---------- */
