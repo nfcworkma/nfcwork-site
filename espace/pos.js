@@ -100,6 +100,19 @@
   window.addEventListener("offline", () => setEtat(false));
   window.addEventListener("online", () => setEtat(true));
 
+  /* ---------- 📲 installer la caisse comme une application (tablettes Android, PC) ---------- */
+  let INST = null;
+  const estApp = () => matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: window-controls-overlay)").matches || navigator.standalone || /--app|app=/.test(document.referrer);
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); INST = e; const b = document.getElementById("binst"); if (b) b.hidden = false; });
+  window.addEventListener("appinstalled", () => { INST = null; const b = document.getElementById("binst"); if (b) b.hidden = true; toast("✔ Caisse installée", "ok"); });
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  function installer() {
+    if (INST) { INST.prompt(); INST.userChoice.finally(() => { INST = null; }); return; }
+    const d = document.createElement("div"); d.className = "modal";
+    d.innerHTML = `<div class="box" style="text-align:center"><div style="font-size:48px">📲</div><h2>Installer la caisse</h2><p class="mut" style="font-size:17px;line-height:1.6">${ios ? "Touchez <b>Partager</b> ⬆️ en bas, puis <b>« Sur l’écran d’accueil »</b>." : "Menu <b>⋮</b> du navigateur → <b>« Installer l’application »</b> ou <b>« Ajouter à l’écran d’accueil »</b>."}</p><button class="btn p big" style="width:100%">OK</button></div>`;
+    document.body.appendChild(d); d.querySelector("button").onclick = () => d.remove();
+  }
+
   /* ---------- écran toujours allumé ---------- */
   async function eveil() { try { if ("wakeLock" in navigator && document.visibilityState === "visible") await navigator.wakeLock.request("screen"); } catch (e) {} }
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") eveil(); });
@@ -244,7 +257,8 @@
     top.hidden = true;
     app.innerHTML = `<div class="center"><div class="pinbox">${logoTag()}<h2 style="margin:8px 0 4px">${esc(MENU.nom || "Caisse")}</h2><p class="mut">${t("startTx")}</p>
       <button class="btn ok huge" id="go" style="width:100%;margin-top:12px">▶ ${t("start")}</button>
-      <button class="btn sm" id="lg" style="margin-top:12px">🌐 ${t("lang")}</button></div></div>`;
+      <button class="btn sm" id="lg" style="margin-top:12px">🌐 ${t("lang")}</button>${estApp() ? "" : ` <button class="btn sm" id="binst" style="margin-top:12px" ${INST || ios || /Android/i.test(navigator.userAgent) ? "" : "hidden"}>📲 Installer</button>`}</div></div>`;
+    const bi = document.getElementById("binst"); if (bi) bi.onclick = installer;
     document.getElementById("go").onclick = () => { try { AC = new (window.AudioContext || window.webkitAudioContext)(); AC.resume(); } catch (e) {} eveil(); pin(); };
     document.getElementById("lg").onclick = () => { LG = LG === "ar" ? "fr" : "ar"; LS.set("lg", LG); setLang(); demarrage(); };
   }

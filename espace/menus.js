@@ -362,8 +362,25 @@
       if (ph) { const b = document.querySelector('[data-act="photos-auto"]'); if (b) photosAuto(b); }
     };
   }
+  // après l'enregistrement : tout ce qu'il faut pour aller chez le client
+  function caisseFin(emails) {
+    const lien = "https://nfcwork.ma/espace/pos.html#m=" + M.slug;
+    const d = fenetre(`<h2>✅ Caisse prête · ${esc(M.nom || M.slug)}</h2>
+      <ol style="margin:6px 0 12px;padding-inline-start:20px;line-height:1.7">
+        <li><b>Téléchargez le dossier</b> et copiez-le sur la clé USB.</li>
+        <li>PC Windows : double-clic sur <b>INSTALLER-WINDOWS.bat</b> (aucune question). Mac / Linux : voir LISEZ-MOI. Tablette ou caisse Android : le QR ci-dessous.</li>
+        <li>Première ouverture : e-mail de la caisse${emails && emails.length ? ` (<b>${esc(emails[0])}</b>)` : ""} + mot de passe.</li></ol>
+      <button class="btn primary block" id="cf-z">💾 Télécharger « Caisse-${esc(M.slug)}.zip »</button>
+      <div class="paper" style="padding:12px;border-radius:12px;margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        ${window.QRGEN ? `<div style="width:120px;flex:none;background:#fff;border-radius:10px;padding:4px">${QRGEN.svg(lien, { marge: 2 })}</div>` : ""}
+        <div style="flex:1;min-width:160px;font-size:13.5px"><b>📱 Tablette, caisse Android, iPad…</b><br>Scannez ce QR avec l’appareil, puis « Installer » / « Ajouter à l’écran d’accueil ».<div style="word-break:break-all;margin-top:6px" class="muted">${esc(lien)}</div><button class="btn sm" id="cf-c" style="margin-top:6px">Copier le lien</button></div></div>
+      ${emails && emails.length ? "" : `<p class="err" style="margin-top:8px">⚠️ Ajoutez l’e-mail de la caisse (⚙️) sinon le client ne pourra pas se connecter.</p>`}
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn ghost" data-fermer>Fermer</button></div>`);
+    $("#cf-z", d).onclick = () => { if (window.NFCW_CAISSE_USB) NFCW_CAISSE_USB.telecharger({ nom: M.nom || M.slug, slug: M.slug }); };
+    $("#cf-c", d).onclick = async () => { try { await navigator.clipboard.writeText(lien); toast("Lien copié"); } catch (e) {} };
+  }
   // 🧾 caisses/<slug> : qui peut ouvrir la caisse, nombre de tables, employés et leur code PIN, texte du ticket
-  async function caisseReglages() {
+  async function caisseReglages(nouvelle) {
     let C = {};
     try { const d = await db.doc("caisses/" + M.slug).get(); if (d.exists) C = d.data(); } catch (e) {}
     const d = fenetre(`<div class="row between"><h2>⚙️ Caisse · ${esc(M.nom || M.slug)}</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
@@ -389,6 +406,7 @@
         if (px && !/^\d{4}$/.test(px)) { $("#cr-err", d).textContent = "Le code du patron doit avoir 4 chiffres."; return; }
         await db.doc("caisses/" + M.slug).set({ emails, pinPatron: px, autonome: $("#cr-a", d).checked, couleur: $("#cr-cc", d).checked ? $("#cr-c", d).value : "", tables: Math.max(1, Math.min(80, +$("#cr-t", d).value || 12)), employes, ticket: { entete: $("#cr-h", d).value.trim().slice(0, 200), pied: $("#cr-f", d).value.trim().slice(0, 80), largeur: (C.ticket || {}).largeur || 80 }, maj: NOW() });
         d.remove(); toast("✅ Caisse enregistrée");
+        caisseFin(emails);
       } catch (x) { console.error(x); $("#cr-err", d).textContent = "Échec : les règles Firebase de la caisse sont-elles ajoutées ?"; }
     };
   }
@@ -459,7 +477,7 @@
       ${M.type === "location" || M.type === "salon" ? "" : `<label class="f">📥 Où arrivent les commandes ?<select data-b="reception">${[["wa", "Sur WhatsApp"], ["caisse", "Sur l’écran caisse (ordinateur / tablette de la caisse)"], ["les2", "Sur l’écran caisse + WhatsApp"]].map(([k, n]) => `<option value="${k}" ${(M.reception || "wa") === k ? "selected" : ""}>${n}</option>`).join("")}</select></label>
       ${(M.reception || "wa") !== "wa" ? `<div class="notice" style="font-size:13.5px;display:grid;gap:8px">🧾 <b>Caisse web</b> : ouvrez ce lien sur l’ordinateur ou la tablette de la caisse, connectez-vous une fois, et les commandes arrivent en direct avec la table, une sonnerie, le bon cuisine et le ticket.
         <a href="pos.html#m=${esc(M.slug)}" target="_blank" rel="noopener" style="font-weight:700;word-break:break-all">nfcwork.ma/espace/pos.html#m=${esc(M.slug)}</a>
-        <div class="row" style="gap:6px;flex-wrap:wrap"><a class="btn sm primary" href="pos.html#m=${esc(M.slug)}" target="_blank" rel="noopener">Ouvrir la caisse</a><button class="btn sm" data-act="caisse-reglages" data-adm>⚙️ Tables, employés (PIN), accès</button></div></div>` : ""}`}
+        <div class="row" style="gap:6px;flex-wrap:wrap"><a class="btn sm primary" href="pos.html#m=${esc(M.slug)}" target="_blank" rel="noopener">Ouvrir la caisse</a><button class="btn sm" data-act="caisse-reglages" data-adm>⚙️ Tables, employés (PIN), accès</button><button class="btn sm" data-act="caisse-usb" data-adm>💾 Installation clé USB</button></div></div>` : `<button class="btn primary" data-act="caisse-creer" data-adm style="justify-self:start">🧾 Créer la caisse pour ce client</button>`}`}
       ${M.type === "location" ? `<div class="notice" style="font-size:13.5px">🚗 Mettez chaque voiture comme un produit : <b>nom</b> (Dacia Logan 2023), <b>prix par jour</b>, <b>photo</b>, et dans la description : Diesel · Manuelle · 5 places · Clim. Le client choisit les dates et envoie la réservation sur WhatsApp, avec le total.<br>💡 Sticker NFC caché dans la boîte à gants ou le coffre : le client touche ou scanne, et voit vos voitures et vos prix.</div>` : ""}
       ${M.type === "salon" || M.type === "boutique" || M.type === "location" ? "" : `<label class="check"><input type="checkbox" data-b="reservation.actif" ${(M.reservation || {}).actif ? "checked" : ""}> 📅 Bouton « Réserver une table » : jour, heure, nombre de personnes, envoyé sur WhatsApp</label>
       ${(M.reservation || {}).actif ? champ("reservation.note", "Message sous le formulaire (facultatif)", 'maxlength="140" placeholder="Réservation confirmée par WhatsApp. Groupes : appelez-nous."') : ""}`}
@@ -642,6 +660,12 @@
       case "photos-auto": photosAuto(b); break;
       case "importer": importer(); break;
       case "caisse-reglages": caisseReglages(); break;
+      case "caisse-usb": if (window.NFCW_CAISSE_USB) { NFCW_CAISSE_USB.telecharger({ nom: M.nom || M.slug, slug: M.slug }); toast("💾 Dossier « Caisse-" + M.slug + ".zip » téléchargé : copiez-le sur la clé USB"); } break;
+      case "caisse-creer": {
+        M.reception = (M.infos || {}).whatsapp ? "les2" : "caisse"; renderEdit();
+        const sv = document.querySelector('[data-act="enregistrer"]'); if (sv && dirty()) await enregistrer(sv);
+        caisseReglages(true); break;
+      }
       case "photo-menu": choisirPhotoMenu(); break;
       case "it-edit": editerItem(ci, ii); break;
       case "prix-rapides": prixRapides(); break;
