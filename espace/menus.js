@@ -687,7 +687,7 @@
     toast("💾 Fichier du menu téléchargé");
   }
   // 📦 modèles tout prêts, hébergés sur le site (un clic, pas de fichier à télécharger)
-  const MODELES = [["cafe-camp-nou", "☕", "Café Camp Nou", "31 produits : ftour, crêpes, soupes, boissons, jus · logo et couverture"], ["location-voitures", "🚗", "Location de voitures", "47 voitures avec photos, réservation date + heure"], ["thony", "🥪", "THONY Sandwich Express", "46 produits avec photos : thon, sandwichs, tacos, burgers, plats, boissons"], ["doner-turkish", "🥙", "Doner Turkish", "31 produits : doner, chawarma, durum, ciabatta, frites cheddar, boissons"]];
+  const MODELES = [["cafe-camp-nou", "☕", "Café Camp Nou", "31 produits avec photos HD : ftour, crêpes, soupes, boissons, jus"], ["location-voitures", "🚗", "Location de voitures", "47 voitures avec photos, réservation date + heure"], ["thony", "🥪", "THONY Sandwich Express", "46 produits avec photos : thon, sandwichs, tacos, burgers, plats, boissons"], ["doner-turkish", "🥙", "Doner Turkish", "31 produits : doner, chawarma, durum, ciabatta, frites cheddar, boissons"]];
   function fichierIn() {
     const d = fenetre(`<h2>📥 Menu tout prêt</h2><p class="muted" style="margin-top:2px">Choisissez un modèle : il est copié avec toutes ses photos, puis vous changez le nom, les prix et le WhatsApp.</p>
       <div class="stack" style="gap:8px;margin-top:10px">${MODELES.map(([k, i, n, s]) => `<button class="btn block" data-mod="${k}" style="justify-content:flex-start;text-align:start;padding:14px"><span style="font-size:26px">${i}</span><span><b>${n}</b><br><small class="muted">${s}</small></span></button>`).join("")}
