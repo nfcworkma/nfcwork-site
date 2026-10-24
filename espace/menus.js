@@ -532,6 +532,7 @@
     </section>` : `<section class="sec">
       <div class="row between" style="margin-bottom:10px"><h3>${M.type === "location" ? "Voitures" : "Catégories & produits"}</h3><div class="row" style="gap:6px"><button class="btn sm primary" data-act="prix-rapides">💰 Prix</button><button class="btn sm" data-act="photo-menu">📷 Photo</button><button class="btn sm" data-act="importer">📥 Importer</button><button class="btn sm" data-act="cat-add">＋ Catégorie</button></div></div>
       ${M.categories.some(c => (c.items || []).some(i => !i.photo)) ? `<div class="paper row between" style="padding:12px 14px;border-radius:14px;margin-bottom:12px;gap:10px"><div style="flex:1;min-width:0"><b>✨ Photos automatiques</b><div class="muted" style="font-size:13px">${M.categories.reduce((n, c) => n + (c.items || []).filter(i => !i.photo).length, 0)} produit(s) sans photo : on cherche la bonne photo à partir du nom (Coca-Cola, Poms, café crème…).</div></div><button class="btn sm primary" data-act="photos-auto">Remplir</button></div>` : ""}
+      ${M.categories.some(c => (c.items || []).length) && !M.categories.some(c => (c.items || []).some(i => !i.photo)) && M.type !== "location" ? `<div class="paper row between" style="padding:12px 14px;border-radius:14px;margin-bottom:12px;gap:10px"><div style="flex:1;min-width:0"><b>📸 Photos HD</b><div class="muted" style="font-size:13px">Des photos floues ou mal coupées ? On met une belle photo de la banque à chaque produit.</div></div><button class="btn sm" data-act="photos-hd">Tout en HD</button></div>` : ""}
       ${M.categories.map((c, ci) => `<div class="cat" data-cat="${esc(c.id)}">
         <div class="cat-h"><div class="names">${ls.map(l => `<input data-cb="nom.${l}" value="${esc(T(c.nom, l))}" placeholder="Nom de la catégorie${ls.length > 1 ? " (" + LCOURT[l] + ")" : ""}" maxlength="60" ${l === "ar" ? 'dir="rtl"' : ""}>`).join("")}</div>
           <div class="cat-tools"><button class="btn icon sm" data-act="cat-up" data-i="${ci}" ${ci ? "" : "disabled"} title="Monter">↑</button><button class="btn icon sm" data-act="cat-down" data-i="${ci}" ${ci < M.categories.length - 1 ? "" : "disabled"} title="Descendre">↓</button><button class="btn icon sm danger" data-act="cat-del" data-i="${ci}" title="Supprimer">🗑</button></div></div>
@@ -659,6 +660,7 @@
       case "promo-del": M.promos.splice(i, 1); renderEdit(); break;
       case "promo-jour": { const p = M.promos[i], j = +b.dataset.j; p.jours = p.jours || []; p.jours = p.jours.includes(j) ? p.jours.filter(x => x !== j) : [...p.jours, j].sort(); renderEdit(); break; }
       case "photos-auto": photosAuto(b); break;
+      case "photos-hd": if (confirm("Remplacer les photos de TOUS les produits par des photos HD de la banque ?\nVous pourrez changer chaque photo ensuite.")) photosAuto(b, true); break;
       case "importer": importer(); break;
       case "caisse-reglages": caisseReglages(); break;
       case "caisse-usb": if (window.NFCW_CAISSE_USB) { NFCW_CAISSE_USB.telecharger({ nom: M.nom || M.slug, slug: M.slug }); toast("💾 Dossier « Caisse-" + M.slug + ".zip » téléchargé : copiez-le sur la clé USB"); } break;
@@ -690,7 +692,7 @@
   const MODELES = [["cafe-camp-nou", "☕", "Café Camp Nou", "31 produits avec photos HD : ftour, crêpes, soupes, boissons, jus"], ["location-voitures", "🚗", "Location de voitures", "47 voitures avec photos, réservation date + heure"], ["thony", "🥪", "THONY Sandwich Express", "46 produits avec photos : thon, sandwichs, tacos, burgers, plats, boissons"], ["doner-turkish", "🥙", "Doner Turkish", "31 produits : doner, chawarma, durum, ciabatta, frites cheddar, boissons"]];
   function fichierIn() {
     const d = fenetre(`<h2>📥 Menu tout prêt</h2><p class="muted" style="margin-top:2px">Choisissez un modèle : il est copié avec toutes ses photos, puis vous changez le nom, les prix et le WhatsApp.</p>
-      <div class="stack" style="gap:8px;margin-top:10px">${MODELES.map(([k, i, n, s]) => `<button class="btn block" data-mod="${k}" style="justify-content:flex-start;text-align:start;padding:14px"><span style="font-size:26px">${i}</span><span><b>${n}</b><br><small class="muted">${s}</small></span></button>`).join("")}
+      <div class="stack" style="gap:8px;margin-top:10px">${MODELES.map(([k, i, n, s]) => `<button class="btn block" data-mod="${k}" style="justify-content:flex-start;text-align:start;padding:14px;white-space:normal;min-width:0;max-width:100%"><span style="font-size:26px;flex:none">${i}</span><span style="min-width:0;flex:1;overflow-wrap:anywhere"><b>${n}</b><br><small class="muted">${s}</small></span></button>`).join("")}
         <button class="btn ghost block" data-mod="__fichier">📂 Ouvrir un fichier (.json)</button></div>
       <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn ghost" data-fermer>Fermer</button></div>`);
     d.addEventListener("click", async e => {
@@ -1060,20 +1062,24 @@
   }
 
   /* ---------- photos automatiques pour tous les produits sans photo ---------- */
-  async function photosAuto(b) {
+  // tout = true : remplace aussi les photos déjà mises (photos HD de la banque pour tout le menu)
+  async function photosAuto(b, tout) {
     const l0 = M.langues[0] || "fr";
-    const todo = M.categories.flatMap(c => (c.items || []).filter(i => !i.photo && T(i.nom, l0).trim()));
+    const todo = M.categories.flatMap(c => (c.items || []).filter(i => (tout || !i.photo) && T(i.nom, l0).trim()).map(i => [i, c]));
     if (!todo.length) { toast("Donnez d’abord un nom aux produits."); return; }
     b.disabled = true;
     let ok = 0;
-    const deja = new Set(M.categories.flatMap(c => (c.items || []).map(i => i.photo)).filter(Boolean));
+    const deja = new Set(tout ? [] : M.categories.flatMap(c => (c.items || []).map(i => i.photo)).filter(Boolean));
     for (let k = 0; k < todo.length; k++) {
       b.textContent = `${k + 1} / ${todo.length}…`;
-      const id = await window.PHOTO_AUTO.trouver(T(todo[k].nom, l0), deja).catch(() => "");
-      if (id) { todo[k].photo = id; deja.add(id); ok++; }
+      const [it, c] = todo[k];
+      const id = await window.PHOTO_AUTO.trouverTout(T(it.nom, l0), T(c.nom, l0), T(it.desc, l0), deja).catch(() => "");
+      if (id) { it.photo = id; deja.add(id); ok++; }
     }
+    // Premium : une belle photo de couverture si le menu n'en a pas
+    if (M.formule === "premium" && !M.couverture) { M.couverture = window.PHOTO_AUTO.couverture(M.categories.map(c => T(c.nom, l0))); M.couvPos = ""; }
     renderEdit();
-    toast(ok ? `${ok} photo(s) ajoutée(s) ✓ Vérifiez-les, puis « Enregistrer ».` + (ok < todo.length ? ` ${todo.length - ok} sans photo trouvée : ajoutez-la à la main.` : "") : "Aucune photo sûre trouvée. Choisissez-les dans la banque de photos.");
+    toast(ok ? `✨ ${ok} photo(s) HD ajoutée(s) ✓ Vérifiez-les, puis « Enregistrer ».` + (ok < todo.length ? ` ${todo.length - ok} sans photo trouvée : ajoutez-la à la main.` : "") : "Aucune photo sûre trouvée. Choisissez-les dans la banque de photos.", true);
   }
 
   /* ---------- banque de photos ---------- */

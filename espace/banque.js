@@ -101,7 +101,7 @@ window.BANQUE = [
   ["1554310636-9eef29dea2fa", "Sprite", "Sodas & eaux", "sprite canette soda citron"],
   ["1690988109041-458628590a9e", "Sprite", "Sodas & eaux", "sprite canette soda"],
   ["1621330716555-5cad596c4562", "Soda citron", "Sodas & eaux", "soda citron fanta schweppes limonade gazeuse"],
-  ["1591735161367-577be05bc331", "Boisson pomme", "Sodas & eaux", "pomme poms soda boisson gazeuse"],
+  ["1591735161367-577be05bc331", "Boisson pomme", "Sodas & eaux", "pomme poms soda boisson gazeuse jus"],
   ["1617981292120-3c56b766e2a7", "Boisson tropicale", "Sodas & eaux", "tropical hawai soda boisson orange gazeuse"],
   ["1611266374165-579c08a59cc2", "Eau gazeuse", "Sodas & eaux", "eau gazeuse petillante oulmes verre"],
   /* Boissons chaudes */
@@ -119,7 +119,7 @@ window.BANQUE = [
   ["1470752354724-60a1d2b1907f", "Boisson citron", "Boissons fraîches", "citron limonade soda"],
   ["1499638673689-79a0b5115d87", "Boisson fruits rouges", "Boissons fraîches", "fruits rouges cocktail boisson fraise"],
   ["1572490122747-3968b75cc699", "Frappé cookies", "Boissons fraîches", "frappe milkshake cookies oreo chocolat"],
-  ["1553787499-6f9133860278", "Milkshake vanille", "Jus & smoothies", "milkshake vanille creme"],
+  ["1553787499-6f9133860278", "Milkshake vanille", "Jus & smoothies", "milkshake vanille creme jus banane"],
   ["1577805947697-89e18249d767", "Milkshake chocolat", "Jus & smoothies", "milkshake chocolat"],
   ["1641665271888-575e46923776", "Milkshake cookie", "Jus & smoothies", "milkshake cookie oreo"],
   /* Jus & smoothies */
@@ -209,7 +209,7 @@ window.BANQUE = [
   ["1741217375528-4cf4ad2e2545", "Couscous", "Plats", "couscous vendredi"],
   ["1541518763669-27fef04b14ea", "Plat sauté", "Plats", "plat saute"],
   ["1567982047351-76b6f93e38ee", "Soupe", "Plats", "soupe harira"],
-  ["1547592166-23ac45744acd", "Soupe", "Plats", "soupe veloute harira"],
+  ["1547592166-23ac45744acd", "Soupe", "Plats", "soupe veloute harira bissara"],
   ["1620791144170-8a443bf37a33", "Velouté", "Plats", "soupe veloute"],
   /* Grillades & poissons */
   ["1600891964092-4316c288032e", "Viande grillée", "Grillades & poissons", "viande grillee entrecote steak filet boeuf"],

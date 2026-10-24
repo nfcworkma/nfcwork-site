@@ -6,7 +6,7 @@
    ========================================================= */
 (function () {
   const OFF_IMG = "https://images.openfoodfacts.org/images/products/";
-  const sansAccent = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const sansAccent = t => String(t || "").replace(/œ/g, "oe").replace(/Œ/g, "OE").replace(/æ/g, "ae").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const VIDES = new Set("de du des la le les l d a au aux et en avec sans sur with of and un une cl ml l".split(" "));
   const mots = t => sansAccent(t).replace(/[^a-z0-9]+/g, " ").split(" ").filter(w => w.length > 1 && !VIDES.has(w) && !/^\d+$/.test(w)).map(w => (w.length > 3 ? w.replace(/s$/, "") : w));
 
@@ -31,19 +31,20 @@
     pancake: "pancake", crep: "crepe", pizz: "pizza", panin: "panini", sandwitch: "sandwich", sandwish: "sandwich", tacco: "taco", taco: "taco",
     nugget: "nugget", wing: "wing", fry: "frite", fries: "frite", frie: "frite", fried: "frit", juice: "ju", coffee: "cafe", latte: "latte", tea: "the", atay: "menthe",
     mojitto: "mojito", milk: "lait", shake: "milkshake", lemonade: "limonade", water: "eau", donuts: "donut", beignet: "donut", glac: "glace",
-    harira: "soupe", chicken: "poulet", beef: "boeuf", cheese: "fromage", classic: "classique", crispy: "crispy", "jus": "ju", omelet: "omelette", kefta: "kefta", kafta: "kefta", poisson: "poisson", fish: "poisson", crevette: "crevette" };
+    harira: "soupe", chicken: "poulet", beef: "boeuf", cheese: "fromage", classic: "classique", crispy: "crispy", "jus": "ju", omelet: "omelette", nespresso: "espresso", expresso: "espresso", infusion: "theiere", tisane: "theiere", verveine: "theiere", croque: "toast", toasts: "toast", chamali: "menthe", gazeuse: "gazeuse", kefta: "kefta", kafta: "kefta", poisson: "poisson", fish: "poisson", crevette: "crevette" };
   const norm = w => SYN[w] || w;
   // le mot qui dit « ce que c'est » pèse le plus (Classic Burger → burger, Chicken Burger → burger, pas les ailes de poulet)
   const TETES = new Set("burger cheeseburger pizza taco tacos crepe gaufre pancake sandwich panini chawarma wrap quesadilla hot dog ju jus smoothie milkshake frappe mojito limonade citronnade the cafe espresso cappuccino latte chocolat eau soda soupe salade pate lasagne couscous tajine omelette croissant frite nugget wing brochette steak poisson crevette tiramisu brownie donut glace cheesecake gateau sushi maki nigiri roll poke temaki rouleau tarte".split(" "));
-  function banqueMeilleure(nom, deja) {
+  function banqueMeilleure(nom, deja, grp, plat) {
     const ws = mots(nom).map(norm); if (!ws.length) return "";
     let bs = 0, tous = [];
     for (const x of window.BANQUE || []) {
+      if (grp && x[2] !== grp) continue;
       const tl = mots(x[1] + " " + x[3]).map(norm);
       const t = " " + tl.join(" ") + " ";
       // le 1er mot (« Pizza … », « Crêpe … », « Jus … ») compte double ; bonus si la photo commence pareil
       let s = 0;
-      ws.forEach((w, i) => { if (t.includes(" " + w + (w.length < 4 ? " " : ""))) s += TETES.has(w) ? 3 : i === 0 ? 2 : 1; });
+      ws.forEach((w, i) => { if (t.includes(" " + w + (w.length < 4 ? " " : ""))) s += TETES.has(w) && !plat ? 3 : i === 0 ? 2 : 1; });
       if (s && ws.includes(tl[0])) s += tl[0] === ws[0] ? 0.6 : 0.5;
       if (s) tous.push([x, s]);
       if (s > bs) bs = s;
@@ -112,10 +113,32 @@
     return banqueMeilleure(nom, deja);
   }
 
+  // chaque produit reçoit une photo : 1) son nom  2) sa description (« toasts, œufs, avocat… »)  3) sa catégorie
+  const CATS = [[/ftour|petit|dejeun|breakfast|formule|brunch/, "Petit-déjeuner"], [/crepe|gaufre|pancake/, "Crêpes & gaufres"], [/jus|smoothie|cocktail|panache/, "Jus & smoothies"],
+    [/chaud|cafe|caf|the\b|hot/, "Boissons chaudes"], [/soda|eau|gazeu/, "Sodas & eaux"], [/froid|frais|boisson|drink/, "Boissons fraîches"], [/sandwich|taco|wrap|panini/, "Sandwichs & tacos"],
+    [/burger/, "Burgers"], [/pizza/, "Pizzas"], [/grill|poisson|brochette|viande/, "Grillades & poissons"], [/dessert|glace|patiss|gateau|sucre/, "Desserts"], [/sushi|bowl|poke/, "Sushi & bowls"], [/plat|tajine|cuisine|soupe/, "Plats"]];
+  function parCategorie(cat, deja) {
+    const c = sansAccent(cat); if (!c) return "";
+    if (/soupe|harira/.test(c)) { const s = banqueMeilleure("soupe", deja); if (s) return s; }
+    const e = CATS.find(([r]) => r.test(c)); if (!e) return "";
+    const l = (window.BANQUE || []).filter(x => x[2] === e[1]).map(x => "u:" + x[0]);
+    return l.find(id => !(deja && deja.has(id))) || l[0] || "";
+  }
+  async function trouverTout(nom, cat, desc, deja) {
+    const d = String(desc || "").split(/[·•|]/)[0], e = CATS.find(([r]) => r.test(sansAccent(cat))), grp = e && e[1];
+    return (await trouver(nom, deja).catch(() => "")) || (grp && banqueMeilleure(d, deja, grp, true)) || banqueMeilleure(d, deja, null, true) || parCategorie(cat, deja);
+  }
+  // photo de couverture selon ce que vend le commerce
+  function couverture(cats) {
+    const t = sansAccent((cats || []).join(" "));
+    if (/burger|pizza|taco|sandwich|grill|sushi|plat/.test(t) && !/cafe|ftour|petit/.test(t)) { const e = CATS.find(([r]) => r.test(t)); const l = (window.BANQUE || []).filter(x => e && x[2] === e[1]); if (l.length) return "u:" + l[0][0]; }
+    return "/menu/demo/cover-cafe.jpg";
+  }
+
   const charge = src => typeof Image === "undefined" ? Promise.resolve(true) : new Promise(ok => {
     const i = new Image(), t = setTimeout(() => ok(false), 8000);
     i.onload = () => { clearTimeout(t); ok(i.naturalWidth > 20); }; i.onerror = () => { clearTimeout(t); ok(false); }; i.src = src;
   });
   const url = (id, w) => OFF_IMG + id.slice(2) + ((w || 400) > 500 ? ".full.jpg" : ".400.jpg");
-  window.PHOTO_AUTO = { trouver, chercherOFF, marque, url, banqueMeilleure };
+  window.PHOTO_AUTO = { trouver, trouverTout, couverture, chercherOFF, marque, url, banqueMeilleure };
 })();
