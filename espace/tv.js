@@ -80,6 +80,8 @@
   function route() {
     const m = location.hash.match(/^#e=([a-z0-9-]+)/);
     if (PROPRIO && m && !PROPRIO.includes(m[1])) { location.hash = ""; return; }
+    const mm = location.hash.match(/^#menu=([a-z0-9-]+)/);
+    if (mm && !PROPRIO) { history.replaceState(null, "", "#"); renderListe(); depuisMenu(mm[1]); return; }
     if (location.hash === "#nouveau" && !PROPRIO) { history.replaceState(null, "", "#"); renderListe(); nouveau(); return; }
     if (m) ouvrir(m[1]); else renderListe();
   }
@@ -87,14 +89,14 @@
 
   function renderListe() {
     E = null; saved = "";
-    $("#topTitle").textContent = "Menus TV"; $("#topSub").textContent = "PDF → écran TV"; $("#backBtn").href = "./";
-    app.innerHTML = `<div class="row between"><div><h2>Menus TV</h2><div class="muted">Importez le PDF du menu : vous obtenez un lien à ouvrir sur la TV, qui défile tout seul, en boucle.</div></div>
-      <button class="btn primary" data-act="nouveau" data-adm>＋ Nouveau menu TV</button></div>
+    $("#topTitle").textContent = "Menus TV"; $("#topSub").textContent = "Menu → écran TV"; $("#backBtn").href = "./";
+    app.innerHTML = `<div class="row between"><div><h2>Menus TV</h2><div class="muted">Choisissez un de vos menus : les écrans TV se fabriquent tout seuls (catégorie par catégorie), avec un lien pour la TV et une vidéo pour clé USB.</div></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap" data-adm><button class="btn primary" data-act="depuis-menu">🍽 Depuis un menu</button><button class="btn" data-act="nouveau">📄 PDF / photos</button></div></div>
       ${liste.length ? `<div class="tvlist sec">${liste.map(t => `<a class="tvrow" href="#e=${esc(t.slug)}" style="text-decoration:none;color:inherit">
           <div class="mini">${t.apercu ? imgTag(t.apercu) : "📺"}</div>
           <div class="tx"><b>${esc(t.nom)}</b><div class="u">nfcwork.ma/tv/${esc(t.slug)} · ${t.n || 0} page${(t.n || 0) > 1 ? "s" : ""}</div></div>
           <span class="btn sm">Ouvrir</span></a>`).join("")}</div>`
-      : `<div class="empty paper sec"><h3>Aucun menu TV</h3><p>Créez le premier : donnez un nom, importez le PDF, copiez le lien.</p><button class="btn primary" data-act="nouveau" data-adm>＋ Créer un menu TV</button></div>`}`;
+      : `<div class="empty paper sec"><h3>Aucun menu TV</h3><p>Choisissez un menu déjà fait : tout se prépare en un clic.</p><button class="btn primary" data-act="depuis-menu" data-adm>🍽 Créer depuis un menu</button></div>`}`;
     remplir();
   }
 
@@ -134,6 +136,13 @@
         ${qr ? `<div class="qr">${qr}</div>` : ""}</div>
     </section>
 
+    <section class="sec paper stack" style="border:1px solid var(--accent)"><h3>🎬 Vidéo pour clé USB (sans Internet)</h3>
+      <p class="muted" style="margin:0;font-size:13.5px">Une vidéo MP4 qui tourne en boucle : copiez-la sur une clé USB, branchez-la sur la TV, et lancez-la avec l’option « Répéter ». Ne s’arrête jamais, même sans Wi-Fi.</p>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><select id="vd-min" style="width:auto"><option value="0">1 tour (${Math.round(E.pages.length * E.duree)} s)</option><option value="10" selected>Environ 10 minutes</option><option value="30">Environ 30 minutes</option></select>
+        <button class="btn primary" data-act="video" ${E.pages.length ? "" : "disabled"}>🎬 Télécharger la vidéo</button></div>
+      <div class="prog" id="vd-prog" hidden><i></i></div><div class="muted" id="vd-tx" style="font-size:13px"></div>
+    </section>
+    ${E.menu ? `<section class="sec paper row between" style="gap:10px"><div style="flex:1;min-width:0"><b>🍽 Fait depuis le menu « ${esc(E.menuNom || E.menu)} »</b><div class="muted" style="font-size:13px">Vous avez changé un prix, une photo ou un produit ? Refaites les écrans en un clic.</div></div><button class="btn sm primary" data-act="maj-menu">🔄 Mettre à jour</button></section>` : ""}
     <section class="sec paper stack">
       <div class="row between"><h3>Pages du menu</h3><span class="muted" style="font-size:13px">${E.pages.length} page${E.pages.length > 1 ? "s" : ""}</span></div>
       <div class="drop" id="drop"><div id="dropTx">Importez le PDF du menu, ou des photos (JPG, PNG). Chaque page devient un écran.</div>
@@ -262,6 +271,80 @@
     } catch (e) { erreur(e); }
   }
 
+  /* ---------- 🍽 depuis un menu de l'Espace : écrans fabriqués automatiquement ---------- */
+  async function choisirMenu() {
+    let menus = [];
+    try { const d = await db.doc("settings/menus").get(); menus = d.exists ? JSON.parse(d.data().json || "[]") : []; } catch (e) { erreur(e); return; }
+    menus = menus.filter(m => m.formule !== "standard").sort((a, b) => (b.maj || 0) - (a.maj || 0));
+    const d = fenetre(`<div class="row between"><h2>🍽 Choisissez le menu</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
+      <p class="muted" style="font-size:13px;margin:2px 0 10px">Les écrans TV sont fabriqués avec ses catégories, ses produits, ses photos, son logo et ses couleurs.</p>
+      <div class="stack" style="gap:8px">${menus.map(m => `<button class="btn block" data-m="${esc(m.slug)}" style="justify-content:space-between;text-align:start;white-space:normal"><span><b>${esc(m.nom)}</b><br><small class="muted">nfcwork.ma/menu/${esc(m.slug)}</small></span><span>${liste.some(t => t.menu === m.slug || t.slug === m.slug) ? "📺" : "›"}</span></button>`).join("") || '<p class="muted">Aucun menu Pro ou Premium. Créez d’abord le menu dans « Menus ».</p>'}</div>`);
+    d.addEventListener("click", e => { const b = e.target.closest("[data-m]"); if (b) { d.remove(); depuisMenu(b.dataset.m); } });
+  }
+  function fenetre(html) {
+    const d = document.createElement("div"); d.className = "modal";
+    d.innerHTML = `<div class="box">${html}</div>`;
+    d.addEventListener("click", e => { if (e.target === d || e.target.closest("[data-fermer]")) d.remove(); });
+    document.body.appendChild(d); return d;
+  }
+  const IMGS = {};   // les écrans fabriqués, gardés pour la vidéo
+  async function depuisMenu(slugMenu, maj) {
+    if (!window.NFCW_TVGEN) { toast("Module TV indisponible.", true); return; }
+    const d = fenetre(`<h2>📺 Préparation des écrans TV…</h2><p class="muted" id="g-t" style="margin:6px 0 8px">Lecture du menu…</p><div class="prog"><i id="g-b" style="width:3%"></i></div><p class="muted" style="font-size:12.5px;margin-top:10px">Restez sur cette page (moins d’une minute).</p>`);
+    const pr = (x, t) => { const b = $("#g-b", d); if (b) b.style.width = Math.max(3, Math.round(x * 100)) + "%"; if (t) { const tt = $("#g-t", d); if (tt) tt.textContent = t; } };
+    try {
+      const doc = await db.doc("settings/menu-" + slugMenu).get();
+      if (!doc.exists) throw new Error("menu introuvable");
+      const M = JSON.parse(doc.data().json || "{}");
+      const canv = await window.NFCW_TVGEN.ecrans(M, { resoudre: img, lien: SITE + "/menu/" + slugMenu, progres: (x, t) => pr(x * 0.6, t) });
+      // l'écran TV : même lien que le menu si possible
+      let t = liste.find(x => x.menu === slugMenu) || (E && E.menu === slugMenu ? E : null);
+      let slug = t ? t.slug : slugMenu;
+      if (!t && liste.some(x => x.slug === slug)) slug = slugMenu + "-tv";
+      if (!E || E.slug !== slug) {
+        const ex = await db.doc("settings/tv-" + slug).get();
+        if (ex.exists) { E = JSON.parse(ex.data().json || "{}"); saved = JSON.stringify(E); }
+        else { E = { v: 1, slug, nom: M.nom || slugMenu, pages: [], duree: 8, effet: "fondu", fond: "noir", actif: true }; saved = ""; }
+      }
+      E.menu = slugMenu; E.menuNom = M.nom || slugMenu; E.nom = M.nom || E.nom;
+      const pages = [];
+      for (let i = 0; i < canv.length; i++) { pr(0.6 + 0.4 * i / canv.length, `Envoi de l’écran ${i + 1} / ${canv.length}…`); pages.push(await envoyer(vers_jpeg(canv[i], canv[i].width, canv[i].height))); }
+      E.pages = pages; IMGS[E.slug] = canv;
+      d.remove();
+      if (location.hash !== "#e=" + E.slug) location.hash = "#e=" + E.slug; else renderEdit();
+      setTimeout(() => { const b = $("#saveBtn"); if (b && dirty()) enregistrer(b); }, 400);
+      toast(`✅ ${canv.length} écrans TV prêts${maj ? " (mis à jour)" : ""}. Enregistrement…`, true);
+    } catch (e) { console.error(e); d.remove(); toast("Impossible de préparer les écrans : vérifiez la connexion et réessayez.", true); }
+  }
+  async function faireVideo(b) {
+    const min = +($("#vd-min") || {}).value || 0, bar = $("#vd-prog"), tx = $("#vd-tx");
+    b.disabled = true; bar.hidden = false;
+    const pr = (x, t) => { bar.firstElementChild.style.width = Math.round(x * 100) + "%"; if (t) tx.textContent = t; };
+    try {
+      let ims = IMGS[E.slug];
+      if (!ims || ims.length !== E.pages.length) {
+        ims = [];
+        for (let i = 0; i < E.pages.length; i++) {
+          pr(i / E.pages.length * 0.2, `Chargement de l’écran ${i + 1} / ${E.pages.length}…`);
+          const src = await img(E.pages[i]); if (!src) continue;
+          ims.push(await new Promise((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = src; }));
+        }
+      }
+      // les pages PDF / photos (pas en 16:9) sont posées sur un fond noir 1920 × 1080
+      ims = ims.map(im => { const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height; if (w === 1920 && h === 1080) return im; const c = document.createElement("canvas"); c.width = 1920; c.height = 1080; const g = c.getContext("2d"); g.fillStyle = "#000"; g.fillRect(0, 0, 1920, 1080); const k = Math.min(1920 / w, 1080 / h); g.drawImage(im, (1920 - w * k) / 2, (1080 - h * k) / 2, w * k, h * k); return c; });
+      const r = await window.NFCW_TVGEN.video(ims, { duree: E.duree, minutes: min, progres: x => pr(0.2 + x * 0.78, `Fabrication de la vidéo… ${Math.round(x * 100)} %`) });
+      pr(1, "");
+      const url = URL.createObjectURL(r.blob), a = document.createElement("a");
+      a.href = url; a.download = `Menu-TV-${E.slug}.mp4`; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 120000);
+      tx.innerHTML = `✅ Vidéo prête : <b>Menu-TV-${esc(E.slug)}.mp4</b> (${(r.blob.size / 1048576).toFixed(1)} Mo, ${Math.round(r.secondes / 60) || 1} min)${r.codec !== "avc" ? " ⚠️ Ce navigateur a fait une vidéo VP9 : refaites-la avec Chrome (ordinateur) ou Safari (iPhone) pour qu’elle marche sur toutes les TV." : ""}`;
+    } catch (e) {
+      console.error(e);
+      tx.textContent = e && e.message === "webcodecs" ? "Ce navigateur ne sait pas fabriquer de vidéo. Ouvrez cette page avec Chrome (ordinateur / Android) ou Safari à jour (iPhone)." : "La vidéo n’a pas pu être fabriquée. Réessayez avec « 1 tour ».";
+    }
+    b.disabled = false;
+  }
+
   /* ---------- événements ---------- */
   app.addEventListener("input", e => {
     if (!E) return;
@@ -282,6 +365,9 @@
     const a = b.dataset.act, i = +b.dataset.i;
     const bouge = d => { const j = i + d; if (j < 0 || j >= E.pages.length) return; [E.pages[i], E.pages[j]] = [E.pages[j], E.pages[i]]; renderEdit(); };
     if (a === "nouveau" && !PROPRIO) nouveau();
+    if (a === "depuis-menu" && !PROPRIO) choisirMenu();
+    if (a === "maj-menu" && E && E.menu) depuisMenu(E.menu, true);
+    if (a === "video") faireVideo(b);
     if (a === "nfc") window.NFCW_ECRIRE(lienTV(E.slug), E.nom);
     if (a === "up") bouge(-1);
     if (a === "down") bouge(1);
