@@ -48,7 +48,7 @@
   const dirty = () => M && JSON.stringify(M) !== saved;
   const idsDe = m => [m.logo, m.couverture, ...(m.pages || []), ...(m.categories || []).flatMap(c => (c.items || []).map(i => i.photo))].filter(Boolean);
   const langsEdition = () => ["fr"];   // menus en français uniquement
-  const enLigne = id => /^(u:|o:|\/)/.test(id || "");   // photo de la banque ou du site : rien à stocker ni à effacer
+  const enLigne = id => /^(u:|o:|\/|bq)/.test(id || "");   // photo de la banque ou du site : rien à stocker ni à effacer
   const T = (o, l) => (o && typeof o === "object" ? o[l] : l === (M.langues[0] || "fr") ? o : "") || "";
 
   /* ================= Connexion ================= */
@@ -186,6 +186,8 @@
 
   /* ================= Navigation ================= */
   function route() {
+    if (!BQ.ok) chargerBanque();
+    if (location.hash === "#banque" && !PROPRIO) { M = null; pageBanque(); return; }
     const m = location.hash.match(/^#m=([a-z0-9-]+)/);
     const n = location.hash.match(/^#nouveau=([A-Za-z0-9_-]+)/);
     if (m) ouvrir(m[1]);
@@ -221,7 +223,7 @@
     entete(PROPRIO ? "Mes menus" : "Menus digitaux", PROPRIO ? "Mon commerce" : "Espace gestion", "./", "");
     const l = [...liste].sort((a, b) => (b.maj || 0) - (a.maj || 0));
     app.innerHTML = `<div class="row between"><div><h2>Menus digitaux</h2><div class="muted">${l.length} menu${l.length > 1 ? "s" : ""} · Standard, Pro, Premium</div></div>
-      <div class="row" style="gap:6px" data-adm><button class="btn" data-act="fichier-in" title="Ouvrir un menu tout prêt (.json)">📥 Fichier</button><button class="btn primary" data-act="nouveau">＋ Nouveau menu</button></div></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap" data-adm><a class="btn" href="#banque">🖼 Banque photos</a><button class="btn" data-act="fichier-in" title="Ouvrir un menu tout prêt (.json)">📥 Fichier</button><button class="btn primary" data-act="nouveau">＋ Nouveau menu</button></div></div>
       ${l.length ? `<div class="mlist sec">${l.map(m => `<div class="paper mcard">
         <div class="row between"><span class="n">${esc(m.nom)}</span><span class="row"><span class="pill ${esc(m.formule)}">${esc((FORMULES[m.formule] || [m.formule])[0])}</span>${m.actif === false ? '<span class="pill off">Désactivé</span>' : ""}</span></div>
         <div class="l">${esc(lienPublic(m.slug).replace(/^https?:\/\//, ""))}</div>
@@ -441,7 +443,7 @@
     return `<div class="imgpick" data-pick="${cle}">
       ${id ? imgTag(id, "prev" + (kind === "cover" ? " wide" : ""), label) : `<div class="prev${kind === "cover" ? " wide" : ""}"></div>`}
       <div class="stack" style="gap:6px"><b>${esc(label)}</b>${aide ? `<small class="muted">${esc(aide)}</small>` : ""}
-        <div class="row"><label class="btn sm">${id ? "Changer" : "Ajouter"}<input type="file" accept="image/*" hidden data-up="${cle}" data-kind="${kind}"></label>${id && (kind === "logo" || kind === "cover") ? `<button class="btn sm" data-recadrer="${cle}" data-kind="${kind}">✂️ Recadrer</button>` : ""}${kind === "cover" ? `<button class="btn sm" data-act="banque-cover">Banque de photos</button>` : ""}${id ? `<button class="btn sm ghost" data-act="retirer" data-cle="${cle}">Retirer</button>` : ""}</div></div></div>`;
+        <div class="row"><label class="btn sm">${id ? "Changer" : "Ajouter"}<input type="file" accept="image/*" hidden data-up="${cle}" data-kind="${kind}"></label>${id && (kind === "logo" || kind === "cover") ? `<button class="btn sm" data-recadrer="${cle}" data-kind="${kind}">✂️ Recadrer</button>` : ""}${kind === "cover" ? `<button class="btn sm" data-act="banque-cover">Banque de photos</button>${M.formule === "premium" ? `<button class="btn sm primary" data-act="couv-design">🎨 3 designs</button>` : ""}` : ""}${id ? `<button class="btn sm ghost" data-act="retirer" data-cle="${cle}">Retirer</button>` : ""}</div></div></div>`;
   }
 
   function renderEdit() {
@@ -627,6 +629,7 @@
       case "apercu": apercu(); break;
       case "supprimer": supprimer(); break;
       case "retirer": M[b.dataset.cle] = ""; renderEdit(); break;
+      case "couv-design": couvDesign(); break;
       case "banque-cover": banque("Salle", "", id => { M.couverture = id; M.couvPos = ""; renderEdit(); }); break;
       case "couleur0": M.couleur = ""; renderEdit(); break;
       case "pg-up": bouge(M.pages, i, -1); break;
@@ -1119,16 +1122,137 @@
         const t = l.map(x => [x, sc(x)]).filter(([, n]) => n).sort((a, b) => b[1] - a[1]).map(([x]) => x);
         l = t;
       }
-      locaux = l.length;
-      $("#bq-grid", d).innerHTML = l.map(x => `<button class="thumb" data-bq="${esc(x[0])}" style="cursor:pointer;padding:0;text-align:start"><img src="${window.BANQUE_URL(x[0], 300)}" alt="${esc(x[1])}" loading="lazy" style="aspect-ratio:1" onerror="this.closest('.thumb').remove()"><span style="display:block;padding:6px 8px;font-size:12.5px">${esc(x[1])}</span></button>`).join("") || `<p class="muted" style="grid-column:1/-1;font-size:13px">Pas de photo pour « ${esc(q)} » dans la banque.</p>`;
+      locaux = l.length; setTimeout(chargerVisibles);
+      $("#bq-grid", d).innerHTML = l.map(x => `<button class="thumb" data-bq="${esc(x[0])}" style="cursor:pointer;padding:0;text-align:start"><img ${bqImg(x[0], 300)} alt="${esc(x[1])}" loading="lazy" style="aspect-ratio:1" onerror="this.closest('.thumb').remove()"><span style="display:block;padding:6px 8px;font-size:12.5px">${esc(x[1])}</span></button>`).join("") || `<p class="muted" style="grid-column:1/-1;font-size:13px">Pas de photo pour « ${esc(q)} » dans la banque.</p>`;
     };
-    dessiner(); dessinerOff();
+    dessiner(); dessinerOff(); chargerVisibles();
     $("#bq-q", d).addEventListener("input", e => { q = e.target.value; dessiner(); dessinerOff(); });
     d.addEventListener("click", e => {
       const c = e.target.closest("[data-bqc]"); if (c) { filtre = c.dataset.bqc; dessiner(); return; }
-      const p = e.target.closest("[data-bq]"); if (p) { choisir("u:" + p.dataset.bq); d.remove(); }
+      const p = e.target.closest("[data-bq]"); if (p) { choisir(window.PHOTO_AUTO.pid(p.dataset.bq)); d.remove(); }
       const o = e.target.closest("[data-bq-o]"); if (o) { choisir(o.dataset.bqO); d.remove(); }
     });
+  }
+
+  /* ---------- 🖼 banque de photos perso (ajouter / retirer depuis le téléphone) ----------
+     settings/banque-perso : { json: { ajouts: [[id, nom, catégorie, mots]], caches: [id…] } }
+     une photo ajoutée est gardée dans settings/mimg-bq… (jamais effacée par un menu) */
+  const BQ = { ok: false, base: null, ajouts: [], caches: [] };
+  const bqImg = (id, w) => /^bq/.test(id) ? `data-img="${esc(id)}" ${IMG[id] ? `src="${IMG[id]}"` : ""}` : `src="${window.BANQUE_URL(id, w)}"`;
+  function appliquerBanque() {
+    if (!BQ.base) BQ.base = (window.BANQUE || []).slice();
+    const c = new Set(BQ.caches);
+    window.BANQUE = BQ.ajouts.concat(BQ.base).filter(x => !c.has(x[0]));
+  }
+  async function chargerBanque() {
+    BQ.ok = true;
+    try { const d = await db.doc("settings/banque-perso").get(); if (d.exists) { const j = JSON.parse(d.data().json || "{}"); BQ.ajouts = j.ajouts || []; BQ.caches = j.caches || []; } }
+    catch (e) { BQ.ok = false; return; }
+    appliquerBanque();
+    if (location.hash === "#banque") pageBanque();
+  }
+  async function ecrireBanque() {
+    await db.doc("settings/banque-perso").set({ json: JSON.stringify({ ajouts: BQ.ajouts, caches: BQ.caches }), maj: NOW(), par: user.email });
+    appliquerBanque();
+  }
+  let bqFiltre = "", bqQ = "", bqVoirCaches = false;
+  function pageBanque() {
+    entete("Banque de photos", "Espace gestion", "#", "");
+    if (!BQ.base) appliquerBanque();
+    const tout = BQ.ajouts.concat(BQ.base), c = new Set(BQ.caches);
+    const cats = [...new Set(tout.map(x => x[2]))];
+    const mots = sansAccent(bqQ).split(/\s+/).filter(w => w.length > 1);
+    let l = tout.filter(x => (bqVoirCaches ? c.has(x[0]) : !c.has(x[0])) && (!bqFiltre || x[2] === bqFiltre));
+    if (mots.length) l = l.filter(x => mots.every(w => sansAccent(x[1] + " " + x[2] + " " + x[3]).includes(w)));
+    app.innerHTML = `<div class="row between" style="gap:10px;flex-wrap:wrap"><div><h2>🖼 Banque de photos</h2><div class="muted">${tout.length - c.size} photos · ${BQ.ajouts.length} ajoutée(s) par vous</div></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><label class="btn primary">📷 Ajouter des photos<input type="file" accept="image/*" multiple hidden id="bq-add"></label><a class="btn ghost" href="#">← Menus</a></div></div>
+      <p class="muted" style="font-size:13.5px;margin:8px 0 12px">Ces photos servent pour « Photos automatiques », « Tout en HD », la couverture et le bouton « Banque de photos » de chaque menu. Touchez une photo pour la renommer, changer sa catégorie ou la retirer.</p>
+      <label class="f"><input id="bqp-q" placeholder="Rechercher : café, omelette, jus…" value="${esc(bqQ)}" autocomplete="off"></label>
+      <div class="row" style="margin:10px 0;gap:6px;flex-wrap:wrap">${[["", "Tout"], ...cats.map(k => [k, k])].map(([k, n]) => `<button class="btn sm${bqFiltre === k ? " primary" : ""}" data-bqpc="${esc(k)}">${esc(n)}</button>`).join("")}
+        <button class="btn sm${bqVoirCaches ? " primary" : " ghost"}" data-bqpv>🗑 Retirées (${c.size})</button></div>
+      <div class="thumbs" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr))">${l.map(x => `<button class="thumb" data-bqp="${esc(x[0])}" style="cursor:pointer;padding:0;text-align:start;position:relative"><img ${bqImg(x[0], 300)} alt="${esc(x[1])}" loading="lazy" style="aspect-ratio:1">${/^bq/.test(x[0]) ? '<span class="pill" style="position:absolute;top:6px;left:6px;font-size:11px">Ajoutée</span>' : ""}<span style="display:block;padding:6px 8px;font-size:12.5px">${esc(x[1])}<br><small class="muted">${esc(x[2])}</small></span></button>`).join("") || `<p class="muted" style="grid-column:1/-1">Aucune photo.</p>`}</div>`;
+    chargerVisibles();
+    const q = $("#bqp-q"); q.oninput = () => { bqQ = q.value; const pos = q.selectionStart; pageBanque(); const n = $("#bqp-q"); n.focus(); n.setSelectionRange(pos, pos); };
+    $("#bq-add").onchange = e => { const fs = [...e.target.files]; if (fs.length) bqAjouter(fs, cats); };
+  }
+  document.addEventListener("click", e => {
+    if (location.hash !== "#banque" || e.target.closest(".modal")) return;
+    const c = e.target.closest("[data-bqpc]"); if (c) { bqFiltre = c.dataset.bqpc; pageBanque(); return; }
+    if (e.target.closest("[data-bqpv]")) { bqVoirCaches = !bqVoirCaches; pageBanque(); return; }
+    const p = e.target.closest("[data-bqp]"); if (p) bqFiche(p.dataset.bqp);
+  });
+  const bqCatsHtml = (cats, v) => `<input list="bq-catl" value="${esc(v || "")}" placeholder="Catégorie (ex. Boissons chaudes)" maxlength="40"><datalist id="bq-catl">${cats.map(k => `<option value="${esc(k)}">`).join("")}</datalist>`;
+  function bqAjouter(fs, cats) {
+    const d = fenetre(`<h2>📷 Ajouter ${fs.length} photo(s)</h2><p class="muted" style="font-size:13px;margin:2px 0 10px">Donnez un nom clair (il sert à trouver la photo automatiquement : « Jus d’orange », « Omelette fromage »…).</p>
+      <label class="f">Catégorie pour toutes${bqCatsHtml(cats, bqFiltre)}</label>
+      <div class="stack" id="bqa-l" style="gap:8px;margin-top:10px">${fs.map((f, k) => `<div class="row" style="gap:10px;flex-wrap:nowrap"><img id="bqa-i${k}" style="width:64px;height:64px;border-radius:10px;object-fit:cover;flex:none;background:var(--sunk,#eee)"><input id="bqa-n${k}" style="flex:1;min-width:0" maxlength="60" value="${esc(f.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").replace(/^(img|image|photo|whatsapp image).*$/i, ""))}" placeholder="Nom de la photo"></div>`).join("")}</div>
+      <p class="err" id="bqa-e"></p><div class="row" style="margin-top:10px"><button class="btn primary" style="flex:1" id="bqa-go">Ajouter à la banque</button><button class="btn ghost" data-fermer>Annuler</button></div>`);
+    fs.forEach((f, k) => { const u = URL.createObjectURL(f); $("#bqa-i" + k, d).src = u; });
+    $("#bqa-go", d).onclick = async () => {
+      const cat = $("input[list]", d).value.trim() || "Mes photos", go = $("#bqa-go", d);
+      if (fs.some((f, k) => !$("#bqa-n" + k, d).value.trim())) { $("#bqa-e", d).textContent = "Donnez un nom à chaque photo."; return; }
+      go.disabled = true;
+      try {
+        for (let k = 0; k < fs.length; k++) {
+          go.textContent = `Envoi ${k + 1} / ${fs.length}…`;
+          const data = await compresser(fs[k], OPTS.photo), id = "bq" + rid(), nom = $("#bqa-n" + k, d).value.trim();
+          await db.doc("settings/mimg-" + id).set({ data, menu: "banque", maj: NOW() });
+          IMG[id] = data; BQ.ajouts.unshift([id, nom, cat, sansAccent(nom + " " + cat)]);
+        }
+        await ecrireBanque(); d.remove(); pageBanque(); toast(`✅ ${fs.length} photo(s) ajoutée(s) à la banque`, true);
+      } catch (e) { go.disabled = false; go.textContent = "Ajouter à la banque"; erreur(e); }
+    };
+  }
+  function bqFiche(id) {
+    const x = BQ.ajouts.find(y => y[0] === id) || BQ.base.find(y => y[0] === id); if (!x) return;
+    const perso = /^bq/.test(id), cache = BQ.caches.includes(id), cats = [...new Set(BQ.ajouts.concat(BQ.base).map(y => y[2]))];
+    const d = fenetre(`<img ${bqImg(id, 800)} style="width:100%;max-height:50vh;object-fit:cover;border-radius:14px;background:var(--sunk,#eee)">
+      ${perso ? `<label class="f" style="margin-top:10px">Nom<input id="bqf-n" maxlength="60" value="${esc(x[1])}"></label><label class="f">Catégorie${bqCatsHtml(cats, x[2])}</label>` : `<h3 style="margin:12px 0 2px">${esc(x[1])}</h3><p class="muted" style="margin:0">${esc(x[2])}</p>`}
+      <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">${perso ? `<button class="btn primary" id="bqf-ok">💾 Enregistrer</button>` : ""}
+        ${cache ? `<button class="btn primary" id="bqf-rest">↩️ Remettre dans la banque</button>` : `<button class="btn danger" id="bqf-del">🗑 Retirer de la banque</button>`}<button class="btn ghost" data-fermer>Fermer</button></div>
+      <p class="muted" style="font-size:12.5px;margin-top:8px">Retirer une photo ne l’enlève pas des menus qui l’utilisent déjà.</p>`);
+    if (perso) chargerImg(id);
+    const fin = async msg => { try { await ecrireBanque(); d.remove(); pageBanque(); toast(msg); } catch (e) { erreur(e); } };
+    const ok = $("#bqf-ok", d); if (ok) ok.onclick = () => { x[1] = $("#bqf-n", d).value.trim() || x[1]; x[2] = $("input[list]", d).value.trim() || x[2]; x[3] = sansAccent(x[1] + " " + x[2]); fin("Photo modifiée ✓"); };
+    const del = $("#bqf-del", d); if (del) del.onclick = () => { BQ.caches.push(id); fin("Photo retirée ✓"); };
+    const rs = $("#bqf-rest", d); if (rs) rs.onclick = () => { BQ.caches = BQ.caches.filter(y => y !== id); fin("Photo remise ✓"); };
+  }
+
+  /* ---------- 🎨 Premium : 3 designs de couverture (photo + style + nom + logo + couleurs du menu) ---------- */
+  const STYLES = [["", "Plein écran"], ["cadre", "Cadre"], ["bandeau", "Bandeau"]];
+  function couvDesign() {
+    const l0 = M.langues[0] || "fr";
+    const photos = window.PHOTO_AUTO.couvertures(M.categories.map(c => T(c.nom, l0)));
+    if (M.couverture && !photos.includes(M.couverture)) photos.unshift(M.couverture);
+    let tour = 0;
+    const d = fenetre(`<div class="row between"><h2>🎨 Choisissez la couverture</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
+      <p class="muted" style="font-size:13px;margin:2px 0 10px">Avec le nom, le logo et les couleurs de votre menu. Touchez celle que vous voulez.</p>
+      <div id="cd-l" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory"></div>
+      <div class="row" style="margin-top:10px;gap:8px"><button class="btn" id="cd-autre" style="flex:1">🔄 3 autres propositions</button></div>`, "big");
+    const dessiner = () => {
+      const props = STYLES.map(([st, n], k) => ({ st, n, ph: photos[(tour * 3 + k) % photos.length] }));
+      $("#cd-l", d).innerHTML = props.map((p, k) => `<div style="flex:none;width:236px;scroll-snap-align:start;text-align:center"><div style="width:236px;height:340px;overflow:hidden;border-radius:16px;border:1px solid var(--line,#ddd);position:relative"><iframe data-k="${k}" title="${esc(p.n)}" src="/menu/?apercu=1&cadre=1&m=${encodeURIComponent(M.slug)}" style="width:390px;height:563px;border:0;transform:scale(.605);transform-origin:0 0;pointer-events:none" tabindex="-1"></iframe></div>
+        <b style="display:block;margin:8px 0 6px">${k + 1}. ${esc(p.n)}</b><button class="btn primary sm block" data-cd="${k}">Choisir celle-ci</button></div>`).join("");
+      d._props = props;
+    };
+    const onMsg = async e => {
+      const f = [...d.querySelectorAll("iframe[data-k]")].find(x => x.contentWindow === e.source);
+      if (!f || !e.data || e.data.type !== "nfcwork-menu-pret") return;
+      const p = d._props[+f.dataset.k], m = JSON.parse(JSON.stringify(M));
+      m.couverture = p.ph; m.couvPos = ""; m.heroStyle = p.st;
+      const ids = [m.logo, m.couverture].filter(Boolean); await Promise.all(ids.map(chargerImg));
+      const images = {}; ids.forEach(i => { if (IMG[i]) images[i] = IMG[i]; });
+      f.contentWindow.postMessage({ type: "nfcwork-menu-apercu", menu: m, images }, location.origin);
+    };
+    window.addEventListener("message", onMsg);
+    d.addEventListener("fermee", () => window.removeEventListener("message", onMsg));
+    d.addEventListener("click", e => {
+      if (e.target.id === "cd-autre") { tour++; dessiner(); return; }
+      const b = e.target.closest("[data-cd]"); if (!b) return;
+      const p = d._props[+b.dataset.cd]; M.couverture = p.ph; M.couvPos = ""; M.heroStyle = p.st;
+      d.remove(); window.removeEventListener("message", onMsg); renderEdit(); toast("Couverture choisie ✓ Cliquez « Enregistrer ».", true);
+    });
+    dessiner();
   }
 
   /* ---------- outils ---------- */

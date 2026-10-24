@@ -157,6 +157,23 @@ button{font:inherit;color:inherit;cursor:pointer}
 .orn{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--accent);margin:14px auto 0;font-size:11px;letter-spacing:.32em;text-transform:uppercase;font-weight:600}
 .orn::before,.orn::after{content:"";width:34px;height:1px;background:currentColor;opacity:.7}
 .phero .orn{color:#fff;opacity:.9}
+/* style « Cadre » : photo assombrie, cadre fin couleur du menu, logo au centre */
+.phero.s-cadre{align-items:center}
+.phero.s-cadre::after{background:radial-gradient(ellipse at center,rgb(0 0 0/.35),rgb(0 0 0/.72))}
+.phero.s-cadre .in{max-width:min(88%,520px);margin:0 auto;padding:38px 18px 30px;border:1.5px solid var(--accent);border-radius:4px;outline:1px solid rgb(255 255 255/.25);outline-offset:6px;background:rgb(0 0 0/.18);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.phero.s-cadre .logo{width:104px;height:104px;border-color:var(--accent)}
+.phero.s-cadre h1{text-transform:uppercase;letter-spacing:.05em;font-size:clamp(26px,7.5vw,42px);white-space:normal;overflow-wrap:anywhere}
+.phero.s-cadre .orn{color:var(--accent);opacity:1}
+/* style « Bandeau » : photo en haut, nom et logo sur la couleur du menu */
+.phero.s-bandeau{aspect-ratio:auto;height:auto;max-height:none;display:block;padding-top:min(66vw,360px);background:var(--bg);color:var(--fg)}
+.phero.s-bandeau>img{height:min(66vw,360px);bottom:auto}
+.phero.s-bandeau::after{bottom:auto;height:min(66vw,360px);background:linear-gradient(180deg,transparent 45%,var(--bg) 100%)}
+.phero.s-bandeau .in{padding:0 20px 18px}
+.phero.s-bandeau .logo{width:108px;height:108px;margin-top:-56px;border:4px solid var(--accent)}
+.phero.s-bandeau h1{text-shadow:none;color:var(--fg)}
+.phero.s-bandeau .slogan{color:var(--muted)}
+.phero.s-bandeau .orn{color:var(--accent)}
+@media (min-width:600px){.phero.s-bandeau{height:auto;padding-top:380px}.phero.s-bandeau>img,.phero.s-bandeau::after{height:380px}}
 .pinfo{padding-top:18px;padding-bottom:4px}
 .vedettes{padding-top:26px;padding-bottom:6px}
 .vedettes h2,.prem .cat h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 14px}

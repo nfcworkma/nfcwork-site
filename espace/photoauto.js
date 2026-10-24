@@ -23,6 +23,8 @@
     ["kinder bueno", /bueno/], ["kitkat", /kit ?kat/], ["snickers", /snickers/], ["twix", /twix/], ["mars", /\bmars\b/], ["oreo", /oreo/],
     ["pringles", /pringles/], ["lays", /\blay'?s\b/], ["heineken 0.0", /heineken/], ["nescafe", /nescaf/]
   ];
+  // photo ajoutée depuis le téléphone (« bq… », gardée dans Firebase) ou photo Unsplash
+  const pid = id => /^bq/.test(id) ? id : "u:" + id;
   const marque = nom => { const n = sansAccent(nom); const m = MARQUES.find(([, r]) => r.test(n)); return m ? m[0] : ""; };
 
   // 1) banque de photos : tous les mots du nom doivent s'y retrouver
@@ -51,7 +53,7 @@
     }
     // assez sûr : le 1er mot est trouvé (score ≥ 2). Entre photos aussi bonnes, une pas encore utilisée dans le menu.
     if (bs < 2) return "";
-    const top = tous.filter(([, s]) => s === bs).map(([x]) => "u:" + x[0]);
+    const top = tous.filter(([, s]) => s === bs).map(([x]) => pid(x[0]));
     return top.find(id => !(deja && deja.has(id))) || top[0];
   }
 
@@ -103,7 +105,7 @@
     const mq = marque(nom);
     if (!mq) return banqueMeilleure(nom, deja);
     // la marque a déjà une belle photo dans la banque (Coca-Cola, Fanta, Pepsi, Red Bull…) → on la garde
-    const b = banqueMeilleure(nom, deja), e = b && (window.BANQUE || []).find(x => "u:" + x[0] === b);
+    const b = banqueMeilleure(nom, deja), e = b && (window.BANQUE || []).find(x => pid(x[0]) === b);
     if (e && !/zero|light/.test(sansAccent(nom)) && sansAccent(e[1]).replace(/[^a-z0-9]/g, "").includes(mots(mq)[0])) return b;
     const n = sansAccent(nom);
     const q = mq + (/zero|0 ?%/.test(n) && !/zero|light/.test(mq) ? " zero" : "");
@@ -121,7 +123,7 @@
     const c = sansAccent(cat); if (!c) return "";
     if (/soupe|harira/.test(c)) { const s = banqueMeilleure("soupe", deja); if (s) return s; }
     const e = CATS.find(([r]) => r.test(c)); if (!e) return "";
-    const l = (window.BANQUE || []).filter(x => x[2] === e[1]).map(x => "u:" + x[0]);
+    const l = (window.BANQUE || []).filter(x => x[2] === e[1]).map(x => pid(x[0]));
     return l.find(id => !(deja && deja.has(id))) || l[0] || "";
   }
   async function trouverTout(nom, cat, desc, deja) {
@@ -131,8 +133,20 @@
   // photo de couverture selon ce que vend le commerce
   function couverture(cats) {
     const t = sansAccent((cats || []).join(" "));
-    if (/burger|pizza|taco|sandwich|grill|sushi|plat/.test(t) && !/cafe|ftour|petit/.test(t)) { const e = CATS.find(([r]) => r.test(t)); const l = (window.BANQUE || []).filter(x => e && x[2] === e[1]); if (l.length) return "u:" + l[0][0]; }
+    if (/burger|pizza|taco|sandwich|grill|sushi|plat/.test(t) && !/cafe|ftour|petit/.test(t)) { const e = CATS.find(([r]) => r.test(t)); const l = (window.BANQUE || []).filter(x => e && x[2] === e[1]); if (l.length) return pid(l[0][0]); }
     return "/menu/demo/cover-cafe.jpg";
+  }
+
+  // plusieurs photos de couverture possibles (salle, puis ce que vend le commerce)
+  function couvertures(cats) {
+    const t = sansAccent((cats || []).join(" ")), B = window.BANQUE || [], out = [];
+    const add = id => { if (id && !out.includes(id)) out.push(id); };
+    B.filter(x => /couverture|salle/i.test(x[2])).forEach(x => add(pid(x[0])));
+    const cafe = /cafe|ftour|petit|jus|crepe/.test(t);
+    if (cafe) add("/menu/demo/cover-cafe.jpg");
+    CATS.filter(([r]) => r.test(t)).forEach(([, g]) => B.filter(x => x[2] === g).slice(0, 3).forEach(x => add(pid(x[0]))));
+    if (!cafe) add("/menu/demo/cover-cafe.jpg");
+    return out;
   }
 
   const charge = src => typeof Image === "undefined" ? Promise.resolve(true) : new Promise(ok => {
@@ -140,5 +154,5 @@
     i.onload = () => { clearTimeout(t); ok(i.naturalWidth > 20); }; i.onerror = () => { clearTimeout(t); ok(false); }; i.src = src;
   });
   const url = (id, w) => OFF_IMG + id.slice(2) + ((w || 400) > 500 ? ".full.jpg" : ".400.jpg");
-  window.PHOTO_AUTO = { trouver, trouverTout, couverture, chercherOFF, marque, url, banqueMeilleure };
+  window.PHOTO_AUTO = { trouver, trouverTout, couverture, couvertures, pid, chercherOFF, marque, url, banqueMeilleure };
 })();
