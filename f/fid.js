@@ -204,6 +204,18 @@
     }
   }
 
+  /* ---------- un numéro = une seule carte ----------
+     l'identifiant de la carte est calculé à partir du commerce + du numéro (06…, +212 6…, 00212 6… → même numéro) :
+     le client qui recrée sa carte (application ajoutée à l'écran d'accueil, autre navigateur, nouveau téléphone…)
+     retrouve SA carte avec ses points, au lieu d'en créer une deuxième */
+  const telNorm = t => { const d = String(t || "").replace(/\D/g, ""); return d.slice(-9); };
+  async function idTel(pid, tel) {
+    const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("nfcwork-fid|" + pid + "|" + telNorm(tel))));
+    const a = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s = "";
+    for (let i = 0; i < 20; i++) s += a[h[i] % a.length];
+    return s;
+  }
+
   /* ---------- inscription ---------- */
   async function inscription(pid) {
     prog = await lire("fidProgrammes/" + pid);
@@ -221,7 +233,8 @@
       ${prog.guide ? `<ol style="color:var(--muted);margin:0 0 16px;padding-inline-start:20px;line-height:1.6">${prog.guide.split(/\n+/).filter(Boolean).map(l => `<li>${esc(l)}</li>`).join("")}</ol>` : ""}
       <form id="jf"><label>Prénom<input id="jn" required maxlength="60" autocomplete="given-name"></label>
       <label>Téléphone<input id="jt" type="tel" inputmode="tel" required maxlength="30" autocomplete="tel" placeholder="06 12 34 56 78"></label>
-      <p class="err" id="je"></p><button class="btn primary">Créer ma carte</button></form></div>
+      <p class="err" id="je"></p><button class="btn primary">Créer ma carte</button></form>
+      <p class="tip" style="margin:12px 0 0">Vous avez déjà une carte ? Entrez le <b>même numéro</b> : vous retrouvez votre carte et vos points.</p></div>
       <p class="tip">Vos informations servent seulement à votre carte chez ${esc(prog.nom)}.</p>${pied}`;
     document.getElementById("jf").onsubmit = async e => {
       e.preventDefault();
@@ -229,8 +242,18 @@
       if (!nom) return;
       if (tel.replace(/\D/g, "").length < 9) { document.getElementById("je").textContent = "Numéro de téléphone incomplet."; return; }
       b.disabled = true; b.textContent = "Création…";
-      const cid = rid(20);
+      let cid = "";
       try {
+        cid = await idTel(pid, tel);
+        // ce numéro a déjà une carte chez ce commerce → on la rouvre (mêmes points)
+        const ex = await lire("fidCartes/" + cid);
+        if (ex) {
+          lsSet("nfcwork-fid-" + pid, cid);
+          let sc0 = null; try { sc0 = JSON.parse(sessionStorage.getItem(SCAN) || "null"); } catch (e) {}
+          if (sc0 && sc0.pid === pid && Date.now() - sc0.t < 10 * 60000) { await pointCaisse(cid, sc0.w, sc0.j); return; }
+          await ouvrirCarte(cid, ["ok", `👋 Bon retour ${esc(ex.nom || nom)} ! Votre carte est retrouvée, avec vos points.`]);
+          return;
+        }
         await commit({ update: { name: nomDoc("fidCartes/" + cid), fields: {
             pid: enc(pid), ownerEmail: enc(prog.ownerEmail || ""), nom: enc(nom.slice(0, 60)), tel: enc(tel.slice(0, 30)),
             points: enc(0), total: enc(0), recompenses: enc(0), lastAt: enc({ ts: "1970-01-01T00:00:00Z" }) } },
@@ -240,6 +263,8 @@
         if (sc && sc.pid === pid && Date.now() - sc.t < 10 * 60000) { await pointCaisse(cid, sc.w, sc.j); return; }
         await ouvrirCarte(cid, ["ok", "✓ Carte créée ! Montrez-la à la caisse à chaque visite."]);
       } catch (x) {
+        // créée entre-temps (double clic, deux onglets) → on l'ouvre
+        if (cid && x && x.status === 409) { const ex = await lire("fidCartes/" + cid).catch(() => null); if (ex) { lsSet("nfcwork-fid-" + pid, cid); await ouvrirCarte(cid); return; } }
         console.error(x); b.disabled = false; b.textContent = "Créer ma carte";
         document.getElementById("je").textContent = "Impossible de créer la carte. Vérifiez la connexion et réessayez.";
       }
