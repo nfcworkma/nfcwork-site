@@ -171,8 +171,10 @@
     prog = await lire("fidProgrammes/" + carte.pid);
     if (!prog) { etat("Programme introuvable", "Ce programme de fidélité n’existe plus."); return; }
     if (coupe(prog)) { etat("Carte momentanément indisponible", "Le programme de fidélité de ce commerce est en pause. Vos points sont gardés."); return; }
+    // le lien de la page devient celui de SA carte AVANT de préparer l'icône d'accueil :
+    // « Ajouter à l'écran d'accueil » ouvre alors directement sa carte (plus de formulaire)
+    if (new URLSearchParams(location.search).get("c") !== carte.id) history.replaceState(null, "", "/f/?c=" + carte.id);
     theme(prog); lsSet("nfcwork-fid-" + carte.pid, carte.id);
-    if (!/[?&]c=/.test(location.search)) history.replaceState(null, "", "/f/?c=" + carte.id);
     rendreCarte(msg, nouveau); suivre();
   }
 
