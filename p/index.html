@@ -214,7 +214,9 @@ a:active,button:active{transform:scale(.98)}
       <div class="card" style="text-align:center"><div class="stars" aria-hidden="true">★★★★★</div>
         <p style="margin:8px 0 14px;color:var(--muted);font-size:14.5px">${T("Merci de prendre quelques secondes pour partager votre expérience.", "شكراً على شي ثواني باش تشارك التجربة ديالك.")}</p>
         ${lien ? `<a class="main" href="${esc(lien)}" rel="noopener">${I.star}${T("Laisser un avis", "خلي تقييم")}</a>` : ""}
-        <p class="aide">${T("Google s’ouvre : choisissez vos étoiles, écrivez un mot, puis « Publier ».", "كيتحل Google: اختار النجوم، كتب كلمة، ومن بعد « نشر ».")}</p></div>
+        <p class="aide">${T("Google s’ouvre : choisissez vos étoiles, écrivez un mot, puis « Publier ».", "كيتحل Google: اختار النجوم، كتب كلمة، ومن بعد « نشر ».")}</p>
+        ${lien ? `<div style="border-top:1px solid var(--line);margin:16px 0 0;padding-top:14px"><p style="margin:0 0 10px;color:var(--muted);font-size:14px">${T("Pas le temps maintenant ? Envoyez-vous le lien et laissez votre avis plus tard, à la maison.", "ما عندكش الوقت دابا؟ صيفط الرابط لراسك وكتب التقييم من بعد فالدار.")}</p>
+          <a class="main" style="background:#25d366;color:#06301a" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent("⭐ " + T("Avis pour ", "تقييم ") + (P.nom || "") + " : " + lien)}">${I.wa}${T("Recevoir le lien sur WhatsApp", "صيفط ليا الرابط فواتساب")}</a></div>` : ""}</div>
       ${P.instagram ? row(handle(P.instagram, "https://instagram.com/"), "insta", "Instagram", String(P.instagram).replace(/^https?:\/\/(www\.)?/, "")) : ""}
       ${pied()}`;
   }
