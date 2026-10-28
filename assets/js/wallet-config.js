@@ -1,3 +1,3 @@
 /* NFCWORK — adresse du serveur Wallet (Cloudflare Worker, voir /wallet/worker.js).
    Vide = boutons Wallet cachés. Exemple : "https://nfcwork-wallet.nfcwork.workers.dev" */
-window.NFCW_WALLET = "";
+window.NFCW_WALLET = "https://nfcwork-wallet.nfcworkmacontact.workers.dev";
