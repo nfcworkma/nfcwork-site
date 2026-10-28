@@ -55,6 +55,10 @@
   }
   const nomDoc = chemin => P + "/" + chemin;
   const rid = n => { const a = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s = ""; const c = crypto.getRandomValues(new Uint8Array(n)); for (const x of c) s += a[x % a.length]; return s; };
+  // Google Wallet (serveur nfcwork-wallet) : bouton « Ajouter » + mise à jour des points
+  const WALLET = String(window.NFCW_WALLET || "").replace(/\/+$/, "");
+  const IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const walletSync = cid => { if (WALLET && cid) fetch(WALLET + "/google/sync?c=" + encodeURIComponent(cid), { mode: "no-cors", keepalive: true }).catch(() => {}); };
   const moisCle = d => String((d || new Date()).getUTCFullYear() * 100 + (d || new Date()).getUTCMonth() + 1);
 
   /* ---------- habillage ---------- */
@@ -127,6 +131,7 @@
       ${p.modeClient === "caisse" ? `<div class="msg info">📱 À chaque visite : scannez le QR affiché sur le téléphone de la caisse, le point s’ajoute tout seul.</div>` : ""}
       <div class="qrbox">${window.QRGEN.svg(SITE + "/f/?c=" + c.id, { marge: 1 })}<small>${p.modeClient === "caisse" ? "Code de votre carte (pour la récompense)" : "Montrez ce code à la caisse"}</small></div>
       <p class="tip">${esc(regle(p))}${p.guide ? "<br>" + p.guide.split(/\n+/).filter(Boolean).map(esc).join(" · ") : ""}</p>
+      ${WALLET && !IOS ? `<a class="gwallet" href="${WALLET}/google/save?c=${encodeURIComponent(c.id)}" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="15" rx="3" fill="#fff" opacity=".18"/><path d="M4 9h16M4 13h16" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M4 17h9" stroke="#4285f4" stroke-width="2.4" stroke-linecap="round"/></svg><span>Ajouter à <b>Google Wallet</b></span></a>` : ""}
       <p class="tip">📲 Gardez votre carte : <b>Partager</b> → <b>Sur l’écran d’accueil</b> (iPhone) ou <b>⋮</b> → <b>Ajouter à l’écran d’accueil</b> (Android).</p>
       ${pro ? `<div class="pro"><b>Espace commerçant</b><a class="btn primary" href="/espace/fidelite.html#c=${esc(c.id)}">Ouvrir cette carte (ajouter des points)</a></div>` : ""}
       ${pied}`;
@@ -159,6 +164,7 @@
       try {
         const n = await lire("fidCartes/" + carte.id); if (!n) return;
         const avant = carte.points || 0, voteAvant = carte.voteDispo; carte = n;
+        if ((n.points || 0) !== avant) walletSync(carte.id);
         if ((n.points || 0) > avant) rendreCarte(["ok", `✓ +${n.points - avant} ${n.points - avant > 1 ? unite(prog) : "point"} ajouté${n.points - avant > 1 ? "s" : ""}`], true);
         else if ((n.points || 0) < avant) rendreCarte(["ok", "🎁 Récompense utilisée. Merci et à bientôt !"]);
         else if (n.voteDispo !== voteAvant) rendreCarte();
@@ -194,7 +200,7 @@
       await commit({ update: { name: nomDoc("fidCartes/" + cid), fields: { jeton: enc(j), jw: enc(w) } }, updateMask: { fieldPaths: ["jeton", "jw"] },
         updateTransforms: [{ fieldPath: "points", increment: { integerValue: "1" } }, { fieldPath: "total", increment: { integerValue: "1" } }, { fieldPath: "lastAt", setToServerValue: "REQUEST_TIME" }],
         currentDocument: { exists: true } });
-      history.replaceState(null, "", "/f/?c=" + cid);
+      history.replaceState(null, "", "/f/?c=" + cid); walletSync(cid);
       await ouvrirCarte(cid, ["ok", "✓ +1 point ajouté. Merci et à bientôt !"], true);
     } catch (x) {
       console.warn(x); history.replaceState(null, "", "/f/?c=" + cid);

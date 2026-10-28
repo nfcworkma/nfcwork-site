@@ -375,11 +375,40 @@
   }
 
   /* ================= Tableau de bord d'un commerce ================= */
+  const WALLET = String(window.NFCW_WALLET || "").replace(/\/+$/, "");
+  const walletSync = cid => fetch(WALLET + "/google/sync?c=" + encodeURIComponent(cid), { mode: "no-cors" }).catch(() => {});
+  // 📣 message à tous les clients qui ont la carte dans Google Wallet (notification sur leur téléphone)
+  function walletMessage() {
+    const d = fenetre(`<h2>📣 Message aux clients</h2>
+      <p class="muted" style="margin:2px 0 12px;font-size:13.5px">Il arrive en <b>notification</b> sur le téléphone de tous les clients qui ont ajouté la carte dans <b>Google Wallet</b>. Max. 3 messages par jour.</p>
+      <label class="f">Titre<input id="wm-t" maxlength="60" placeholder="🎉 Offre du week-end"></label>
+      <label class="f">Message<textarea id="wm-x" rows="4" maxlength="400" placeholder="Ce samedi : 2 points pour chaque café ! À bientôt chez ${esc(P.nom)}"></textarea></label>
+      <p class="err" id="wm-e"></p>
+      <div class="row" style="gap:8px;margin-top:8px"><button class="btn primary" id="wm-go" style="flex:1">Envoyer à tous</button><button class="btn ghost" data-fermer>Annuler</button></div>`);
+    $("#wm-go", d).onclick = async () => {
+      const t = $("#wm-t", d).value.trim(), x = $("#wm-x", d).value.trim(), e = $("#wm-e", d), b = $("#wm-go", d);
+      if (!t || !x) { e.textContent = "Écrivez un titre et un message."; return; }
+      b.disabled = true; b.textContent = "Envoi…"; e.textContent = "";
+      try {
+        const tok = await firebase.auth().currentUser.getIdToken();
+        const r = await fetch(WALLET + "/google/message", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify({ pid: P.id, titre: t, texte: x }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) throw new Error(j.erreur || "erreur " + r.status);
+        d.remove(); toast("✅ Message envoyé à tous les clients Google Wallet", true);
+      } catch (x2) { b.disabled = false; b.textContent = "Envoyer à tous"; e.textContent = "❌ " + (x2.message || "Échec, réessayez."); }
+    };
+  }
   function ouvrirProgramme(pid) {
     unsub(); P = progs.find(x => x.id === pid); cartes = []; employes = []; secret = "";
     entete(P.nom, "Carte fidélité", admin || progs.length > 1 ? "#" : "./");
     const base = q => admin ? q : q.where("ownerEmail", "==", email);
-    subs.push(base(db.collection("fidCartes").where("pid", "==", pid)).onSnapshot(s => { cartes = s.docs.map(d => ({ id: d.id, ...d.data() })); renderDash(); }, erreur));
+    let premier = true;
+    subs.push(base(db.collection("fidCartes").where("pid", "==", pid)).onSnapshot(s => {
+      // 📲 Google Wallet : dès que les points d'une carte changent, la carte du téléphone se met à jour
+      if (!premier && WALLET) s.docChanges().forEach(ch => { if (ch.type === "modified" && !ch.doc.metadata.hasPendingWrites) walletSync(ch.doc.id); });
+      premier = false;
+      cartes = s.docs.map(d => ({ id: d.id, ...d.data() })); renderDash();
+    }, erreur));
     subs.push(base(db.collection("fidEmployes").where("pid", "==", pid)).onSnapshot(s => { employes = s.docs.map(d => ({ id: d.id, ...d.data() })); renderDash(); }, e => console.warn(e)));
     renderDash();
   }
@@ -398,7 +427,7 @@
       ${P.actif === false ? `<div class="notice" style="margin-top:10px">Programme désactivé : les clients ne peuvent pas créer de carte.</div>` : ""}
       <div class="big2"><button class="btn primary" data-act="scan">📷 Scanner</button><button class="btn" data-act="affiches">🖨 Affiches & QR</button></div>
       ${P.modeClient === "caisse" ? `<a class="btn block" href="caisse.html#p=${esc(P.id)}" style="margin-top:8px">📱 Écran caisse : le client scanne le QR qui change</a>` : ""}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-4px 0 14px"><button class="btn sm" data-act="lienqr">🔗 Lien & QR code de la carte</button><button class="btn sm" data-act="rapport">📊 Rapport du mois</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-4px 0 14px"><button class="btn sm" data-act="lienqr">🔗 Lien & QR code de la carte</button><button class="btn sm" data-act="rapport">📊 Rapport du mois</button>${WALLET ? `<button class="btn sm" data-act="wallet-msg" style="grid-column:1/-1">📣 Message aux clients (notification Wallet)</button>` : ""}</div>
       <div class="stats"><div><b>${cartes.length}</b><span>Clients</span></div><div><b>${prets}</b><span>Récompenses prêtes</span></div><div><b>${offerts}</b><span>Offertes</span></div></div>
       ${P.employes ? `<div class="tabs2"><button data-vue="clients" aria-pressed="${vue === "clients"}">Clients</button><button data-vue="employes" aria-pressed="${vue === "employes"}">Employés</button></div>` : ""}
       ${vue === "employes" && P.employes ? `
@@ -685,6 +714,7 @@
       if (a === "affiches") affiches();
       if (a === "lienqr") lienQR(P, false);
       if (a === "rapport") rapport();
+      if (a === "wallet-msg" && WALLET) walletMessage();
       if (a === "emp-add") empAjout();
     }
   });
