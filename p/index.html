@@ -54,6 +54,7 @@ a:active,button:active{transform:scale(.98)}
 .hor .hr span{color:var(--muted)}.hor .hr b{font-weight:600;text-align:end}.hor .hr.f b{color:#e5484d}
 .hor .hr.today{color:var(--accent)}.hor .hr.today span{color:var(--accent);font-weight:700}
 .stars{display:flex;justify-content:center;gap:6px;font-size:34px;color:#f5b301;letter-spacing:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:12px;padding:10px 13px;font:inherit;font-size:14.5px;cursor:pointer}.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accentfg)}.chips.days .chip{display:flex;flex-direction:column;align-items:center;min-width:58px;padding:8px 6px}.chips.days small{font-size:11.5px;opacity:.8;text-transform:capitalize}
 .aide{color:var(--muted);font-size:13px;text-align:center;margin-top:10px;line-height:1.5}
 .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .net{display:flex;gap:12px;align-items:center}.net .ic{font-size:26px}
@@ -221,6 +222,43 @@ a:active,button:active{transform:scale(.98)}
       ${P.instagram ? row(handle(P.instagram, "https://instagram.com/"), "insta", "Instagram", String(P.instagram).replace(/^https?:\/\/(www\.)?/, "")) : ""}
       ${pied()}`;
   }
+  function rdv() {
+    const services = String(P.services || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
+    const sansAccent = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const fermes = sansAccent(P.ferme || "");
+    const NJ = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"], NJA = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    const jours = []; for (let i = 0; i < 14 && jours.length < 10; i++) { const d = new Date(); d.setDate(d.getDate() + i); if (fermes && fermes.includes(NJ[d.getDay()])) continue; jours.push(d); }
+    const hm = s => { const m = String(s || "").match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+    const o = hm(P.ouverture) ?? 540, f = hm(P.fermeture) ?? 1260, pas = Math.max(10, +P.pas || 30);
+    const tel = String(P.whatsapp || P.tel || "").replace(/\D/g, "").replace(/^0/, "212");
+    let S = { svc: services[0] || "", j: 0, h: "" };
+    const creneaux = () => { const L = [], d = jours[S.j], maint = new Date(); for (let m = o; m + pas <= f; m += pas) { if (d && d.toDateString() === maint.toDateString() && m <= maint.getHours() * 60 + maint.getMinutes() + 15) continue; L.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`); } return L; };
+    const dessiner = () => {
+      app.innerHTML = `${brand}${P.photo ? `<div class="logo"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}<h1>${esc(P.nom || "")}</h1><p class="sub">${esc(P.message || T("Réservez en 30 secondes 📅", "حجز فـ 30 ثانية 📅"))}</p>
+        ${services.length ? `<div class="card"><div class="lab" style="margin-bottom:8px">${T("1 · Le service", "1 · الخدمة")}</div><div class="chips">${services.map((x, i) => `<button class="chip${S.svc === x ? " on" : ""}" data-svc="${i}">${esc(x)}</button>`).join("")}</div></div>` : ""}
+        <div class="card"><div class="lab" style="margin-bottom:8px">${T("2 · Le jour", "2 · النهار")}</div><div class="chips days">${jours.map((d, i) => `<button class="chip${S.j === i ? " on" : ""}" data-j="${i}"><small>${P.langue === "ar" ? NJA[d.getDay()] : NJ[d.getDay()].slice(0, 3)}</small><b>${d.getDate()}/${d.getMonth() + 1}</b></button>`).join("")}</div></div>
+        <div class="card"><div class="lab" style="margin-bottom:8px">${T("3 · L’heure", "3 · الساعة")}</div><div class="chips">${creneaux().map(h => `<button class="chip${S.h === h ? " on" : ""}" data-h="${h}">${h}</button>`).join("") || `<span class="muted">${T("Plus de créneau ce jour : choisissez un autre jour.", "ما بقاش الوقت هاد النهار، اختار نهار آخر.")}</span>`}</div></div>
+        <div class="card"><div class="lab" style="margin-bottom:8px">${T("4 · Votre prénom", "4 · السمية ديالك")}</div><input id="rv-n" maxlength="40" value="${esc(S.n || "")}" style="width:100%;padding:13px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:16px"></div>
+        <button class="main" id="rv-go" ${tel ? "" : "disabled"}>${I.wa}${T("Envoyer la réservation sur WhatsApp", "صيفط الحجز فواتساب")}</button>
+        <p class="aide">${T("Le commerce confirme votre rendez-vous sur WhatsApp.", "المحل كيأكد ليك الموعد فواتساب.")}</p>
+        ${P.instagram ? row(handle(P.instagram, "https://instagram.com/"), "insta", "Instagram", String(P.instagram).replace(/^https?:\/\/(www\.)?/, "")) : ""}
+        ${pied()}`;
+      remplir();
+      const n = document.getElementById("rv-n"); n.oninput = () => (S.n = n.value);
+      document.getElementById("rv-go").onclick = () => {
+        if (!S.h) { alert(T("Choisissez l’heure.", "اختار الساعة.")); return; }
+        if (!(S.n || "").trim()) { n.focus(); return; }
+        const d = jours[S.j], jour = `${NJ[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+        const msg = `📅 Réservation · ${P.nom || ""}\n👤 ${S.n.trim()}\n${S.svc ? "✂️ " + S.svc + "\n" : ""}🗓 ${jour} à ${S.h}`;
+        window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank");
+      };
+    };
+    app.onclick = e => {
+      const s = e.target.closest("[data-svc]"), j = e.target.closest("[data-j]"), h = e.target.closest("[data-h]");
+      if (s) { S.svc = services[+s.dataset.svc]; dessiner(); } else if (j) { S.j = +j.dataset.j; S.h = ""; dessiner(); } else if (h) { S.h = h.dataset.h; dessiner(); }
+    };
+    dessiner();
+  }
   function wifi() {
     const sec = P.securite === "nopass" ? "nopass" : P.securite === "WEP" ? "WEP" : "WPA";
     const e = s => String(s || "").replace(/([\\;,:"])/g, "\\$1");
@@ -254,7 +292,7 @@ a:active,button:active{transform:scale(.98)}
     if (!apercu && window.NFCW_PREAVIS && P.expire) NFCW_PREAVIS(P.preavis, P.expire);
     if (!apercu && window.NFCW_VUE && !/^demo-/.test(slug)) NFCW_VUE("page", slug);
     document.title = (P.nom || "NFCWORK") + (P.fonction ? " · " + P.fonction : "");
-    ({ profil, avis, wifi, liens }[P.type] || profil)();
+    ({ profil, avis, wifi, liens, rdv }[P.type] || profil)();
     remplir();
   }
 

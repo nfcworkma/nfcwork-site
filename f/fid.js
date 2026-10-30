@@ -128,6 +128,7 @@
           : `<div class="big">${pts} <small>/ ${obj} ${unite(p)}</small></div><div class="bar"><i style="width:${Math.min(100, pts / obj * 100)}%"></i></div>`}
         <div class="reward">🎁 <b>${esc(p.recompense)}</b> · ${pret ? "prête !" : `encore ${reste} ${unite(p)}`}${c.recompenses ? ` · déjà ${c.recompenses} gagnée${c.recompenses > 1 ? "s" : ""}` : ""}</div>
       </section>
+      ${p.lienAvis && !c.avisOk ? `<a class="avisbtn" href="${esc(p.lienAvis)}" target="_blank" rel="noopener">⭐ Laissez-nous un avis Google : <b>+1 point offert</b><small>Ensuite, montrez votre carte à la caisse.</small></a>` : ""}
       ${p.modeClient === "caisse" ? `<div class="msg info">📱 À chaque visite : scannez le QR affiché sur le téléphone de la caisse, le point s’ajoute tout seul.</div>` : ""}
       <div class="qrbox">${window.QRGEN.svg(SITE + "/f/?c=" + c.id, { marge: 1 })}<small>${p.modeClient === "caisse" ? "Code de votre carte (pour la récompense)" : "Montrez ce code à la caisse"}</small></div>
       <p class="tip">${esc(regle(p))}${p.guide ? "<br>" + p.guide.split(/\n+/).filter(Boolean).map(esc).join(" · ") : ""}</p>
@@ -243,6 +244,7 @@
       ${prog.guide ? `<ol style="color:var(--muted);margin:0 0 16px;padding-inline-start:20px;line-height:1.6">${prog.guide.split(/\n+/).filter(Boolean).map(l => `<li>${esc(l)}</li>`).join("")}</ol>` : ""}
       <form id="jf"><label>Prénom<input id="jn" required maxlength="60" autocomplete="given-name"></label>
       <label>Téléphone<input id="jt" type="tel" inputmode="tel" required maxlength="30" autocomplete="tel" placeholder="06 12 34 56 78"></label>
+      <label>🎂 Anniversaire <span style="font-weight:400;opacity:.7">(facultatif : un cadeau ce jour-là)</span><span style="display:flex;gap:8px"><select id="jj" style="flex:1"><option value="">Jour</option>${Array.from({ length: 31 }, (_, i) => `<option>${String(i + 1).padStart(2, "0")}</option>`).join("")}</select><select id="jm" style="flex:1.4"><option value="">Mois</option>${["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"].map((m, i) => `<option value="${String(i + 1).padStart(2, "0")}">${m}</option>`).join("")}</select></span></label>
       <p class="err" id="je"></p><button class="btn primary">Créer ma carte</button></form>
       <p class="tip" style="margin:12px 0 0">Vous avez déjà une carte ? Entrez le <b>même numéro</b> : vous retrouvez votre carte et vos points.</p></div>
       <p class="tip">Vos informations servent seulement à votre carte chez ${esc(prog.nom)}.</p>${pied}`;
@@ -264,10 +266,15 @@
           await ouvrirCarte(cid, ["ok", `👋 Bon retour ${esc(ex.nom || nom)} ! Votre carte est retrouvée, avec vos points.`]);
           return;
         }
-        await commit({ update: { name: nomDoc("fidCartes/" + cid), fields: {
-            pid: enc(pid), ownerEmail: enc(prog.ownerEmail || ""), nom: enc(nom.slice(0, 60)), tel: enc(tel.slice(0, 30)),
-            points: enc(0), total: enc(0), recompenses: enc(0), lastAt: enc({ ts: "1970-01-01T00:00:00Z" }) } },
+        const jj = document.getElementById("jj").value, jm = document.getElementById("jm").value;
+        const champs = { pid: enc(pid), ownerEmail: enc(prog.ownerEmail || ""), nom: enc(nom.slice(0, 60)), tel: enc(tel.slice(0, 30)),
+            points: enc(0), total: enc(0), recompenses: enc(0), lastAt: enc({ ts: "1970-01-01T00:00:00Z" }) };
+        const creer = f => commit({ update: { name: nomDoc("fidCartes/" + cid), fields: f },
           updateTransforms: [{ fieldPath: "createdAt", setToServerValue: "REQUEST_TIME" }], currentDocument: { exists: false } });
+        if (jj && jm) {
+          try { await creer(Object.assign({ anniv: enc(jm + "-" + jj) }, champs)); }
+          catch (x) { if (x && x.status === 409) throw x; await creer(champs); }   // règles anciennes : sans l'anniversaire
+        } else await creer(champs);
         lsSet("nfcwork-fid-" + pid, cid);
         let sc = null; try { sc = JSON.parse(sessionStorage.getItem(SCAN) || "null"); } catch (e) {}
         if (sc && sc.pid === pid && Date.now() - sc.t < 10 * 60000) { await pointCaisse(cid, sc.w, sc.j); return; }

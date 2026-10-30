@@ -156,6 +156,7 @@
     entete("Fidélité", admin ? "Programmes de vos clients" : "Vos commerces", "./");
     app.innerHTML = `<div class="row between"><div><h2>Cartes fidélité</h2><div class="muted">Points, récompenses et classement des employés.</div></div>
       ${admin ? `<div class="row"><button class="btn" data-act="metiers">✏️ Métiers & prix</button><button class="btn primary" data-act="nouveau">＋ Nouveau programme</button></div>` : ""}</div>
+      ${admin && new Date().getDate() <= 5 && progs.length ? `<div class="notice" style="margin-top:10px">📊 Début du mois : envoyez le rapport à chaque commerçant (Ouvrir → 📊 Rapport du mois). Ils voient ce que la carte leur rapporte, et ils renouvellent.</div>` : ""}
       ${progs.length ? `<div class="mlist sec">${progs.map(p => `<div class="paper mcard">
         <div class="row between"><span class="n">${(METIERS[p.metier] || {}).ico || ""} ${esc(p.nom)}</span><span class="pill ${p.actif === false ? "off" : "pro"}">${p.actif === false ? "Désactivé" : p.essai && p.expire ? (jourLocal() > p.expire ? "Essai terminé" : "🎁 Essai → " + esc(p.expire.slice(8, 10) + "/" + p.expire.slice(5, 7))) : esc(TYPES[p.type] ? TYPES[p.type][0] : "")}</span></div>
         <div class="l">${esc(p.objectif)} ${unite(p)} = ${esc(p.recompense)}${admin ? `<br>${esc(p.ownerEmail || "sans compte commerçant")}${p.prix ? ` · ${esc(p.prix)} DH ${PERIODES[p.periode] || ""}` : ""}` : ""}</div>
@@ -228,6 +229,7 @@
             <label class="f">Prime du mois (affichée aux employés)<input id="p-prime" maxlength="80" value="${esc(p.primeEmploye)}"></label></div>
           <div class="grid2"><label class="f">Prix de l’abonnement (DH)<input id="p-prix" type="number" min="0" inputmode="numeric" value="${esc(p.prix || "")}"></label>
             <label class="f">Période<select id="p-per">${Object.entries(PERIODES).map(([k, v]) => `<option value="${k}" ${(p.periode || "an") === k ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>
+          <label class="f">⭐ Lien avis Google du commerce (le client qui laisse un avis gagne +1 point)<input id="p-avis" type="url" maxlength="300" value="${esc(p.lienAvis || "")}" placeholder="https://g.page/r/…/review" autocapitalize="off"></label>
           <label class="f">Comment ça marche (affiché au client, une étape par ligne)<textarea id="p-guide" maxlength="400" rows="3">${esc(p.guide || "")}</textarea></label>
           <label class="check"><input type="checkbox" id="p-actif" ${p.actif !== false ? "checked" : ""}> Programme actif</label>
         </div></details>
@@ -294,7 +296,8 @@
         logoData, logo: "", type: val.type, objectif: num("#p-obj", 1, 1000, 10), unite: $("#p-unite", d).value.trim() || "visites", dhParPoint: num("#p-dh", 1, 1000, 10),
         recompense: $("#p-rec", d).value.trim(), modeClient: val.modeClient, delaiH: num("#p-delai", 1, 72, 3), employes: $("#p-emp", d).checked, modeEmploye: val.modeEmploye,
         primeEmploye: $("#p-prime", d).value.trim(), actif: $("#p-actif", d).checked, maj: NOW(),
-        prix: parseInt($("#p-prix", d).value, 10) || 0, periode: $("#p-per", d).value, guide: $("#p-guide", d).value.trim().slice(0, 400)
+        prix: parseInt($("#p-prix", d).value, 10) || 0, periode: $("#p-per", d).value, guide: $("#p-guide", d).value.trim().slice(0, 400),
+        lienAvis: /^https:\/\//.test($("#p-avis", d).value.trim()) ? $("#p-avis", d).value.trim() : ""
       };
       if (!data.ownerEmail) { $("#perr", d).textContent = "Indiquez l’e-mail du compte du commerçant."; return; }
       if ($("#p-essai", d).checked) {
@@ -399,6 +402,7 @@
     const d = fenetre(`<h2>📣 Message aux clients</h2>
       <p class="muted" style="margin:2px 0 12px;font-size:13.5px">Il arrive en <b>notification</b> sur le téléphone de tous les clients qui ont ajouté la carte dans <b>Google Wallet</b>. Max. 3 messages par jour.</p>
       <label class="f">Titre<input id="wm-t" maxlength="60" placeholder="🎉 Offre du week-end"></label>
+      <label class="f">🎟️ Offre valable jusqu’au <span class="muted">(facultatif, sinon 7 jours)</span><input id="wm-fin" type="date"></label>
       <label class="f">Message<textarea id="wm-x" rows="4" maxlength="400" placeholder="Ce samedi : 2 points pour chaque café ! À bientôt chez ${esc(P.nom)}"></textarea></label>
       <p class="err" id="wm-e"></p>
       <div class="row" style="gap:8px;margin-top:8px"><button class="btn primary" id="wm-go" style="flex:1">Envoyer à tous</button><button class="btn ghost" data-fermer>Annuler</button></div>`);
@@ -408,11 +412,37 @@
       b.disabled = true; b.textContent = "Envoi…"; e.textContent = "";
       try {
         const tok = await firebase.auth().currentUser.getIdToken();
-        const r = await fetch(WALLET + "/google/message", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify({ pid: P.id, titre: t, texte: x }) });
+        const r = await fetch(WALLET + "/google/message", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify({ pid: P.id, titre: t, texte: x, fin: $("#wm-fin", d).value || "" }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.ok) throw new Error(j.erreur || "erreur " + r.status);
         d.remove(); toast("✅ Message envoyé à tous les clients Google Wallet", true);
       } catch (x2) { b.disabled = false; b.textContent = "Envoyer à tous"; e.textContent = "❌ " + (x2.message || "Échec, réessayez."); }
+    };
+  }
+  // 🎯 relances : clients absents depuis 30 jours, anniversaires du jour
+  const dtv = v => !v ? null : v.toDate ? v.toDate() : v.seconds ? new Date(v.seconds * 1000) : new Date(v);
+  const absents = () => cartes.filter(c => (c.total || 0) > 0 && (() => { const d = dtv(c.lastAt); return d && !isNaN(d) && Date.now() - d > 30 * 864e5; })());
+  const annivs = () => { const d = new Date(), k = String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); return cartes.filter(c => c.anniv === k); };
+  function relance(type) {
+    const L = type === "anniv" ? annivs() : absents();
+    if (!L.length) { toast(type === "anniv" ? "Aucun anniversaire aujourd’hui." : "Aucun client absent depuis 30 jours."); return; }
+    const t0 = type === "anniv" ? `🎂 Joyeux anniversaire !` : `On ne vous a pas vu depuis un moment 👋`;
+    const x0 = type === "anniv" ? `Toute l’équipe ${P.nom} vous souhaite un joyeux anniversaire ! Passez cette semaine : un petit cadeau vous attend 🎁` : `${P.nom} vous offre +1 point si vous passez cette semaine. À très vite !`;
+    const d = fenetre(`<h2>${type === "anniv" ? "🎂 Anniversaires du jour" : "😴 Clients absents"} (${L.length})</h2>
+      <p class="muted" style="margin:2px 0 10px;font-size:13.5px">${esc(L.slice(0, 8).map(c => c.nom).join(", "))}${L.length > 8 ? "…" : ""}<br>Ils reçoivent une <b>notification</b> s’ils ont la carte dans Google Wallet.</p>
+      <label class="f">Titre<input id="rl-t" maxlength="60" value="${esc(t0)}"></label>
+      <label class="f">Message<textarea id="rl-x" rows="4" maxlength="400">${esc(x0)}</textarea></label>
+      <p class="err" id="rl-e"></p>
+      <div class="row" style="gap:8px"><button class="btn primary" id="rl-go" style="flex:1">Envoyer</button><button class="btn ghost" data-fermer>Annuler</button></div>`);
+    $("#rl-go", d).onclick = async () => {
+      const b = $("#rl-go", d); b.disabled = true; b.textContent = "Envoi…";
+      try {
+        const tok = await firebase.auth().currentUser.getIdToken();
+        const r = await fetch(WALLET + "/google/notify", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify({ pid: P.id, cartes: L.map(c => c.id), titre: $("#rl-t", d).value.trim(), texte: $("#rl-x", d).value.trim() }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) throw new Error(j.erreur || "erreur " + r.status);
+        d.remove(); toast(`✅ Envoyé à ${j.envoyes} client(s)${j.sansWallet ? ` · ${j.sansWallet} sans Google Wallet` : ""}`, true);
+      } catch (x) { b.disabled = false; b.textContent = "Envoyer"; $("#rl-e", d).textContent = "❌ " + (x.message || "Échec, réessayez."); }
     };
   }
   function ouvrirProgramme(pid) {
@@ -423,7 +453,7 @@
     let premier = true;
     subs.push(base(db.collection("fidCartes").where("pid", "==", pid)).onSnapshot(s => {
       // 📲 Google Wallet : dès que les points d'une carte changent, la carte du téléphone se met à jour
-      if (!premier && WALLET) s.docChanges().forEach(ch => { if (ch.type === "modified" && !ch.doc.metadata.hasPendingWrites) walletSync(ch.doc.id); });
+      if (!premier && WALLET && s.docChanges) s.docChanges().forEach(ch => { if (ch.type === "modified" && !ch.doc.metadata.hasPendingWrites) walletSync(ch.doc.id); });
       premier = false;
       cartes = s.docs.map(d => ({ id: d.id, ...d.data() })); renderDash();
     }, erreur));
@@ -446,6 +476,7 @@
       <div class="big2"><button class="btn primary" data-act="scan">📷 Scanner</button><button class="btn" data-act="affiches">🖨 Affiches & QR</button></div>
       ${P.modeClient === "caisse" ? `<a class="btn block" href="caisse.html#p=${esc(P.id)}" style="margin-top:8px">📱 Écran caisse : le client scanne le QR qui change</a>` : ""}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-4px 0 14px"><button class="btn sm" data-act="lienqr">🔗 Lien & QR code de la carte</button><button class="btn sm" data-act="rapport">📊 Rapport du mois</button>${WALLET ? `<button class="btn sm" data-act="wallet-msg" style="grid-column:1/-1">📣 Message aux clients (notification Wallet)</button>` : ""}</div>
+      ${WALLET && (absents().length || annivs().length) ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px">${annivs().length ? `<button class="btn sm" data-act="rl-anniv">🎂 ${annivs().length} anniversaire(s)</button>` : ""}${absents().length ? `<button class="btn sm" data-act="rl-abs">😴 ${absents().length} client(s) absent(s)</button>` : ""}</div>` : ""}
       <div class="stats"><div><b>${cartes.length}</b><span>Clients</span></div><div><b>${prets}</b><span>Récompenses prêtes</span></div><div><b>${offerts}</b><span>Offertes</span></div></div>
       ${P.employes ? `<div class="tabs2"><button data-vue="clients" aria-pressed="${vue === "clients"}">Clients</button><button data-vue="employes" aria-pressed="${vue === "employes"}">Employés</button></div>` : ""}
       ${vue === "employes" && P.employes ? `
@@ -505,6 +536,7 @@
         ${P.type === "visites" ? `<button class="btn primary addbtn" id="cv-add">+1 ${esc(unite(P).replace(/s$/, ""))}</button>`
           : P.type === "articles" ? `<div class="stepper"><button type="button" data-st="-1">−</button><input id="cv-n" type="number" min="1" max="99" value="1" inputmode="numeric"><button type="button" data-st="1">+</button></div><button class="btn primary addbtn" id="cv-add">Ajouter les articles</button>`
           : `<label class="f">Montant de l’achat (DH)<input id="cv-dh" type="number" min="1" inputmode="decimal" placeholder="120" style="font-size:22px;text-align:center"></label><div class="muted" id="cv-calc" style="text-align:center">= 0 point</div><button class="btn primary addbtn" id="cv-add">Ajouter les points</button>`}
+        ${P.lienAvis && !c.avisOk ? `<button class="btn" id="cv-avis" style="width:100%">⭐ Il a laissé un avis Google : +1 point</button>` : c.avisOk ? `<div class="muted" style="text-align:center;font-size:13px">⭐ Avis Google déjà récompensé</div>` : ""}
         <div class="row">${wa ? `<a class="btn sm" style="flex:1" href="https://wa.me/${wa}?text=${encodeURIComponent("Votre carte fidélité " + P.nom + " : " + lien)}" target="_blank" rel="noopener">Envoyer sa carte (WhatsApp)</a>` : ""}<button class="btn sm ghost" id="cv-moins">Retirer 1</button></div>
         <button class="btn sm danger" id="cv-del">Supprimer cette carte</button>
       </div>`);
@@ -516,6 +548,13 @@
       const n = P.type === "visites" ? 1 : P.type === "articles" ? nb() : pts2();
       if (n < 1) { toast("Montant trop petit pour 1 point."); return; }
       quiAServi(d, c.id, n);
+    };
+    const av = $("#cv-avis", d);
+    if (av) av.onclick = async () => {
+      av.disabled = true;
+      try { await db.doc("fidCartes/" + c.id).update({ points: inc(1), total: inc(1), lastAt: NOW(), avisOk: true, avisAt: NOW() }); }
+      catch (e) { try { await db.doc("fidCartes/" + c.id).update({ points: inc(1), total: inc(1), lastAt: NOW() }); } catch (x) { erreur(x); av.disabled = false; return; } }
+      toast("⭐ +1 point pour l’avis Google"); d.remove();
     };
     const rec = $("#cv-rec", d);
     if (rec) rec.onclick = async () => { rec.disabled = true; try { await db.doc("fidCartes/" + c.id).update({ points: inc(-obj), recompenses: inc(1), lastAt: NOW() }); toast("🎁 Récompense offerte"); d.remove(); } catch (e) { erreur(e); rec.disabled = false; } };
@@ -642,10 +681,12 @@
     const pretes = cartes.filter(c => (c.points || 0) >= Math.max(1, P.objectif || 10)).length;
     const top = [...employes].filter(e => ((e.m || {})[k] || 0) > 0).sort((a, b) => (b.m[k] || 0) - (a.m[k] || 0))[0];
     const fidele = [...cartes].sort((a, b) => (b.total || 0) - (a.total || 0))[0];
+    const avisMois = cartes.filter(c => ceMois(c.avisAt)).length;
     const txt = [`📊 Rapport fidélité · ${P.nom} · ${nomMois}`, "",
       `👥 Clients inscrits : ${cartes.length}${nouveaux ? ` (dont ${nouveaux} nouveaux ce mois)` : ""}`,
       `🔄 Clients revenus ce mois : ${venus}`,
       `🎁 Récompenses offertes depuis le début : ${offertes}`,
+      avisMois ? `⭐ Avis Google récompensés ce mois : ${avisMois}` : "",
       pretes ? `⏳ Récompenses prêtes à offrir : ${pretes}` : "",
       fidele && fidele.total ? `⭐ Client le plus fidèle : ${fidele.nom || "—"} (${fidele.total} ${unite(P)})` : "",
       top ? `🏆 Employé du mois : ${top.nom} (${top.m[k]} points)` : "",
@@ -654,7 +695,9 @@
       <p class="muted" style="margin:4px 0 10px">Envoyez-le au commerçant chaque mois : il voit ce que la carte fidélité lui rapporte.</p>
       <textarea id="rp-t" rows="11" style="width:100%;font:inherit;font-size:14px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg)">${esc(txt)}</textarea>
       <div class="row" style="margin-top:10px;gap:8px"><button class="btn sm primary" id="rp-wa">Envoyer sur WhatsApp</button><button class="btn sm" id="rp-copier">Copier</button></div>`);
-    $("#rp-wa", d).onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent($("#rp-t", d).value), "_blank");
+    let telPatron = "";
+    db.collection("clients").where("email", "==", String(P.ownerEmail || "").toLowerCase()).get().then(s => { const c = s.docs[0] && s.docs[0].data(); telPatron = waNum(c && (c.whatsapp || c.tel || c.phone)); if (telPatron) $("#rp-wa", d).textContent = "Envoyer au commerçant (WhatsApp)"; }).catch(() => {});
+    $("#rp-wa", d).onclick = () => window.open("https://wa.me/" + telPatron + "?text=" + encodeURIComponent($("#rp-t", d).value), "_blank");
     $("#rp-copier", d).onclick = async () => { try { await navigator.clipboard.writeText($("#rp-t", d).value); toast("Rapport copié"); } catch (e) { prompt("Copiez :", $("#rp-t", d).value); } };
   }
 
@@ -733,6 +776,8 @@
       if (a === "lienqr") lienQR(P, false);
       if (a === "rapport") rapport();
       if (a === "wallet-msg" && WALLET) walletMessage();
+      if (a === "rl-anniv" && WALLET) relance("anniv");
+      if (a === "rl-abs" && WALLET) relance("abs");
       if (a === "emp-add") empAjout();
     }
   });

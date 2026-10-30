@@ -26,7 +26,8 @@
     profil: ["👤", "Carte digitale", "Carte de visite NFC : appel, WhatsApp, réseaux"],
     avis: ["⭐", "Avis Google", "Plaque qui ouvre la page d’avis Google"],
     wifi: ["📶", "Wi-Fi", "Plaque : réseau, mot de passe, QR"],
-    liens: ["🔗", "Page liens", "Lien pour la bio Instagram, boutons"]
+    liens: ["🔗", "Page liens", "Lien pour la bio Instagram, boutons"],
+    rdv: ["📅", "Réservation", "Le client choisit service, jour et heure : la demande arrive sur WhatsApp"]
   };
   const THEMES = { nuit: ["🌙 Nuit", "#05080f", "#E8EEFA"], blanc: ["☀️ Blanc", "#f6f7f9", "#14171c"], creme: ["🍦 Crème", "#f7f5f0", "#1d1b18"], noir: ["⚫ Noir", "#000", "#f5f5f5"] };
   const JOURS = [[1, "Lundi"], [2, "Mardi"], [3, "Mercredi"], [4, "Jeudi"], [5, "Vendredi"], [6, "Samedi"], [0, "Dimanche"]];
@@ -131,6 +132,7 @@
     if (type === "profil") Object.assign(p, { fonction: "", entreprise: "", metiers: "", bio: "", tel: "", whatsapp: "", email: "", instagram: "", facebook: "", tiktok: "", linkedin: "", youtube: "", snapchat: "", site: "", adresse: "", maps: "", horaires: {}, liens: [], galerie: [] });
     if (type === "avis") Object.assign(p, { lienGoogle: "", message: "", instagram: "" });
     if (type === "wifi") Object.assign(p, { ssid: "", motdepasse: "", securite: "WPA", cache: false, message: "" });
+    if (type === "rdv") Object.assign(p, { whatsapp: "", services: "Coupe homme · 50 DH\nCoupe + barbe · 70 DH", ouverture: "09:00", fermeture: "21:00", pas: 30, message: "" });
     if (type === "liens") Object.assign(p, { slogan: "", whatsapp: "", localisation: "", liens: [{ titre: "Instagram", url: "" }] });
     return p;
   }
@@ -222,6 +224,13 @@
         ${champ("ssid", "Nom du réseau Wi-Fi (exactement)", 'maxlength="64" autocapitalize="off" spellcheck="false"')}${champ("motdepasse", "Mot de passe", 'maxlength="64" autocapitalize="off" spellcheck="false"')}
         <label class="f">Sécurité<select data-k="securite"><option value="WPA" ${P.securite === "WPA" ? "selected" : ""}>WPA / WPA2 (le plus courant)</option><option value="WEP" ${P.securite === "WEP" ? "selected" : ""}>WEP (ancien)</option><option value="nopass" ${P.securite === "nopass" ? "selected" : ""}>Ouvert (sans mot de passe)</option></select></label>
         <label class="check"><input type="checkbox" data-k="cache" ${P.cache ? "checked" : ""}> Réseau caché</label>${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Wi-Fi offert 📶"')}</section>`;
+    if (P.type === "rdv") corps = `<section class="sec paper stack"><h3>📅 Réservation</h3>${photoBloc}${champ("nom", "Nom du commerce", 'maxlength="60"')}
+        ${champ("whatsapp", "WhatsApp qui reçoit les réservations", 'type="tel" inputmode="tel" placeholder="06…"')}
+        ${zone("services", "Services (un par ligne, avec le prix si vous voulez)", 'rows="5" maxlength="800" placeholder="Coupe homme · 50 DH"')}
+        <div class="grid2">${champ("ouverture", "Ouverture", 'type="time"')}${champ("fermeture", "Fermeture", 'type="time"')}</div>
+        <label class="f">Un créneau toutes les<select data-k="pas">${[15, 20, 30, 45, 60, 90, 120].map(m => `<option value="${m}" ${+P.pas === m ? "selected" : ""}>${m} min</option>`).join("")}</select></label>
+        ${champ("ferme", "Jours fermés (facultatif)", 'maxlength="60" placeholder="dimanche"')}
+        ${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Réservez en 30 secondes"')}${champ("instagram", "Instagram (facultatif)", 'autocapitalize="off"')}</section>`;
     if (P.type === "liens") corps = `<section class="sec paper stack"><h3>🔗 Page liens</h3>${photoBloc}${champ("nom", "Nom", 'maxlength="60"')}${champ("slogan", "Petite phrase (facultatif)", 'maxlength="100"')}
         ${champ("whatsapp", "WhatsApp (bouton en haut)", 'type="tel" inputmode="tel"')}<div class="eyebrow">Boutons</div>${liensHtml()}${champ("localisation", "Localisation (adresse ou lien Maps)", 'maxlength="300"')}</section>`;
     app.innerHTML = `

@@ -11,7 +11,8 @@
    Adresses :
      GET  /google/save?c=<carte>     → ajoute la carte dans Google Wallet (redirige vers Google)
      GET  /google/sync?c=<carte>     → met à jour les points dans Wallet (lit la vraie carte dans Firebase)
-     POST /google/message            → notification à tous les clients du programme (commerçant connecté)
+     POST /google/message            → notification à tous les clients du programme (commerçant connecté), offre datée possible (fin)
+     POST /google/notify             → notification à quelques clients choisis (absents, anniversaires…)
      GET  /logo/<programme>          → logo du commerce (Google a besoin d'une adresse https)
    ========================================================= */
 const PROJET = "nfcwork-espace";
@@ -29,6 +30,7 @@ export default {
       if (url.pathname === "/google/save") return await save(url, env);
       if (url.pathname === "/google/sync") return json(await sync(url.searchParams.get("c"), env));
       if (url.pathname === "/google/message" && req.method === "POST") return json(await message(req, env));
+      if (url.pathname === "/google/notify" && req.method === "POST") return json(await notifier(req, env));
       if (url.pathname.startsWith("/logo/")) return await logo(url.pathname.slice(6));
       return json({ ok: true, service: "nfcwork-wallet" });
     } catch (e) {
@@ -194,13 +196,38 @@ async function message(req, env) {
   if (!patron) throw err("réservé au commerçant de ce programme", 403);
   const titre = String(b.titre || "").trim().slice(0, 60), texte = String(b.texte || "").trim().slice(0, 400);
   if (!titre || !texte) throw err("titre et message obligatoires", 400);
-  const debut = new Date(), fin = new Date(Date.now() + 7 * 86400e3);
+  const debut = new Date(), j = /^\d{4}-\d{2}-\d{2}$/.test(b.fin || "") ? new Date(b.fin + "T23:59:00Z") : null;
+  const fin = j && j > debut && j - debut < 90 * 86400e3 ? j : new Date(Date.now() + 7 * 86400e3);
   const r = await wo(env, "POST", "loyaltyClass/" + encodeURIComponent(idClasse(env, p)) + "/addMessage", {
     message: { id: "m" + Date.now(), header: titre, body: texte, messageType: "TEXT_AND_NOTIFY", displayInterval: { start: { date: debut.toISOString() }, end: { date: fin.toISOString() } } }
   });
   if (r.status === 404) throw err("aucun client n’a encore ajouté cette carte dans Google Wallet", 404);
   if (r.status >= 300) throw err((r.j.error || {}).message || "Google a refusé le message", 502);
   return { ok: true };
+}
+
+/* ---------- 🎯 message à quelques clients (relance des absents, anniversaire…) ---------- */
+async function notifier(req, env) {
+  const qui = await verifierFirebase((req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, ""));
+  const b = await req.json().catch(() => ({}));
+  const p = await lire("fidProgrammes/" + propre(b.pid, 60));
+  if (!p) throw err("programme introuvable", 404);
+  const patron = qui.email === ADMIN || (qui.verifie && qui.email && qui.email === String(p.ownerEmail || "").toLowerCase());
+  if (!patron) throw err("réservé au commerçant de ce programme", 403);
+  const titre = String(b.titre || "").trim().slice(0, 60), texte = String(b.texte || "").trim().slice(0, 400);
+  if (!titre || !texte) throw err("titre et message obligatoires", 400);
+  const ids = [...new Set((Array.isArray(b.cartes) ? b.cartes : []).map(x => propre(x)).filter(Boolean))].slice(0, 200);
+  let ok = 0, absents = 0;
+  for (const cid of ids) {
+    const c = await lire("fidCartes/" + cid).catch(() => null);
+    if (!c || c.pid !== p.id) continue;   // seulement les cartes de CE commerce
+    const r = await wo(env, "POST", "loyaltyObject/" + encodeURIComponent(`${env.ISSUER_ID}.c-${cid}`) + "/addMessage", {
+      message: { id: "n" + Date.now() + cid.slice(0, 4), header: titre, body: texte, messageType: "TEXT_AND_NOTIFY",
+        displayInterval: { start: { date: new Date().toISOString() }, end: { date: new Date(Date.now() + 7 * 86400e3).toISOString() } } }
+    });
+    if (r.status < 300) ok++; else absents++;
+  }
+  return { ok: true, envoyes: ok, sansWallet: absents };
 }
 
 /* ---------- logo ---------- */
