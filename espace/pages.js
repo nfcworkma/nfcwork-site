@@ -316,7 +316,7 @@
         ${champ("ferme", "Jours fermés (facultatif)", 'maxlength="60" placeholder="dimanche"')}
         <label class="check"><input type="checkbox" data-k="auto" ${P.auto ? "checked" : ""}> Confirmer automatiquement (sinon le commerçant confirme dans son Espace)</label>
         ${champ("whatsapp", "WhatsApp du commerce (le client peut le prévenir)", 'type="tel" inputmode="tel" placeholder="06…"')}
-        <div data-adm class="stack" style="gap:10px">${champ("ownerEmail", "E-mail du compte commerçant (il reçoit les réservations dans son Espace)", 'type="email" autocapitalize="off" placeholder="client@gmail.com"')}
+        <div data-adm class="stack" style="gap:10px">${champ("ownerEmail", "E-mail du compte commerçant (il reçoit les réservations dans son Espace)", 'type="email" autocapitalize="off" placeholder="vide = les réservations arrivent dans votre Espace admin"')}
         ${champ("fidPid", "Carte fidélité liée (code du programme, facultatif)", 'autocapitalize="off" placeholder="ex. billard-atlas"')}</div>
         ${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Réservez en 30 secondes"')}${champ("instagram", "Instagram (facultatif)", 'autocapitalize="off"')}</section>`; }
     if (P.type === "liens") corps = `<section class="sec paper stack"><h3>🔗 Page liens</h3>${photoBloc}${champ("nom", "Nom", 'maxlength="60"')}${champ("slogan", "Petite phrase (facultatif)", 'maxlength="100"')}
@@ -349,6 +349,7 @@
       if (PROPRIO) { if (!saved) throw { code: "permission-denied" }; for (const k of ["slug", "type", "actif", "ownerEmail", "fidPid"]) if (k in avant) P[k] = avant[k]; else delete P[k]; }
       const json = JSON.stringify(P);
       const doc = { json, v: String(Date.now()), maj: NOW(), par: user.email };
+      if (P.type === "rdv" && !String(P.ownerEmail || "").trim() && !PROPRIO) P.ownerEmail = ADMIN;   // sans commerçant : les réservations arrivent dans l'Espace admin
       if (P.type === "rdv" && P.ownerEmail) { P.ownerEmail = String(P.ownerEmail).trim().toLowerCase(); doc.ownerEmail = P.ownerEmail; doc.json = JSON.stringify(P); }
       await db.doc("settings/page-" + P.slug).set(doc);
       const info = { slug: P.slug, nom: P.nom, type: P.type, photo: P.photo || "", actif: P.actif !== false, maj: Date.now() };
