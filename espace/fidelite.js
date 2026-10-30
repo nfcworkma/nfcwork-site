@@ -157,11 +157,16 @@
     app.innerHTML = `<div class="row between"><div><h2>Cartes fidélité</h2><div class="muted">Points, récompenses et classement des employés.</div></div>
       ${admin ? `<div class="row"><button class="btn" data-act="metiers">✏️ Métiers & prix</button><button class="btn primary" data-act="nouveau">＋ Nouveau programme</button></div>` : ""}</div>
       ${progs.length ? `<div class="mlist sec">${progs.map(p => `<div class="paper mcard">
-        <div class="row between"><span class="n">${(METIERS[p.metier] || {}).ico || ""} ${esc(p.nom)}</span><span class="pill ${p.actif === false ? "off" : "pro"}">${p.actif === false ? "Désactivé" : esc(TYPES[p.type] ? TYPES[p.type][0] : "")}</span></div>
+        <div class="row between"><span class="n">${(METIERS[p.metier] || {}).ico || ""} ${esc(p.nom)}</span><span class="pill ${p.actif === false ? "off" : "pro"}">${p.actif === false ? "Désactivé" : p.essai && p.expire ? (jourLocal() > p.expire ? "Essai terminé" : "🎁 Essai → " + esc(p.expire.slice(8, 10) + "/" + p.expire.slice(5, 7))) : esc(TYPES[p.type] ? TYPES[p.type][0] : "")}</span></div>
         <div class="l">${esc(p.objectif)} ${unite(p)} = ${esc(p.recompense)}${admin ? `<br>${esc(p.ownerEmail || "sans compte commerçant")}${p.prix ? ` · ${esc(p.prix)} DH ${PERIODES[p.periode] || ""}` : ""}` : ""}</div>
         <div class="row"><a class="btn sm primary" href="#p=${esc(p.id)}">Ouvrir</a><button class="btn sm" data-lienqr="${esc(p.id)}">🔗 Lien & QR</button>${p.modeClient === "caisse" ? `<a class="btn sm" href="caisse.html#p=${esc(p.id)}">📱 Écran caisse</a>` : ""}${admin ? `<button class="btn sm" data-reglages="${esc(p.id)}">Réglages</button>` : ""}</div></div>`).join("")}</div>`
       : `<div class="empty paper sec"><h3>Aucun programme</h3><p>Créez le programme fidélité d’un commerce : type de points, récompense, employés.</p><button class="btn primary" data-act="nouveau">＋ Créer un programme</button></div>`}`;
   }
+
+  /* dates locales AAAA-MM-JJ */
+  const jourIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const jourLocal = () => jourIso(new Date());
+  const jourPlus = (n, base) => { const d = base ? new Date(base + "T12:00:00") : new Date(); d.setDate(d.getDate() + n); return jourIso(d); };
 
   /* ================= Réglages d'un programme (admin) : 3 étapes ================= */
   // logo importé depuis le téléphone → carré 256 px, et couleur principale du logo
@@ -226,9 +231,17 @@
           <label class="f">Comment ça marche (affiché au client, une étape par ligne)<textarea id="p-guide" maxlength="400" rows="3">${esc(p.guide || "")}</textarea></label>
           <label class="check"><input type="checkbox" id="p-actif" ${p.actif !== false ? "checked" : ""}> Programme actif</label>
         </div></details>
+        <div class="paper" style="padding:12px 14px;border-radius:14px;border:1px dashed var(--accent)">
+          <label class="check" style="margin:0"><input type="checkbox" id="p-essai" ${(!ex || p.essai) ? "checked" : ""}> 🎁 <b>Essai gratuit</b> : la carte se coupe toute seule à la fin</label>
+          <div class="row" style="gap:8px;margin-top:8px;align-items:center" id="w-essai"><span class="muted" style="font-size:13px">Jusqu’au</span><input id="p-essai-fin" type="date" value="${esc(p.essai && p.expire ? p.expire : jourPlus(7))}" style="width:auto">
+            <button type="button" class="btn sm" data-essai="7">7 j</button><button type="button" class="btn sm" data-essai="14">14 j</button></div>
+          <small class="muted" style="display:block;margin-top:6px">2 jours avant la fin, le commerçant voit un avertissement (jamais ses clients). Quand il paie : décochez.</small></div>
         <p class="err" id="perr"></p>
         <div class="row"><button class="btn primary" style="flex:1">Enregistrer</button><button type="button" class="btn ghost" data-fermer>Annuler</button></div>
       </form>`);
+    const majEssai = () => { $("#w-essai", d).hidden = !$("#p-essai", d).checked; };
+    $("#p-essai", d).onchange = majEssai; majEssai();
+    d.addEventListener("click", e => { const b = e.target.closest("[data-essai]"); if (b) $("#p-essai-fin", d).value = jourPlus(+b.dataset.essai); });
     const val = { type: p.type, modeEmploye: p.modeEmploye, modeClient: MODES_C[p.modeClient] ? p.modeClient : "commercant" }; let logoData = p.logoData || "", metier = p.metier;
     const maj = () => { $("#w-dh", d).hidden = val.type !== "montant"; $("#w-emp", d).hidden = !$("#p-emp", d).checked; $("#w-delai", d).hidden = val.modeClient !== "caisse"; };
     const dessinerIdees = () => {
@@ -284,6 +297,10 @@
         prix: parseInt($("#p-prix", d).value, 10) || 0, periode: $("#p-per", d).value, guide: $("#p-guide", d).value.trim().slice(0, 400)
       };
       if (!data.ownerEmail) { $("#perr", d).textContent = "Indiquez l’e-mail du compte du commerçant."; return; }
+      if ($("#p-essai", d).checked) {
+        const fin = $("#p-essai-fin", d).value || jourPlus(7);
+        Object.assign(data, { essai: true, expire: fin, preavis: jourPlus(-2, fin) });
+      } else if (p.essai) Object.assign(data, { essai: false, expire: "", preavis: "" });   // il a payé : plus de coupure
       const b = e.target.querySelector("button.primary"); b.disabled = true;
       try {
         const id = pid || slugify(data.nom) + "-" + rid(4);

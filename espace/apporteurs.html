@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Apporteurs · nfcwork.ma</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#040a1d">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/img/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../assets/img/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="outil.css">
+<style>
+.alist{display:grid;gap:12px}
+.acard{padding:16px;border-radius:16px}
+.acard .lien{font:600 14px ui-monospace,Menlo,monospace;background:var(--sunk,#0b1220);border:1px solid var(--line);border-radius:10px;padding:8px 10px;word-break:break-all;margin:8px 0}
+.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.kp div{border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}.kp b{display:block;font-size:22px}.kp small{color:var(--muted);font-size:12px}
+.cl{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}.cl .n{flex:1;min-width:0}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="btn sm ghost" id="backBtn" href="./" aria-label="Retour">←</a>
+  <div class="t"><b id="topTitle">Apporteurs</b><small id="topSub">Parrainage & commissions</small></div>
+  <button class="btn sm primary" id="nouveau">＋ Nouveau</button>
+</div></header>
+<main id="app"><div class="empty"><h3>Chargement…</h3></div></main>
+<div id="toast" hidden></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="apporteurs.js"></script>
+</body>
+</html>

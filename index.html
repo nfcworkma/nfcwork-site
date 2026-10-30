@@ -279,7 +279,9 @@ footer img{height:22px;width:auto}footer nav{display:flex;gap:20px;flex-wrap:wra
   const MT=[["🍽",{fr:"Restaurant & café",ar:"ريسطو وكافي"},"/menu/demo-premium"],["🚗",{fr:"Location de voitures",ar:"كراء الطوموبيلات"},"/menu/demo-location"],["💈",{fr:"Salon & barber",ar:"صالون وحلاق"},"/menu/demo-salon"],["🏨",{fr:"Hôtel & riad",ar:"فندق ورياض"},"/menu/demo-hotel?table=12"],["🛍",{fr:"Boutique & pâtisserie",ar:"بوتيك وحلويات"},"/menu/demo-boutique"],["🩺",{fr:"Médecin & cabinet",ar:"طبيب وعيادة"},"/p/demo-medecin"],["✨",{fr:"Tous les exemples",ar:"جميع الأمثلة"},"/demo/"]];
   const BAND={fr:["Restaurants","Cafés","Snacks","Salons & barbers","Hôtels & riads","Location de voitures","Boutiques","Pâtisseries","Médecins","Agences"],ar:["مطاعم","مقاهي","سناك","صالونات","فنادق ورياضات","كراء الطوموبيلات","بوتيكات","حلويات","أطباء","وكالات"]};
   let L="fr"; try{L=localStorage.getItem("nfcw-lang")==="ar"?"ar":"fr"}catch(e){}
-  const wa=t=>"https://wa.me/"+WA+(t?"?text="+encodeURIComponent(t):"");
+  // apporteur : nfcwork.ma/?ref=CODE → le code est gardé et ajouté aux messages WhatsApp
+  let REF=""; try{const q=new URLSearchParams(location.search).get("ref");if(q&&/^[A-Za-z0-9-]{2,20}$/.test(q)){localStorage.setItem("nfcw-ref",q.toUpperCase());}REF=localStorage.getItem("nfcw-ref")||""}catch(e){}
+  const wa=t=>{const m=(t||"")+(REF?(t?"\n":"")+"(Code apporteur : "+REF+")":"");return "https://wa.me/"+WA+(m?"?text="+encodeURIComponent(m):"")};
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const tx=(s,html)=>TX[L]&&TX[L][s]!=null?TX[L][s]:(html?s:esc(s));
   const T=s=>`<span data-ek="${esc(s)}">${tx(s)}</span>`;
