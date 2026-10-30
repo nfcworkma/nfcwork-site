@@ -257,6 +257,13 @@
       <div class="stack" style="gap:8px">${L.map((o, i) => `<div class="svrow" style="grid-template-columns:1fr 74px 40px"><input data-op="${i}.nom" value="${esc(o.nom)}" placeholder="🎾 Location raquette"><input data-op="${i}.prix" value="${esc(o.prix)}" placeholder="20" inputmode="numeric"><button class="btn icon sm danger" data-act="op-del" data-i="${i}">✕</button></div>`).join("")}
       <button class="btn sm" data-act="op-add">＋ Ajouter une option</button></div>`;
   }
+  // cartes fidélité existantes : la réservation donne +1 point quand le ticket est scanné à l'arrivée
+  let FIDS = null;
+  function fidSelect() {
+    if (FIDS === null) { FIDS = []; db.collection("fidProgrammes").get().then(sn => { FIDS = sn.docs.map(d => ({ id: d.id, nom: d.data().nom || d.id, mail: d.data().ownerEmail || "" })).sort((a, b) => a.nom.localeCompare(b.nom)); if (P && P.type === "rdv") { const f = app.querySelector('[data-k="fidPid"]'); if (f) f.outerHTML = fidSelect().match(/<select[\s\S]*<\/select>/)[0]; } }).catch(() => {}); }
+    const L = FIDS.slice(); if (P.fidPid && !L.some(x => x.id === P.fidPid)) L.unshift({ id: P.fidPid, nom: P.fidPid, mail: "" });
+    return `<label class="f">🎁 Carte fidélité liée (+1 point quand le ticket est scanné à l’arrivée)<select data-k="fidPid"><option value="">Aucune</option>${L.map(x => `<option value="${esc(x.id)}" ${P.fidPid === x.id ? "selected" : ""}>${esc(x.nom)}${x.mail ? " · " + esc(x.mail) : ""}</option>`).join("")}</select></label>`;
+  }
   function servicesHtml() {
     const L = svLire();
     return `<div class="eyebrow">Soins / services (prix en DH, le client voit le total)</div>
@@ -317,7 +324,7 @@
         <label class="check"><input type="checkbox" data-k="auto" ${P.auto ? "checked" : ""}> Confirmer automatiquement (sinon le commerçant confirme dans son Espace)</label>
         ${champ("whatsapp", "WhatsApp du commerce (le client peut le prévenir)", 'type="tel" inputmode="tel" placeholder="06…"')}
         <div data-adm class="stack" style="gap:10px">${champ("ownerEmail", "E-mail du compte commerçant (il reçoit les réservations dans son Espace)", 'type="email" autocapitalize="off" placeholder="vide = les réservations arrivent dans votre Espace admin"')}
-        ${champ("fidPid", "Carte fidélité liée (code du programme, facultatif)", 'autocapitalize="off" placeholder="ex. billard-atlas"')}</div>
+        ${fidSelect()}</div>
         ${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Réservez en 30 secondes"')}${champ("instagram", "Instagram (facultatif)", 'autocapitalize="off"')}</section>`; }
     if (P.type === "liens") corps = `<section class="sec paper stack"><h3>🔗 Page liens</h3>${photoBloc}${champ("nom", "Nom", 'maxlength="60"')}${champ("slogan", "Petite phrase (facultatif)", 'maxlength="100"')}
         ${champ("whatsapp", "WhatsApp (bouton en haut)", 'type="tel" inputmode="tel"')}<div class="eyebrow">Boutons</div>${liensHtml()}${champ("localisation", "Localisation (adresse ou lien Maps)", 'maxlength="300"')}</section>`;
@@ -410,7 +417,7 @@
       if (m) { P.lienGoogle = "https://search.google.com/local/writereview?placeid=" + m[0]; const f = app.querySelector('[data-k="lienGoogle"]'); if (f) f.value = P.lienGoogle; toast("✅ Lien Google créé : il ouvre directement les étoiles."); majBarre(); }
       if (t.hasAttribute("data-placeid")) return;
     }
-    if (t.dataset.k) { P[t.dataset.k] = t.type === "checkbox" ? t.checked : t.value; if (t.hasAttribute("data-rerender")) { renderEdit(); majBarre(); return; } if (t.dataset.k === "nom") $("#topTitle").textContent = (TYPES[P.type] || [""])[0] + " " + t.value; }
+    if (t.dataset.k) { P[t.dataset.k] = t.type === "checkbox" ? t.checked : t.value; if (t.hasAttribute("data-rerender")) { renderEdit(); majBarre(); return; } if (t.dataset.k === "fidPid" && t.value && !String(P.ownerEmail || "").trim()) { const f = (FIDS || []).find(x => x.id === t.value); if (f && f.mail) { P.ownerEmail = f.mail; const o = app.querySelector('[data-k="ownerEmail"]'); if (o) o.value = f.mail; } } if (t.dataset.k === "nom") $("#topTitle").textContent = (TYPES[P.type] || [""])[0] + " " + t.value; }
     else if (t.dataset.h != null) { P.horaires = P.horaires || {}; P.horaires[t.dataset.h] = t.value; }
     else if (t.hasAttribute("data-metier")) { if (t.value && appliquerMetier(t.value)) { renderEdit(); toast("✅ Modèle appliqué : mettez vos prix, puis Enregistrer"); } else if (t.value) t.value = P.metier || ""; }
     else if (t.dataset.rs) { const [i, k] = t.dataset.rs.split("."), L = rsLire(); if (L[+i]) { L[+i][k] = k === "nom" ? t.value : t.value.replace(/\D/g, ""); rsEcrire(L); } }
