@@ -262,7 +262,8 @@
   function fidSelect() {
     if (FIDS === null) { FIDS = []; db.collection("fidProgrammes").get().then(sn => { FIDS = sn.docs.map(d => ({ id: d.id, nom: d.data().nom || d.id, mail: d.data().ownerEmail || "" })).sort((a, b) => a.nom.localeCompare(b.nom)); if (P && P.type === "rdv") { const f = app.querySelector('[data-k="fidPid"]'); if (f) f.outerHTML = fidSelect().match(/<select[\s\S]*<\/select>/)[0]; } }).catch(() => {}); }
     const L = FIDS.slice(); if (P.fidPid && !L.some(x => x.id === P.fidPid)) L.unshift({ id: P.fidPid, nom: P.fidPid, mail: "" });
-    return `<label class="f">🎁 Carte fidélité liée (+1 point quand le ticket est scanné à l’arrivée)<select data-k="fidPid"><option value="">Aucune</option>${L.map(x => `<option value="${esc(x.id)}" ${P.fidPid === x.id ? "selected" : ""}>${esc(x.nom)}${x.mail ? " · " + esc(x.mail) : ""}</option>`).join("")}</select></label>`;
+    return `<label class="f">🎁 Carte fidélité liée (+1 point quand le ticket est scanné à l’arrivée)<select data-k="fidPid"><option value="">Aucune</option>${L.map(x => `<option value="${esc(x.id)}" ${P.fidPid === x.id ? "selected" : ""}>${esc(x.nom)}${x.mail ? " · " + esc(x.mail) : ""}</option>`).join("")}</select></label>
+      ${P.fidPid ? "" : `<button class="btn sm" data-act="fid-new">＋ Créer la carte fidélité de « ${esc(P.nom || "ce commerce")} »</button>`}`;
   }
   function servicesHtml() {
     const L = svLire();
@@ -459,6 +460,20 @@
     if (a === "supprimer" && !PROPRIO) supprimer();
     if (a === "photo-del") { P.photo = ""; renderEdit(); }
     if (a === "g-del") { P.galerie.splice(i, 1); renderEdit(); }
+    if (a === "fid-new") {
+      if (!P.nom) { toast("Donnez d’abord un nom au commerce."); return; }
+      const R = { barber: ["1 coupe offerte", 10, "visites"], salon: ["-30 % sur votre soin", 6, "visites"], ongles: ["-30 % sur votre soin", 6, "visites"], spa: ["1 hammam offert", 6, "visites"], lavage: ["1 lavage offert", 5, "lavages"],
+        billard: ["1 partie offerte", 10, "parties"], ps: ["1 heure de jeu offerte", 10, "visites"], foot: ["1 heure de terrain offerte", 10, "matchs"], terrains: ["1 heure offerte", 10, "réservations"], padel: ["1 heure de padel offerte", 10, "matchs"] }[P.metier] || ["1 offert", 10, "visites"];
+      const id = slugify(P.nom) + "-" + rid(4), mail = String(P.ownerEmail || "").trim().toLowerCase() || ADMIN;
+      b.disabled = true;
+      try {
+        await db.doc("fidProgrammes/" + id).set({ metier: ["salon", "barber", "ongles", "spa"].includes(P.metier) ? "salon" : P.metier || "autre", nom: P.nom, ownerEmail: mail, couleur: /^#[0-9a-f]{6}$/i.test(P.couleur || "") ? P.couleur : "#1e90ff",
+          logoData: "", logo: "", type: "visites", objectif: R[1], unite: R[2], dhParPoint: 10, recompense: R[0], modeClient: "commercant", delaiH: 3, employes: false, modeEmploye: "les2",
+          primeEmploye: "Le meilleur du mois gagne 200 DH", actif: true, prix: 0, periode: "mois", guide: "", lienAvis: "", maj: NOW(), createdAt: NOW() });
+        FIDS = (FIDS || []).concat({ id, nom: P.nom, mail }); P.fidPid = id; if (!String(P.ownerEmail || "").trim()) P.ownerEmail = mail;
+        renderEdit(); majBarre(); toast(`🎁 Carte créée (${R[1]} ${R[2]} = ${R[0]}). Appuyez sur Enregistrer. Logo et récompense : dans Fidélité.`);
+      } catch (x) { b.disabled = false; erreur(x); }
+    }
     if (a === "rs-add") { const L = rsLire(); L.push({ nom: "Nouveau " + (L.length + 1), ph: "", pp: "" }); rsEcrire(L); renderEdit(); majBarre(); }
     if (a === "rs-del") { const L = rsLire(); L.splice(i, 1); rsEcrire(L); renderEdit(); majBarre(); }
     if (a === "op-add") { const L = opLire(); L.push({ nom: "Nouvelle option", prix: "" }); opEcrire(L); renderEdit(); majBarre(); }
