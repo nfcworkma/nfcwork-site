@@ -17,6 +17,9 @@
     // nfcwork.ma/p/<nom> → carte digitale, avis Google, Wi-Fi ou page liens créés dans l'Espace
     var pg = path.match(/^\/p\/([a-z0-9-]+)\/?$/i);
     if (pg) location.replace("/p/?s=" + pg[1].toLowerCase() + (location.search ? "&" + location.search.slice(1) : "") + location.hash);
+    // nfcwork.ma/f/<nom> → inscription à la carte fidélité du commerce
+    var fp = path.match(/^\/f\/([a-z0-9-]+)\/?$/i);
+    if (fp) location.replace("/f/?p=" + fp[1].toLowerCase() + (location.search ? "&" + location.search.slice(1) : "") + location.hash);
     // nfcwork.ma/tv/<nom> → vidéo du menu sur écran TV (en boucle)
     var tv = path.match(/^\/tv\/([a-z0-9-]+)\/?$/i);
     if (tv) location.replace("/tv/?v=" + tv[1].toLowerCase());

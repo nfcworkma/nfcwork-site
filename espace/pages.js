@@ -480,7 +480,8 @@
       if (!P.nom) { toast("Donnez d’abord un nom au commerce."); return; }
       const R = { barber: ["1 coupe offerte", 10, "visites"], salon: ["-30 % sur votre soin", 6, "visites"], ongles: ["-30 % sur votre soin", 6, "visites"], spa: ["1 hammam offert", 6, "visites"], lavage: ["1 lavage offert", 5, "lavages"],
         billard: ["1 partie offerte", 10, "parties"], ps: ["1 heure de jeu offerte", 10, "visites"], foot: ["1 heure de terrain offerte", 10, "matchs"], terrains: ["1 heure offerte", 10, "réservations"], padel: ["1 heure de padel offerte", 10, "matchs"] }[P.metier] || ["1 offert", 10, "visites"];
-      const id = slugify(P.nom) + "-" + rid(4), mail = String(P.ownerEmail || "").trim().toLowerCase() || ADMIN;
+      const mail = String(P.ownerEmail || "").trim().toLowerCase() || ADMIN;
+      let id = slugify(P.nom) || "carte"; for (let i = 2; ; i++) { const [x, y] = await Promise.all([db.doc("fidProgrammes/" + id).get(), db.doc("settings/fidlien-" + id).get()]); if (!x.exists && !y.exists) break; id = (slugify(P.nom) || "carte") + "-" + i; }
       b.disabled = true;
       try {
         await db.doc("fidProgrammes/" + id).set({ metier: ["salon", "barber", "ongles", "spa"].includes(P.metier) ? "salon" : P.metier || "autre", nom: P.nom, ownerEmail: mail, couleur: /^#[0-9a-f]{6}$/i.test(P.couleur || "") ? P.couleur : "#1e90ff",

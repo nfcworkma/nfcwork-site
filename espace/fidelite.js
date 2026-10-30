@@ -306,7 +306,7 @@
       } else if (p.essai) Object.assign(data, { essai: false, expire: "", preavis: "" });   // il a payé : plus de coupure
       const b = e.target.querySelector("button.primary"); b.disabled = true;
       try {
-        const id = pid || slugify(data.nom) + "-" + rid(4);
+        const id = pid || await idLibre(data.nom);
         if (!pid) data.createdAt = NOW();
         await db.doc("fidProgrammes/" + id).set(data, { merge: true });
         if (ex && String(ex.ownerEmail || "").toLowerCase() !== data.ownerEmail) {   // nouvel e-mail : ses cartes clients et employés suivent
@@ -701,8 +701,27 @@
     $("#rp-copier", d).onclick = async () => { try { await navigator.clipboard.writeText($("#rp-t", d).value); toast("Rapport copié"); } catch (e) { prompt("Copiez :", $("#rp-t", d).value); } };
   }
 
-  function lienQR(prog, neuf) {
-    const lien = SITE + "/f/?p=" + prog.id;
+  // lien propre : nfcwork.ma/f/<nom> (les anciens programmes « nom-x7k2 » reçoivent un alias settings/fidlien-<nom>)
+  async function lienCourt(prog) {
+    if (prog.court) return SITE + "/f/" + prog.court;
+    const base = prog.id.replace(/-[a-z0-9]{4}$/, "");
+    if (base === prog.id || !base) return SITE + "/f/" + prog.id;
+    try {
+      const a = await db.doc("settings/fidlien-" + base).get(), pr = await db.doc("fidProgrammes/" + base).get();
+      if (!pr.exists && (!a.exists || a.data().pid === prog.id)) {
+        if (!a.exists) await db.doc("settings/fidlien-" + base).set({ pid: prog.id, maj: NOW() });
+        await db.doc("fidProgrammes/" + prog.id).update({ court: base }); prog.court = base;
+        return SITE + "/f/" + base;
+      }
+    } catch (e) { console.warn("lien court", e); }
+    return SITE + "/f/" + prog.id;
+  }
+  async function idLibre(nom) {
+    const b = slugify(nom) || "carte"; let id = b, i = 2;
+    for (;;) { const [x, y] = await Promise.all([db.doc("fidProgrammes/" + id).get(), db.doc("settings/fidlien-" + id).get()]); if (!x.exists && !y.exists) return id; id = b + "-" + i++; }
+  }
+  async function lienQR(prog, neuf) {
+    const lien = await lienCourt(prog);
     const d = fenetre(`<div class="row between"><h2>${neuf ? "✅ Carte fidélité créée" : "Lien et QR de la carte"}</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
       <p class="muted" style="margin:4px 0 12px">Imprimez ce QR ou envoyez le lien : vos clients créent leur carte en 10 secondes.</p>
       <div class="qrbox"><div class="q">${window.QRGEN.svg(lien, { marge: 1, couleur: "#05080f" })}</div>
@@ -728,8 +747,8 @@
       img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
     };
   }
-  function affiches() {
-    const lienCaisse = SITE + "/f/?p=" + P.id;
+  async function affiches() {
+    const lienCaisse = await lienCourt(P);
     const d = fenetre(`<div class="row between"><h2>Affiches & QR</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
       <p class="muted">QR d’inscription : le client crée sa carte en 10 secondes. Ensuite, c’est vous qui scannez sa carte à chaque achat (impossible de tricher).</p>
       <div style="background:#fff;border-radius:16px;padding:14px;margin:10px auto;max-width:260px">${window.QRGEN.svg(lienCaisse, { marge: 1 })}</div>

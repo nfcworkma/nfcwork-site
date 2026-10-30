@@ -18,7 +18,7 @@
     const [menus, pages] = await Promise.all([json(db, "menus"), json(db, "pages")]);
     (menus || []).forEach(m => L.push({ k: "menu", id: m.slug, nom: m.nom || m.slug, ic: "🍽", sous: "Menu · /menu/" + m.slug }));
     (pages || []).forEach(p => L.push({ k: "page", id: p.slug, nom: p.nom || p.slug, ic: ICP[p.type] || "📄", sous: "Page · /p/" + p.slug, type: p.type }));
-    try { (await db.collection("fidProgrammes").get()).docs.forEach(d => { const p = d.data(); L.push({ k: "fid", id: d.id, nom: p.nom || "", ic: "🎁", sous: "Carte fidélité" }); }); } catch (e) {}
+    try { (await db.collection("fidProgrammes").get()).docs.forEach(d => { const p = d.data(); L.push({ k: "fid", id: d.id, court: p.court || "", nom: p.nom || "", ic: "🎁", sous: "Carte fidélité" }); }); } catch (e) {}
     try { (await db.collection("clients").get()).docs.forEach(d => { const c = d.data(); if (c.name) L.push({ k: "client", id: d.id, nom: c.name, ic: "🧾", sous: "Fiche client" + (c.phone ? " · " + c.phone : "") }); }); } catch (e) {}
     return L;
   }
@@ -84,7 +84,7 @@
     // liens vers ses autres services
     for (const s of [src, ...freres]) {
       if (s.k === "menu") D.liens.push({ titre: "🍔 Notre menu", url: SITE + "/menu/" + s.id, k: "menu" });
-      if (s.k === "fid") D.liens.push({ titre: "🎁 Ma carte fidélité", url: SITE + "/f/?p=" + s.id, k: "fid" });
+      if (s.k === "fid") D.liens.push({ titre: "🎁 Ma carte fidélité", url: SITE + "/f/" + (s.court || s.id), k: "fid" });
       if (s.k === "page" && s.type === "avis") D.liens.push({ titre: "⭐ Laisser un avis Google", url: SITE + "/p/" + s.id, k: "avis", slug: s.id });
       if (s.k === "page" && s.type === "wifi") D.liens.push({ titre: "📶 Notre Wi-Fi", url: SITE + "/p/" + s.id, k: "wifi", slug: s.id });
       if (s.k === "page" && s.type === "profil") D.liens.push({ titre: "👤 Carte de visite", url: SITE + "/p/" + s.id, k: "profil", slug: s.id });

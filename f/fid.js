@@ -311,6 +311,8 @@
   /* ---------- aiguillage ---------- */
   const c = clean(qs.get("c")), p = clean(qs.get("p")), e = clean(qs.get("e")), k = clean(qs.get("k"), 60);
   const kw = parseInt(qs.get("w"), 10), kj = String(qs.get("j") || "").replace(/[^0-9a-f]/g, "").slice(0, 64);
-  (k && kw && kj.length === 64 ? scanCaisse(k, kw, kj) : c ? ouvrirCarte(c) : p ? inscription(p) : e ? employe(e) : Promise.resolve(etat("Carte fidélité", "Scannez le QR de votre commerce pour obtenir votre carte.")))
+  // lien propre nfcwork.ma/f/<nom> : si ce n'est pas l'identifiant du programme, c'est un alias (settings/fidlien-<nom>)
+  const resoudre = async x => { const pr = await lire("fidProgrammes/" + x).catch(() => null); if (pr) return x; const a = await lire("settings/fidlien-" + x).catch(() => null); return (a && a.pid) || x; };
+  (k && kw && kj.length === 64 ? scanCaisse(k, kw, kj) : c ? ouvrirCarte(c) : p ? resoudre(p).then(inscription) : e ? employe(e) : Promise.resolve(etat("Carte fidélité", "Scannez le QR de votre commerce pour obtenir votre carte.")))
     .catch(err => { console.error(err); etat("Connexion impossible", "Vérifiez votre connexion Internet et réessayez."); });
 })();
