@@ -123,7 +123,8 @@
   const minNow = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
   const debutDe = r => +r.debutMin || hm(r.debut) || 0;
   const enRetard = r => r.statut === "confirmee" && (r.jour < auj() || (r.jour === auj() && minNow() > debutDe(r) + 10));
-  const msgConf = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nVotre réservation chez ${P.nom || "nous"} est confirmée ✅\n🗓 ${jourLong(r.jour)} à ${r.debut}\n${r.mode === "tables" ? "🎱 " + emo(r.ressource)[1] : "✂️ " + (r.service || "") + (r.staff ? " avec " + r.staff : "")}\nÀ bientôt !`; };
+  const msgConf = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nVotre réservation chez ${P.nom || "nous"} est confirmée ✅\n🗓 ${jourLong(r.jour)} à ${r.debut}\n${r.mode === "tables" ? "🎱 " + emo(r.ressource)[1] : "✂️ " + (r.service || "") + (r.staff ? " avec " + r.staff : "")}\n\n🎟️ Votre ticket (à montrer à l’arrivée, une capture d’écran suffit) :\n${lienTicket(r)}\nÀ bientôt !`; };
+  const lienTicket = r => SITE + "/p/" + r.page + "?r=" + r.id;
   const msgRappel = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nPetit rappel : votre réservation chez ${P.nom || "nous"} c’est demain, ${jourLong(r.jour)} à ${r.debut} (${quoi(r)}${r.staff ? " avec " + r.staff : ""}).\nÀ demain ! Si vous ne pouvez pas venir, prévenez-nous ici 🙏`; };
 
   function vueRes() {
@@ -200,6 +201,7 @@
       ${barres("Heures les plus demandées", cpt(r => r.debut))}
       ${barres(RF().some(r => r.mode === "tables") ? "Tables" : "Soins", cpt(r => quoi(r)))}
       ${barres("Équipe", cpt(r => r.staff))}
+      ${(() => { const H = L.filter(r => r.statut === "venu").sort((a, b) => tri(b, a)).slice(0, 40); return H.length ? `<div class="sh">Historique des arrivées (tickets validés)</div>${H.map(r => `<div class="rv"><div class="h" style="font-size:15px">${esc(NJ[deCle(r.jour).getDay()] + " " + deCle(r.jour).getDate())}<small>${esc(r.debut)}</small></div><div class="q"><b>${esc(r.nom)} · ${esc(quoi(r))}</b><small>${esc([r.service && r.mode === "tables" ? r.service : "", r.prix ? r.prix + " DH" : "", r.venuA && r.venuA.toDate ? "arrivé à " + r.venuA.toDate().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · "))}</small></div><span class="tag v">✓</span></div>`).join("")}` : ""; })()}
       ${!L.length ? `<div class="empty paper"><h3>Pas encore de chiffres ce mois</h3><p>Les statistiques se remplissent avec les réservations.</p></div>` : ""}`;
   }
 
@@ -213,18 +215,105 @@
     d.onclick = e => { if (e.target === d || e.target.closest("[data-x]")) d.remove(); const a = e.target.closest("[data-vu]"); if (a) { a.textContent = "✓ Envoyé"; a.classList.remove("primary"); } };
   }
   $("#rappels").onclick = rappels;
+  function modale(html) {
+    const d = document.createElement("div"); d.className = "modal"; d.innerHTML = `<div class="box">${html}</div>`; document.body.appendChild(d);
+    d.addEventListener("click", e => { if (e.target === d || e.target.closest("[data-x]")) { d.dispatchEvent(new Event("fermee")); d.remove(); } });
+    return d;
+  }
+  function envoyerTicket(r) {
+    const w = waNum(r.tel);
+    modale(`<h2>✓ Réservation confirmée</h2><p class="muted">${esc(r.nom)} voit déjà son ticket QR sur sa page. Envoyez-le aussi sur WhatsApp : il le montrera à l’arrivée.</p>
+      ${w ? `<a class="btn primary block" style="display:flex;justify-content:center;margin:12px 0 8px" target="_blank" rel="noopener" href="https://wa.me/${w}?text=${encodeURIComponent(msgConf(r))}" data-x>📲 Envoyer le ticket à ${esc(r.nom)}</a>` : `<p class="muted">Pas de numéro WhatsApp pour ce client.</p>`}
+      <button class="btn block ghost" data-x>Plus tard</button>`);
+  }
+  // ticket scanné : on retrouve la réservation et on valide l'arrivée
+  function ticketVue(id) {
+    const r = R1(id) || R.find(x => x.id.slice(0, 6).toUpperCase() === String(id).toUpperCase());
+    if (!r) { modale(`<h2>Ticket inconnu</h2><p class="muted">Ce ticket n’appartient pas à vos réservations (ou il a été supprimé).</p><button class="btn block" data-x>Fermer</button>`); return; }
+    const autreJour = r.jour !== auj(), venu = r.statut === "venu", non = r.statut === "refusee" || r.statut === "annulee";
+    const quand = r.venuA && r.venuA.toDate ? r.venuA.toDate().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "";
+    const d = modale(`<h2>🎟️ ${esc(r.nom)}</h2>
+      <div class="paper" style="padding:12px 14px;border-radius:14px;margin:10px 0;display:grid;gap:4px">
+        <b>${esc(quoi(r))}${r.mode === "tables" && r.service ? " · " + esc(r.service) : ""}${r.staff ? " · " + esc(r.staff) : ""}</b>
+        <span>🗓 ${esc(jourLong(r.jour))} à ${esc(r.debut)}</span>${r.prix ? `<span>💰 ${r.prix} DH à payer</span>` : ""}<span class="muted">#${esc(r.id.slice(0, 6).toUpperCase())} · ${esc(String(r.tel || ""))}</span></div>
+      ${venu ? `<div class="tag v" style="display:block;text-align:center;padding:10px">✅ Déjà validé${quand ? " à " + quand : ""}</div>`
+        : non ? `<div class="tag r" style="display:block;text-align:center;padding:10px">✕ Réservation ${r.statut === "annulee" ? "annulée" : "refusée"}</div>`
+        : `${autreJour ? `<p style="color:var(--warn);font-weight:600">⚠️ Cette réservation est pour ${esc(jourLong(r.jour))}, pas aujourd’hui.</p>` : ""}
+           <button class="btn primary block" id="tv-ok" style="margin-top:6px">✅ Valider l’arrivée${PAGES[r.page] && PAGES[r.page].fidPid ? " (+1 point fidélité)" : ""}</button>`}
+      <button class="btn block ghost" data-x style="margin-top:8px">Fermer</button>`);
+    const b = d.querySelector("#tv-ok");
+    if (b) b.onclick = async () => { b.disabled = true; b.textContent = "Validation…"; if (r.statut === "attente") await statut(r, "confirmee"); await arrive(r); d.remove(); };
+  }
+  let jsqr = null;
+  const chargerJsQR = () => jsqr || (jsqr = new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "../assets/js/jsQR.js"; s.onload = ok; s.onerror = () => { jsqr = null; ko(); }; document.head.appendChild(s); }));
+  async function scanner() {
+    let flux = null, fini = false;
+    const d = modale(`<div class="row between"><h2>📷 Scanner un ticket</h2><button class="btn sm ghost" data-x>Fermer</button></div>
+      <div class="scan"><video id="cam" playsinline muted></video></div>
+      <p class="muted" style="text-align:center;margin:6px 0 0;font-size:13.5px" id="sm">Visez le QR du ticket (sur le téléphone du client ou sa capture d’écran).</p>
+      <label class="btn block" style="margin-top:10px;display:flex;justify-content:center">📸 Prendre le QR en photo<input type="file" accept="image/*" capture="environment" hidden id="scan-photo"></label>
+      <form id="scan-code" class="row" style="gap:6px;margin-top:8px"><input id="sc-c" placeholder="ou tapez le code (ex. AB12CD)" maxlength="8" autocapitalize="characters" style="flex:1;min-width:0;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);font:inherit"><button class="btn">OK</button></form>`);
+    const stop = () => { fini = true; if (flux) flux.getTracks().forEach(t => t.stop()); };
+    d.addEventListener("fermee", stop);
+    const trouve = txt => {
+      const id = (String(txt).match(/[?&]r=([A-Za-z0-9]+)/) || [])[1];
+      if (!id) { $("#sm", d).textContent = "Ce QR n’est pas un ticket de réservation NFCWORK."; return false; }
+      stop(); d.remove(); ticketVue(id); return true;
+    };
+    $("#scan-code", d).onsubmit = e => { e.preventDefault(); const c = $("#sc-c", d).value.replace(/[^A-Za-z0-9]/g, ""); if (c.length < 6) return; stop(); d.remove(); ticketVue(c); };
+    $("#scan-photo", d).onchange = async e => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      $("#sm", d).textContent = "Lecture de la photo…";
+      try {
+        await chargerJsQR();
+        const url = URL.createObjectURL(f), img = new Image();
+        await new Promise((ok, ko) => { img.onload = ok; img.onerror = ko; img.src = url; });
+        const k = Math.min(1, 1200 / Math.max(img.width, img.height)), cv = document.createElement("canvas");
+        cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+        const g = cv.getContext("2d"); g.drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+        const r = jsQR(g.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height, { inversionAttempts: "attemptBoth" });
+        if (!(r && r.data && trouve(r.data))) $("#sm", d).textContent = "QR non trouvé : reprenez la photo plus près, bien nette.";
+      } catch (x) { $("#sm", d).textContent = "Photo illisible, réessayez."; }
+      e.target.value = "";
+    };
+    try {
+      await chargerJsQR();
+      flux = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      if (fini) { stop(); return; }
+      const v = $("#cam", d); v.srcObject = flux; await v.play();
+      const cv = document.createElement("canvas"), g = cv.getContext("2d", { willReadFrequently: true });
+      const tour = () => {
+        if (fini) return;
+        if (v.videoWidth) {
+          const k = Math.min(1, 640 / v.videoWidth); cv.width = v.videoWidth * k; cv.height = v.videoHeight * k;
+          g.drawImage(v, 0, 0, cv.width, cv.height);
+          const r = jsQR(g.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height, { inversionAttempts: "dontInvert" });
+          if (r && r.data && trouve(r.data)) return;
+        }
+        requestAnimationFrame(tour);
+      };
+      tour();
+    } catch (e) {
+      const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      $("#sm", d).innerHTML = e && e.name === "NotAllowedError"
+        ? (ios ? "Caméra refusée. Touchez <b>📸 Prendre le QR en photo</b>, ou autorisez la caméra : <b>Réglages → Safari → Caméra → Autoriser</b>." : "Caméra refusée. Touchez <b>📸 Prendre le QR en photo</b>, ou autorisez la caméra (🔒 à côté de l’adresse → Caméra → Autoriser).")
+        : "Caméra en direct indisponible ici. Touchez <b>📸 Prendre le QR en photo</b>, ou tapez le code du ticket.";
+    }
+  }
+  $("#scan").onclick = scanner;
   setInterval(() => { if (user && tab === "res" && !document.hidden && !document.querySelector(".modal")) rendre(); }, 60000);   // alertes « bientôt » à jour
 
   /* ---------- actions ---------- */
   const R1 = id => R.find(r => r.id === id);
   async function statut(r, st) {
     const b = db.batch();
-    b.update(db.doc("reservations/" + r.id), { statut: st, maj: NOW() });
+    const champs = st === "venu" ? { statut: st, maj: NOW(), venuA: NOW() } : { statut: st, maj: NOW() };
+    b.update(db.doc("reservations/" + r.id), champs);
     if (st === "refusee" || st === "annulee") b.delete(db.doc("rdvOccupe/" + r.id));
     else b.update(db.doc("rdvOccupe/" + r.id), { statut: st });
     try { await b.commit(); return true; }
     catch (e) {   // ancienne réservation sans créneau public
-      try { await db.doc("reservations/" + r.id).update({ statut: st, maj: NOW() }); return true; } catch (x) { console.error(x); toast(x.code === "permission-denied" ? "Refusé : compte non autorisé." : "Échec. Vérifiez la connexion."); return false; }
+      try { await db.doc("reservations/" + r.id).update(champs); return true; } catch (x) { console.error(x); toast(x.code === "permission-denied" ? "Refusé : compte non autorisé." : "Échec. Vérifiez la connexion."); return false; }
     }
   }
   async function idTel(pid, tel) {
@@ -255,7 +344,7 @@
     if (d.jour) { jour = d.jour; rendre(); return; }
     if (d.mois) { mois = d.mois; rendre(); return; }
     b.disabled = true;
-    if (d.ok) { const r = R1(d.ok); if (r && await statut(r, "confirmee")) toast(`✓ Confirmé · ${r.nom} le voit sur sa page`); }
+    if (d.ok) { const r = R1(d.ok); if (r && await statut(r, "confirmee")) envoyerTicket(r); }
     else if (d.non) { const r = R1(d.non); if (r && confirm(`Refuser la réservation de ${r.nom} ?`)) { if (await statut(r, "refusee")) toast("Réservation refusée · le créneau est libéré"); } }
     else if (d.ann) { const r = R1(d.ann); if (r && confirm(`Annuler la réservation de ${r.nom} (${r.debut}) ?`)) { if (await statut(r, "annulee")) toast("Réservation annulée · le créneau est libéré"); } }
     else if (d.abs) { const r = R1(d.abs); if (r && confirm(`${r.nom} n’est pas venu ? Le créneau sera libéré.`)) { if (await statut(r, "annulee")) toast("Créneau libéré ✓"); } }

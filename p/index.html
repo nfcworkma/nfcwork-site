@@ -68,6 +68,7 @@ a:active,button:active{transform:scale(.98)}
 .rsb .px{font-size:11.5px;opacity:.75;font-weight:500}
 .opl{display:grid;gap:8px;margin-top:10px}.op{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:10px 12px}.op span{display:flex;flex-direction:column;min-width:0}.op small{color:var(--muted);font-size:12.5px}
 .qty{display:flex;align-items:center;gap:10px}.qty button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surf);color:var(--fg);font-size:20px;line-height:1;cursor:pointer}.qty button:not([disabled]):last-child{background:var(--accent);border-color:var(--accent);color:var(--accentfg)}.qty button[disabled]{opacity:.35}.qty b{min-width:16px;text-align:center}
+.ticket{text-align:center;border-style:dashed;border-width:2px}.ticket .qrt{background:#fff;border-radius:14px;padding:12px;width:min(230px,70vw);margin:10px auto 6px}.ticket .qrt svg{display:block;width:100%;height:auto}.ticket .code{font:700 20px ui-monospace,Menlo,monospace;letter-spacing:.12em}.ticket p{color:var(--muted);font-size:13.5px;margin:6px 0 0;line-height:1.45}.ticket.used .qrt{opacity:.35}
 .aide{color:var(--muted);font-size:13px;text-align:center;margin-top:10px;line-height:1.5}
 .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .net{display:flex;gap:12px;align-items:center}.net .ic{font-size:26px}
@@ -416,14 +417,18 @@ a:active,button:active{transform:scale(.98)}
       }
     }
     let poll = null;
+    const lienTicket = id => "https://nfcwork.ma/p/" + slug + "?r=" + id;
     async function confirmation(id, R) {
       clearInterval(poll);
-      if (!R) { app.innerHTML = `${brand}<div class="state"><div><b>…</b></div></div>`; try { R = await lire("reservations/" + id); } catch (e) {} if (!R) { const L = mesResas().filter(r => r.id !== id); try { localStorage.setItem(LS, JSON.stringify(L)); } catch (e) {} dessiner(); return; } }
+      if (!R) { app.innerHTML = `${brand}<div class="state"><div><b>…</b></div></div>`; try { R = await lire("reservations/" + id); } catch (e) {}
+        if (R && R.page !== slug) R = null;
+        if (R && !mesResas().some(x => x.id === id) && R.jour >= cle(new Date())) { const L = mesResas(); L.unshift({ id, jour: R.jour, debut: R.debut, quoi: (R.ressource ? emo(R.ressource)[1] + " · " : "") + (R.service || "") + (R.staff ? " · " + R.staff : "") }); try { localStorage.setItem(LS, JSON.stringify(L.slice(0, 10))); } catch (e) {} }
+        if (!R) { const L = mesResas().filter(r => r.id !== id); try { localStorage.setItem(LS, JSON.stringify(L)); } catch (e) {} dessiner(); return; } }
       let fid = R.fidInfo; if (!fid && R.fid && P.fidPid) { try { const c = await lire("fidCartes/" + R.fid), p = await lire("fidProgrammes/" + P.fidPid); if (c && p) fid = { cid: R.fid, points: c.points || 0, objectif: Math.max(1, p.objectif || 10), unite: p.unite || "visites", recompense: p.recompense || "" }; } catch (e) {} }
       const peint = () => {
         const st = R.statut, ok = st === "confirmee" || st === "venu", non = st === "refusee" || st === "annulee";
         const titre = non ? (st === "annulee" ? T("Réservation annulée", "الحجز تلغى") : T("Créneau indisponible", "هاد الوقت ما متاحش")) : ok ? (tb ? T("Réservation confirmée !", "الحجز تأكد!") : T("Rendez-vous réservé", "الموعد محجوز")) : T("Demande envoyée !", "الطلب تصيفط!");
-        const sous = non ? T("Choisissez un autre créneau, ou contactez le commerce.", "اختار وقت آخر ولا تواصل مع المحل.") : ok ? T("À " + jourCourt(R.jour).split(" ")[0].replace(".", "") + " ! Pensez à arriver 5 minutes avant.", "نتسناوك! جي 5 دقايق قبل.") : esc(P.nom || "") + T(" vous confirme dans quelques minutes.", " غادي يأكد ليك فدقايق.");
+        const sous = non ? T("Choisissez un autre créneau, ou contactez le commerce.", "اختار وقت آخر ولا تواصل مع المحل.") : ok ? (R.jour === cle(new Date()) ? T("À tout à l’heure ! Pensez à arriver 5 minutes avant.", "نتسناوك! جي 5 دقايق قبل.") : T("À " + jourLong(R.jour).split(" ")[0].toLowerCase() + " ! Pensez à arriver 5 minutes avant.", "نتسناوك! جي 5 دقايق قبل.")) : esc(P.nom || "") + T(" vous confirme dans quelques minutes.", " غادي يأكد ليك فدقايق.");
         app.innerHTML = `${brand}<div class="okc ${non ? "non" : ok ? "" : "att"}">${non ? "✕" : ok ? "✓" : "⏳"}</div><h1>${titre}</h1><p class="sub">${sous}</p>
           <div class="card recap">
             ${R.ressource ? `<div>${emo(R.ressource)[0] || "🎱"} <b>${esc(emo(R.ressource)[1])}</b>${R.service ? " · " + esc(R.service) : ""}</div>` : R.service ? `<div>✂️ <b>${esc(R.service)}</b></div>` : ""}
@@ -433,6 +438,11 @@ a:active,button:active{transform:scale(.98)}
             ${fid ? `<div>🎁 ${T("Carte fidélité", "كارطة الوفاء")} : <b>${fid.points} / ${fid.objectif} ${esc(fid.unite)}</b></div>` : ""}
             <div class="stt ${non ? "non" : ok ? "ok" : ""}">${non ? "✕ " + (st === "annulee" ? T("Annulée", "ملغية") : T("Refusée", "مرفوضة")) : ok ? "✓ " + T("Confirmée", "مأكدة") : "⏳ " + T("En attente de confirmation", "كنتسناو التأكيد")}</div>
           </div>
+          ${ok ? `<div class="card ticket${st === "venu" ? " used" : ""}"><div class="lab">🎟️ ${T("Votre ticket", "التيكي ديالك")}</div>
+            <div class="qrt">${(() => { try { return window.QRGEN.svg(lienTicket(id), { marge: 1, couleur: "#111111" }); } catch (e) { return ""; } })()}</div>
+            <div class="code">#${esc(id.slice(0, 6).toUpperCase())}</div>
+            <p>${st === "venu" ? "✅ " + T("Ticket validé : bon moment !", "التيكي تقبل: نهار زوين!") : T("Montrez ce code à l’accueil : il est scanné à votre arrivée. 📸 Faites une capture d’écran, il marche même sans internet.", "ورّي هاد الكود فالاستقبال: كيتسكانا ملي توصل. 📸 دير كابتير ديال الشاشة، كيخدم حتى بلا أنترنيت.")}</p></div>`
+          : !non ? `<p class="aide" style="margin-top:-4px">🎟️ ${T("Votre ticket QR apparaîtra ici dès que la réservation est confirmée.", "التيكي QR غادي يبان هنا ملي يتأكد الحجز.")}</p>` : ""}
           ${telWa && !non ? `<a class="main waok" target="_blank" rel="noopener" href="https://wa.me/${telWa}?text=${encodeURIComponent(`📅 Réservation · ${P.nom || ""}\n👤 ${R.nom} · ${R.tel}\n${R.ressource ? "🎱 " + emo(R.ressource)[1] + (R.service ? " · " + R.service : "") : "✂️ " + R.service}${R.staff ? "\n💇 " + R.staff : ""}\n🗓 ${jourLong(R.jour)} à ${R.debut}${R.prix ? "\n💰 Total : " + R.prix + " DH" : ""}`)}">${I.wa}${T("Envoyer à", "صيفط لـ")} ${esc(P.nom || "")} ${T("sur WhatsApp", "فواتساب")}</a><p class="aide" style="margin:6px 0 4px">${T("Un clic : votre réservation arrive directement chez eux.", "كليك وحدة: الحجز كيوصلهم ديريكت.")}</p>` : ""}
           ${fid && WALLET && !IOS && !non ? `<a class="main gw" href="${WALLET}/google/save?c=${encodeURIComponent(fid.cid)}" rel="noopener">${T("Ajouter à Google Wallet", "زيد لـ Google Wallet")}</a>` : ""}
           ${fid && !non ? `<a class="row2" href="/f/?c=${encodeURIComponent(fid.cid)}">🎁 ${T("Voir ma carte fidélité", "شوف كارطة الوفاء")}${fid.recompense ? ` <small>${fid.objectif} ${esc(fid.unite)} = ${esc(fid.recompense)}</small>` : ""}</a>` : ""}
@@ -475,7 +485,8 @@ a:active,button:active{transform:scale(.98)}
       else return;
       dessiner();
     };
-    dessiner();
+    const rq = (qs.get("r") || "").replace(/[^A-Za-z0-9]/g, "");
+    if (rq && enLigne) confirmation(rq); else dessiner();
   }
   function wifi() {
     const sec = P.securite === "nopass" ? "nopass" : P.securite === "WEP" ? "WEP" : "WPA";

@@ -25,10 +25,10 @@
 .days button[aria-pressed=true]{background:var(--accent);border-color:var(--accent)}.days button[aria-pressed=true] small{color:#fff}
 .days button i{position:absolute;top:3px;right:5px;font-style:normal;font-size:10px;font-weight:700;background:var(--warn);color:#111;border-radius:9px;padding:0 5px}
 .sh{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
-.rv{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:11px 12px;margin-bottom:8px}
+.rv{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:11px 12px;margin-bottom:8px}
 .rv .h{font-size:18px;font-weight:700;min-width:52px}.rv .h small{display:block;font-size:11px;color:var(--muted);font-weight:500}
-.rv .q{flex:1;min-width:0}.rv .q b{display:block;line-height:1.3;word-break:break-word}.rv .q small{color:var(--muted);font-size:12.5px}
-.rv .a{display:flex;gap:6px;align-items:center;flex:none}
+.rv .q{flex:1 1 150px;min-width:0}.rv .q b{display:block;line-height:1.3;word-break:break-word}.rv .q small{color:var(--muted);font-size:12.5px}
+.rv .a{display:flex;gap:6px;align-items:center;flex:none;margin-left:auto}
 .ic{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);display:grid;place-items:center;font-size:17px;cursor:pointer;text-decoration:none;padding:0}
 .ic.ok{background:var(--ok);border-color:var(--ok);color:#fff}.ic.no{color:var(--bad)}
 .tag{font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;white-space:nowrap;border:0;cursor:default}
@@ -37,6 +37,7 @@ button.tag.arr{background:var(--warn-soft);color:var(--warn);cursor:pointer;font
 .pg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .bars{display:grid;gap:6px}.bar{display:grid;grid-template-columns:90px 1fr 34px;gap:8px;align-items:center;font-size:13px}.bar span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar div{height:10px;border-radius:6px;background:var(--sunk);overflow:hidden}.bar div i{display:block;height:100%;background:var(--accent);border-radius:6px}.bar b{text-align:right}
 .fc{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:11px 12px;margin-bottom:8px}.fc .q{flex:1;min-width:0}.fc .q small{color:var(--muted);font-size:12.5px}
+.scan{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:1/1;margin-top:10px}.scan video{width:100%;height:100%;object-fit:cover;display:block}.scan::after{content:"";position:absolute;inset:18%;border:3px solid rgb(255 255 255 / .85);border-radius:18px;box-shadow:0 0 0 999px rgb(0 0 0 / .35)}
 .lnk{font:600 13px ui-monospace,Menlo,monospace;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:8px 10px;word-break:break-all;margin:8px 0}
 </style>
 </head>
@@ -44,7 +45,7 @@ button.tag.arr{background:var(--warn-soft);color:var(--warn);cursor:pointer;font
 <header class="top"><div class="top-in">
   <a class="btn sm ghost" id="backBtn" href="./" aria-label="Retour">←</a>
   <div class="t"><b id="topTitle">Réservations</b><small id="topSub">Mon Espace</small></div>
-  <button class="btn sm" id="rappels" hidden>🔔 Rappels</button>
+  <div class="row" style="gap:6px"><button class="btn sm" id="rappels" hidden>🔔</button><button class="btn sm primary" id="scan">📷 Scanner</button></div>
 </div></header>
 <main id="app"><div class="empty"><h3>Chargement…</h3></div></main>
 <div id="toast" hidden></div>
