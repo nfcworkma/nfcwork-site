@@ -267,7 +267,8 @@ a:active,button:active{transform:scale(.98)}
     const jourCourt = k => { const d = deCle(k); return (P.langue === "ar" ? NJA[d.getDay()] : NJ[d.getDay()].slice(0, 3) + ".") + " " + d.getDate(); };
     const jourLong = k => { const d = deCle(k); return P.langue === "ar" ? NJA[d.getDay()] + " " + d.getDate() + "/" + (d.getMonth() + 1) : NJ[d.getDay()].replace(/^./, c => c.toUpperCase()) + " " + d.getDate() + " " + MOIS[d.getMonth()]; };
     const telWa = String(P.whatsapp || P.tel || "").replace(/\D/g, "").replace(/^0/, "212");
-    const tb = P.mode === "tables", enLigne = !!P.ownerEmail && !apercu;
+    const DEMO = !!P.demoRdv && /^demo-/.test(slug);   // démonstration : rien n'est envoyé
+    const tb = P.mode === "tables", enLigne = (!!P.ownerEmail && !apercu) || DEMO;
     const emo = t => { const m = String(t).match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u); return m ? [m[1], m[2] || t] : ["", t]; };
     // services : « Nom · 80 DH · 45 min »
     const SV = lignes(P.services).map(l => { const p = l.split(/\s*[·|•]\s*|\s+-\s+/); const s = { nom: p[0], prix: 0, duree: 0, txt: l }; for (const x of p.slice(1)) { if (/dh|mad|drh|€/i.test(x)) s.prix = parseInt(x.replace(/\D/g, "")) || 0; else if (duree(x)) s.duree = duree(x); } return s; });
@@ -293,6 +294,11 @@ a:active,button:active{transform:scale(.98)}
     const occ = {};   // jour → [{debut, fin, ressource, staff}]
     async function charger(j, force) {
       if (occ[j] && !force) return occ[j];
+      if (DEMO) {   // quelques créneaux déjà pris, toujours les mêmes pour un jour donné
+        const n = j.split("-").reduce((a, b) => a + +b, 0), L = [], R0 = tb ? RS : (EQ.length ? EQ : [""]);
+        for (let k = 0; k < 5; k++) { const m = o + ((n * (k + 3) * 7) % Math.max(1, Math.floor((f - o) / pas) - 1)) * pas, r = R0[(n + k) % R0.length]; L.push({ debut: m, fin: m + (tb ? 60 : 45), ressource: tb ? r : "", staff: tb ? "" : r }); }
+        return (occ[j] = occ[j] || L);
+      }
       if (!enLigne) return (occ[j] = []);
       const q = { structuredQuery: { from: [{ collectionId: "rdvOccupe" }], where: { compositeFilter: { op: "AND", filters: [
         { fieldFilter: { field: { fieldPath: "page" }, op: "EQUAL", value: { stringValue: slug } } },
@@ -397,6 +403,12 @@ a:active,button:active{transform:scale(.98)}
         window.open(`https://wa.me/${telWa}?text=${encodeURIComponent(msg)}`, "_blank"); return;
       }
       b.disabled = true; b.textContent = T("Envoi…", "كنصيفطو…");
+      if (DEMO) {
+        const staff = tb ? "" : (S.staff || (EQ.length ? libres(S.h, S.j)[0] || EQ[0] : ""));
+        const R = { page: slug, nom: S.n.trim().slice(0, 40), tel: tel.slice(0, 20), mode: tb ? "tables" : "services", ressource: tb ? S.res : "", service: detail.slice(0, 120), prix: tot, staff, jour: S.j, debut: lab(S.h), debutMin: S.h, duree: d, statut: "confirmee",
+          fidInfo: S.fid ? { cid: "", points: 3, objectif: tb && S.unit === "partie" ? 10 : 6, unite: tb ? (P.metier === "billard" ? "parties" : "visites") : "visites", recompense: tb ? "1 offert" : "-30 % sur votre soin" } : null };
+        setTimeout(() => confirmation("DEMO" + rid(12), R), 500); return;
+      }
       try {
         await charger(S.j, true);
         const qui = libres(S.h, S.j);
@@ -453,7 +465,7 @@ a:active,button:active{transform:scale(.98)}
         }
         const titre = non ? (st === "annulee" ? T("Réservation annulée", "الحجز تلغى") : T("Créneau indisponible", "هاد الوقت ما متاحش")) : ok ? (tb ? T("Réservation confirmée !", "الحجز تأكد!") : T("Rendez-vous réservé", "الموعد محجوز")) : T("Demande envoyée !", "الطلب تصيفط!");
         const sous = non ? T("Choisissez un autre créneau, ou contactez le commerce.", "اختار وقت آخر ولا تواصل مع المحل.") : ok ? (R.jour === cle(new Date()) ? T("À tout à l’heure ! Pensez à arriver 5 minutes avant.", "نتسناوك! جي 5 دقايق قبل.") : T("À " + jourLong(R.jour).split(" ")[0].toLowerCase() + " ! Pensez à arriver 5 minutes avant.", "نتسناوك! جي 5 دقايق قبل.")) : esc(P.nom || "") + T(" vous confirme dans quelques minutes.", " غادي يأكد ليك فدقايق.");
-        app.innerHTML = `${brand}<div class="okc ${non ? "non" : ok ? "" : "att"}">${non ? "✕" : ok ? "✓" : "⏳"}</div><h1>${titre}</h1><p class="sub">${sous}</p>
+        app.innerHTML = `${brand}${DEMO ? `<p class="aide" style="background:var(--surf2);border-radius:12px;padding:8px 12px">🧪 ${T("Démonstration : aucune réservation n’est envoyée. Voici ce que voit votre client.", "تجربة: حتى حجز ما كيتصيفط. هادشي اللي كيشوف الزبون ديالك.")}</p>` : ""}<div class="okc ${non ? "non" : ok ? "" : "att"}">${non ? "✕" : ok ? "✓" : "⏳"}</div><h1>${titre}</h1><p class="sub">${sous}</p>
           <div class="card recap">
             ${R.ressource ? `<div>${emo(R.ressource)[0] || "🎱"} <b>${esc(emo(R.ressource)[1])}</b>${R.service ? " · " + esc(R.service) : ""}</div>` : R.service ? `<div>✂️ <b>${esc(R.service)}</b></div>` : ""}
             ${R.prix ? `<div>💰 ${T("Total à payer sur place", "المجموع تخلصو فالمحل")} : <b>${R.prix} DH</b></div>` : ""}${R.staff ? `<div>👤 ${T("avec", "مع")} <b>${esc(R.staff)}</b></div>` : ""}
@@ -468,10 +480,10 @@ a:active,button:active{transform:scale(.98)}
             <p>${st === "venu" ? "✅ " + T("Ticket validé : bon moment !", "التيكي تقبل: نهار زوين!") : T("Montrez ce code à l’accueil : il est scanné à votre arrivée. 📸 Faites une capture d’écran, il marche même sans internet.", "ورّي هاد الكود فالاستقبال: كيتسكانا ملي توصل. 📸 دير كابتير ديال الشاشة، كيخدم حتى بلا أنترنيت.")}</p></div>`
           : !non ? `<p class="aide" style="margin-top:-4px">🎟️ ${T("Votre ticket QR apparaîtra ici dès que la réservation est confirmée.", "التيكي QR غادي يبان هنا ملي يتأكد الحجز.")}</p>` : ""}
           ${telWa && !non ? `<a class="main waok" target="_blank" rel="noopener" href="https://wa.me/${telWa}?text=${encodeURIComponent(`📅 Réservation · ${P.nom || ""}\n👤 ${R.nom} · ${R.tel}\n${R.ressource ? "🎱 " + emo(R.ressource)[1] + (R.service ? " · " + R.service : "") : "✂️ " + R.service}${R.staff ? "\n💇 " + R.staff : ""}\n🗓 ${jourLong(R.jour)} à ${R.debut}${R.prix ? "\n💰 Total : " + R.prix + " DH" : ""}`)}">${I.wa}${T("Envoyer à", "صيفط لـ")} ${esc(P.nom || "")} ${T("sur WhatsApp", "فواتساب")}</a><p class="aide" style="margin:6px 0 4px">${T("Un clic : votre réservation arrive directement chez eux.", "كليك وحدة: الحجز كيوصلهم ديريكت.")}</p>` : ""}
-          ${fid && WALLET && !IOS && !non ? `<a class="main gw" href="${WALLET}/google/save?c=${encodeURIComponent(fid.cid)}" rel="noopener">${T("Ajouter à Google Wallet", "زيد لـ Google Wallet")}</a>` : ""}
-          ${fid && !non ? `<a class="row2" href="/f/?c=${encodeURIComponent(fid.cid)}">🎁 ${T("Voir ma carte fidélité", "شوف كارطة الوفاء")}${fid.recompense ? ` <small>${fid.objectif} ${esc(fid.unite)} = ${esc(fid.recompense)}</small>` : ""}</a>` : ""}
+          ${fid && WALLET && !IOS && !non && !DEMO ? `<a class="main gw" href="${WALLET}/google/save?c=${encodeURIComponent(fid.cid)}" rel="noopener">${T("Ajouter à Google Wallet", "زيد لـ Google Wallet")}</a>` : ""}
+          ${fid && !non && !DEMO ? `<a class="row2" href="/f/?c=${encodeURIComponent(fid.cid)}">🎁 ${T("Voir ma carte fidélité", "شوف كارطة الوفاء")}${fid.recompense ? ` <small>${fid.objectif} ${esc(fid.unite)} = ${esc(fid.recompense)}</small>` : ""}</a>` : ""}
 
-          ${!non && st !== "venu" ? `<button class="row2 lien" id="rv-ann">${T("Annuler ma réservation", "لغي الحجز")}</button>` : ""}
+          ${!non && st !== "venu" && !DEMO ? `<button class="row2 lien" id="rv-ann">${T("Annuler ma réservation", "لغي الحجز")}</button>` : ""}
           <button class="main" id="rv-new" style="margin-top:14px">${non ? T("Choisir un autre créneau", "اختار وقت آخر") : T("Nouvelle réservation", "حجز جديد")}</button>
           ${pied()}`;
         document.getElementById("rv-new").onclick = () => { clearInterval(poll); history.replaceState(null, "", location.pathname + location.search); dessiner(); };
@@ -487,7 +499,7 @@ a:active,button:active{transform:scale(.98)}
         };
       };
       peint();
-      if (R.statut === "attente" || R.statut === "confirmee") poll = setInterval(async () => {
+      if (!DEMO && (R.statut === "attente" || R.statut === "confirmee")) poll = setInterval(async () => {
         if (document.hidden || (!document.getElementById("rv-new") && !app.querySelector(".tk"))) return;
         try { const n = await lire("reservations/" + id); if (n && n.statut !== R.statut) { R.statut = n.statut; peint(); if (n.statut !== "attente" && n.statut !== "confirmee") clearInterval(poll); } } catch (e) {}
       }, 15000);
