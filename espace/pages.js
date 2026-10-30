@@ -265,6 +265,19 @@
     return `<label class="f">🎁 Carte fidélité liée (+1 point quand le ticket est scanné à l’arrivée)<select data-k="fidPid"><option value="">Aucune</option>${L.map(x => `<option value="${esc(x.id)}" ${P.fidPid === x.id ? "selected" : ""}>${esc(x.nom)}${x.mail ? " · " + esc(x.mail) : ""}</option>`).join("")}</select></label>
       ${P.fidPid ? "" : `<button class="btn sm" data-act="fid-new">＋ Créer la carte fidélité de « ${esc(P.nom || "ce commerce")} »</button>`}`;
   }
+  // logo de la page → logo de la carte fidélité (carré 256 px, fond blanc, comme dans Fidélité)
+  async function logoCarte() {
+    if (!P.photo) return "";
+    const src = await img(P.photo); if (!src) return "";
+    return new Promise(ok => {
+      const im = new Image(); im.onload = () => {
+        const n = 256, c = document.createElement("canvas"); c.width = c.height = n; const g = c.getContext("2d");
+        const k = Math.min(n / im.naturalWidth, n / im.naturalHeight), w = im.naturalWidth * k, h = im.naturalHeight * k;
+        g.fillStyle = "#fff"; g.fillRect(0, 0, n, n); g.drawImage(im, (n - w) / 2, (n - h) / 2, w, h);
+        let d = c.toDataURL("image/webp", 0.85); if (!d.startsWith("data:image/webp")) d = c.toDataURL("image/jpeg", 0.85); ok(d);
+      }; im.onerror = () => ok(""); im.src = src;
+    });
+  }
   function servicesHtml() {
     const L = svLire();
     return `<div class="eyebrow">Soins / services (prix en DH, le client voit le total)</div>
@@ -360,6 +373,9 @@
       if (P.type === "rdv" && !String(P.ownerEmail || "").trim() && !PROPRIO) P.ownerEmail = ADMIN;   // sans commerçant : les réservations arrivent dans l'Espace admin
       if (P.type === "rdv" && P.ownerEmail) { P.ownerEmail = String(P.ownerEmail).trim().toLowerCase(); doc.ownerEmail = P.ownerEmail; doc.json = JSON.stringify(P); }
       await db.doc("settings/page-" + P.slug).set(doc);
+      if (P.type === "rdv" && P.fidPid && P.photo && !PROPRIO) {   // carte fidélité liée sans logo → on lui donne le logo de la page
+        db.doc("fidProgrammes/" + P.fidPid).get().then(async g => { if (g.exists && !g.data().logoData && !g.data().logo) { const l = await logoCarte(); if (l) await g.ref.update({ logoData: l }); } }).catch(() => {});
+      }
       const info = { slug: P.slug, nom: P.nom, type: P.type, photo: P.photo || "", actif: P.actif !== false, maj: Date.now() };
       const x = liste.find(t => t.slug === P.slug); if (x) Object.assign(x, info); else liste.push(info);
       await ecrireListe();
@@ -468,7 +484,7 @@
       b.disabled = true;
       try {
         await db.doc("fidProgrammes/" + id).set({ metier: ["salon", "barber", "ongles", "spa"].includes(P.metier) ? "salon" : P.metier || "autre", nom: P.nom, ownerEmail: mail, couleur: /^#[0-9a-f]{6}$/i.test(P.couleur || "") ? P.couleur : "#1e90ff",
-          logoData: "", logo: "", type: "visites", objectif: R[1], unite: R[2], dhParPoint: 10, recompense: R[0], modeClient: "commercant", delaiH: 3, employes: false, modeEmploye: "les2",
+          logoData: await logoCarte().catch(() => ""), logo: "", type: "visites", objectif: R[1], unite: R[2], dhParPoint: 10, recompense: R[0], modeClient: "commercant", delaiH: 3, employes: false, modeEmploye: "les2",
           primeEmploye: "Le meilleur du mois gagne 200 DH", actif: true, prix: 0, periode: "mois", guide: "", lienAvis: "", maj: NOW(), createdAt: NOW() });
         FIDS = (FIDS || []).concat({ id, nom: P.nom, mail }); P.fidPid = id; if (!String(P.ownerEmail || "").trim()) P.ownerEmail = mail;
         renderEdit(); majBarre(); toast(`🎁 Carte créée (${R[1]} ${R[2]} = ${R[0]}). Appuyez sur Enregistrer. Logo et récompense : dans Fidélité.`);
