@@ -27,7 +27,7 @@
     avis: ["⭐", "Avis Google", "Plaque qui ouvre la page d’avis Google"],
     wifi: ["📶", "Wi-Fi", "Plaque : réseau, mot de passe, QR"],
     liens: ["🔗", "Page liens", "Lien pour la bio Instagram, boutons"],
-    rdv: ["📅", "Réservation", "Le client choisit service, jour et heure : la demande arrive sur WhatsApp"]
+    rdv: ["📅", "Réservation", "Le client choisit service (ou table), jour et heure : tout arrive dans l’Espace du commerçant"]
   };
   const THEMES = { nuit: ["🌙 Nuit", "#05080f", "#E8EEFA"], blanc: ["☀️ Blanc", "#f6f7f9", "#14171c"], creme: ["🍦 Crème", "#f7f5f0", "#1d1b18"], noir: ["⚫ Noir", "#000", "#f5f5f5"] };
   const JOURS = [[1, "Lundi"], [2, "Mardi"], [3, "Mercredi"], [4, "Jeudi"], [5, "Vendredi"], [6, "Samedi"], [0, "Dimanche"]];
@@ -132,7 +132,7 @@
     if (type === "profil") Object.assign(p, { fonction: "", entreprise: "", metiers: "", bio: "", tel: "", whatsapp: "", email: "", instagram: "", facebook: "", tiktok: "", linkedin: "", youtube: "", snapchat: "", site: "", adresse: "", maps: "", horaires: {}, liens: [], galerie: [] });
     if (type === "avis") Object.assign(p, { lienGoogle: "", message: "", instagram: "" });
     if (type === "wifi") Object.assign(p, { ssid: "", motdepasse: "", securite: "WPA", cache: false, message: "" });
-    if (type === "rdv") Object.assign(p, { whatsapp: "", services: "Coupe homme · 50 DH\nCoupe + barbe · 70 DH", ouverture: "09:00", fermeture: "21:00", pas: 30, message: "" });
+    if (type === "rdv") Object.assign(p, { mode: "services", whatsapp: "", services: "Coupe homme · 50 DH · 30 min\nCoupe + barbe · 70 DH · 45 min", equipe: "", ressources: "", durees: "60,120", ouverture: "09:00", fermeture: "21:00", pas: 30, auto: false, ownerEmail: "", fidPid: "", message: "" });
     if (type === "liens") Object.assign(p, { slogan: "", whatsapp: "", localisation: "", liens: [{ titre: "Instagram", url: "" }] });
     return p;
   }
@@ -224,13 +224,20 @@
         ${champ("ssid", "Nom du réseau Wi-Fi (exactement)", 'maxlength="64" autocapitalize="off" spellcheck="false"')}${champ("motdepasse", "Mot de passe", 'maxlength="64" autocapitalize="off" spellcheck="false"')}
         <label class="f">Sécurité<select data-k="securite"><option value="WPA" ${P.securite === "WPA" ? "selected" : ""}>WPA / WPA2 (le plus courant)</option><option value="WEP" ${P.securite === "WEP" ? "selected" : ""}>WEP (ancien)</option><option value="nopass" ${P.securite === "nopass" ? "selected" : ""}>Ouvert (sans mot de passe)</option></select></label>
         <label class="check"><input type="checkbox" data-k="cache" ${P.cache ? "checked" : ""}> Réseau caché</label>${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Wi-Fi offert 📶"')}</section>`;
-    if (P.type === "rdv") corps = `<section class="sec paper stack"><h3>📅 Réservation</h3>${photoBloc}${champ("nom", "Nom du commerce", 'maxlength="60"')}
-        ${champ("whatsapp", "WhatsApp qui reçoit les réservations", 'type="tel" inputmode="tel" placeholder="06…"')}
-        ${zone("services", "Services (un par ligne, avec le prix si vous voulez)", 'rows="5" maxlength="800" placeholder="Coupe homme · 50 DH"')}
+    if (P.type === "rdv") { const tb = P.mode === "tables"; corps = `<section class="sec paper stack"><h3>📅 Réservation</h3>${photoBloc}${champ("nom", "Nom du commerce", 'maxlength="60"')}
+        <label class="f">Type de réservation<select data-k="mode" data-rerender><option value="services" ${!tb ? "selected" : ""}>✂️ Rendez-vous (salon, barber, institut…)</option><option value="tables" ${tb ? "selected" : ""}>🎱 Tables / postes (billard, PlayStation, terrain…)</option></select></label>
+        ${tb ? `${zone("ressources", "Tables ou postes (un par ligne, un emoji au début si vous voulez)", 'rows="5" maxlength="600" placeholder="🎱 Pool 1&#10;🎱 Pool 2&#10;🟢 Snooker&#10;🎮 PS5 · 1"')}
+        ${champ("durees", "Durées proposées en minutes (séparées par des virgules)", 'maxlength="40" placeholder="30,60,120" inputmode="numeric"')}`
+        : `${zone("services", "Soins / services (un par ligne : Nom · prix · durée)", 'rows="5" maxlength="1200" placeholder="Brushing · 80 DH · 45 min&#10;Coupe + brushing · 150 DH · 1h&#10;Couleur · 300 DH · 2h"')}
+        ${zone("equipe", "Équipe (un prénom par ligne, facultatif)", 'rows="3" maxlength="300" placeholder="Sara&#10;Nadia"')}`}
         <div class="grid2">${champ("ouverture", "Ouverture", 'type="time"')}${champ("fermeture", "Fermeture", 'type="time"')}</div>
         <label class="f">Un créneau toutes les<select data-k="pas">${[15, 20, 30, 45, 60, 90, 120].map(m => `<option value="${m}" ${+P.pas === m ? "selected" : ""}>${m} min</option>`).join("")}</select></label>
         ${champ("ferme", "Jours fermés (facultatif)", 'maxlength="60" placeholder="dimanche"')}
-        ${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Réservez en 30 secondes"')}${champ("instagram", "Instagram (facultatif)", 'autocapitalize="off"')}</section>`;
+        <label class="check"><input type="checkbox" data-k="auto" ${P.auto ? "checked" : ""}> Confirmer automatiquement (sinon le commerçant confirme dans son Espace)</label>
+        ${champ("whatsapp", "WhatsApp du commerce (le client peut le prévenir)", 'type="tel" inputmode="tel" placeholder="06…"')}
+        <div data-adm class="stack" style="gap:10px">${champ("ownerEmail", "E-mail du compte commerçant (il reçoit les réservations dans son Espace)", 'type="email" autocapitalize="off" placeholder="client@gmail.com"')}
+        ${champ("fidPid", "Carte fidélité liée (code du programme, facultatif)", 'autocapitalize="off" placeholder="ex. billard-atlas"')}</div>
+        ${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Réservez en 30 secondes"')}${champ("instagram", "Instagram (facultatif)", 'autocapitalize="off"')}</section>`; }
     if (P.type === "liens") corps = `<section class="sec paper stack"><h3>🔗 Page liens</h3>${photoBloc}${champ("nom", "Nom", 'maxlength="60"')}${champ("slogan", "Petite phrase (facultatif)", 'maxlength="100"')}
         ${champ("whatsapp", "WhatsApp (bouton en haut)", 'type="tel" inputmode="tel"')}<div class="eyebrow">Boutons</div>${liensHtml()}${champ("localisation", "Localisation (adresse ou lien Maps)", 'maxlength="300"')}</section>`;
     app.innerHTML = `
@@ -258,15 +265,17 @@
     try {
       const avant = saved ? JSON.parse(saved) : {};
       nettoyer();
-      if (PROPRIO) { if (!saved) throw { code: "permission-denied" }; for (const k of ["slug", "type", "actif"]) if (k in avant) P[k] = avant[k]; else delete P[k]; }
+      if (PROPRIO) { if (!saved) throw { code: "permission-denied" }; for (const k of ["slug", "type", "actif", "ownerEmail", "fidPid"]) if (k in avant) P[k] = avant[k]; else delete P[k]; }
       const json = JSON.stringify(P);
-      await db.doc("settings/page-" + P.slug).set({ json, v: String(Date.now()), maj: NOW(), par: user.email });
+      const doc = { json, v: String(Date.now()), maj: NOW(), par: user.email };
+      if (P.type === "rdv" && P.ownerEmail) { P.ownerEmail = String(P.ownerEmail).trim().toLowerCase(); doc.ownerEmail = P.ownerEmail; doc.json = JSON.stringify(P); }
+      await db.doc("settings/page-" + P.slug).set(doc);
       const info = { slug: P.slug, nom: P.nom, type: P.type, photo: P.photo || "", actif: P.actif !== false, maj: Date.now() };
       const x = liste.find(t => t.slug === P.slug); if (x) Object.assign(x, info); else liste.push(info);
       await ecrireListe();
       const now = new Set([P.photo, ...(P.galerie || [])].filter(Boolean));
       await Promise.all([avant.photo, ...(avant.galerie || [])].filter(id => id && !now.has(id)).map(id => db.doc("settings/mimg-" + id).delete().catch(() => {})));
-      saved = json; toast("✅ Enregistré ! La page est à jour.");
+      saved = doc.json; toast("✅ Enregistré ! La page est à jour.");
       renderEdit();
     } catch (e) { erreur(e); majBarre(); }
   }
@@ -319,7 +328,7 @@
       if (m) { P.lienGoogle = "https://search.google.com/local/writereview?placeid=" + m[0]; const f = app.querySelector('[data-k="lienGoogle"]'); if (f) f.value = P.lienGoogle; toast("✅ Lien Google créé : il ouvre directement les étoiles."); majBarre(); }
       if (t.hasAttribute("data-placeid")) return;
     }
-    if (t.dataset.k) { P[t.dataset.k] = t.type === "checkbox" ? t.checked : t.value; if (t.dataset.k === "nom") $("#topTitle").textContent = (TYPES[P.type] || [""])[0] + " " + t.value; }
+    if (t.dataset.k) { P[t.dataset.k] = t.type === "checkbox" ? t.checked : t.value; if (t.hasAttribute("data-rerender")) { renderEdit(); majBarre(); return; } if (t.dataset.k === "nom") $("#topTitle").textContent = (TYPES[P.type] || [""])[0] + " " + t.value; }
     else if (t.dataset.h != null) { P.horaires = P.horaires || {}; P.horaires[t.dataset.h] = t.value; }
     else if (t.dataset.l) { const [i, k] = t.dataset.l.split("."); P.liens[+i][k] = t.value; }
     majBarre();

@@ -435,7 +435,7 @@ details p{margin:0;padding:0 18px 16px;color:#c9d4e8}
 .ico-check{--i:url("../icons/ui/check.svg")}.ico-pencil{--i:url("../icons/ui/pencil.svg")}.ico-camera{--i:url("../icons/ui/camera.svg")}.ico-star{--i:url("../icons/ui/star.svg")}
 .ico-star-filled{--i:url("../icons/ui/star-filled.svg")}.ico-user{--i:url("../icons/ui/user.svg")}.ico-wifi{--i:url("../icons/ui/wifi.svg")}.ico-tools-kitchen-2{--i:url("../icons/ui/tools-kitchen-2.svg")}
 .ico-link{--i:url("../icons/ui/link.svg")}.ico-alert-triangle{--i:url("../icons/ui/alert-triangle.svg")}.ico-nfc{--i:url("../icons/ui/nfc.svg")}.ico-help-circle{--i:url("../icons/ui/help-circle.svg")}
-.ico-file-text{--i:url("../icons/ui/file-text.svg")}.ico-circle-check{--i:url("../icons/ui/circle-check.svg")}.ico-x{--i:url("../icons/ui/x.svg")}
+.ico-file-text{--i:url("../icons/ui/file-text.svg")}.ico-calendar{--i:url("../icons/ui/calendar.svg")}.ico-circle-check{--i:url("../icons/ui/circle-check.svg")}.ico-x{--i:url("../icons/ui/x.svg")}
 
 /* ---------- Page Abonnements & solutions ---------- */
 .sol-forms{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-top:8px}

@@ -212,6 +212,7 @@ function startClient(email){
   listenDiscret(fs.collection("creations").where("clientEmail","==",email),s=>{P.creations=rows(s).filter(c=>c.statut!=="desactivee").sort((a,b)=>(tsDate(b.modifieLe)||0)-(tsDate(a.modifieLe)||0));render()});
   listenDiscret(fs.collection("modifications").where("clientEmail","==",email),s=>{P.mods=rows(s).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));render()});
   fs.collection("fidProgrammes").where("ownerEmail","==",email).get().then(s=>{P.fid=rows(s);render()}).catch(()=>{});
+  fs.collection("settings").where("ownerEmail","==",email).get().then(s=>{P.rdv=s.docs.length;if(P.rdv)render()}).catch(()=>{});
   render();
 }
 
@@ -277,7 +278,7 @@ function renderHome(){
     <a class="qa" href="stands.html">${ico("link")}<b>Stands QR</b><span>Imprimer & lier</span></a>
     <a class="qa" href="tv.html">${ico("device-tv")}<b>Menus TV</b><span>PDF → écran TV</span></a>
     <a class="qa" href="pages.html">${ico("user")}<b>Cartes, avis, Wi-Fi</b><span>Créer sans Mac</span></a>
-    <a class="qa" href="fidelite.html">${ico("star")}<b>Fidélité</b><span>Cartes & employés</span></a>
+    <a class="qa" href="fidelite.html">${ico("star")}<b>Fidélité</b><span>Cartes & employés</span></a><a class="qa" href="reservations.html">${ico("calendar")}<b>Réservations</b><span>Agenda des commerces</span></a>
     <a class="qa" href="abonnements.html" style="position:relative">${ico("file-text")}<b>Abonnements</b><span id="aboInfo">Paiements & activation</span></a><a class="qa" href="pos.html">${ico("device-tv")}<b>Caisse web</b><span>Commandes en direct</span></a><a class="qa" href="apporteurs.html">${ico("user")}<b>Apporteurs</b><span>Parrainage & commissions</span></a></div>
   <div id="gHome"></div>
   <div class="eyebrow" style="margin-bottom:8px">À traiter</div>${todoTiles()}
@@ -544,6 +545,7 @@ function renderPHome(){
   ${P.creations.length?`<div class="section-head" style="margin-top:4px"><h3>Mes produits NFC</h3><button class="btn sm ghost" data-ptab="nfc">Tout voir</button></div>
   <div class="nfc-mini">${P.creations.slice(0,3).map(c=>`<a class="nmini" href="${esc(c.lien)}" target="_blank" rel="noopener"><span>${(NFC_TYPES[c.type]||[ico("help-circle")])[0]}</span><b>${esc(c.titre||c.slug)}</b><small>${(NFC_TYPES[c.type]||["",""])[1]}</small></a>`).join("")}</div>
   <button class="btn block" data-modreq="" style="margin:10px 0 16px"><i class="ico ico-pencil" aria-hidden="true"></i> Demander une modification</button>`:""}
+  ${P.rdv?`<a class="btn primary block" href="reservations.html" style="margin:0 0 10px">${ico("calendar")} Mes réservations · agenda, fidélité & stats</a>`:""}
   ${P.fid&&P.fid.length&&!window.NFCW_MC?`<a class="btn primary block" href="fidelite.html" style="margin:0 0 16px">${ico("star")} Ma carte fidélité · scanner & gérer</a>`:""}
   ${P.ready&&!P.client?`<div class="notice" style="margin-bottom:14px">Votre e-mail <b>${esc(user.email)}</b> n’est pas encore relié à une fiche client. Vous pouvez déjà commander ; ${esc(S.settings.name||"nfcwork.ma")} créera votre fiche.</div>`:""}
   ${missing?`<div class="notice row between" style="margin-bottom:14px"><span>Complétez votre profil (téléphone, adresse de livraison) pour être livré plus vite.</span><button class="btn sm primary" data-profile>Mon profil</button></div>`:""}

@@ -20,7 +20,7 @@
 html,body{background:var(--bg);min-height:100%}
 body{font-family:"Readex Pro","IBM Plex Sans Arabic",sans-serif;color:var(--fg);position:relative;overflow-x:hidden;min-height:100vh}
 [dir=rtl] body{font-family:"IBM Plex Sans Arabic","Readex Pro",sans-serif}
-.glow{position:absolute;left:50%;top:-140px;width:520px;height:420px;transform:translateX(-50%);background:radial-gradient(closest-side,var(--glow),transparent);pointer-events:none}
+.glow{position:absolute;left:50%;top:-140px;width:min(520px,100%);height:420px;transform:translateX(-50%);background:radial-gradient(closest-side,var(--glow),transparent);pointer-events:none}
 .wrap{position:relative;max-width:430px;margin:0 auto;padding:34px 20px 0}
 .brand{display:flex;justify-content:center}.brand img{height:20px;width:auto}
 .av{width:128px;height:128px;border-radius:50%;margin:24px auto 16px;padding:4px;background:linear-gradient(140deg,var(--accent2),var(--accent))}
@@ -54,7 +54,14 @@ a:active,button:active{transform:scale(.98)}
 .hor .hr span{color:var(--muted)}.hor .hr b{font-weight:600;text-align:end}.hor .hr.f b{color:#e5484d}
 .hor .hr.today{color:var(--accent)}.hor .hr.today span{color:var(--accent);font-weight:700}
 .stars{display:flex;justify-content:center;gap:6px;font-size:34px;color:#f5b301;letter-spacing:2px}
-.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:12px;padding:10px 13px;font:inherit;font-size:14.5px;cursor:pointer}.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accentfg)}.chips.days .chip{display:flex;flex-direction:column;align-items:center;min-width:58px;padding:8px 6px}.chips.days small{font-size:11.5px;opacity:.8;text-transform:capitalize}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:12px;padding:10px 13px;font:inherit;font-size:14.5px;cursor:pointer}.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accentfg)}.chips.days .chip{display:flex;flex-direction:column;align-items:center;min-width:58px;padding:8px 6px}.chips.days small{font-size:11.5px;opacity:.8;text-transform:capitalize}.chips.days{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-top:10px;padding-bottom:2px}.chips.days::-webkit-scrollbar{display:none}.chips.days .chip{flex:none}
+.rs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.rsb{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:14px;padding:11px 6px;font:inherit;font-size:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;word-break:break-word}.rsb span{font-size:21px;line-height:1}.rsb.on{background:var(--accent);border-color:var(--accent);color:var(--accentfg);font-weight:600}.rsb.pris,.chip.pris{opacity:.38;text-decoration:line-through;cursor:not-allowed}
+.svl{display:grid;gap:8px;margin-top:10px}.sv{display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:14px;padding:12px 14px;font:inherit;cursor:pointer}.sv span{display:flex;flex-direction:column;min-width:0}.sv small{color:var(--muted);font-size:12.5px;margin-top:2px}.sv em{font-style:normal;font-weight:700;white-space:nowrap}.sv.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.inp{box-sizing:border-box;width:100%;padding:13px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:16px;margin-top:10px}.fidok{display:flex;gap:9px;align-items:center;margin-top:12px;font-size:14.5px}.fidok input{width:19px;height:19px;accent-color:var(--accent)}
+.okc{width:88px;height:88px;border-radius:50%;background:#22c55e;color:#fff;display:grid;place-items:center;font-size:44px;font-weight:700;margin:18px auto 14px}.okc.att{background:var(--accent);font-size:38px}.okc.non{background:#ef4444}
+.recap{border-style:dashed;display:grid;gap:9px;font-size:15px;line-height:1.4}.recap .stt{margin-top:4px;padding:8px 12px;border-radius:10px;background:var(--surf2);font-weight:600;font-size:14px;color:var(--muted)}.recap .stt.ok{color:#22c55e}.recap .stt.non{color:#ef4444}
+.gw{background:#000;color:#fff;border:1px solid #333}.row2{box-sizing:border-box;flex-wrap:wrap;text-align:center;display:flex;align-items:center;justify-content:center;gap:4px 8px;margin-top:10px;padding:13px;border-radius:14px;border:1px solid var(--line);background:var(--surf);color:var(--fg);text-decoration:none;font:inherit;font-size:14.5px;width:100%;cursor:pointer}.row2 svg{width:19px;height:19px}.row2 small{color:var(--muted);flex-basis:100%}.row2.lien{background:none;border:0;color:var(--muted);text-decoration:underline}
+.mesr .mr{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:var(--fg);font:inherit;cursor:pointer}.mesr .mr:first-of-type{border-top:0}.mesr .mr span{flex:1;color:var(--muted);font-size:14px;min-width:0}.mesr .mr i{font-style:normal;color:var(--muted)}
 .aide{color:var(--muted);font-size:13px;text-align:center;margin-top:10px;line-height:1.5}
 .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .net{display:flex;gap:12px;align-items:center}.net .ic{font-size:26px}
@@ -77,6 +84,7 @@ a:active,button:active{transform:scale(.98)}
 <script src="/assets/js/qrgen.js"></script>
 <script src="/assets/js/vue.js"></script>
 <script src="/assets/js/preavis.js?v=2"></script>
+<script src="/assets/js/wallet-config.js"></script>
 <script>
 (function () {
   "use strict";
@@ -223,39 +231,212 @@ a:active,button:active{transform:scale(.98)}
       ${pied()}`;
   }
   function rdv() {
-    const services = String(P.services || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
-    const sansAccent = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-    const fermes = sansAccent(P.ferme || "");
-    const NJ = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"], NJA = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-    const jours = []; for (let i = 0; i < 14 && jours.length < 10; i++) { const d = new Date(); d.setDate(d.getDate() + i); if (fermes && fermes.includes(NJ[d.getDay()])) continue; jours.push(d); }
+    /* Réservation en ligne : services (salon) ou tables (billard, PS…).
+       Écrit dans Firestore : reservations/{id} (privé : commerçant) + rdvOccupe/{id} (public : créneaux pris, sans nom ni téléphone).
+       Le commerçant confirme dans son Espace (espace/reservations.html). Sans e-mail commerçant : ancienne version WhatsApp. */
+    const KEY = "AIzaSyDFJGerneuM-Og0Hs9IKIcFqVbLlS9Yqjc", API = "https://firestore.googleapis.com/v1/", PRJ = "projects/nfcwork-espace/databases/(default)/documents";
+    const WALLET = window.NFCW_WALLET || "", IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const enc = v => typeof v === "number" ? { integerValue: String(Math.round(v)) } : typeof v === "boolean" ? { booleanValue: v } : { stringValue: String(v == null ? "" : v) };
+    const dec = x => !x ? null : "stringValue" in x ? x.stringValue : "integerValue" in x ? +x.integerValue : "doubleValue" in x ? x.doubleValue : "booleanValue" in x ? x.booleanValue : "timestampValue" in x ? x.timestampValue : null;
+    const obj = f => { const o = {}; for (const k in (f || {})) o[k] = dec(f[k]); return o; };
+    const lire = async ch => { const r = await fetch(API + PRJ + "/" + ch + "?key=" + KEY, { cache: "no-store" }); if (r.status === 404) return null; if (!r.ok) throw new Error("lecture " + r.status); return obj((await r.json()).fields); };
+    const commit = async writes => { const r = await fetch(API + PRJ + ":commit?key=" + KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ writes }) }); if (!r.ok) { const e = new Error("écriture " + r.status); e.status = r.status; throw e; } return r.json(); };
+    const nom = ch => PRJ + "/" + ch;
+    const rid = n => { const a = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789", b = crypto.getRandomValues(new Uint8Array(n)); return Array.from(b, x => a[x % a.length]).join(""); };
+    const lignes = t => String(t || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
+    const duree = t => { t = String(t || "").toLowerCase(); let m = t.match(/(\d+)\s*h\s*(\d+)?/); if (m) return +m[1] * 60 + (+m[2] || 0); m = t.match(/(\d+)\s*(min|mn|m)\b/); return m ? +m[1] : 0; };
     const hm = s => { const m = String(s || "").match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
-    const o = hm(P.ouverture) ?? 540, f = hm(P.fermeture) ?? 1260, pas = Math.max(10, +P.pas || 30);
-    const tel = String(P.whatsapp || P.tel || "").replace(/\D/g, "").replace(/^0/, "212");
-    let S = { svc: services[0] || "", j: 0, h: "" };
-    const creneaux = () => { const L = [], d = jours[S.j], maint = new Date(); for (let m = o; m + pas <= f; m += pas) { if (d && d.toDateString() === maint.toDateString() && m <= maint.getHours() * 60 + maint.getMinutes() + 15) continue; L.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`); } return L; };
-    const dessiner = () => {
-      app.innerHTML = `${brand}${P.photo ? `<div class="logo"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}<h1>${esc(P.nom || "")}</h1><p class="sub">${esc(P.message || T("Réservez en 30 secondes 📅", "حجز فـ 30 ثانية 📅"))}</p>
-        ${services.length ? `<div class="card"><div class="lab" style="margin-bottom:8px">${T("1 · Le service", "1 · الخدمة")}</div><div class="chips">${services.map((x, i) => `<button class="chip${S.svc === x ? " on" : ""}" data-svc="${i}">${esc(x)}</button>`).join("")}</div></div>` : ""}
-        <div class="card"><div class="lab" style="margin-bottom:8px">${T("2 · Le jour", "2 · النهار")}</div><div class="chips days">${jours.map((d, i) => `<button class="chip${S.j === i ? " on" : ""}" data-j="${i}"><small>${P.langue === "ar" ? NJA[d.getDay()] : NJ[d.getDay()].slice(0, 3)}</small><b>${d.getDate()}/${d.getMonth() + 1}</b></button>`).join("")}</div></div>
-        <div class="card"><div class="lab" style="margin-bottom:8px">${T("3 · L’heure", "3 · الساعة")}</div><div class="chips">${creneaux().map(h => `<button class="chip${S.h === h ? " on" : ""}" data-h="${h}">${h}</button>`).join("") || `<span class="muted">${T("Plus de créneau ce jour : choisissez un autre jour.", "ما بقاش الوقت هاد النهار، اختار نهار آخر.")}</span>`}</div></div>
-        <div class="card"><div class="lab" style="margin-bottom:8px">${T("4 · Votre prénom", "4 · السمية ديالك")}</div><input id="rv-n" maxlength="40" value="${esc(S.n || "")}" style="width:100%;padding:13px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:16px"></div>
-        <button class="main" id="rv-go" ${tel ? "" : "disabled"}>${I.wa}${T("Envoyer la réservation sur WhatsApp", "صيفط الحجز فواتساب")}</button>
-        <p class="aide">${T("Le commerce confirme votre rendez-vous sur WhatsApp.", "المحل كيأكد ليك الموعد فواتساب.")}</p>
+    const lab = m => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    const fdur = m => m < 60 ? m + " min" : Math.floor(m / 60) + " h" + (m % 60 ? " " + String(m % 60).padStart(2, "0") : "");
+    const cle = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const deCle = k => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+    const sansAccent = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const NJ = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"], NJA = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+    const jourCourt = k => { const d = deCle(k); return (P.langue === "ar" ? NJA[d.getDay()] : NJ[d.getDay()].slice(0, 3) + ".") + " " + d.getDate(); };
+    const jourLong = k => { const d = deCle(k); return P.langue === "ar" ? NJA[d.getDay()] + " " + d.getDate() + "/" + (d.getMonth() + 1) : NJ[d.getDay()].replace(/^./, c => c.toUpperCase()) + " " + d.getDate() + " " + MOIS[d.getMonth()]; };
+    const telWa = String(P.whatsapp || P.tel || "").replace(/\D/g, "").replace(/^0/, "212");
+    const tb = P.mode === "tables", enLigne = !!P.ownerEmail && !apercu;
+    const emo = t => { const m = String(t).match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u); return m ? [m[1], m[2] || t] : ["", t]; };
+    // services : « Nom · 80 DH · 45 min »
+    const SV = lignes(P.services).map(l => { const p = l.split(/\s*[·|•]\s*|\s+-\s+/); const s = { nom: p[0], prix: 0, duree: 0, txt: l }; for (const x of p.slice(1)) { if (/dh|mad|drh|€/i.test(x)) s.prix = parseInt(x.replace(/\D/g, "")) || 0; else if (duree(x)) s.duree = duree(x); } return s; });
+    const EQ = lignes(P.equipe), RS = tb ? (lignes(P.ressources).length ? lignes(P.ressources) : ["Table 1"]) : [];
+    const DUREES = String(P.durees || "60,120").split(/[,; ]+/).map(Number).filter(n => n >= 10 && n <= 720);
+    const fermes = sansAccent(P.ferme || "");
+    const jours = []; for (let i = 0; i < 21 && jours.length < 14; i++) { const d = new Date(); d.setDate(d.getDate() + i); if (fermes && fermes.includes(NJ[d.getDay()])) continue; jours.push(cle(d)); }
+    const o = hm(P.ouverture) ?? 540; let f = hm(P.fermeture) ?? 1260; if (f <= o) f += 1440;   // fermeture après minuit (billard)
+    const pas = Math.max(10, +P.pas || 30);
+    const LS = "nfcwork-rdv-" + slug; const mesResas = () => { try { return JSON.parse(localStorage.getItem(LS) || "[]"); } catch (e) { return []; } };
+    let S = { svc: 0, staff: EQ.length ? "" : null, res: RS[0] || "", dur: DUREES.includes(60) ? 60 : DUREES[0] || pas, j: jours[0], h: null, n: "", t: "", fid: true };
+    try { const m = JSON.parse(localStorage.getItem("nfcwork-rdv-moi") || "{}"); S.n = m.n || ""; S.t = m.t || ""; } catch (e) {}
+    const occ = {};   // jour → [{debut, fin, ressource, staff}]
+    async function charger(j, force) {
+      if (occ[j] && !force) return occ[j];
+      if (!enLigne) return (occ[j] = []);
+      const q = { structuredQuery: { from: [{ collectionId: "rdvOccupe" }], where: { compositeFilter: { op: "AND", filters: [
+        { fieldFilter: { field: { fieldPath: "page" }, op: "EQUAL", value: { stringValue: slug } } },
+        { fieldFilter: { field: { fieldPath: "jour" }, op: "EQUAL", value: { stringValue: j } } }] } } } };
+      try { const r = await fetch(API + PRJ + ":runQuery?key=" + KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(q) });
+        const a = r.ok ? await r.json() : []; occ[j] = a.filter(x => x.document).map(x => obj(x.document.fields)).filter(x => x.statut !== "refusee" && x.statut !== "annulee"); }
+      catch (e) { occ[j] = []; }
+      return occ[j];
+    }
+    const dureeCh = () => tb ? S.dur : (SV[S.svc] && SV[S.svc].duree) || pas;
+    const chevauche = (a1, a2, x) => a1 < x.fin && x.debut < a2;
+    function libres(m, j) {   // qui peut prendre ce créneau ? (liste, vide = complet)
+      const L = occ[j] || [], d = dureeCh();
+      if (tb) return L.some(x => x.ressource === S.res && chevauche(m, m + d, x)) ? [] : [S.res];
+      if (!EQ.length) return L.some(x => chevauche(m, m + d, x)) ? [] : [""];
+      const qui = S.staff ? [S.staff] : EQ;
+      return qui.filter(e => !L.some(x => x.staff === e && chevauche(m, m + d, x)));
+    }
+    function creneaux(j) {
+      const L = [], d = dureeCh(), maint = new Date(), auj = j === cle(maint), mn = maint.getHours() * 60 + maint.getMinutes() + 15;
+      for (let m = o; m + d <= f; m += pas) { if (auj && m <= mn) continue; L.push({ m, ok: libres(m, j).length > 0 }); }
+      return L;
+    }
+    const resPleine = r => { const s = S.res; S.res = r; const pl = !creneaux(S.j).some(x => x.ok); S.res = s; return pl; };
+
+    function dessiner() {
+      const sv = SV[S.svc], cr = creneaux(S.j);
+      if (S.h != null && !cr.some(x => x.m === S.h && x.ok)) S.h = null;
+      const mes = mesResas().filter(r => r.jour >= cle(new Date()));
+      let k = 0;
+      app.innerHTML = `${brand}${P.photo ? `<div class="logo"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}<h1>${esc(P.nom || "")}</h1><p class="sub">${esc(P.message || (tb ? T("Réservez votre table en 30 secondes", "احجز الطابلة ديالك فـ 30 ثانية") : T("Prenez rendez-vous en ligne", "خود موعد أونلاين")))}</p>
+        ${mes.length ? `<div class="card mesr"><div class="lab" style="margin-bottom:8px">${T("Vos réservations", "الحجوزات ديالك")}</div>${mes.map(r => `<button class="mr" data-voir="${esc(r.id)}"><b>${esc(jourCourt(r.jour))} · ${esc(r.debut)}</b><span>${esc(r.quoi || "")}</span><i>›</i></button>`).join("")}</div>` : ""}
+        ${tb ? `<div class="card"><div class="lab">${++k} · ${T("La table", "الطابلة")}</div><div class="rs">${RS.map((r, i) => { const [e, t] = emo(r), pl = resPleine(r); return `<button class="rsb${S.res === r ? " on" : ""}${pl ? " pris" : ""}" data-res="${i}" ${pl ? "disabled" : ""}><span>${e || "🎱"}</span>${esc(t)}</button>`; }).join("")}</div></div>`
+        : SV.length ? `<div class="card"><div class="lab">${++k} · ${T("Le soin", "الخدمة")}</div><div class="svl">${SV.map((s, i) => `<button class="sv${S.svc === i ? " on" : ""}" data-svc="${i}"><span><b>${esc(s.nom)}</b>${s.duree ? `<small>${fdur(s.duree)}</small>` : ""}</span>${s.prix ? `<em>${s.prix} DH</em>` : ""}</button>`).join("")}</div></div>` : ""}
+        ${!tb && EQ.length ? `<div class="card"><div class="lab">${++k} · ${T("Avec qui ?", "مع من؟")}</div><div class="rs">${EQ.map(e => `<button class="rsb${S.staff === e ? " on" : ""}" data-staff="${esc(e)}"><span>👤</span>${esc(e)}</button>`).join("")}<button class="rsb${S.staff === "" ? " on" : ""}" data-staff=""><span>✨</span>${T("Peu importe", "ما كاين مشكل")}</button></div></div>` : ""}
+        <div class="card"><div class="lab">${++k} · ${tb ? T("Le jour", "النهار") : T("Le créneau", "الوقت")}</div><div class="chips days">${jours.map(j => `<button class="chip${S.j === j ? " on" : ""}" data-j="${j}"><small>${esc(jourCourt(j).split(" ")[0])}</small><b>${deCle(j).getDate()}</b></button>`).join("")}</div>
+          ${tb ? `</div><div class="card"><div class="lab">${++k} · ${T("L’heure et la durée", "الساعة والمدة")}</div>` : ""}
+          <div class="chips" style="margin-top:10px">${occ[S.j] ? cr.map(x => `<button class="chip${S.h === x.m ? " on" : ""}${x.ok ? "" : " pris"}" data-h="${x.m}" ${x.ok ? "" : "disabled"}>${lab(x.m)}</button>`).join("") || `<span class="aide" style="margin:0">${T("Plus de créneau ce jour-là.", "ما بقاش وقت فهاد النهار.")}</span>` : `<span class="aide" style="margin:0">${T("Chargement des créneaux…", "كنشوفو الأوقات…")}</span>`}</div>
+          ${tb && DUREES.length > 1 ? `<div class="chips" style="margin-top:10px">${DUREES.map(d => `<button class="chip${S.dur === d ? " on" : ""}" data-dur="${d}">${d < 60 ? d + " min" : d === 60 ? T("1 heure", "ساعة") : fdur(d).replace(" h", T(" heures", " سوايع"))}</button>`).join("")}</div>` : ""}
+        </div>
+        <div class="card"><div class="lab">${++k} · ${T("Vous", "نتا")}</div>
+          <input id="rv-n" class="inp" maxlength="40" autocomplete="given-name" placeholder="${T("Votre prénom", "السمية ديالك")}" value="${esc(S.n)}">
+          <input id="rv-t" class="inp" maxlength="20" type="tel" inputmode="tel" autocomplete="tel" placeholder="${T("Téléphone (06…)", "التيليفون (06…)")}" value="${esc(S.t)}">
+          ${P.fidPid && enLigne ? `<label class="fidok"><input type="checkbox" id="rv-f" ${S.fid ? "checked" : ""}> 🎁 ${T("Je veux la carte fidélité (gratuite)", "بغيت كارطة الوفاء (فابور)")}</label>` : ""}
+        </div>
+        <button class="main" id="rv-go">${enLigne ? "" : I.wa}${esc(bouton())}</button>
+        <p class="aide">${enLigne ? (P.auto ? T("Votre réservation est confirmée tout de suite.", "الحجز كيتأكد دغيا.") : T("Le commerce confirme votre réservation en quelques minutes.", "المحل كيأكد الحجز فدقايق.")) : T("Le commerce confirme votre rendez-vous sur WhatsApp.", "المحل كيأكد ليك الموعد فواتساب.")}</p>
         ${P.instagram ? row(handle(P.instagram, "https://instagram.com/"), "insta", "Instagram", String(P.instagram).replace(/^https?:\/\/(www\.)?/, "")) : ""}
         ${pied()}`;
       remplir();
-      const n = document.getElementById("rv-n"); n.oninput = () => (S.n = n.value);
-      document.getElementById("rv-go").onclick = () => {
-        if (!S.h) { alert(T("Choisissez l’heure.", "اختار الساعة.")); return; }
-        if (!(S.n || "").trim()) { n.focus(); return; }
-        const d = jours[S.j], jour = `${NJ[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
-        const msg = `📅 Réservation · ${P.nom || ""}\n👤 ${S.n.trim()}\n${S.svc ? "✂️ " + S.svc + "\n" : ""}🗓 ${jour} à ${S.h}`;
-        window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank");
+      const nn = document.getElementById("rv-n"), tt = document.getElementById("rv-t"), ff = document.getElementById("rv-f");
+      nn.oninput = () => (S.n = nn.value); tt.oninput = () => (S.t = tt.value); if (ff) ff.onchange = () => (S.fid = ff.checked);
+      document.getElementById("rv-go").onclick = envoyer;
+      if (!occ[S.j]) charger(S.j).then(dessiner);
+    }
+    function bouton() {
+      const q = tb ? emo(S.res)[1] : "", h = S.h != null ? " · " + jourCourt(S.j) + " " + lab(S.h) : "";
+      const avec = !tb && EQ.length && S.staff ? " " + T("avec", "مع") + " " + S.staff : "";
+      return (enLigne ? T("Réserver", "احجز") : T("Envoyer sur WhatsApp", "صيفط فواتساب")) + (q ? " " + q : "") + h + avec;
+    }
+    async function carteFid(tel) {   // crée (ou retrouve) la carte fidélité liée à ce numéro
+      const pid = P.fidPid, d = String(tel).replace(/\D/g, "").slice(-9);
+      const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("nfcwork-fid|" + pid + "|" + d)));
+      const a = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let cid = ""; for (let i = 0; i < 20; i++) cid += a[h[i] % a.length];
+      const prog = await lire("fidProgrammes/" + pid); if (!prog || prog.actif === false) return null;
+      let c = await lire("fidCartes/" + cid);
+      if (!c) {
+        await commit([{ update: { name: nom("fidCartes/" + cid), fields: { pid: enc(pid), ownerEmail: enc(prog.ownerEmail || ""), nom: enc(S.n.trim().slice(0, 60)), tel: enc(tel.slice(0, 30)), points: enc(0), total: enc(0), recompenses: enc(0), lastAt: { timestampValue: "1970-01-01T00:00:00Z" } } },
+          updateTransforms: [{ fieldPath: "createdAt", setToServerValue: "REQUEST_TIME" }], currentDocument: { exists: false } }]).catch(e => { if (e.status !== 409) throw e; });
+        c = { points: 0 };
+      }
+      try { localStorage.setItem("nfcwork-fid-" + pid, cid); } catch (e) {}
+      const unite = prog.unite || (prog.type === "montant" ? "points" : prog.type === "articles" ? "articles" : "visites");
+      return { cid, points: c.points || 0, objectif: Math.max(1, prog.objectif || 10), unite, recompense: prog.recompense || "" };
+    }
+    async function envoyer() {
+      const b = document.getElementById("rv-go");
+      if (S.h == null) { toast(T("Choisissez l’heure.", "اختار الساعة.")); return; }
+      if (!S.n.trim()) { document.getElementById("rv-n").focus(); return; }
+      const tel = S.t.trim();
+      if (enLigne && tel.replace(/\D/g, "").length < 9) { toast(T("Numéro de téléphone incomplet.", "النمرة ناقصة.")); document.getElementById("rv-t").focus(); return; }
+      try { localStorage.setItem("nfcwork-rdv-moi", JSON.stringify({ n: S.n.trim(), t: tel })); } catch (e) {}
+      const sv = !tb && SV[S.svc], d = dureeCh(), quoi = tb ? emo(S.res)[1] : sv ? sv.nom : "";
+      if (!enLigne) {
+        if (!telWa) { toast(T("Réservation indisponible pour l’instant.", "الحجز ما خدامش دابا.")); return; }
+        const msg = `📅 Réservation · ${P.nom || ""}\n👤 ${S.n.trim()}${tel ? " · " + tel : ""}\n${quoi ? (tb ? "🎱 " : "✂️ ") + quoi + "\n" : ""}${S.staff ? "💇 " + S.staff + "\n" : ""}🗓 ${jourLong(S.j)} à ${lab(S.h)}${tb ? " (" + fdur(d) + ")" : ""}`;
+        window.open(`https://wa.me/${telWa}?text=${encodeURIComponent(msg)}`, "_blank"); return;
+      }
+      b.disabled = true; b.textContent = T("Envoi…", "كنصيفطو…");
+      try {
+        await charger(S.j, true);
+        const qui = libres(S.h, S.j);
+        if (!qui.length) { toast(T("Ce créneau vient d’être pris, choisissez-en un autre.", "هاد الوقت تخدا، اختار وقت آخر.")); S.h = null; dessiner(); return; }
+        const staff = tb ? "" : (S.staff || (EQ.length ? qui[0] : ""));
+        let fid = null; if (P.fidPid && S.fid) { try { fid = await carteFid(tel); } catch (e) { console.warn("fidélité", e); } }
+        const id = rid(20), statut = P.auto ? "confirmee" : "attente";
+        const R = { page: slug, ownerEmail: String(P.ownerEmail).toLowerCase(), nom: S.n.trim().slice(0, 40), tel: tel.slice(0, 20), mode: tb ? "tables" : "services",
+          ressource: tb ? S.res : "", service: sv ? sv.nom : "", prix: sv ? sv.prix || 0 : 0, staff, jour: S.j, debut: lab(S.h), debutMin: S.h, duree: d, statut, fid: fid ? fid.cid : "" };
+        const F = {}; for (const kk in R) F[kk] = enc(R[kk]);
+        const occF = { page: enc(slug), jour: enc(S.j), debut: enc(S.h), fin: enc(S.h + d), ressource: enc(R.ressource), staff: enc(staff), statut: enc(statut) };
+        await commit([
+          { update: { name: nom("reservations/" + id), fields: F }, updateTransforms: [{ fieldPath: "cree", setToServerValue: "REQUEST_TIME" }], currentDocument: { exists: false } },
+          { update: { name: nom("rdvOccupe/" + id), fields: occF }, currentDocument: { exists: false } }]);
+        const L = mesResas().filter(r => r.jour >= cle(new Date())); L.unshift({ id, jour: S.j, debut: R.debut, quoi: quoi + (staff ? " · " + staff : "") });
+        try { localStorage.setItem(LS, JSON.stringify(L.slice(0, 10))); } catch (e) {}
+        delete occ[S.j];
+        confirmation(id, Object.assign({}, R, { fidInfo: fid }));
+      } catch (e) {
+        console.error(e); b.disabled = false; b.textContent = bouton();
+        toast(T("Échec de l’envoi. Vérifiez la connexion et réessayez.", "ما تصيفطش. شوف الأنترنيت وعاود."));
+      }
+    }
+    let poll = null;
+    async function confirmation(id, R) {
+      clearInterval(poll);
+      if (!R) { app.innerHTML = `${brand}<div class="state"><div><b>…</b></div></div>`; try { R = await lire("reservations/" + id); } catch (e) {} if (!R) { const L = mesResas().filter(r => r.id !== id); try { localStorage.setItem(LS, JSON.stringify(L)); } catch (e) {} dessiner(); return; } }
+      let fid = R.fidInfo; if (!fid && R.fid && P.fidPid) { try { const c = await lire("fidCartes/" + R.fid), p = await lire("fidProgrammes/" + P.fidPid); if (c && p) fid = { cid: R.fid, points: c.points || 0, objectif: Math.max(1, p.objectif || 10), unite: p.unite || "visites", recompense: p.recompense || "" }; } catch (e) {} }
+      const peint = () => {
+        const st = R.statut, ok = st === "confirmee" || st === "venu", non = st === "refusee" || st === "annulee";
+        const titre = non ? (st === "annulee" ? T("Réservation annulée", "الحجز تلغى") : T("Créneau indisponible", "هاد الوقت ما متاحش")) : ok ? (tb ? T("Réservation confirmée !", "الحجز تأكد!") : T("Rendez-vous réservé", "الموعد محجوز")) : T("Demande envoyée !", "الطلب تصيفط!");
+        const sous = non ? T("Choisissez un autre créneau, ou contactez le commerce.", "اختار وقت آخر ولا تواصل مع المحل.") : ok ? T("À " + jourCourt(R.jour).split(" ")[0].replace(".", "") + " ! Pensez à arriver 5 minutes avant.", "نتسناوك! جي 5 دقايق قبل.") : esc(P.nom || "") + T(" vous confirme dans quelques minutes.", " غادي يأكد ليك فدقايق.");
+        app.innerHTML = `${brand}<div class="okc ${non ? "non" : ok ? "" : "att"}">${non ? "✕" : ok ? "✓" : "⏳"}</div><h1>${titre}</h1><p class="sub">${sous}</p>
+          <div class="card recap">
+            ${R.ressource ? `<div>${emo(R.ressource)[0] || "🎱"} <b>${esc(emo(R.ressource)[1])}</b></div>` : ""}${R.service ? `<div>✂️ <b>${esc(R.service)}</b>${R.prix ? " · " + R.prix + " DH" : ""}</div>` : ""}${R.staff ? `<div>👤 ${T("avec", "مع")} <b>${esc(R.staff)}</b></div>` : ""}
+            <div>🗓 <b>${esc(jourLong(R.jour))}</b> · ${esc(R.debut)} → ${lab((+R.debutMin || hm(R.debut)) + (+R.duree || 0))}</div>
+            <div>👤 ${esc(R.nom)} · ${esc(String(R.tel || "").replace(/(\d{2})(?=\d)/g, "$1 ").trim())}</div>
+            ${fid ? `<div>🎁 ${T("Carte fidélité", "كارطة الوفاء")} : <b>${fid.points} / ${fid.objectif} ${esc(fid.unite)}</b></div>` : ""}
+            <div class="stt ${non ? "non" : ok ? "ok" : ""}">${non ? "✕ " + (st === "annulee" ? T("Annulée", "ملغية") : T("Refusée", "مرفوضة")) : ok ? "✓ " + T("Confirmée", "مأكدة") : "⏳ " + T("En attente de confirmation", "كنتسناو التأكيد")}</div>
+          </div>
+          ${fid && WALLET && !IOS && !non ? `<a class="main gw" href="${WALLET}/google/save?c=${encodeURIComponent(fid.cid)}" rel="noopener">${T("Ajouter à Google Wallet", "زيد لـ Google Wallet")}</a>` : ""}
+          ${fid && !non ? `<a class="row2" href="/f/?c=${encodeURIComponent(fid.cid)}">🎁 ${T("Voir ma carte fidélité", "شوف كارطة الوفاء")}${fid.recompense ? ` <small>${fid.objectif} ${esc(fid.unite)} = ${esc(fid.recompense)}</small>` : ""}</a>` : ""}
+          ${telWa && !non ? `<a class="row2" target="_blank" rel="noopener" href="https://wa.me/${telWa}?text=${encodeURIComponent(`📅 ${T("Bonjour, je viens de réserver", "سلام، حجزت دابا")} : ${R.ressource ? emo(R.ressource)[1] : R.service}${R.staff ? " · " + R.staff : ""} · ${jourLong(R.jour)} ${R.debut} (${R.nom})`)}">${I.wa} ${T("Prévenir sur WhatsApp", "علم المحل فواتساب")}</a>` : ""}
+          ${!non && st !== "venu" ? `<button class="row2 lien" id="rv-ann">${T("Annuler ma réservation", "لغي الحجز")}</button>` : ""}
+          <button class="main" id="rv-new" style="margin-top:14px">${non ? T("Choisir un autre créneau", "اختار وقت آخر") : T("Nouvelle réservation", "حجز جديد")}</button>
+          ${pied()}`;
+        document.getElementById("rv-new").onclick = () => { clearInterval(poll); history.replaceState(null, "", location.pathname + location.search); dessiner(); };
+        const an = document.getElementById("rv-ann");
+        if (an) an.onclick = async () => {
+          if (!confirm(T("Annuler cette réservation ?", "تلغي هاد الحجز؟"))) return;
+          an.disabled = true;
+          try {
+            await commit([{ update: { name: nom("reservations/" + id), fields: { statut: enc("annulee") } }, updateMask: { fieldPaths: ["statut"] }, currentDocument: { exists: true } },
+              { delete: nom("rdvOccupe/" + id) }]);
+            R.statut = "annulee"; delete occ[R.jour]; peint(); toast(T("Réservation annulée", "الحجز تلغى"));
+          } catch (e) { an.disabled = false; toast(T("Échec. Contactez le commerce sur WhatsApp.", "ما خدمش. تواصل مع المحل فواتساب.")); }
+        };
       };
-    };
+      peint();
+      if (R.statut === "attente" || R.statut === "confirmee") poll = setInterval(async () => {
+        if (document.hidden || !document.getElementById("rv-new")) return;
+        try { const n = await lire("reservations/" + id); if (n && n.statut !== R.statut) { R.statut = n.statut; peint(); if (n.statut !== "attente" && n.statut !== "confirmee") clearInterval(poll); } } catch (e) {}
+      }, 15000);
+    }
     app.onclick = e => {
-      const s = e.target.closest("[data-svc]"), j = e.target.closest("[data-j]"), h = e.target.closest("[data-h]");
-      if (s) { S.svc = services[+s.dataset.svc]; dessiner(); } else if (j) { S.j = +j.dataset.j; S.h = ""; dessiner(); } else if (h) { S.h = h.dataset.h; dessiner(); }
+      const g = a => e.target.closest("[" + a + "]");
+      let x;
+      if ((x = g("data-voir"))) { confirmation(x.dataset.voir); return; }
+      if ((x = g("data-svc"))) S.svc = +x.dataset.svc;
+      else if ((x = g("data-res"))) S.res = RS[+x.dataset.res];
+      else if ((x = g("data-staff"))) S.staff = x.dataset.staff;
+      else if ((x = g("data-j"))) { S.j = x.dataset.j; S.h = null; }
+      else if ((x = g("data-h"))) S.h = +x.dataset.h;
+      else if ((x = g("data-dur"))) S.dur = +x.dataset.dur;
+      else return;
+      dessiner();
     };
     dessiner();
   }
