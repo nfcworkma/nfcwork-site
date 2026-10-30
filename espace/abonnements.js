@@ -132,21 +132,22 @@
   /* ---------- service lié : actif + date de coupure ---------- */
   async function appliquer(a) {
     const vals = { actif: a.actif !== false, expire: expireDe(a) };
+    vals.preavis = vals.expire ? a.echeance : "";   // entre l'échéance et la coupure : avertissement sur les pages publiques
     if (a.service === "menu" && a.cible) {
       const ref = db.doc("settings/menu-" + a.cible), d = await ref.get();
       if (!d.exists) throw new Error("menu introuvable");
       const m = JSON.parse(d.data().json || "{}");
-      m.actif = vals.actif; if (vals.expire) m.expire = vals.expire; else delete m.expire;
+      m.actif = vals.actif; if (vals.expire) { m.expire = vals.expire; m.preavis = vals.preavis; } else { delete m.expire; delete m.preavis; }
       await ref.set(Object.assign({}, d.data(), { json: JSON.stringify(m), v: String(Date.now()), maj: NOW(), par: user.email }));
       const i = menus.find(x => x.slug === a.cible);
       if (i) { i.actif = vals.actif; await db.doc("settings/menus").set({ json: JSON.stringify(menus), maj: NOW(), par: user.email }); }
     } else if (a.service === "fid" && a.cible) {
-      await db.doc("fidProgrammes/" + a.cible).update({ actif: vals.actif, expire: vals.expire || "" });
+      await db.doc("fidProgrammes/" + a.cible).update({ actif: vals.actif, expire: vals.expire || "", preavis: vals.preavis || "" });
     } else if (a.service === "profil" && a.cible) {
       // pages des cartes NFC, avis Google, Wi-Fi : liste publique des coupures (aucun nom ni prix dedans)
       const ref = db.doc("settings/coupures"), d = await ref.get();
       const c = d.exists ? JSON.parse(d.data().json || "{}") : {};
-      c[a.cible] = vals.expire ? { actif: vals.actif, expire: vals.expire } : { actif: vals.actif };
+      c[a.cible] = vals.expire ? { actif: vals.actif, expire: vals.expire, preavis: vals.preavis } : { actif: vals.actif };
       await ref.set({ json: JSON.stringify(c), maj: NOW() });
     }
   }

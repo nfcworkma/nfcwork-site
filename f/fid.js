@@ -181,6 +181,7 @@
     // « Ajouter à l'écran d'accueil » ouvre alors directement sa carte (plus de formulaire)
     if (new URLSearchParams(location.search).get("c") !== carte.id) history.replaceState(null, "", "/f/?c=" + carte.id);
     theme(prog); lsSet("nfcwork-fid-" + carte.pid, carte.id);
+    if (window.NFCW_PREAVIS && prog.expire) NFCW_PREAVIS(prog.preavis, prog.expire);
     rendreCarte(msg, nouveau); suivre();
   }
 
@@ -229,6 +230,7 @@
     prog = await lire("fidProgrammes/" + pid);
     if (!prog || prog.actif === false || coupe(prog)) { etat("Programme indisponible", "Ce programme de fidélité n’est pas actif pour l’instant."); return; }
     theme(prog);
+    if (window.NFCW_PREAVIS && prog.expire) NFCW_PREAVIS(prog.preavis, prog.expire);
     const deja = lsGet("nfcwork-fid-" + pid);
     if (deja) {
       const c = await lire("fidCartes/" + deja).catch(() => null);

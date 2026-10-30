@@ -75,6 +75,7 @@ a:active,button:active{transform:scale(.98)}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/assets/js/qrgen.js"></script>
 <script src="/assets/js/vue.js"></script>
+<script src="/assets/js/preavis.js?v=1"></script>
 <script>
 (function () {
   "use strict";
@@ -250,6 +251,7 @@ a:active,button:active{transform:scale(.98)}
     if (!apercu && P.actif === false) { etat(T("Service momentanément indisponible", "الخدمة متوقفة مؤقتاً"), T("Merci de réessayer un peu plus tard.", "عاود من بعد شوية.")); return; }
     if (!apercu && P.expire) { const d = new Date(), j = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; if (j > String(P.expire)) { etat("Service momentanément indisponible", "Merci de réessayer un peu plus tard."); return; } }
     theme();
+    if (!apercu && window.NFCW_PREAVIS && P.expire) NFCW_PREAVIS(P.preavis, P.expire);
     if (!apercu && window.NFCW_VUE && !/^demo-/.test(slug)) NFCW_VUE("page", slug);
     document.title = (P.nom || "NFCWORK") + (P.fonction ? " · " + P.fonction : "");
     ({ profil, avis, wifi, liens }[P.type] || profil)();
@@ -269,7 +271,7 @@ a:active,button:active{transform:scale(.98)}
       if (!f) { if (!P) etat("Page introuvable", "Vérifiez le lien ou contactez NFCWORK."); return; }
       const j = (f.json && f.json.stringValue) || "{}";
       const data = JSON.parse(j);
-      try { const cp = JSON.parse((c && c.json && c.json.stringValue) || "{}")[slug]; if (cp && (cp.actif === false || cp.expire)) { if (cp.actif === false) data.actif = false; if (cp.expire) data.expire = cp.expire; } } catch (e) {}
+      try { const cp = JSON.parse((c && c.json && c.json.stringValue) || "{}")[slug]; if (cp && (cp.actif === false || cp.expire)) { if (cp.actif === false) data.actif = false; if (cp.expire) data.expire = cp.expire; if (cp.preavis) data.preavis = cp.preavis; } } catch (e) {}
       const s = JSON.stringify(data);
       if (s === memo) return;
       try { localStorage.setItem(CLE, s); } catch (e) {}
