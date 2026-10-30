@@ -250,8 +250,21 @@ async function aboBadge(){
     if(retard||bientot){el.innerHTML=`<b style="color:${retard?"var(--bad)":"var(--warn)"}">${retard?retard+" en retard":""}${retard&&bientot?" · ":""}${bientot?bientot+" bientôt":""}</b>`;}
   }catch(e){}
 }
+// 🎂 anniversaires des patrons (7 prochains jours) : abonné = 1 mois offert, sinon un produit en cadeau
+async function annivBadge(){
+  try{
+    const box=document.getElementById("annivBox");if(!box)return;
+    const L=[];for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()+i);const k=String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");S.clients.filter(c=>c.anniv===k).forEach(c=>L.push([c,i]))}
+    if(!L.length){box.innerHTML="";return}
+    let abos=[];try{abos=(await fs.collection("abonnements").get()).docs.map(x=>x.data()).filter(a=>a.actif!==false)}catch(e){}
+    const n=t=>String(t||"").toLowerCase().replace(/\s+/g,"");
+    const wa=t=>{let d=String(t||"").replace(/\D/g,"");if(d.startsWith("0"))d="212"+d.slice(1);return d.length>=11?d:""};
+    box.innerHTML=`<div class="paper" style="padding:14px 16px;border-radius:16px;margin-bottom:16px;border:1px solid var(--warn)"><b>🎂 Anniversaires des clients</b>${L.map(([c,i])=>{const ab=abos.some(a=>n(a.client)===n(c.name)||(a.email&&a.email===c.email));const cad=ab?"1 mois d’abonnement offert":"un produit offert (plaque, porte-clés…)";const msg=`Joyeux anniversaire ${c.name} 🎉 Toute l’équipe NFCWORK vous souhaite une belle année ! Pour l’occasion : ${cad} 🎁`;
+      return `<div class="row between" style="gap:8px;margin-top:8px;flex-wrap:wrap"><span><b>${esc(c.name)}</b> · ${i===0?"aujourd’hui 🎉":i===1?"demain":"dans "+i+" jours"}<br><small class="muted">🎁 ${ab?"Abonné : 1 mois offert":"Pas abonné : un produit en cadeau"}</small></span>${wa(c.phone)?`<a class="btn sm primary" target="_blank" rel="noopener" href="https://wa.me/${wa(c.phone)}?text=${encodeURIComponent(msg)}">Souhaiter</a>`:""}</div>`}).join("")}</div>`;
+  }catch(e){}
+}
 function renderHome(){
-  setTimeout(aboBadge,0);setTimeout(()=>{if(window.NFCW_GESTION)window.NFCW_GESTION.home()},0);
+  setTimeout(aboBadge,0);setTimeout(annivBadge,0);setTimeout(()=>{if(window.NFCW_GESTION)window.NFCW_GESTION.home()},0);
   const all=S.invoices,y=String(new Date().getFullYear());
   const paidYear=all.filter(i=>i.status==="paid"&&(i.date||"").startsWith(y)).reduce((a,i)=>a+totals(i).total,0);
   const open=all.filter(i=>i.status==="sent"),late=open.filter(i=>i.due&&i.due<today());
@@ -259,6 +272,7 @@ function renderHome(){
   app.innerHTML=`
   <div class="section-head"><div><div class="eyebrow">${new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}</div><h2>Tableau de bord</h2></div>
   <button class="btn primary" data-creer>＋ Créer</button></div>
+  <div id="annivBox"></div>
   <div class="quick" style="margin-bottom:16px"><a class="qa" href="menus.html">${ico("tools-kitchen-2")}<b>Menus digitaux</b><span>Créer & modifier</span></a>
     <a class="qa" href="stands.html">${ico("link")}<b>Stands QR</b><span>Imprimer & lier</span></a>
     <a class="qa" href="tv.html">${ico("device-tv")}<b>Menus TV</b><span>PDF → écran TV</span></a>
@@ -847,13 +861,14 @@ function clientForm(c){
    <div class="grid2"><label class="f">ICE<input id="cl-ice" inputmode="numeric" value="${esc(c.ice)}" placeholder="15 chiffres"></label>
    <label class="f">Adresse<input id="cl-addr" value="${esc(c.address)}"></label></div>
    <label class="f">Adresse de livraison<input id="cl-deliv" value="${esc(c.delivery)}"></label>
+   <label class="f">🎂 Anniversaire du patron <span class="muted">(facultatif : rappel + cadeau ce jour-là)</span><span class="grid2"><select id="cl-aj"><option value="">Jour</option>${Array.from({length:31},(_,i)=>{const v=String(i+1).padStart(2,"0");return `<option${(c.anniv||"").slice(3)===v?" selected":""}>${v}</option>`}).join("")}</select><select id="cl-am"><option value="">Mois</option>${["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"].map((m,i)=>{const v=String(i+1).padStart(2,"0");return `<option value="${v}"${(c.anniv||"").slice(0,2)===v?" selected":""}>${m}</option>`}).join("")}</select></span></label>
    <div class="row between">${c.id?`<button type="button" class="btn danger" data-del-client="${esc(c.id)}">Supprimer</button>`:"<span></span>"}<button class="btn primary">Enregistrer</button></div>
   </form>`);
   $("#cliForm").onsubmit=async e=>{e.preventDefault();
     const email=$("#cl-email").value.trim().toLowerCase();
     if(email&&email===ADMIN){toast("Cet e-mail est celui de l’administrateur.");return}
     if(email&&S.clients.some(x=>x.email===email&&x.id!==c.id)){toast("Cet e-mail est déjà utilisé par un autre client.");return}
-    const data={name:$("#cl-name").value.trim(),email,phone:$("#cl-phone").value.trim(),city:$("#cl-city").value.trim(),ice:$("#cl-ice").value.trim(),address:$("#cl-addr").value.trim(),delivery:$("#cl-deliv").value.trim()};
+    const data={name:$("#cl-name").value.trim(),email,phone:$("#cl-phone").value.trim(),city:$("#cl-city").value.trim(),ice:$("#cl-ice").value.trim(),address:$("#cl-addr").value.trim(),delivery:$("#cl-deliv").value.trim(),anniv:($("#cl-am").value&&$("#cl-aj").value)?$("#cl-am").value+"-"+$("#cl-aj").value:""};
     const ref=c.id?fs.doc("clients/"+c.id):fs.collection("clients").doc();
     const batch=fs.batch();batch.set(ref,data);
     if(c.id&&c.email!==email){
