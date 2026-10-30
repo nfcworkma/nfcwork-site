@@ -120,7 +120,7 @@
     } catch (e) { erreur(e); progs = []; }
     await chargerMetiers();
     if (!admin && !progs.length) { app.innerHTML = `<div class="empty"><h3>Pas encore de programme fidélité</h3><p>Contactez NFCWORK pour activer la carte fidélité de votre commerce.</p><a class="btn primary" href="https://wa.me/212620666027" target="_blank" rel="noopener">WhatsApp NFCWORK</a></div>`; return; }
-    try { localStorage.setItem("nfcwork-fid-pro", "1"); } catch (e) {}
+    try { localStorage.setItem("nfcwork-fid-pro", "1"); localStorage.setItem("nfcwork-patron", "1"); } catch (e) {}
     route();
   });
   function renderLogin() {
@@ -400,6 +400,7 @@
   }
   function ouvrirProgramme(pid) {
     unsub(); P = progs.find(x => x.id === pid); cartes = []; employes = []; secret = "";
+    if (!admin && P && P.expire && window.NFCW_PREAVIS) NFCW_PREAVIS(P.preavis, P.expire, true);
     entete(P.nom, "Carte fidélité", admin || progs.length > 1 ? "#" : "./");
     const base = q => admin ? q : q.where("ownerEmail", "==", email);
     let premier = true;

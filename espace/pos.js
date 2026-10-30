@@ -245,6 +245,8 @@
       MENU = m.exists ? JSON.parse(m.data().json || "{}") : {};
       DEV = MENU.devise || "DH";
       await theme();
+      try { localStorage.setItem("nfcwork-patron", "1"); } catch (x) {}
+      if (window.NFCW_PREAVIS && MENU.expire) NFCW_PREAVIS(MENU.preavis, MENU.expire, true);
     } catch (e) {
       console.error(e);
       app.innerHTML = `<div class="center"><div class="pinbox"><div style="font-size:48px">🔒</div><h2>Accès refusé</h2><p class="mut">Ce compte (${esc(user.email)}) n’est pas autorisé sur cette caisse. Demandez à NFCWORK de l’ajouter.</p><button class="btn" id="out">Changer de compte</button></div></div>`;

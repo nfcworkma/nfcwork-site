@@ -1,12 +1,23 @@
 /* NFCWORK — préavis de coupure (abonnement impayé)
    Entre l'échéance (« preavis ») et la date de coupure (« expire »), les pages publiques
    (carte fidélité, menu, avis Google…) affichent un avertissement avec le compte à rebours.
-   NFCW_PREAVIS(preavis, expire) — dates AAAA-MM-JJ. Ne fait rien hors de cette période. */
+   NFCW_PREAVIS(preavis, expire) — dates AAAA-MM-JJ. Ne fait rien hors de cette période.
+   Visible SEULEMENT par le patron (jamais par ses clients) :
+     - téléphone du patron : marqué quand il se connecte à l'Espace / à la caisse, ou en ouvrant une fois un lien « ?patron=1 »
+     - l'admin NFCWORK (pour vérifier)
+   NFCW_PREAVIS(preavis, expire, true) : affiché à coup sûr (caisse, Espace : écrans du commerçant). */
 (function () {
   "use strict";
   const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const TEL = "212620666027";
-  window.NFCW_PREAVIS = function (preavis, expire) {
+  const lire = k => { try { return localStorage.getItem(k) === "1"; } catch (e) { return false; } };
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get("patron") === "1") { localStorage.setItem("nfcwork-patron", "1"); q.delete("patron"); history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash); }
+  } catch (e) {}
+  window.NFCW_PATRON = () => lire("nfcwork-patron") || lire("nfcwork-fid-pro") || lire("nfcwork-admin");
+  window.NFCW_PREAVIS = function (preavis, expire, ecranPatron) {
+    if (!ecranPatron && !window.NFCW_PATRON()) return;
     preavis = String(preavis || ""); expire = String(expire || "");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(preavis) || !/^\d{4}-\d{2}-\d{2}$/.test(expire)) return;
     const auj = iso(new Date());

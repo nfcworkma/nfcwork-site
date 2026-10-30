@@ -116,6 +116,7 @@ auth.onAuthStateChanged(u=>{
   try{if(!(u&&u.emailVerified&&(u.email||"").toLowerCase()===ADMIN))localStorage.removeItem("nfcwork-admin")}catch(e){}
   if(!u){$("#modeLabel").textContent="Espace client";renderAuth();return}
   if(!u.emailVerified){renderVerify();return}
+  try{localStorage.setItem("nfcwork-patron","1")}catch(e){}
   const email=(u.email||"").toLowerCase();
   if(email===ADMIN)startAdmin();else startClient(email);
 });
