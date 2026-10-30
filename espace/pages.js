@@ -194,6 +194,42 @@
     femme: [["Brushing", 45], ["Coupe femme", 45], ["Coupe + brushing", 60], ["Couleur", 120], ["Mèches / balayage", 150], ["Lissage kératine", 180], ["Soin cheveux", 45], ["Manucure", 45], ["Pédicure", 60], ["Vernis semi-permanent", 60], ["Pose de gel / capsules", 90], ["Épilation sourcils", 15], ["Épilation visage", 20], ["Soin visage", 60], ["Maquillage", 60], ["Maquillage mariée", 120], ["Hammam", 60]],
     homme: [["Coupe homme", 30], ["Barbe", 20], ["Coupe + barbe", 45], ["Dégradé", 40], ["Coupe enfant", 20], ["Rasage traditionnel", 30], ["Soin visage homme", 30], ["Coloration barbe", 30], ["Lissage homme", 60]]
   };
+  // modèles de métiers pour la réservation : un clic remplit la page (le commerçant met ses prix)
+  const RDV_METIERS = [
+    ["salon", "💇‍♀️ Salon de coiffure femme", { mode: "services", sv: "femme", ouverture: "10:00", fermeture: "20:00", pas: 30, message: "Prenez rendez-vous en ligne" }],
+    ["barber", "💈 Barber / coiffeur homme", { mode: "services", sv: "homme", ouverture: "10:00", fermeture: "22:00", pas: 15, message: "Réservez votre coupe, sans attendre" }],
+    ["ongles", "💅 Onglerie / nail bar", { mode: "services", sv: [["Manucure simple", 30], ["Vernis semi-permanent mains", 60], ["Vernis semi-permanent pieds", 60], ["Pose capsules + gel", 120], ["Remplissage gel", 90], ["Nail art (par ongle)", 15], ["Dépose", 30], ["Pédicure spa", 60]], ouverture: "10:00", fermeture: "20:00", pas: 30 }],
+    ["spa", "🧖‍♀️ Spa / hammam / institut", { mode: "services", sv: [["Hammam traditionnel", 60], ["Hammam + gommage", 75], ["Massage relaxant 1h", 60], ["Massage aux pierres chaudes", 75], ["Soin visage", 60], ["Épilation jambes", 30], ["Épilation complète", 90], ["Forfait mariée", 180]], ouverture: "10:00", fermeture: "21:00", pas: 30 }],
+    ["lavage", "🚗 Lavage auto", { mode: "services", sv: [["Lavage extérieur", 30], ["Lavage complet (int. + ext.)", 60], ["Lavage + aspirateur", 45], ["Nettoyage sièges", 120], ["Polish / lustrage", 120], ["Moto", 20]], ouverture: "08:00", fermeture: "20:00", pas: 30, message: "Réservez, votre voiture passe sans attendre" }],
+    ["garage", "🔧 Garage / vidange / pneus", { mode: "services", sv: [["Vidange + filtres", 45], ["Diagnostic", 30], ["Plaquettes de frein", 60], ["Montage pneus", 45], ["Géométrie", 45], ["Climatisation (recharge)", 45]], ouverture: "08:30", fermeture: "19:00", pas: 30 }],
+    ["medical", "🩺 Cabinet médical / dentiste / kiné", { mode: "services", sv: [["Consultation", 30], ["Contrôle", 20], ["Détartrage", 30], ["Séance de kiné", 45], ["Première visite", 45]], ouverture: "09:00", fermeture: "18:00", pas: 15, message: "Prenez rendez-vous au cabinet" }],
+    ["veto", "🐾 Vétérinaire / toilettage", { mode: "services", sv: [["Consultation", 30], ["Vaccin", 20], ["Toilettage petit chien", 60], ["Toilettage grand chien", 90], ["Toilettage chat", 60], ["Coupe des griffes", 15]], ouverture: "09:00", fermeture: "19:00", pas: 30 }],
+    ["coach", "🏋️ Coach sportif / salle de sport", { mode: "services", sv: [["Séance coaching 1h", 60], ["Séance découverte", 45], ["Cours collectif", 60], ["Bilan forme", 30]], ouverture: "07:00", fermeture: "22:00", pas: 60 }],
+    ["tattoo", "🖋️ Tatouage / piercing", { mode: "services", sv: [["Petit tatouage", 60], ["Tatouage moyen", 120], ["Grand tatouage (séance)", 240], ["Piercing", 20], ["Consultation projet", 30]], ouverture: "11:00", fermeture: "20:00", pas: 30 }],
+    ["photo", "📸 Photographe / studio", { mode: "services", sv: [["Séance photo studio", 60], ["Photos d’identité", 15], ["Shooting produit", 120], ["Séance famille", 90]], ouverture: "10:00", fermeture: "20:00", pas: 30 }],
+    ["cours", "📚 Cours particuliers / soutien", { mode: "services", sv: [["Cours 1h", 60], ["Cours 2h", 120], ["Séance d’essai", 45]], ouverture: "14:00", fermeture: "21:00", pas: 60 }],
+    ["autoecole", "🚙 Auto-école (heures de conduite)", { mode: "services", sv: [["Heure de conduite", 60], ["2 heures de conduite", 120], ["Examen blanc", 60]], ouverture: "08:00", fermeture: "19:00", pas: 60 }],
+    ["billard", "🎱 Billard / snooker", { mode: "tables", res: "🎱 Pool 1\n🎱 Pool 2\n🎱 Pool 3\n🟢 Snooker", facturation: "deux", durees: "30,60,120", parties: "1,2,3,5,10", minPartie: 15, ouverture: "14:00", fermeture: "02:00", pas: 30 }],
+    ["ps", "🎮 Salle PlayStation / gaming", { mode: "tables", res: "🎮 PS5 · 1\n🎮 PS5 · 2\n🎮 PS5 · 3\n🕹️ PC gaming 1\n🕹️ PC gaming 2", facturation: "deux", durees: "30,60,120,180", parties: "1,2,3,5", minPartie: 10, ouverture: "12:00", fermeture: "02:00", pas: 30 }],
+    ["foot", "⚽ Terrain de foot (city / mini-foot)", { mode: "tables", res: "⚽ Terrain 1\n⚽ Terrain 2", facturation: "heure", durees: "60,90,120", ouverture: "09:00", fermeture: "01:00", pas: 60, message: "Réservez votre terrain en 30 secondes" }],
+    ["padel", "🎾 Padel / tennis", { mode: "tables", res: "🎾 Court 1\n🎾 Court 2", facturation: "heure", durees: "60,90,120", ouverture: "08:00", fermeture: "00:00", pas: 30 }],
+    ["resto", "🍽️ Restaurant / café (tables)", { mode: "tables", res: "🍽️ Table 2 personnes\n🍽️ Table 4 personnes\n🍽️ Table 6 personnes\n🌿 Terrasse 4 personnes", facturation: "heure", durees: "120", ouverture: "12:00", fermeture: "23:30", pas: 30, message: "Réservez votre table" }],
+    ["loisir", "🎳 Bowling / karting / escape game", { mode: "tables", res: "🎳 Piste 1\n🎳 Piste 2\n🔐 Escape room", facturation: "partie", parties: "1,2,3", minPartie: 60, ouverture: "14:00", fermeture: "00:00", pas: 30 }],
+    ["salle", "🏢 Salle de réunion / coworking", { mode: "tables", res: "🏢 Salle de réunion\n💻 Bureau privé\n🪑 Poste coworking", facturation: "heure", durees: "60,120,240,480", ouverture: "08:00", fermeture: "20:00", pas: 60 }],
+    ["studio", "🎙️ Studio d’enregistrement / podcast", { mode: "tables", res: "🎙️ Studio A\n🎧 Studio podcast", facturation: "heure", durees: "60,120,180,240", ouverture: "10:00", fermeture: "00:00", pas: 60 }],
+    ["location", "🏍️ Location quad / jet-ski / vélo", { mode: "tables", res: "🏍️ Quad 1\n🏍️ Quad 2\n🌊 Jet-ski 1\n🚲 Vélo 1", facturation: "heure", durees: "30,60,120,240", ouverture: "09:00", fermeture: "19:00", pas: 30 }],
+    ["fete", "🎉 Salle des fêtes / anniversaires", { mode: "tables", res: "🎉 Grande salle\n🎈 Espace anniversaire enfants", facturation: "heure", durees: "180,240,360", ouverture: "10:00", fermeture: "00:00", pas: 60 }]
+  ];
+  function appliquerMetier(cle) {
+    const m = (RDV_METIERS.find(x => x[0] === cle) || [])[2]; if (!m) return;
+    const plein = P.mode === "tables" ? (P.ressources || "").trim() : (P.services || "").trim();
+    if (plein && !confirm("Remplacer la liste actuelle par ce modèle ?")) return false;
+    Object.assign(P, { mode: m.mode, ouverture: m.ouverture, fermeture: m.fermeture, pas: m.pas, metier: cle });
+    if (m.message && !P.message) P.message = m.message;
+    if (m.mode === "tables") Object.assign(P, { ressources: m.res, facturation: m.facturation, durees: m.durees || P.durees || "60,120", parties: m.parties || P.parties || "1,2,3,5,10", minPartie: m.minPartie || P.minPartie || 15 });
+    else { P.services = ""; svEcrire((typeof m.sv === "string" ? SV_MODELES[m.sv] : m.sv).map(([nom, duree]) => ({ nom, prix: "", duree }))); }
+    return true;
+  }
   const DUREES_SV = [10, 15, 20, 30, 40, 45, 60, 75, 90, 120, 150, 180, 240];
   function servicesHtml() {
     const L = svLire();
@@ -240,7 +276,8 @@
         <label class="f">Sécurité<select data-k="securite"><option value="WPA" ${P.securite === "WPA" ? "selected" : ""}>WPA / WPA2 (le plus courant)</option><option value="WEP" ${P.securite === "WEP" ? "selected" : ""}>WEP (ancien)</option><option value="nopass" ${P.securite === "nopass" ? "selected" : ""}>Ouvert (sans mot de passe)</option></select></label>
         <label class="check"><input type="checkbox" data-k="cache" ${P.cache ? "checked" : ""}> Réseau caché</label>${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Wi-Fi offert 📶"')}</section>`;
     if (P.type === "rdv") { const tb = P.mode === "tables"; corps = `<section class="sec paper stack"><h3>📅 Réservation</h3>${photoBloc}${champ("nom", "Nom du commerce", 'maxlength="60"')}
-        <label class="f">Type de réservation<select data-k="mode" data-rerender><option value="services" ${!tb ? "selected" : ""}>✂️ Rendez-vous (salon, barber, institut…)</option><option value="tables" ${tb ? "selected" : ""}>🎱 Tables / postes (billard, PlayStation, terrain…)</option></select></label>
+        <label class="f">✨ Modèle de métier (remplit tout, vous mettez juste vos prix)<select data-metier><option value="">Choisir le métier…</option>${RDV_METIERS.map(([k, t]) => `<option value="${k}" ${P.metier === k ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+        <label class="f">Type de réservation<select data-k="mode" data-rerender><option value="services" ${!tb ? "selected" : ""}>✂️ Rendez-vous (salon, garage, cabinet…)</option><option value="tables" ${tb ? "selected" : ""}>🎱 Tables, terrains, salles (billard, foot, padel…)</option></select></label>
         ${tb ? `${zone("ressources", "Tables ou postes (un par ligne, un emoji au début si vous voulez)", 'rows="5" maxlength="600" placeholder="🎱 Pool 1&#10;🎱 Pool 2&#10;🟢 Snooker&#10;🎮 PS5 · 1"')}
         <label class="f">Le client paie<select data-k="facturation" data-rerender>${[["heure", "⏱ À l’heure"], ["partie", "🎱 À la partie"], ["deux", "Les deux (le client choisit)"]].map(([v, t]) => `<option value="${v}" ${(P.facturation || "heure") === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
         ${(P.facturation || "heure") !== "partie" ? `<div class="grid2">${champ("prixHeure", "Prix d’une heure (DH)", 'inputmode="numeric" placeholder="30"')}${champ("durees", "Durées proposées (minutes)", 'maxlength="40" placeholder="30,60,120" inputmode="numeric"')}</div>` : ""}
@@ -348,6 +385,7 @@
     }
     if (t.dataset.k) { P[t.dataset.k] = t.type === "checkbox" ? t.checked : t.value; if (t.hasAttribute("data-rerender")) { renderEdit(); majBarre(); return; } if (t.dataset.k === "nom") $("#topTitle").textContent = (TYPES[P.type] || [""])[0] + " " + t.value; }
     else if (t.dataset.h != null) { P.horaires = P.horaires || {}; P.horaires[t.dataset.h] = t.value; }
+    else if (t.hasAttribute("data-metier")) { if (t.value && appliquerMetier(t.value)) { renderEdit(); toast("✅ Modèle appliqué : mettez vos prix, puis Enregistrer"); } else if (t.value) t.value = P.metier || ""; }
     else if (t.dataset.sv) { const [i, k] = t.dataset.sv.split("."), L = svLire(); if (L[+i]) { L[+i][k] = k === "prix" ? t.value.replace(/\D/g, "") : k === "duree" ? +t.value : t.value; svEcrire(L); } }
     else if (t.dataset.l) { const [i, k] = t.dataset.l.split("."); P.liens[+i][k] = t.value; }
     majBarre();
