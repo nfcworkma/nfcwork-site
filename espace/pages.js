@@ -114,6 +114,7 @@
     const l = liste.filter(x => (filtre === "tous" || x.type === filtre) && (!q || (x.nom + " " + x.slug).toLowerCase().includes(q))).sort((a, b) => (b.maj || 0) - (a.maj || 0));
     app.innerHTML = `<div data-adm><h2 style="margin-bottom:10px">＋ Créer</h2>
       <div class="types">${Object.entries(TYPES).map(([k, [ic, n, s]]) => `<button data-new="${k}"><span>${ic}</span><b>${n}</b><small>${s}</small></button>`).join("")}</div></div>
+      <button class="btn block" data-adm data-lot style="margin-top:12px">⚡ Créer plusieurs pages de réservation (prospection)</button>
       <div class="row between" style="margin-top:24px"><h2>📋 Mes pages (${liste.length})</h2></div>
       <input id="rech" placeholder="🔎 Chercher un nom…" value="${esc(recherche)}" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px">
       <div class="chipsf">${[["tous", "Tout"], ...Object.entries(TYPES).map(([k, v]) => [k, v[0] + " " + v[1]])].map(([k, n]) => `<button class="chip" data-f="${k}" aria-pressed="${filtre === k}">${n}</button>`).join("")}</div>
@@ -221,6 +222,52 @@
     ["location", "🏍️ Location quad / jet-ski / vélo", { mode: "tables", res: "🏍️ Quad 1\n🏍️ Quad 2\n🌊 Jet-ski 1\n🚲 Vélo 1", facturation: "heure", durees: "30,60,120,240", ouverture: "09:00", fermeture: "19:00", pas: 30 }],
     ["fete", "🎉 Salle des fêtes / anniversaires", { mode: "tables", res: "🎉 Grande salle\n🎈 Espace anniversaire enfants", facturation: "heure", durees: "180,240,360", ouverture: "10:00", fermeture: "00:00", pas: 60 }]
   ];
+  // ⚡ prospection : plusieurs pages de réservation d'un coup, avec des prix d'exemple (à corriger avec le commerçant)
+  const LOT_EX = `The Classic Barber | barber | 0699683542
+RH American Barber | barber | 0615106935
+Black Moustache Barber | barber | 0538789318
+Soccer Park | foot | 0654342775
+Amateur Soccer Kenitra | foot | 0522787920
+Centre Chippo | terrains | 0608888802
+The Must Club | billard | 0633761762
+Gardenia Coffee Pool | billard | 0808690403
+Skill Play | billard | 0602545454`;
+  const PRIX_SV = { "coupe homme": 40, "barbe": 25, "coupe + barbe": 60, "dégradé": 50, "coupe enfant": 30, "rasage traditionnel": 40, "soin visage homme": 80, "coloration barbe": 50, "lissage homme": 150,
+    "brushing": 80, "coupe femme": 100, "coupe + brushing": 150, "couleur": 300, "manucure": 70, "pédicure": 90, "soin visage": 200, "hammam": 100, "lavage extérieur": 40, "lavage complet (int. + ext.)": 80 };
+  const RES_PRIX = { foot: "⚽ Terrain 1 · 300 DH/h\n⚽ Terrain 2 · 300 DH/h", padel: "🎾 Court 1 · 300 DH/h\n🎾 Court 2 · 300 DH/h", terrains: "⚽ Terrain foot · 300 DH/h\n🏀 Terrain basket · 250 DH/h\n🎾 Court de tennis · 150 DH/h\n🎾 Court de padel · 300 DH/h",
+    billard: "🎱 Pool 1 · 30 DH/h · 5 DH/partie\n🎱 Pool 2 · 30 DH/h · 5 DH/partie\n🎱 Pool 3 · 30 DH/h · 5 DH/partie\n🟢 Snooker · 40 DH/h · 10 DH/partie", ps: "🎮 PS5 · 1 · 20 DH/h\n🎮 PS5 · 2 · 20 DH/h\n🎮 PS5 · 3 · 20 DH/h\n🕹️ PC gaming · 25 DH/h" };
+  function lotFenetre() {
+    const d = document.createElement("div"); d.className = "modal";
+    d.innerHTML = `<div class="box"><h2>⚡ Pages de réservation pour la prospection</h2>
+      <p class="muted" style="font-size:13.5px">Une ligne par commerce : <b>Nom | métier | WhatsApp</b>. Métiers : ${RDV_METIERS.map(x => x[0]).join(", ")}. Les prix sont des exemples : corrigez-les avec le commerçant. Les réservations arrivent dans votre Espace.</p>
+      <textarea id="lot-t" rows="11" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);font:14px ui-monospace,Menlo,monospace">${esc(LOT_EX)}</textarea>
+      <div id="lot-r" class="stack" style="gap:6px;margin-top:10px"></div>
+      <div class="row" style="gap:8px;margin-top:10px"><button class="btn primary" id="lot-go" style="flex:1">Créer les pages</button><button class="btn ghost" data-x>Fermer</button></div></div>`;
+    document.body.appendChild(d);
+    d.addEventListener("click", e => { if (e.target === d || e.target.closest("[data-x]")) { d.remove(); renderListe(); } });
+    $("#lot-go", d).onclick = async () => {
+      const b = $("#lot-go", d), out = $("#lot-r", d); b.disabled = true; out.innerHTML = "";
+      const garde = P; let n = 0;
+      for (const l of $("#lot-t", d).value.split(/\n+/).map(x => x.trim()).filter(Boolean)) {
+        const [nom, met, tel] = l.split("|").map(x => (x || "").trim());
+        if (!nom) continue;
+        const m = RDV_METIERS.find(x => x[0] === (met || "").toLowerCase()) ? met.toLowerCase() : "barber";
+        try {
+          P = base("rdv", nom); P.services = ""; P.ressources = ""; appliquerMetier(m);
+          if (P.mode === "tables") P.ressources = RES_PRIX[m] || P.ressources;
+          else svEcrire(svLire().map(x => Object.assign(x, { prix: PRIX_SV[x.nom.toLowerCase()] != null ? String(PRIX_SV[x.nom.toLowerCase()]) : x.prix })));
+          Object.assign(P, { whatsapp: tel || "", ownerEmail: ADMIN, actif: true });
+          const json = JSON.stringify(P);
+          await db.doc("settings/page-" + P.slug).set({ json, v: String(Date.now()), maj: NOW(), par: user.email, ownerEmail: ADMIN });
+          liste.push({ slug: P.slug, nom: P.nom, type: "rdv", photo: "", actif: true, maj: Date.now() }); n++;
+          out.insertAdjacentHTML("beforeend", `<div class="row between" style="gap:8px;font-size:14px"><span>✅ <b>${esc(P.nom)}</b><br><small class="muted">nfcwork.ma/p/${esc(P.slug)}</small></span><a class="btn sm" href="/p/${esc(P.slug)}" target="_blank" rel="noopener">Voir</a></div>`);
+        } catch (x) { console.error(x); out.insertAdjacentHTML("beforeend", `<div style="color:var(--bad)">✕ ${esc(nom)} : échec</div>`); }
+      }
+      P = garde;
+      try { await ecrireListe(); } catch (x) { erreur(x); }
+      b.disabled = false; b.textContent = "Créer d’autres pages"; toast(`⚡ ${n} pages créées`);
+    };
+  }
   function appliquerMetier(cle) {
     const m = (RDV_METIERS.find(x => x[0] === cle) || [])[2]; if (!m) return;
     const plein = P.mode === "tables" ? (P.ressources || "").trim() : (P.services || "").trim();
@@ -462,6 +509,7 @@
   document.addEventListener("click", async e => {
     if (e.target.closest(".modal")) return;
     const nw = e.target.closest("[data-new]"); if (nw) { nouveau(nw.dataset.new); return; }
+    if (e.target.closest("[data-lot]")) { lotFenetre(); return; }
     const f = e.target.closest("[data-f]"); if (f) { filtre = f.dataset.f; renderListe(); return; }
     const th = e.target.closest("[data-theme]"); if (th && P) { P.theme = th.dataset.theme; renderEdit(); return; }
     const lg = e.target.closest("[data-lang]"); if (lg && P) { P.langue = lg.dataset.lang; renderEdit(); return; }
