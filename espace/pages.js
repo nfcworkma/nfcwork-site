@@ -132,7 +132,7 @@
     if (type === "profil") Object.assign(p, { fonction: "", entreprise: "", metiers: "", bio: "", tel: "", whatsapp: "", email: "", instagram: "", facebook: "", tiktok: "", linkedin: "", youtube: "", snapchat: "", site: "", adresse: "", maps: "", horaires: {}, liens: [], galerie: [] });
     if (type === "avis") Object.assign(p, { lienGoogle: "", message: "", instagram: "" });
     if (type === "wifi") Object.assign(p, { ssid: "", motdepasse: "", securite: "WPA", cache: false, message: "" });
-    if (type === "rdv") Object.assign(p, { mode: "services", whatsapp: "", services: "Coupe homme · 50 DH · 30 min\nCoupe + barbe · 70 DH · 45 min", equipe: "", ressources: "", durees: "60,120", ouverture: "09:00", fermeture: "21:00", pas: 30, auto: false, ownerEmail: "", fidPid: "", message: "" });
+    if (type === "rdv") Object.assign(p, { mode: "services", whatsapp: "", services: "Coupe homme · 50 DH · 30 min\nCoupe + barbe · 70 DH · 45 min", equipe: "", ressources: "", durees: "60,120", facturation: "heure", prixHeure: "", prixPartie: "", minPartie: 15, parties: "1,2,3,5,10", ouverture: "09:00", fermeture: "21:00", pas: 30, auto: false, ownerEmail: "", fidPid: "", message: "" });
     if (type === "liens") Object.assign(p, { slogan: "", whatsapp: "", localisation: "", liens: [{ titre: "Instagram", url: "" }] });
     return p;
   }
@@ -186,6 +186,21 @@
   /* ---------- formulaire ---------- */
   const champ = (k, label, attrs) => `<label class="f">${label}<input data-k="${k}" value="${esc(P[k] == null ? "" : P[k])}" ${attrs || ""}></label>`;
   const zone = (k, label, attrs) => `<label class="f">${label}<textarea data-k="${k}" ${attrs || ""}>${esc(P[k] || "")}</textarea></label>`;
+  // services de réservation : texte « Nom · 80 DH · 45 min » (une ligne par service) <-> lignes d'édition
+  const svDuree = t => { t = String(t || "").toLowerCase(); let m = t.match(/(\d+)\s*h\s*(\d+)?/); if (m) return +m[1] * 60 + (+m[2] || 0); m = t.match(/(\d+)\s*(min|mn|m)\b/); return m ? +m[1] : 0; };
+  const svLire = () => String(P.services || "").split(/\n+/).map(x => x.trim()).filter(Boolean).map(l => { const p = l.split(/\s*[·|•]\s*|\s+-\s+/); const s = { nom: p[0], prix: "", duree: 30 }; for (const x of p.slice(1)) { if (/dh|mad|drh/i.test(x)) s.prix = x.replace(/\D/g, ""); else if (svDuree(x)) s.duree = svDuree(x); } return s; });
+  const svEcrire = L => { P.services = L.filter(s => (s.nom || "").trim()).map(s => [s.nom.trim(), s.prix !== "" && s.prix != null ? s.prix + " DH" : "", (s.duree || 30) + " min"].filter(Boolean).join(" · ")).join("\n"); };
+  const SV_MODELES = {
+    femme: [["Brushing", 45], ["Coupe femme", 45], ["Coupe + brushing", 60], ["Couleur", 120], ["Mèches / balayage", 150], ["Lissage kératine", 180], ["Soin cheveux", 45], ["Manucure", 45], ["Pédicure", 60], ["Vernis semi-permanent", 60], ["Pose de gel / capsules", 90], ["Épilation sourcils", 15], ["Épilation visage", 20], ["Soin visage", 60], ["Maquillage", 60], ["Maquillage mariée", 120], ["Hammam", 60]],
+    homme: [["Coupe homme", 30], ["Barbe", 20], ["Coupe + barbe", 45], ["Dégradé", 40], ["Coupe enfant", 20], ["Rasage traditionnel", 30], ["Soin visage homme", 30], ["Coloration barbe", 30], ["Lissage homme", 60]]
+  };
+  const DUREES_SV = [10, 15, 20, 30, 40, 45, 60, 75, 90, 120, 150, 180, 240];
+  function servicesHtml() {
+    const L = svLire();
+    return `<div class="eyebrow">Soins / services (prix en DH, le client voit le total)</div>
+      <div class="stack" style="gap:8px">${L.map((s, i) => `<div class="svrow"><input data-sv="${i}.nom" value="${esc(s.nom)}" placeholder="Nom du soin"><input data-sv="${i}.prix" value="${esc(s.prix)}" placeholder="Prix" inputmode="numeric"><select data-sv="${i}.duree">${[...new Set(DUREES_SV.concat([+s.duree || 30]))].sort((a, b) => a - b).map(m => `<option value="${m}" ${+s.duree === m ? "selected" : ""}>${m < 60 ? m + " min" : Math.floor(m / 60) + "h" + (m % 60 ? String(m % 60).padStart(2, "0") : "")}</option>`).join("")}</select><button class="btn icon sm danger" data-act="sv-del" data-i="${i}">✕</button></div>`).join("")}
+      <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" data-act="sv-add">＋ Ajouter un soin</button><button class="btn sm ghost" data-act="sv-mod" data-m="femme">💅 Liste salon femme</button><button class="btn sm ghost" data-act="sv-mod" data-m="homme">💈 Liste barber</button></div></div>`;
+  }
   function liensHtml() {
     return `<div class="stack" style="gap:8px">${(P.liens || []).map((l, i) => `<div class="lrow"><input data-l="${i}.titre" value="${esc(l.titre)}" placeholder="Titre (Boutique)"><input data-l="${i}.url" value="${esc(l.url)}" placeholder="https://…" inputmode="url" autocapitalize="off"><button class="btn icon sm danger" data-act="l-del" data-i="${i}">✕</button></div>`).join("")}
       <button class="btn sm" data-act="l-add">＋ Ajouter un bouton</button></div>`;
@@ -227,8 +242,11 @@
     if (P.type === "rdv") { const tb = P.mode === "tables"; corps = `<section class="sec paper stack"><h3>📅 Réservation</h3>${photoBloc}${champ("nom", "Nom du commerce", 'maxlength="60"')}
         <label class="f">Type de réservation<select data-k="mode" data-rerender><option value="services" ${!tb ? "selected" : ""}>✂️ Rendez-vous (salon, barber, institut…)</option><option value="tables" ${tb ? "selected" : ""}>🎱 Tables / postes (billard, PlayStation, terrain…)</option></select></label>
         ${tb ? `${zone("ressources", "Tables ou postes (un par ligne, un emoji au début si vous voulez)", 'rows="5" maxlength="600" placeholder="🎱 Pool 1&#10;🎱 Pool 2&#10;🟢 Snooker&#10;🎮 PS5 · 1"')}
-        ${champ("durees", "Durées proposées en minutes (séparées par des virgules)", 'maxlength="40" placeholder="30,60,120" inputmode="numeric"')}`
-        : `${zone("services", "Soins / services (un par ligne : Nom · prix · durée)", 'rows="5" maxlength="1200" placeholder="Brushing · 80 DH · 45 min&#10;Coupe + brushing · 150 DH · 1h&#10;Couleur · 300 DH · 2h"')}
+        <label class="f">Le client paie<select data-k="facturation" data-rerender>${[["heure", "⏱ À l’heure"], ["partie", "🎱 À la partie"], ["deux", "Les deux (le client choisit)"]].map(([v, t]) => `<option value="${v}" ${(P.facturation || "heure") === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+        ${(P.facturation || "heure") !== "partie" ? `<div class="grid2">${champ("prixHeure", "Prix d’une heure (DH)", 'inputmode="numeric" placeholder="30"')}${champ("durees", "Durées proposées (minutes)", 'maxlength="40" placeholder="30,60,120" inputmode="numeric"')}</div>` : ""}
+        ${(P.facturation || "heure") !== "heure" ? `<div class="grid2">${champ("prixPartie", "Prix d’une partie (DH)", 'inputmode="numeric" placeholder="5"')}${champ("minPartie", "Durée d’une partie (min)", 'inputmode="numeric" placeholder="15"')}</div>${champ("parties", "Nombre de parties proposées", 'maxlength="40" placeholder="1,2,3,5,10" inputmode="numeric"')}` : ""}
+        <p class="muted" style="font-size:12.5px;margin:0">💡 Un prix différent pour une table ? Ajoutez-le sur sa ligne : « 🎮 PS5 · 1 · 20 DH/h » ou « 🟢 Snooker · 10 DH/partie ».</p>`
+        : `${servicesHtml()}
         ${zone("equipe", "Équipe (un prénom par ligne, facultatif)", 'rows="3" maxlength="300" placeholder="Sara&#10;Nadia"')}`}
         <div class="grid2">${champ("ouverture", "Ouverture", 'type="time"')}${champ("fermeture", "Fermeture", 'type="time"')}</div>
         <label class="f">Un créneau toutes les<select data-k="pas">${[15, 20, 30, 45, 60, 90, 120].map(m => `<option value="${m}" ${+P.pas === m ? "selected" : ""}>${m} min</option>`).join("")}</select></label>
@@ -330,6 +348,7 @@
     }
     if (t.dataset.k) { P[t.dataset.k] = t.type === "checkbox" ? t.checked : t.value; if (t.hasAttribute("data-rerender")) { renderEdit(); majBarre(); return; } if (t.dataset.k === "nom") $("#topTitle").textContent = (TYPES[P.type] || [""])[0] + " " + t.value; }
     else if (t.dataset.h != null) { P.horaires = P.horaires || {}; P.horaires[t.dataset.h] = t.value; }
+    else if (t.dataset.sv) { const [i, k] = t.dataset.sv.split("."), L = svLire(); if (L[+i]) { L[+i][k] = k === "prix" ? t.value.replace(/\D/g, "") : k === "duree" ? +t.value : t.value; svEcrire(L); } }
     else if (t.dataset.l) { const [i, k] = t.dataset.l.split("."); P.liens[+i][k] = t.value; }
     majBarre();
   });
@@ -366,6 +385,9 @@
     if (a === "supprimer" && !PROPRIO) supprimer();
     if (a === "photo-del") { P.photo = ""; renderEdit(); }
     if (a === "g-del") { P.galerie.splice(i, 1); renderEdit(); }
+    if (a === "sv-add") { const L = svLire(); L.push({ nom: "Nouveau soin", prix: "", duree: 30 }); svEcrire(L); renderEdit(); majBarre(); }
+    if (a === "sv-del") { const L = svLire(); L.splice(i, 1); svEcrire(L); renderEdit(); majBarre(); }
+    if (a === "sv-mod") { const L = svLire(), noms = new Set(L.map(s => s.nom.toLowerCase())); (SV_MODELES[b.dataset.m] || []).forEach(([n, d]) => { if (!noms.has(n.toLowerCase())) L.push({ nom: n, prix: "", duree: d }); }); svEcrire(L); renderEdit(); majBarre(); toast("Liste ajoutée : mettez vos prix, supprimez ce que vous ne faites pas ✕"); }
     if (a === "l-add") { P.liens = P.liens || []; P.liens.push({ titre: "", url: "" }); renderEdit(); }
     if (a === "l-del") { P.liens.splice(i, 1); renderEdit(); }
     if (a === "h-copie") { const v = (P.horaires || {})[1] || ""; if (!v) { toast("Remplissez d’abord lundi."); return; } [2, 3, 4, 5, 6].forEach(j => (P.horaires[j] = v)); renderEdit(); toast("Copié du mardi au samedi (dimanche : à vous de choisir)."); }

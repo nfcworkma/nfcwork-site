@@ -62,6 +62,9 @@ a:active,button:active{transform:scale(.98)}
 .recap{border-style:dashed;display:grid;gap:9px;font-size:15px;line-height:1.4}.recap .stt{margin-top:4px;padding:8px 12px;border-radius:10px;background:var(--surf2);font-weight:600;font-size:14px;color:var(--muted)}.recap .stt.ok{color:#22c55e}.recap .stt.non{color:#ef4444}
 .gw{background:#000;color:#fff;border:1px solid #333}.row2{box-sizing:border-box;flex-wrap:wrap;text-align:center;display:flex;align-items:center;justify-content:center;gap:4px 8px;margin-top:10px;padding:13px;border-radius:14px;border:1px solid var(--line);background:var(--surf);color:var(--fg);text-decoration:none;font:inherit;font-size:14.5px;width:100%;cursor:pointer}.row2 svg{width:19px;height:19px}.row2 small{color:var(--muted);flex-basis:100%}.row2.lien{background:none;border:0;color:var(--muted);text-decoration:underline}
 .mesr .mr{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:var(--fg);font:inherit;cursor:pointer}.mesr .mr:first-of-type{border-top:0}.mesr .mr span{flex:1;color:var(--muted);font-size:14px;min-width:0}.mesr .mr i{font-style:normal;color:var(--muted)}
+.totc{display:flex;align-items:center;justify-content:space-between;gap:12px;border-color:var(--accent);padding:14px 18px}.totc span{display:flex;flex-direction:column;font-weight:600}.totc small{color:var(--muted);font-weight:400;font-size:12.5px;margin-top:2px}.totc b{font-size:24px;white-space:nowrap;color:var(--accent2)}
+.seg2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seg2 button{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:12px;padding:11px;font:inherit;font-size:14.5px;cursor:pointer}.seg2 button.on{background:var(--accent);border-color:var(--accent);color:var(--accentfg);font-weight:600}
+.waok{background:#25d366;color:#fff;margin-top:6px}
 .aide{color:var(--muted);font-size:13px;text-align:center;margin-top:10px;line-height:1.5}
 .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .net{display:flex;gap:12px;align-items:center}.net .ic{font-size:26px}
@@ -260,14 +263,23 @@ a:active,button:active{transform:scale(.98)}
     const emo = t => { const m = String(t).match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u); return m ? [m[1], m[2] || t] : ["", t]; };
     // services : « Nom · 80 DH · 45 min »
     const SV = lignes(P.services).map(l => { const p = l.split(/\s*[·|•]\s*|\s+-\s+/); const s = { nom: p[0], prix: 0, duree: 0, txt: l }; for (const x of p.slice(1)) { if (/dh|mad|drh|€/i.test(x)) s.prix = parseInt(x.replace(/\D/g, "")) || 0; else if (duree(x)) s.duree = duree(x); } return s; });
-    const EQ = lignes(P.equipe), RS = tb ? (lignes(P.ressources).length ? lignes(P.ressources) : ["Table 1"]) : [];
+    const EQ = lignes(P.equipe);
+    // tables : « 🎮 PS5 · 1 · 20 DH/h · 5 DH/partie » → nom + prix propres à la table
+    const RSO = (tb ? (lignes(P.ressources).length ? lignes(P.ressources) : ["Table 1"]) : []).map(l => {
+      const o = { nom: l, ph: null, pp: null };
+      l = l.replace(/[·|•-]?\s*(\d+)\s*dh\s*\/\s*(h|heure)\b/i, (m, n) => { o.ph = +n; return ""; }).replace(/[·|•-]?\s*(\d+)\s*dh\s*\/\s*(p|partie)\w*/i, (m, n) => { o.pp = +n; return ""; });
+      o.nom = l.replace(/\s*[·|•-]\s*$/, "").trim() || o.nom; return o; });
+    const RS = RSO.map(r => r.nom), RO = n => RSO.find(r => r.nom === n) || {};
+    const FACT = ["heure", "partie", "deux"].includes(P.facturation) ? P.facturation : "heure";
+    const PARTIES = String(P.parties || "1,2,3,5,10").split(/[,; ]+/).map(Number).filter(n => n >= 1 && n <= 50);
+    const minPartie = Math.max(5, +P.minPartie || 15);
     const DUREES = String(P.durees || "60,120").split(/[,; ]+/).map(Number).filter(n => n >= 10 && n <= 720);
     const fermes = sansAccent(P.ferme || "");
     const jours = []; for (let i = 0; i < 21 && jours.length < 14; i++) { const d = new Date(); d.setDate(d.getDate() + i); if (fermes && fermes.includes(NJ[d.getDay()])) continue; jours.push(cle(d)); }
     const o = hm(P.ouverture) ?? 540; let f = hm(P.fermeture) ?? 1260; if (f <= o) f += 1440;   // fermeture après minuit (billard)
     const pas = Math.max(10, +P.pas || 30);
     const LS = "nfcwork-rdv-" + slug; const mesResas = () => { try { return JSON.parse(localStorage.getItem(LS) || "[]"); } catch (e) { return []; } };
-    let S = { svc: 0, staff: EQ.length ? "" : null, res: RS[0] || "", dur: DUREES.includes(60) ? 60 : DUREES[0] || pas, j: jours[0], h: null, n: "", t: "", fid: true };
+    let S = { unit: FACT === "partie" ? "partie" : "heure", np: PARTIES[0] || 1, svcs: SV.length ? [0] : [], staff: EQ.length ? "" : null, res: RS[0] || "", dur: DUREES.includes(60) ? 60 : DUREES[0] || pas, j: jours[0], h: null, n: "", t: "", fid: true };
     try { const m = JSON.parse(localStorage.getItem("nfcwork-rdv-moi") || "{}"); S.n = m.n || ""; S.t = m.t || ""; } catch (e) {}
     const occ = {};   // jour → [{debut, fin, ressource, staff}]
     async function charger(j, force) {
@@ -281,7 +293,11 @@ a:active,button:active{transform:scale(.98)}
       catch (e) { occ[j] = []; }
       return occ[j];
     }
-    const dureeCh = () => tb ? S.dur : (SV[S.svc] && SV[S.svc].duree) || pas;
+    const choisis = () => S.svcs.map(i => SV[i]).filter(Boolean);
+    const dureeCh = () => tb ? (S.unit === "partie" ? S.np * minPartie : S.dur) : choisis().reduce((t, s) => t + (s.duree || pas), 0) || pas;
+    const total = () => { if (!tb) return choisis().reduce((t, s) => t + (s.prix || 0), 0); const r = RO(S.res);
+      if (S.unit === "partie") { const pp = r.pp ?? (+P.prixPartie || 0); return S.np * pp; } const ph = r.ph ?? (+P.prixHeure || 0); return Math.round(S.dur * ph / 60); };
+    const quoiCh = () => tb ? (S.unit === "partie" ? S.np + " " + (S.np > 1 ? T("parties", "پارتيات") : T("partie", "پارتية")) : fdur(S.dur)) : choisis().map(s => s.nom).join(" + ");
     const chevauche = (a1, a2, x) => a1 < x.fin && x.debut < a2;
     function libres(m, j) {   // qui peut prendre ce créneau ? (liste, vide = complet)
       const L = occ[j] || [], d = dureeCh();
@@ -298,20 +314,25 @@ a:active,button:active{transform:scale(.98)}
     const resPleine = r => { const s = S.res; S.res = r; const pl = !creneaux(S.j).some(x => x.ok); S.res = s; return pl; };
 
     function dessiner() {
-      const sv = SV[S.svc], cr = creneaux(S.j);
+      const cr = creneaux(S.j), tot = total();
+      const HEURES = `<div class="chips" style="margin-top:10px">${occ[S.j] ? cr.map(x => `<button class="chip${S.h === x.m ? " on" : ""}${x.ok ? "" : " pris"}" data-h="${x.m}" ${x.ok ? "" : "disabled"}>${lab(x.m)}</button>`).join("") || `<span class="aide" style="margin:0">${T("Plus de créneau ce jour-là.", "ما بقاش وقت فهاد النهار.")}</span>` : `<span class="aide" style="margin:0">${T("Chargement des créneaux…", "كنشوفو الأوقات…")}</span>`}</div>`;
       if (S.h != null && !cr.some(x => x.m === S.h && x.ok)) S.h = null;
       const mes = mesResas().filter(r => r.jour >= cle(new Date()));
       let k = 0;
       app.innerHTML = `${brand}${P.photo ? `<div class="logo"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}<h1>${esc(P.nom || "")}</h1><p class="sub">${esc(P.message || (tb ? T("Réservez votre table en 30 secondes", "احجز الطابلة ديالك فـ 30 ثانية") : T("Prenez rendez-vous en ligne", "خود موعد أونلاين")))}</p>
         ${mes.length ? `<div class="card mesr"><div class="lab" style="margin-bottom:8px">${T("Vos réservations", "الحجوزات ديالك")}</div>${mes.map(r => `<button class="mr" data-voir="${esc(r.id)}"><b>${esc(jourCourt(r.jour))} · ${esc(r.debut)}</b><span>${esc(r.quoi || "")}</span><i>›</i></button>`).join("")}</div>` : ""}
         ${tb ? `<div class="card"><div class="lab">${++k} · ${T("La table", "الطابلة")}</div><div class="rs">${RS.map((r, i) => { const [e, t] = emo(r), pl = resPleine(r); return `<button class="rsb${S.res === r ? " on" : ""}${pl ? " pris" : ""}" data-res="${i}" ${pl ? "disabled" : ""}><span>${e || "🎱"}</span>${esc(t)}</button>`; }).join("")}</div></div>`
-        : SV.length ? `<div class="card"><div class="lab">${++k} · ${T("Le soin", "الخدمة")}</div><div class="svl">${SV.map((s, i) => `<button class="sv${S.svc === i ? " on" : ""}" data-svc="${i}"><span><b>${esc(s.nom)}</b>${s.duree ? `<small>${fdur(s.duree)}</small>` : ""}</span>${s.prix ? `<em>${s.prix} DH</em>` : ""}</button>`).join("")}</div></div>` : ""}
+        : SV.length ? `<div class="card"><div class="lab">${++k} · ${T("Les soins (un ou plusieurs)", "الخدمات (وحدة ولا كثر)")}</div><div class="svl">${SV.map((s, i) => `<button class="sv${S.svcs.includes(i) ? " on" : ""}" data-svc="${i}"><span><b>${esc(s.nom)}</b>${s.duree ? `<small>${fdur(s.duree)}</small>` : ""}</span>${s.prix ? `<em>${s.prix} DH</em>` : ""}</button>`).join("")}</div></div>` : ""}
         ${!tb && EQ.length ? `<div class="card"><div class="lab">${++k} · ${T("Avec qui ?", "مع من؟")}</div><div class="rs">${EQ.map(e => `<button class="rsb${S.staff === e ? " on" : ""}" data-staff="${esc(e)}"><span>👤</span>${esc(e)}</button>`).join("")}<button class="rsb${S.staff === "" ? " on" : ""}" data-staff=""><span>✨</span>${T("Peu importe", "ما كاين مشكل")}</button></div></div>` : ""}
         <div class="card"><div class="lab">${++k} · ${tb ? T("Le jour", "النهار") : T("Le créneau", "الوقت")}</div><div class="chips days">${jours.map(j => `<button class="chip${S.j === j ? " on" : ""}" data-j="${j}"><small>${esc(jourCourt(j).split(" ")[0])}</small><b>${deCle(j).getDate()}</b></button>`).join("")}</div>
-          ${tb ? `</div><div class="card"><div class="lab">${++k} · ${T("L’heure et la durée", "الساعة والمدة")}</div>` : ""}
-          <div class="chips" style="margin-top:10px">${occ[S.j] ? cr.map(x => `<button class="chip${S.h === x.m ? " on" : ""}${x.ok ? "" : " pris"}" data-h="${x.m}" ${x.ok ? "" : "disabled"}>${lab(x.m)}</button>`).join("") || `<span class="aide" style="margin:0">${T("Plus de créneau ce jour-là.", "ما بقاش وقت فهاد النهار.")}</span>` : `<span class="aide" style="margin:0">${T("Chargement des créneaux…", "كنشوفو الأوقات…")}</span>`}</div>
-          ${tb && DUREES.length > 1 ? `<div class="chips" style="margin-top:10px">${DUREES.map(d => `<button class="chip${S.dur === d ? " on" : ""}" data-dur="${d}">${d < 60 ? d + " min" : d === 60 ? T("1 heure", "ساعة") : fdur(d).replace(" h", T(" heures", " سوايع"))}</button>`).join("")}</div>` : ""}
+          ${tb ? `</div><div class="card"><div class="lab">${++k} · ${T("La durée et l’heure", "المدة والساعة")}</div>` : ""}
+          ${tb ? "" : HEURES}
+          ${tb ? `${FACT === "deux" ? `<div class="seg2" style="margin-top:12px"><button class="${S.unit === "heure" ? "on" : ""}" data-unit="heure">⏱ ${T("À l’heure", "بالساعة")}</button><button class="${S.unit === "partie" ? "on" : ""}" data-unit="partie">🎱 ${T("À la partie", "بالپارتية")}</button></div>` : ""}
+          ${S.unit === "partie" ? `<div class="lab" style="margin-top:12px">${T("Combien de parties ?", "شحال من پارتية؟")}</div><div class="chips" style="margin-top:8px">${PARTIES.map(n => `<button class="chip${S.np === n ? " on" : ""}" data-np="${n}">${n} ${n > 1 ? T("parties", "پارتيات") : T("partie", "پارتية")}</button>`).join("")}</div>`
+            : DUREES.length ? `<div class="lab" style="margin-top:12px">${T("Combien de temps ?", "شحال من وقت؟")}</div><div class="chips" style="margin-top:8px">${DUREES.map(d => `<button class="chip${S.dur === d ? " on" : ""}" data-dur="${d}">${d < 60 ? d + " min" : d === 60 ? T("1 heure", "ساعة") : fdur(d).replace(" h", T(" heures", " سوايع"))}</button>`).join("")}</div>` : ""}` : ""}
+          ${tb ? `<div class="lab" style="margin-top:14px">${T("À quelle heure ?", "شمن ساعة؟")}</div>` + HEURES : ""}
         </div>
+        ${tot ? `<div class="card totc"><span>💰 ${T("Total", "المجموع")}<small>${esc(quoiCh())}${tb ? " · " + esc(emo(S.res)[1]) : ""} · ${T("à payer sur place", "تخلص فالمحل")}</small></span><b>${tot} DH</b></div>` : ""}
         <div class="card"><div class="lab">${++k} · ${T("Vous", "نتا")}</div>
           <input id="rv-n" class="inp" maxlength="40" autocomplete="given-name" placeholder="${T("Votre prénom", "السمية ديالك")}" value="${esc(S.n)}">
           <input id="rv-t" class="inp" maxlength="20" type="tel" inputmode="tel" autocomplete="tel" placeholder="${T("Téléphone (06…)", "التيليفون (06…)")}" value="${esc(S.t)}">
@@ -330,7 +351,8 @@ a:active,button:active{transform:scale(.98)}
     function bouton() {
       const q = tb ? emo(S.res)[1] : "", h = S.h != null ? " · " + jourCourt(S.j) + " " + lab(S.h) : "";
       const avec = !tb && EQ.length && S.staff ? " " + T("avec", "مع") + " " + S.staff : "";
-      return (enLigne ? T("Réserver", "احجز") : T("Envoyer sur WhatsApp", "صيفط فواتساب")) + (q ? " " + q : "") + h + avec;
+      const t = total();
+      return (enLigne ? T("Réserver", "احجز") : T("Envoyer sur WhatsApp", "صيفط فواتساب")) + (q ? " " + q : "") + h + avec + (t ? " · " + t + " DH" : "");
     }
     async function carteFid(tel) {   // crée (ou retrouve) la carte fidélité liée à ce numéro
       const pid = P.fidPid, d = String(tel).replace(/\D/g, "").slice(-9);
@@ -354,10 +376,10 @@ a:active,button:active{transform:scale(.98)}
       const tel = S.t.trim();
       if (enLigne && tel.replace(/\D/g, "").length < 9) { toast(T("Numéro de téléphone incomplet.", "النمرة ناقصة.")); document.getElementById("rv-t").focus(); return; }
       try { localStorage.setItem("nfcwork-rdv-moi", JSON.stringify({ n: S.n.trim(), t: tel })); } catch (e) {}
-      const sv = !tb && SV[S.svc], d = dureeCh(), quoi = tb ? emo(S.res)[1] : sv ? sv.nom : "";
+      const d = dureeCh(), tot = total(), detail = quoiCh(), quoi = tb ? emo(S.res)[1] : detail;
       if (!enLigne) {
         if (!telWa) { toast(T("Réservation indisponible pour l’instant.", "الحجز ما خدامش دابا.")); return; }
-        const msg = `📅 Réservation · ${P.nom || ""}\n👤 ${S.n.trim()}${tel ? " · " + tel : ""}\n${quoi ? (tb ? "🎱 " : "✂️ ") + quoi + "\n" : ""}${S.staff ? "💇 " + S.staff + "\n" : ""}🗓 ${jourLong(S.j)} à ${lab(S.h)}${tb ? " (" + fdur(d) + ")" : ""}`;
+        const msg = `📅 Réservation · ${P.nom || ""}\n👤 ${S.n.trim()}${tel ? " · " + tel : ""}\n${quoi ? (tb ? "🎱 " : "✂️ ") + quoi + "\n" : ""}${tb ? "⏱ " + detail + "\n" : ""}${S.staff ? "💇 " + S.staff + "\n" : ""}🗓 ${jourLong(S.j)} à ${lab(S.h)}${tot ? "\n💰 Total : " + tot + " DH" : ""}`;
         window.open(`https://wa.me/${telWa}?text=${encodeURIComponent(msg)}`, "_blank"); return;
       }
       b.disabled = true; b.textContent = T("Envoi…", "كنصيفطو…");
@@ -369,13 +391,13 @@ a:active,button:active{transform:scale(.98)}
         let fid = null; if (P.fidPid && S.fid) { try { fid = await carteFid(tel); } catch (e) { console.warn("fidélité", e); } }
         const id = rid(20), statut = P.auto ? "confirmee" : "attente";
         const R = { page: slug, ownerEmail: String(P.ownerEmail).toLowerCase(), nom: S.n.trim().slice(0, 40), tel: tel.slice(0, 20), mode: tb ? "tables" : "services",
-          ressource: tb ? S.res : "", service: sv ? sv.nom : "", prix: sv ? sv.prix || 0 : 0, staff, jour: S.j, debut: lab(S.h), debutMin: S.h, duree: d, statut, fid: fid ? fid.cid : "" };
+          ressource: tb ? S.res : "", service: detail.slice(0, 120), prix: tot, staff, jour: S.j, debut: lab(S.h), debutMin: S.h, duree: d, statut, fid: fid ? fid.cid : "" };
         const F = {}; for (const kk in R) F[kk] = enc(R[kk]);
         const occF = { page: enc(slug), jour: enc(S.j), debut: enc(S.h), fin: enc(S.h + d), ressource: enc(R.ressource), staff: enc(staff), statut: enc(statut) };
         await commit([
           { update: { name: nom("reservations/" + id), fields: F }, updateTransforms: [{ fieldPath: "cree", setToServerValue: "REQUEST_TIME" }], currentDocument: { exists: false } },
           { update: { name: nom("rdvOccupe/" + id), fields: occF }, currentDocument: { exists: false } }]);
-        const L = mesResas().filter(r => r.jour >= cle(new Date())); L.unshift({ id, jour: S.j, debut: R.debut, quoi: quoi + (staff ? " · " + staff : "") });
+        const L = mesResas().filter(r => r.jour >= cle(new Date())); L.unshift({ id, jour: S.j, debut: R.debut, quoi: quoi + (tb ? " · " + detail : "") + (staff ? " · " + staff : "") });
         try { localStorage.setItem(LS, JSON.stringify(L.slice(0, 10))); } catch (e) {}
         delete occ[S.j];
         confirmation(id, Object.assign({}, R, { fidInfo: fid }));
@@ -395,15 +417,17 @@ a:active,button:active{transform:scale(.98)}
         const sous = non ? T("Choisissez un autre créneau, ou contactez le commerce.", "اختار وقت آخر ولا تواصل مع المحل.") : ok ? T("À " + jourCourt(R.jour).split(" ")[0].replace(".", "") + " ! Pensez à arriver 5 minutes avant.", "نتسناوك! جي 5 دقايق قبل.") : esc(P.nom || "") + T(" vous confirme dans quelques minutes.", " غادي يأكد ليك فدقايق.");
         app.innerHTML = `${brand}<div class="okc ${non ? "non" : ok ? "" : "att"}">${non ? "✕" : ok ? "✓" : "⏳"}</div><h1>${titre}</h1><p class="sub">${sous}</p>
           <div class="card recap">
-            ${R.ressource ? `<div>${emo(R.ressource)[0] || "🎱"} <b>${esc(emo(R.ressource)[1])}</b></div>` : ""}${R.service ? `<div>✂️ <b>${esc(R.service)}</b>${R.prix ? " · " + R.prix + " DH" : ""}</div>` : ""}${R.staff ? `<div>👤 ${T("avec", "مع")} <b>${esc(R.staff)}</b></div>` : ""}
+            ${R.ressource ? `<div>${emo(R.ressource)[0] || "🎱"} <b>${esc(emo(R.ressource)[1])}</b>${R.service ? " · " + esc(R.service) : ""}</div>` : R.service ? `<div>✂️ <b>${esc(R.service)}</b></div>` : ""}
+            ${R.prix ? `<div>💰 ${T("Total à payer sur place", "المجموع تخلصو فالمحل")} : <b>${R.prix} DH</b></div>` : ""}${R.staff ? `<div>👤 ${T("avec", "مع")} <b>${esc(R.staff)}</b></div>` : ""}
             <div>🗓 <b>${esc(jourLong(R.jour))}</b> · ${esc(R.debut)} → ${lab((+R.debutMin || hm(R.debut)) + (+R.duree || 0))}</div>
             <div>👤 ${esc(R.nom)} · ${esc(String(R.tel || "").replace(/(\d{2})(?=\d)/g, "$1 ").trim())}</div>
             ${fid ? `<div>🎁 ${T("Carte fidélité", "كارطة الوفاء")} : <b>${fid.points} / ${fid.objectif} ${esc(fid.unite)}</b></div>` : ""}
             <div class="stt ${non ? "non" : ok ? "ok" : ""}">${non ? "✕ " + (st === "annulee" ? T("Annulée", "ملغية") : T("Refusée", "مرفوضة")) : ok ? "✓ " + T("Confirmée", "مأكدة") : "⏳ " + T("En attente de confirmation", "كنتسناو التأكيد")}</div>
           </div>
+          ${telWa && !non ? `<a class="main waok" target="_blank" rel="noopener" href="https://wa.me/${telWa}?text=${encodeURIComponent(`📅 Réservation · ${P.nom || ""}\n👤 ${R.nom} · ${R.tel}\n${R.ressource ? "🎱 " + emo(R.ressource)[1] + (R.service ? " · " + R.service : "") : "✂️ " + R.service}${R.staff ? "\n💇 " + R.staff : ""}\n🗓 ${jourLong(R.jour)} à ${R.debut}${R.prix ? "\n💰 Total : " + R.prix + " DH" : ""}`)}">${I.wa}${T("Envoyer à", "صيفط لـ")} ${esc(P.nom || "")} ${T("sur WhatsApp", "فواتساب")}</a><p class="aide" style="margin:6px 0 4px">${T("Un clic : votre réservation arrive directement chez eux.", "كليك وحدة: الحجز كيوصلهم ديريكت.")}</p>` : ""}
           ${fid && WALLET && !IOS && !non ? `<a class="main gw" href="${WALLET}/google/save?c=${encodeURIComponent(fid.cid)}" rel="noopener">${T("Ajouter à Google Wallet", "زيد لـ Google Wallet")}</a>` : ""}
           ${fid && !non ? `<a class="row2" href="/f/?c=${encodeURIComponent(fid.cid)}">🎁 ${T("Voir ma carte fidélité", "شوف كارطة الوفاء")}${fid.recompense ? ` <small>${fid.objectif} ${esc(fid.unite)} = ${esc(fid.recompense)}</small>` : ""}</a>` : ""}
-          ${telWa && !non ? `<a class="row2" target="_blank" rel="noopener" href="https://wa.me/${telWa}?text=${encodeURIComponent(`📅 ${T("Bonjour, je viens de réserver", "سلام، حجزت دابا")} : ${R.ressource ? emo(R.ressource)[1] : R.service}${R.staff ? " · " + R.staff : ""} · ${jourLong(R.jour)} ${R.debut} (${R.nom})`)}">${I.wa} ${T("Prévenir sur WhatsApp", "علم المحل فواتساب")}</a>` : ""}
+
           ${!non && st !== "venu" ? `<button class="row2 lien" id="rv-ann">${T("Annuler ma réservation", "لغي الحجز")}</button>` : ""}
           <button class="main" id="rv-new" style="margin-top:14px">${non ? T("Choisir un autre créneau", "اختار وقت آخر") : T("Nouvelle réservation", "حجز جديد")}</button>
           ${pied()}`;
@@ -429,7 +453,9 @@ a:active,button:active{transform:scale(.98)}
       const g = a => e.target.closest("[" + a + "]");
       let x;
       if ((x = g("data-voir"))) { confirmation(x.dataset.voir); return; }
-      if ((x = g("data-svc"))) S.svc = +x.dataset.svc;
+      if ((x = g("data-svc"))) { const i = +x.dataset.svc; S.svcs = S.svcs.includes(i) ? (S.svcs.length > 1 ? S.svcs.filter(v => v !== i) : S.svcs) : S.svcs.concat(i).sort((a, b) => a - b); }
+      else if ((x = g("data-unit"))) S.unit = x.dataset.unit;
+      else if ((x = g("data-np"))) S.np = +x.dataset.np;
       else if ((x = g("data-res"))) S.res = RS[+x.dataset.res];
       else if ((x = g("data-staff"))) S.staff = x.dataset.staff;
       else if ((x = g("data-j"))) { S.j = x.dataset.j; S.h = null; }

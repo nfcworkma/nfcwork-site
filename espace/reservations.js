@@ -111,15 +111,18 @@
   function ligne(r, avecJour) {
     const fin = (r.debutMin || hm(r.debut)) + (+r.duree || 0), wa = waNum(r.tel);
     const ca = carteDe(r), F = ca && FID[ca.pid], prog = F && F.prog;
-    const sous = [fdur(r.duree), r.prix ? r.prix + " DH" : "", r.mode !== "tables" && r.staff && avecJour ? r.staff : "", ca && prog ? `${ca.points || 0}/${prog.objectif || 10} ${unite(prog)}` : r.fid || !PAGES[r.page] || !PAGES[r.page].fidPid ? "" : "nouveau client"].filter(Boolean).join(" · ");
+    const sous = [r.mode === "tables" && r.service ? r.service : fdur(r.duree), r.prix ? r.prix + " DH" : "", r.mode !== "tables" && r.staff && avecJour ? r.staff : "", ca && prog ? `${ca.points || 0}/${prog.objectif || 10} ${unite(prog)}` : r.fid || !PAGES[r.page] || !PAGES[r.page].fidPid ? "" : "nouveau client"].filter(Boolean).join(" · ");
     let act = "";
     if (r.statut === "attente") act = `<button class="ic ok" data-ok="${r.id}" aria-label="Confirmer">✓</button><button class="ic no" data-non="${r.id}" aria-label="Refuser">✕</button>`;
-    else if (r.statut === "confirmee") act = `${wa ? `<a class="ic" href="https://wa.me/${wa}?text=${encodeURIComponent(msgConf(r))}" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>` : ""}${r.jour <= auj() ? `<button class="tag arr" data-arr="${r.id}">Arrivé ? +1</button>` : `<span class="tag c">Confirmé</span>`}<button class="ic no" data-ann="${r.id}" aria-label="Annuler">✕</button>`;
+    else if (r.statut === "confirmee") act = `${wa ? `<a class="ic" href="https://wa.me/${wa}?text=${encodeURIComponent(msgConf(r))}" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>` : ""}${r.jour <= auj() ? `<button class="tag arr" data-arr="${r.id}">Arrivé ? +1</button>` : `<span class="tag c">Confirmé</span>`}${enRetard(r) ? `<button class="tag r" data-abs="${r.id}" style="cursor:pointer;font:700 12px var(--body)">Pas venu</button>` : `<button class="ic no" data-ann="${r.id}" aria-label="Annuler">✕</button>`}`;
     else if (r.statut === "venu") act = `<span class="tag v">Venu ✓</span>`;
     else act = `<span class="tag r">${r.statut === "annulee" ? "Annulé" : "Refusé"}</span>`;
     return `<div class="rv"${ACTIF(r) ? "" : ' style="opacity:.55"'}><div class="h">${esc(r.debut)}${avecJour ? `<small>${esc(NJ[deCle(r.jour).getDay()] + " " + deCle(r.jour).getDate())}</small>` : `<small>→ ${lab(fin)}</small>`}</div>
       <div class="q"><b>${esc(r.nom)} · ${esc(quoi(r))}</b><small>${esc(sous)}</small></div><div class="a">${act}</div></div>`;
   }
+  const minNow = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+  const debutDe = r => +r.debutMin || hm(r.debut) || 0;
+  const enRetard = r => r.statut === "confirmee" && (r.jour < auj() || (r.jour === auj() && minNow() > debutDe(r) + 10));
   const msgConf = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nVotre réservation chez ${P.nom || "nous"} est confirmée ✅\n🗓 ${jourLong(r.jour)} à ${r.debut}\n${r.mode === "tables" ? "🎱 " + emo(r.ressource)[1] : "✂️ " + (r.service || "") + (r.staff ? " avec " + r.staff : "")}\nÀ bientôt !`; };
   const msgRappel = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nPetit rappel : votre réservation chez ${P.nom || "nous"} c’est demain, ${jourLong(r.jour)} à ${r.debut} (${quoi(r)}${r.staff ? " avec " + r.staff : ""}).\nÀ demain ! Si vous ne pouvez pas venir, prévenez-nous ici 🙏`; };
 
@@ -144,7 +147,9 @@
       blocs = Object.keys(G).sort().map(s => `<div class="sh">👤 ${esc(s)}</div>${G[s].map(r => ligne(r)).join("")}`).join("");
     } else if (conf.length) blocs = `<div class="sh">${tables ? "Confirmées" : "Rendez-vous"}</div>${conf.map(r => ligne(r)).join("")}`;
     const liens = pages.filter(p => !p._tmp).map(p => `<div class="lnk">${esc("nfcwork.ma/p/" + p.slug)}</div>`).join("");
-    return `<div class="kp"><div><b>${jour === auj() ? JA.length : JA.length}</b><small>${jour === auj() ? "Aujourd’hui" : esc(NJ[deCle(jour).getDay()] + " " + deCle(jour).getDate())}</small></div><div><b>${A.length}</b><small>À confirmer</small></div>${k3}</div>
+    const bientot = L.filter(r => r.statut === "confirmee" && r.jour === auj() && debutDe(r) - minNow() <= 15 && debutDe(r) - minNow() >= -10).sort(tri);
+    const alerte = bientot.length ? `<div class="paper" style="border-color:var(--warn);background:var(--warn-soft);padding:12px 14px;border-radius:14px;margin-bottom:12px;font-size:14px">⏰ <b>Bientôt :</b> ${bientot.map(r => `${esc(r.debut)} · ${esc(r.nom)}${r.ressource ? " · " + esc(emo(r.ressource)[1]) : r.staff ? " · " + esc(r.staff) : ""}`).join(" — ")}<br><span class="muted">${tables ? "Mettez « Réservé » sur la table. S’il ne vient pas 10 min après l’heure : « Pas venu » libère la table." : "Le client arrive bientôt. S’il ne vient pas : « Pas venu » libère le créneau."}</span></div>` : "";
+    return `${alerte}<div class="kp"><div><b>${JA.length}</b><small>${jour === auj() ? "Aujourd’hui" : esc(NJ[deCle(jour).getDay()] + " " + deCle(jour).getDate())}</small></div><div><b>${A.length}</b><small>À confirmer</small></div>${k3}</div>
       <div class="days">${jours.map(j => `<button data-jour="${j}" aria-pressed="${jour === j}"><small>${j === auj() ? "auj." : NJ[deCle(j).getDay()]}</small><b>${deCle(j).getDate()}</b>${att(j) ? `<i>${att(j)}</i>` : nbJ(j) ? `<small style="font-size:10px">${nbJ(j)} rés.</small>` : ""}</button>`).join("")}</div>
       ${A.length ? `<div class="sh">À confirmer</div>${A.map(r => ligne(r, true)).join("")}` : ""}
       ${blocs || (A.length ? "" : `<div class="empty paper" style="margin-top:14px"><h3>Rien ce jour-là</h3><p>Partagez votre lien de réservation (Instagram, WhatsApp, plaque NFC) :</p>${liens}</div>`)}
@@ -208,6 +213,7 @@
     d.onclick = e => { if (e.target === d || e.target.closest("[data-x]")) d.remove(); const a = e.target.closest("[data-vu]"); if (a) { a.textContent = "✓ Envoyé"; a.classList.remove("primary"); } };
   }
   $("#rappels").onclick = rappels;
+  setInterval(() => { if (user && tab === "res" && !document.hidden && !document.querySelector(".modal")) rendre(); }, 60000);   // alertes « bientôt » à jour
 
   /* ---------- actions ---------- */
   const R1 = id => R.find(r => r.id === id);
@@ -242,7 +248,7 @@
   }
 
   document.addEventListener("click", async e => {
-    const b = e.target.closest("[data-tab],[data-pg],[data-jour],[data-mois],[data-ok],[data-non],[data-ann],[data-arr],[data-plus],[data-offrir]"); if (!b) return;
+    const b = e.target.closest("[data-tab],[data-pg],[data-jour],[data-mois],[data-ok],[data-non],[data-ann],[data-abs],[data-arr],[data-plus],[data-offrir]"); if (!b) return;
     const d = b.dataset;
     if (d.tab) { tab = d.tab; rendre(); return; }
     if (d.pg != null) { filtre = d.pg; rendre(); return; }
@@ -252,6 +258,7 @@
     if (d.ok) { const r = R1(d.ok); if (r && await statut(r, "confirmee")) toast(`✓ Confirmé · ${r.nom} le voit sur sa page`); }
     else if (d.non) { const r = R1(d.non); if (r && confirm(`Refuser la réservation de ${r.nom} ?`)) { if (await statut(r, "refusee")) toast("Réservation refusée · le créneau est libéré"); } }
     else if (d.ann) { const r = R1(d.ann); if (r && confirm(`Annuler la réservation de ${r.nom} (${r.debut}) ?`)) { if (await statut(r, "annulee")) toast("Réservation annulée · le créneau est libéré"); } }
+    else if (d.abs) { const r = R1(d.abs); if (r && confirm(`${r.nom} n’est pas venu ? Le créneau sera libéré.`)) { if (await statut(r, "annulee")) toast("Créneau libéré ✓"); } }
     else if (d.arr) { const r = R1(d.arr); if (r) await arrive(r); }
     else if (d.plus) { try { await db.doc("fidCartes/" + d.plus).update({ points: inc(1), total: inc(1), lastAt: NOW() }); if (WALLET) fetch(WALLET + "/google/sync?c=" + d.plus, { mode: "no-cors" }).catch(() => {}); toast("+1 ✓"); } catch (x) { toast("Échec."); } }
     else if (d.offrir) { const pr = FID[d.pid] && FID[d.pid].prog, obj = Math.max(1, (pr && pr.objectif) || 10); if (confirm("Offrir le cadeau à ce client ?")) { try { await db.doc("fidCartes/" + d.offrir).update({ points: inc(-obj), recompenses: inc(1), lastAt: NOW() }); toast("🎁 Cadeau offert"); } catch (x) { toast("Échec."); } } }
