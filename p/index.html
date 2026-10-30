@@ -65,6 +65,9 @@ a:active,button:active{transform:scale(.98)}
 .totc{display:flex;align-items:center;justify-content:space-between;gap:12px;border-color:var(--accent);padding:14px 18px}.totc span{display:flex;flex-direction:column;font-weight:600}.totc small{color:var(--muted);font-weight:400;font-size:12.5px;margin-top:2px}.totc b{font-size:24px;white-space:nowrap;color:var(--accent2)}
 .seg2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seg2 button{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:12px;padding:11px;font:inherit;font-size:14.5px;cursor:pointer}.seg2 button.on{background:var(--accent);border-color:var(--accent);color:var(--accentfg);font-weight:600}
 .waok{background:#25d366;color:#fff;margin-top:6px}
+.rsb .px{font-size:11.5px;opacity:.75;font-weight:500}
+.opl{display:grid;gap:8px;margin-top:10px}.op{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:10px 12px}.op span{display:flex;flex-direction:column;min-width:0}.op small{color:var(--muted);font-size:12.5px}
+.qty{display:flex;align-items:center;gap:10px}.qty button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surf);color:var(--fg);font-size:20px;line-height:1;cursor:pointer}.qty button:not([disabled]):last-child{background:var(--accent);border-color:var(--accent);color:var(--accentfg)}.qty button[disabled]{opacity:.35}.qty b{min-width:16px;text-align:center}
 .aide{color:var(--muted);font-size:13px;text-align:center;margin-top:10px;line-height:1.5}
 .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .net{display:flex;gap:12px;align-items:center}.net .ic{font-size:26px}
@@ -273,13 +276,14 @@ a:active,button:active{transform:scale(.98)}
     const FACT = ["heure", "partie", "deux"].includes(P.facturation) ? P.facturation : "heure";
     const PARTIES = String(P.parties || "1,2,3,5,10").split(/[,; ]+/).map(Number).filter(n => n >= 1 && n <= 50);
     const minPartie = Math.max(5, +P.minPartie || 15);
+    const OPT = lignes(P.options).map(l => { const m = l.match(/^(.*?)\s*[·|•-]\s*(\d+)\s*dh\s*$/i); return m ? { nom: m[1], prix: +m[2] } : { nom: l, prix: 0 }; });
     const DUREES = String(P.durees || "60,120").split(/[,; ]+/).map(Number).filter(n => n >= 10 && n <= 720);
     const fermes = sansAccent(P.ferme || "");
     const jours = []; for (let i = 0; i < 21 && jours.length < 14; i++) { const d = new Date(); d.setDate(d.getDate() + i); if (fermes && fermes.includes(NJ[d.getDay()])) continue; jours.push(cle(d)); }
     const o = hm(P.ouverture) ?? 540; let f = hm(P.fermeture) ?? 1260; if (f <= o) f += 1440;   // fermeture après minuit (billard)
     const pas = Math.max(10, +P.pas || 30);
     const LS = "nfcwork-rdv-" + slug; const mesResas = () => { try { return JSON.parse(localStorage.getItem(LS) || "[]"); } catch (e) { return []; } };
-    let S = { unit: FACT === "partie" ? "partie" : "heure", np: PARTIES[0] || 1, svcs: SV.length ? [0] : [], staff: EQ.length ? "" : null, res: RS[0] || "", dur: DUREES.includes(60) ? 60 : DUREES[0] || pas, j: jours[0], h: null, n: "", t: "", fid: true };
+    let S = { unit: FACT === "partie" ? "partie" : "heure", np: PARTIES[0] || 1, svcs: SV.length ? [0] : [], opt: {}, staff: EQ.length ? "" : null, res: RS[0] || "", dur: DUREES.includes(60) ? 60 : DUREES[0] || pas, j: jours[0], h: null, n: "", t: "", fid: true };
     try { const m = JSON.parse(localStorage.getItem("nfcwork-rdv-moi") || "{}"); S.n = m.n || ""; S.t = m.t || ""; } catch (e) {}
     const occ = {};   // jour → [{debut, fin, ressource, staff}]
     async function charger(j, force) {
@@ -295,9 +299,12 @@ a:active,button:active{transform:scale(.98)}
     }
     const choisis = () => S.svcs.map(i => SV[i]).filter(Boolean);
     const dureeCh = () => tb ? (S.unit === "partie" ? S.np * minPartie : S.dur) : choisis().reduce((t, s) => t + (s.duree || pas), 0) || pas;
-    const total = () => { if (!tb) return choisis().reduce((t, s) => t + (s.prix || 0), 0); const r = RO(S.res);
+    const totOpt = () => OPT.reduce((t, o, i) => t + (S.opt[i] || 0) * o.prix, 0);
+    const optTxt = () => OPT.map((o, i) => S.opt[i] ? S.opt[i] + " × " + emo(o.nom)[1] : "").filter(Boolean).join(", ");
+    const base = () => { if (!tb) return choisis().reduce((t, s) => t + (s.prix || 0), 0); const r = RO(S.res);
       if (S.unit === "partie") { const pp = r.pp ?? (+P.prixPartie || 0); return S.np * pp; } const ph = r.ph ?? (+P.prixHeure || 0); return Math.round(S.dur * ph / 60); };
-    const quoiCh = () => tb ? (S.unit === "partie" ? S.np + " " + (S.np > 1 ? T("parties", "پارتيات") : T("partie", "پارتية")) : fdur(S.dur)) : choisis().map(s => s.nom).join(" + ");
+    const total = () => base() + totOpt();
+    const quoiCh = () => (tb ? (S.unit === "partie" ? S.np + " " + (S.np > 1 ? T("parties", "پارتيات") : T("partie", "پارتية")) : fdur(S.dur)) : choisis().map(s => s.nom).join(" + ")) + (optTxt() ? " + " + optTxt() : "");
     const chevauche = (a1, a2, x) => a1 < x.fin && x.debut < a2;
     function libres(m, j) {   // qui peut prendre ce créneau ? (liste, vide = complet)
       const L = occ[j] || [], d = dureeCh();
@@ -321,7 +328,8 @@ a:active,button:active{transform:scale(.98)}
       let k = 0;
       app.innerHTML = `${brand}${P.photo ? `<div class="logo"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}<h1>${esc(P.nom || "")}</h1><p class="sub">${esc(P.message || (tb ? T("Réservez en 30 secondes", "احجز فـ 30 ثانية") : T("Prenez rendez-vous en ligne", "خود موعد أونلاين")))}</p>
         ${mes.length ? `<div class="card mesr"><div class="lab" style="margin-bottom:8px">${T("Vos réservations", "الحجوزات ديالك")}</div>${mes.map(r => `<button class="mr" data-voir="${esc(r.id)}"><b>${esc(jourCourt(r.jour))} · ${esc(r.debut)}</b><span>${esc(r.quoi || "")}</span><i>›</i></button>`).join("")}</div>` : ""}
-        ${tb ? `<div class="card"><div class="lab">${++k} · ${({ foot: T("Le terrain", "التيران"), padel: T("Le court", "التيران"), salle: T("L’espace", "البلاصة"), studio: T("Le studio", "الستوديو"), location: T("Le véhicule", "الموطور"), fete: T("La salle", "الصالة"), loisir: T("L’activité", "النشاط"), ps: T("Le poste", "البوسط") })[P.metier] || T("La table", "الطابلة")}</div><div class="rs">${RS.map((r, i) => { const [e, t] = emo(r), pl = resPleine(r); return `<button class="rsb${S.res === r ? " on" : ""}${pl ? " pris" : ""}" data-res="${i}" ${pl ? "disabled" : ""}><span>${e || "🎱"}</span>${esc(t)}</button>`; }).join("")}</div></div>`
+        ${tb ? `<div class="card"><div class="lab">${++k} · ${({ foot: T("Le terrain", "التيران"), terrains: T("Le terrain", "التيران"), padel: T("Le court", "التيران"), salle: T("L’espace", "البلاصة"), studio: T("Le studio", "الستوديو"), location: T("Le véhicule", "الموطور"), fete: T("La salle", "الصالة"), loisir: T("L’activité", "النشاط"), ps: T("Le poste", "البوسط") })[P.metier] || T("La table", "الطابلة")}</div><div class="rs">${RS.map((r, i) => { const [e, t] = emo(r), pl = resPleine(r); const o = RSO[i], px = S.unit === "partie" ? (o.pp ?? (+P.prixPartie || 0)) : (o.ph ?? (+P.prixHeure || 0));
+          return `<button class="rsb${S.res === r ? " on" : ""}${pl ? " pris" : ""}" data-res="${i}" ${pl ? "disabled" : ""}><span>${e || "🎱"}</span>${esc(t)}${px ? `<small class="px">${px} DH/${S.unit === "partie" ? T("partie", "پارتية") : "h"}</small>` : ""}</button>`; }).join("")}</div></div>`
         : SV.length ? `<div class="card"><div class="lab">${++k} · ${["salon", "barber", "ongles", "spa", ""].includes(P.metier || "") ? T("Les soins (un ou plusieurs)", "الخدمات (وحدة ولا كثر)") : T("Le service (un ou plusieurs)", "الخدمة (وحدة ولا كثر)")}</div><div class="svl">${SV.map((s, i) => `<button class="sv${S.svcs.includes(i) ? " on" : ""}" data-svc="${i}"><span><b>${esc(s.nom)}</b>${s.duree ? `<small>${fdur(s.duree)}</small>` : ""}</span>${s.prix ? `<em>${s.prix} DH</em>` : ""}</button>`).join("")}</div></div>` : ""}
         ${!tb && EQ.length ? `<div class="card"><div class="lab">${++k} · ${T("Avec qui ?", "مع من؟")}</div><div class="rs">${EQ.map(e => `<button class="rsb${S.staff === e ? " on" : ""}" data-staff="${esc(e)}"><span>👤</span>${esc(e)}</button>`).join("")}<button class="rsb${S.staff === "" ? " on" : ""}" data-staff=""><span>✨</span>${T("Peu importe", "ما كاين مشكل")}</button></div></div>` : ""}
         <div class="card"><div class="lab">${++k} · ${tb ? T("Le jour", "النهار") : T("Le créneau", "الوقت")}</div><div class="chips days">${jours.map(j => `<button class="chip${S.j === j ? " on" : ""}" data-j="${j}"><small>${esc(jourCourt(j).split(" ")[0])}</small><b>${deCle(j).getDate()}</b></button>`).join("")}</div>
@@ -329,9 +337,10 @@ a:active,button:active{transform:scale(.98)}
           ${tb ? "" : HEURES}
           ${tb ? `${FACT === "deux" ? `<div class="seg2" style="margin-top:12px"><button class="${S.unit === "heure" ? "on" : ""}" data-unit="heure">⏱ ${T("À l’heure", "بالساعة")}</button><button class="${S.unit === "partie" ? "on" : ""}" data-unit="partie">🎱 ${T("À la partie", "بالپارتية")}</button></div>` : ""}
           ${S.unit === "partie" ? `<div class="lab" style="margin-top:12px">${T("Combien de parties ?", "شحال من پارتية؟")}</div><div class="chips" style="margin-top:8px">${PARTIES.map(n => `<button class="chip${S.np === n ? " on" : ""}" data-np="${n}">${n} ${n > 1 ? T("parties", "پارتيات") : T("partie", "پارتية")}</button>`).join("")}</div>`
-            : DUREES.length ? `<div class="lab" style="margin-top:12px">${T("Combien de temps ?", "شحال من وقت؟")}</div><div class="chips" style="margin-top:8px">${DUREES.map(d => `<button class="chip${S.dur === d ? " on" : ""}" data-dur="${d}">${d < 60 ? d + " min" : d === 60 ? T("1 heure", "ساعة") : fdur(d).replace(" h", T(" heures", " سوايع"))}</button>`).join("")}</div>` : ""}` : ""}
+            : DUREES.length ? `<div class="lab" style="margin-top:12px">${T("Combien de temps ?", "شحال من وقت؟")}</div><div class="chips" style="margin-top:8px">${DUREES.map(d => `<button class="chip${S.dur === d ? " on" : ""}" data-dur="${d}">${d < 60 ? d + " min" : d === 60 ? T("1 heure", "ساعة") : d % 60 ? fdur(d) : d / 60 + T(" heures", " سوايع")}</button>`).join("")}</div>` : ""}` : ""}
           ${tb ? `<div class="lab" style="margin-top:14px">${T("À quelle heure ?", "شمن ساعة؟")}</div>` + HEURES : ""}
         </div>
+        ${OPT.length ? `<div class="card"><div class="lab">${T("Options en plus", "زيادات")}</div><div class="opl">${OPT.map((o, i) => `<div class="op"><span><b>${esc(o.nom)}</b>${o.prix ? `<small>${o.prix} DH</small>` : ""}</span><div class="qty"><button data-opm="${i}" ${S.opt[i] ? "" : "disabled"} aria-label="moins">−</button><b>${S.opt[i] || 0}</b><button data-opp="${i}" aria-label="plus">+</button></div></div>`).join("")}</div></div>` : ""}
         ${tot ? `<div class="card totc"><span>💰 ${T("Total", "المجموع")}<small>${esc(quoiCh())}${tb ? " · " + esc(emo(S.res)[1]) : ""} · ${T("à payer sur place", "تخلص فالمحل")}</small></span><b>${tot} DH</b></div>` : ""}
         <div class="card"><div class="lab">${++k} · ${T("Vous", "نتا")}</div>
           <input id="rv-n" class="inp" maxlength="40" autocomplete="given-name" placeholder="${T("Votre prénom", "السمية ديالك")}" value="${esc(S.n)}">
@@ -455,6 +464,8 @@ a:active,button:active{transform:scale(.98)}
       if ((x = g("data-voir"))) { confirmation(x.dataset.voir); return; }
       if ((x = g("data-svc"))) { const i = +x.dataset.svc; S.svcs = S.svcs.includes(i) ? (S.svcs.length > 1 ? S.svcs.filter(v => v !== i) : S.svcs) : S.svcs.concat(i).sort((a, b) => a - b); }
       else if ((x = g("data-unit"))) S.unit = x.dataset.unit;
+      else if ((x = g("data-opp"))) { const i = +x.dataset.opp; S.opt[i] = Math.min(20, (S.opt[i] || 0) + 1); }
+      else if ((x = g("data-opm"))) { const i = +x.dataset.opm; S.opt[i] = Math.max(0, (S.opt[i] || 0) - 1); }
       else if ((x = g("data-np"))) S.np = +x.dataset.np;
       else if ((x = g("data-res"))) S.res = RS[+x.dataset.res];
       else if ((x = g("data-staff"))) S.staff = x.dataset.staff;

@@ -132,7 +132,7 @@
     if (type === "profil") Object.assign(p, { fonction: "", entreprise: "", metiers: "", bio: "", tel: "", whatsapp: "", email: "", instagram: "", facebook: "", tiktok: "", linkedin: "", youtube: "", snapchat: "", site: "", adresse: "", maps: "", horaires: {}, liens: [], galerie: [] });
     if (type === "avis") Object.assign(p, { lienGoogle: "", message: "", instagram: "" });
     if (type === "wifi") Object.assign(p, { ssid: "", motdepasse: "", securite: "WPA", cache: false, message: "" });
-    if (type === "rdv") Object.assign(p, { mode: "services", whatsapp: "", services: "Coupe homme · 50 DH · 30 min\nCoupe + barbe · 70 DH · 45 min", equipe: "", ressources: "", durees: "60,120", facturation: "heure", prixHeure: "", prixPartie: "", minPartie: 15, parties: "1,2,3,5,10", ouverture: "09:00", fermeture: "21:00", pas: 30, auto: false, ownerEmail: "", fidPid: "", message: "" });
+    if (type === "rdv") Object.assign(p, { mode: "services", whatsapp: "", services: "Coupe homme · 50 DH · 30 min\nCoupe + barbe · 70 DH · 45 min", equipe: "", ressources: "", durees: "60,120", options: "", facturation: "heure", prixHeure: "", prixPartie: "", minPartie: 15, parties: "1,2,3,5,10", ouverture: "09:00", fermeture: "21:00", pas: 30, auto: false, ownerEmail: "", fidPid: "", message: "" });
     if (type === "liens") Object.assign(p, { slogan: "", whatsapp: "", localisation: "", liens: [{ titre: "Instagram", url: "" }] });
     return p;
   }
@@ -211,8 +211,9 @@
     ["autoecole", "🚙 Auto-école (heures de conduite)", { mode: "services", sv: [["Heure de conduite", 60], ["2 heures de conduite", 120], ["Examen blanc", 60]], ouverture: "08:00", fermeture: "19:00", pas: 60 }],
     ["billard", "🎱 Billard / snooker", { mode: "tables", res: "🎱 Pool 1\n🎱 Pool 2\n🎱 Pool 3\n🟢 Snooker", facturation: "deux", durees: "30,60,120", parties: "1,2,3,5,10", minPartie: 15, ouverture: "14:00", fermeture: "02:00", pas: 30 }],
     ["ps", "🎮 Salle PlayStation / gaming", { mode: "tables", res: "🎮 PS5 · 1\n🎮 PS5 · 2\n🎮 PS5 · 3\n🕹️ PC gaming 1\n🕹️ PC gaming 2", facturation: "deux", durees: "30,60,120,180", parties: "1,2,3,5", minPartie: 10, ouverture: "12:00", fermeture: "02:00", pas: 30 }],
-    ["foot", "⚽ Terrain de foot (city / mini-foot)", { mode: "tables", res: "⚽ Terrain 1\n⚽ Terrain 2", facturation: "heure", durees: "60,90,120", ouverture: "09:00", fermeture: "01:00", pas: 60, message: "Réservez votre terrain en 30 secondes" }],
-    ["padel", "🎾 Padel / tennis", { mode: "tables", res: "🎾 Court 1\n🎾 Court 2", facturation: "heure", durees: "60,90,120", ouverture: "08:00", fermeture: "00:00", pas: 30 }],
+    ["foot", "⚽ Terrain de foot (city / mini-foot)", { mode: "tables", res: "⚽ Terrain 1\n⚽ Terrain 2", options: "⚽ Location ballon · 10 DH\n👕 Chasubles · 20 DH\n💧 Pack d’eau · 30 DH", facturation: "heure", durees: "60,90,120", ouverture: "09:00", fermeture: "01:00", pas: 60, message: "Réservez votre terrain en 30 secondes" }],
+    ["terrains", "🏟️ Complexe sportif (foot, basket, tennis…)", { mode: "tables", res: "⚽ Terrain foot\n🏀 Terrain basket\n🎾 Court de tennis\n🎾 Court de padel", options: "🎾 Location raquette · 20 DH\n🎾 Balles (tube) · 40 DH\n⚽ Location ballon · 10 DH\n👕 Chasubles · 20 DH", facturation: "heure", durees: "60,90,120", ouverture: "08:00", fermeture: "00:00", pas: 30 }],
+    ["padel", "🎾 Padel / tennis", { mode: "tables", res: "🎾 Court 1\n🎾 Court 2", options: "🎾 Location raquette · 20 DH\n🎾 Balles (tube) · 40 DH", facturation: "heure", durees: "60,90,120", ouverture: "08:00", fermeture: "00:00", pas: 30 }],
     ["resto", "🍽️ Restaurant / café (tables)", { mode: "tables", res: "🍽️ Table 2 personnes\n🍽️ Table 4 personnes\n🍽️ Table 6 personnes\n🌿 Terrasse 4 personnes", facturation: "heure", durees: "120", ouverture: "12:00", fermeture: "23:30", pas: 30, message: "Réservez votre table" }],
     ["loisir", "🎳 Bowling / karting / escape game", { mode: "tables", res: "🎳 Piste 1\n🎳 Piste 2\n🔐 Escape room", facturation: "partie", parties: "1,2,3", minPartie: 60, ouverture: "14:00", fermeture: "00:00", pas: 30 }],
     ["salle", "🏢 Salle de réunion / coworking", { mode: "tables", res: "🏢 Salle de réunion\n💻 Bureau privé\n🪑 Poste coworking", facturation: "heure", durees: "60,120,240,480", ouverture: "08:00", fermeture: "20:00", pas: 60 }],
@@ -226,11 +227,36 @@
     if (plein && !confirm("Remplacer la liste actuelle par ce modèle ?")) return false;
     Object.assign(P, { mode: m.mode, ouverture: m.ouverture, fermeture: m.fermeture, pas: m.pas, metier: cle });
     if (m.message && !P.message) P.message = m.message;
+    P.options = m.options || "";
     if (m.mode === "tables") Object.assign(P, { ressources: m.res, facturation: m.facturation, durees: m.durees || P.durees || "60,120", parties: m.parties || P.parties || "1,2,3,5,10", minPartie: m.minPartie || P.minPartie || 15 });
     else { P.services = ""; svEcrire((typeof m.sv === "string" ? SV_MODELES[m.sv] : m.sv).map(([nom, duree]) => ({ nom, prix: "", duree }))); }
     return true;
   }
   const DUREES_SV = [10, 15, 20, 30, 40, 45, 60, 75, 90, 120, 150, 180, 240];
+  // tables / terrains : « ⚽ Terrain foot · 250 DH/h · 10 DH/partie » <-> lignes d'édition
+  const rsLire = () => String(P.ressources || "").split(/\n+/).map(x => x.trim()).filter(Boolean).map(l => { const o = { nom: l, ph: "", pp: "" };
+    l = l.replace(/[·|•-]?\s*(\d+)\s*dh\s*\/\s*(h|heure)\b/i, (m, n) => { o.ph = n; return ""; }).replace(/[·|•-]?\s*(\d+)\s*dh\s*\/\s*(p|partie)\w*/i, (m, n) => { o.pp = n; return ""; });
+    o.nom = l.replace(/\s*[·|•-]\s*$/, "").trim() || o.nom; return o; });
+  const rsEcrire = L => { P.ressources = L.filter(r => (r.nom || "").trim()).map(r => [r.nom.trim(), r.ph ? r.ph + " DH/h" : "", r.pp ? r.pp + " DH/partie" : ""].filter(Boolean).join(" · ")).join("\n"); };
+  function ressourcesHtml() {
+    const f = P.facturation || "heure", L = rsLire(), h = f !== "partie", pt = f !== "heure";
+    // anciens prix généraux → recopiés sur les lignes sans prix
+    if (L.length && ((h && +P.prixHeure) || (pt && +P.prixPartie)) && L.some(r => (h && !r.ph) || (pt && !r.pp))) { L.forEach(r => { if (h && !r.ph && +P.prixHeure) r.ph = String(P.prixHeure); if (pt && !r.pp && +P.prixPartie) r.pp = String(P.prixPartie); }); rsEcrire(L); }
+    const cols = `1fr${h ? " 74px" : ""}${pt ? " 74px" : ""} 40px`;
+    return `<div class="eyebrow">Tables, terrains ou postes, avec leur prix (le client voit le total)</div>
+      <div class="rshead" style="grid-template-columns:${cols}"><span>Nom</span>${h ? "<span>DH / heure</span>" : ""}${pt ? "<span>DH / partie</span>" : ""}<span></span></div>
+      <div class="stack" style="gap:8px">${L.map((r, i) => `<div class="svrow" style="grid-template-columns:${cols}"><input data-rs="${i}.nom" value="${esc(r.nom)}" placeholder="⚽ Terrain 1">${h ? `<input data-rs="${i}.ph" value="${esc(r.ph)}" placeholder="250" inputmode="numeric">` : ""}${pt ? `<input data-rs="${i}.pp" value="${esc(r.pp)}" placeholder="5" inputmode="numeric">` : ""}<button class="btn icon sm danger" data-act="rs-del" data-i="${i}">✕</button></div>`).join("")}
+      <button class="btn sm" data-act="rs-add">＋ Ajouter une ligne</button></div>`;
+  }
+  // options en plus (location raquette, balles…) : « 🎾 Raquette · 20 DH »
+  const opLire = () => String(P.options || "").split(/\n+/).map(x => x.trim()).filter(Boolean).map(l => { const m = l.match(/^(.*?)\s*[·|•-]\s*(\d+)\s*dh\s*$/i); return m ? { nom: m[1], prix: m[2] } : { nom: l, prix: "" }; });
+  const opEcrire = L => { P.options = L.filter(o => (o.nom || "").trim()).map(o => o.nom.trim() + (o.prix !== "" ? " · " + o.prix + " DH" : "")).join("\n"); };
+  function optionsHtml() {
+    const L = opLire();
+    return `<div class="eyebrow">Options en plus (facultatif : le client choisit la quantité)</div>
+      <div class="stack" style="gap:8px">${L.map((o, i) => `<div class="svrow" style="grid-template-columns:1fr 74px 40px"><input data-op="${i}.nom" value="${esc(o.nom)}" placeholder="🎾 Location raquette"><input data-op="${i}.prix" value="${esc(o.prix)}" placeholder="20" inputmode="numeric"><button class="btn icon sm danger" data-act="op-del" data-i="${i}">✕</button></div>`).join("")}
+      <button class="btn sm" data-act="op-add">＋ Ajouter une option</button></div>`;
+  }
   function servicesHtml() {
     const L = svLire();
     return `<div class="eyebrow">Soins / services (prix en DH, le client voit le total)</div>
@@ -278,13 +304,13 @@
     if (P.type === "rdv") { const tb = P.mode === "tables"; corps = `<section class="sec paper stack"><h3>📅 Réservation</h3>${photoBloc}${champ("nom", "Nom du commerce", 'maxlength="60"')}
         <label class="f">✨ Modèle de métier (remplit tout, vous mettez juste vos prix)<select data-metier><option value="">Choisir le métier…</option>${RDV_METIERS.map(([k, t]) => `<option value="${k}" ${P.metier === k ? "selected" : ""}>${t}</option>`).join("")}</select></label>
         <label class="f">Type de réservation<select data-k="mode" data-rerender><option value="services" ${!tb ? "selected" : ""}>✂️ Rendez-vous (salon, garage, cabinet…)</option><option value="tables" ${tb ? "selected" : ""}>🎱 Tables, terrains, salles (billard, foot, padel…)</option></select></label>
-        ${tb ? `${zone("ressources", "Tables ou postes (un par ligne, un emoji au début si vous voulez)", 'rows="5" maxlength="600" placeholder="🎱 Pool 1&#10;🎱 Pool 2&#10;🟢 Snooker&#10;🎮 PS5 · 1"')}
-        <label class="f">Le client paie<select data-k="facturation" data-rerender>${[["heure", "⏱ À l’heure"], ["partie", "🎱 À la partie"], ["deux", "Les deux (le client choisit)"]].map(([v, t]) => `<option value="${v}" ${(P.facturation || "heure") === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
-        ${(P.facturation || "heure") !== "partie" ? `<div class="grid2">${champ("prixHeure", "Prix d’une heure (DH)", 'inputmode="numeric" placeholder="30"')}${champ("durees", "Durées proposées (minutes)", 'maxlength="40" placeholder="30,60,120" inputmode="numeric"')}</div>` : ""}
-        ${(P.facturation || "heure") !== "heure" ? `<div class="grid2">${champ("prixPartie", "Prix d’une partie (DH)", 'inputmode="numeric" placeholder="5"')}${champ("minPartie", "Durée d’une partie (min)", 'inputmode="numeric" placeholder="15"')}</div>${champ("parties", "Nombre de parties proposées", 'maxlength="40" placeholder="1,2,3,5,10" inputmode="numeric"')}` : ""}
-        <p class="muted" style="font-size:12.5px;margin:0">💡 Un prix différent pour une table ? Ajoutez-le sur sa ligne : « 🎮 PS5 · 1 · 20 DH/h » ou « 🟢 Snooker · 10 DH/partie ».</p>`
+        ${tb ? `<label class="f">Le client paie<select data-k="facturation" data-rerender>${[["heure", "⏱ À l’heure"], ["partie", "🎱 À la partie"], ["deux", "Les deux (le client choisit)"]].map(([v, t]) => `<option value="${v}" ${(P.facturation || "heure") === v ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+        ${ressourcesHtml()}
+        ${(P.facturation || "heure") !== "partie" ? champ("durees", "Durées proposées (minutes)", 'maxlength="40" placeholder="30,60,120" inputmode="numeric"') : ""}
+        ${(P.facturation || "heure") !== "heure" ? `<div class="grid2">${champ("minPartie", "Durée d’une partie (min)", 'inputmode="numeric" placeholder="15"')}${champ("parties", "Parties proposées", 'maxlength="40" placeholder="1,2,3,5,10" inputmode="numeric"')}</div>` : ""}`
         : `${servicesHtml()}
         ${zone("equipe", "Équipe (un prénom par ligne, facultatif)", 'rows="3" maxlength="300" placeholder="Sara&#10;Nadia"')}`}
+        ${optionsHtml()}
         <div class="grid2">${champ("ouverture", "Ouverture", 'type="time"')}${champ("fermeture", "Fermeture", 'type="time"')}</div>
         <label class="f">Un créneau toutes les<select data-k="pas">${[15, 20, 30, 45, 60, 90, 120].map(m => `<option value="${m}" ${+P.pas === m ? "selected" : ""}>${m} min</option>`).join("")}</select></label>
         ${champ("ferme", "Jours fermés (facultatif)", 'maxlength="60" placeholder="dimanche"')}
@@ -386,6 +412,8 @@
     if (t.dataset.k) { P[t.dataset.k] = t.type === "checkbox" ? t.checked : t.value; if (t.hasAttribute("data-rerender")) { renderEdit(); majBarre(); return; } if (t.dataset.k === "nom") $("#topTitle").textContent = (TYPES[P.type] || [""])[0] + " " + t.value; }
     else if (t.dataset.h != null) { P.horaires = P.horaires || {}; P.horaires[t.dataset.h] = t.value; }
     else if (t.hasAttribute("data-metier")) { if (t.value && appliquerMetier(t.value)) { renderEdit(); toast("✅ Modèle appliqué : mettez vos prix, puis Enregistrer"); } else if (t.value) t.value = P.metier || ""; }
+    else if (t.dataset.rs) { const [i, k] = t.dataset.rs.split("."), L = rsLire(); if (L[+i]) { L[+i][k] = k === "nom" ? t.value : t.value.replace(/\D/g, ""); rsEcrire(L); } }
+    else if (t.dataset.op) { const [i, k] = t.dataset.op.split("."), L = opLire(); if (L[+i]) { L[+i][k] = k === "nom" ? t.value : t.value.replace(/\D/g, ""); opEcrire(L); } }
     else if (t.dataset.sv) { const [i, k] = t.dataset.sv.split("."), L = svLire(); if (L[+i]) { L[+i][k] = k === "prix" ? t.value.replace(/\D/g, "") : k === "duree" ? +t.value : t.value; svEcrire(L); } }
     else if (t.dataset.l) { const [i, k] = t.dataset.l.split("."); P.liens[+i][k] = t.value; }
     majBarre();
@@ -423,6 +451,10 @@
     if (a === "supprimer" && !PROPRIO) supprimer();
     if (a === "photo-del") { P.photo = ""; renderEdit(); }
     if (a === "g-del") { P.galerie.splice(i, 1); renderEdit(); }
+    if (a === "rs-add") { const L = rsLire(); L.push({ nom: "Nouveau " + (L.length + 1), ph: "", pp: "" }); rsEcrire(L); renderEdit(); majBarre(); }
+    if (a === "rs-del") { const L = rsLire(); L.splice(i, 1); rsEcrire(L); renderEdit(); majBarre(); }
+    if (a === "op-add") { const L = opLire(); L.push({ nom: "Nouvelle option", prix: "" }); opEcrire(L); renderEdit(); majBarre(); }
+    if (a === "op-del") { const L = opLire(); L.splice(i, 1); opEcrire(L); renderEdit(); majBarre(); }
     if (a === "sv-add") { const L = svLire(); L.push({ nom: "Nouveau soin", prix: "", duree: 30 }); svEcrire(L); renderEdit(); majBarre(); }
     if (a === "sv-del") { const L = svLire(); L.splice(i, 1); svEcrire(L); renderEdit(); majBarre(); }
     if (a === "sv-mod") { const L = svLire(), noms = new Set(L.map(s => s.nom.toLowerCase())); (SV_MODELES[b.dataset.m] || []).forEach(([n, d]) => { if (!noms.has(n.toLowerCase())) L.push({ nom: n, prix: "", duree: d }); }); svEcrire(L); renderEdit(); majBarre(); toast("Liste ajoutée : mettez vos prix, supprimez ce que vous ne faites pas ✕"); }
