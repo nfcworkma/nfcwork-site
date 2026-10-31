@@ -85,6 +85,9 @@
       const l = document.createElement("link"); l.rel = "apple-touch-icon"; l.sizes = "180x180"; l.href = url; document.head.appendChild(l);
       const ic = document.querySelector('link[rel="icon"]'); if (ic) { ic.href = url; ic.removeAttribute("sizes"); }
       const man = { name: p.nom || "Fidélité", short_name: String(p.nom || "Fidélité").slice(0, 12), start_url: location.href, scope: location.origin + "/f/", display: "standalone", background_color: "#ffffff", theme_color: coul, icons: [{ src: url, sizes: "180x180", type: "image/png" }] };
+      // Android : l'icône doit être une vraie adresse https (une image en data: donne souvent juste l'initiale)
+      const mm = String(p.logoData || "").match(/^data:(image\/(?:png|jpeg|webp));/);
+      if (WALLET && p.id && mm) man.icons.unshift({ src: WALLET + "/logo/" + encodeURIComponent(p.id), sizes: "256x256", type: mm[1], purpose: "any" });
       document.querySelectorAll('link[rel="manifest"]').forEach(m => m.remove());
       const lm = document.createElement("link"); lm.rel = "manifest"; lm.href = URL.createObjectURL(new Blob([JSON.stringify(man)], { type: "application/manifest+json" })); document.head.appendChild(lm);
     } catch (e) {}
@@ -133,7 +136,7 @@
       <div class="qrbox">${window.QRGEN.svg(SITE + "/f/?c=" + c.id, { marge: 1 })}<small>${p.modeClient === "caisse" ? "Code de votre carte (pour la récompense)" : "Montrez ce code à la caisse"}</small></div>
       <p class="tip">${esc(regle(p))}${p.guide ? "<br>" + p.guide.split(/\n+/).filter(Boolean).map(esc).join(" · ") : ""}</p>
       ${WALLET && !IOS ? `<a class="gwallet" href="${WALLET}/google/save?c=${encodeURIComponent(c.id)}" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="15" rx="3" fill="#fff" opacity=".18"/><path d="M4 9h16M4 13h16" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M4 17h9" stroke="#4285f4" stroke-width="2.4" stroke-linecap="round"/></svg><span>Ajouter à <b>Google Wallet</b></span></a>` : ""}
-      <p class="tip">📲 Gardez votre carte : <b>Partager</b> → <b>Sur l’écran d’accueil</b> (iPhone) ou <b>⋮</b> → <b>Ajouter à l’écran d’accueil</b> (Android).</p>
+      <p class="tip">📲 Gardez votre carte : ${IOS ? "<b>Partager</b> → <b>Sur l’écran d’accueil</b>" : WALLET ? "touchez <b>Ajouter à Google Wallet</b> : elle reste dans votre téléphone avec le logo" : "<b>⋮</b> → <b>Ajouter à l’écran d’accueil</b>"}.</p>
       ${pro ? `<div class="pro"><b>Espace commerçant</b><a class="btn primary" href="/espace/fidelite.html#c=${esc(c.id)}">Ouvrir cette carte (ajouter des points)</a></div>` : ""}
       ${pied}`;
   }
