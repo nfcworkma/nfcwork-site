@@ -729,7 +729,23 @@
           <div class="stack" style="gap:6px"><button class="btn sm primary" id="lq-copier">Copier le lien</button>
             <a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent("Votre carte fidélité " + prog.nom + " : " + lien)}">Partager sur WhatsApp</a>
             <button class="btn sm" id="lq-png">Télécharger le QR</button><button class="btn sm" id="lq-nfc">📲 Écrire sur la puce</button></div></div></div>
+      ${admin ? `<form id="lq-court" class="row" style="gap:6px;margin-top:12px;align-items:flex-end"><label class="f" style="flex:1;margin:0">✏️ Nom du lien (nfcwork.ma/f/…)<input id="lq-nom" value="${esc(lien.split("/f/")[1] || "")}" autocapitalize="off" maxlength="40"></label><button class="btn sm">Changer</button></form>` : ""}
       <div class="row" style="margin-top:12px"><a class="btn sm ghost" href="${esc(lien)}" target="_blank" rel="noopener">Voir la page client</a>${neuf ? `<a class="btn sm" href="#p=${esc(prog.id)}" data-fermer>Ouvrir le tableau de bord</a>` : ""}</div>`);
+    const fc = $("#lq-court", d);
+    if (fc) fc.onsubmit = async e => {
+      e.preventDefault();
+      const nom = slugify($("#lq-nom", d).value).slice(0, 40);
+      if (!nom || nom.length < 2) { toast("Nom trop court."); return; }
+      if (nom === (prog.court || prog.id)) { toast("C’est déjà ce lien."); return; }
+      try {
+        const [x, y] = await Promise.all([db.doc("fidProgrammes/" + nom).get(), db.doc("settings/fidlien-" + nom).get()]);
+        if ((x.exists && nom !== prog.id) || (y.exists && y.data().pid !== prog.id)) { toast("Ce nom est déjà pris par une autre carte."); return; }
+        if (nom !== prog.id) await db.doc("settings/fidlien-" + nom).set({ pid: prog.id, maj: NOW() });
+        // l'ancien lien court continue de marcher (on ne le supprime pas)
+        await db.doc("fidProgrammes/" + prog.id).update({ court: nom === prog.id ? "" : nom }); prog.court = nom === prog.id ? "" : nom;
+        d.remove(); toast("Lien changé ✓"); lienQR(prog, false);
+      } catch (x) { erreur(x); }
+    };
     $("#lq-nfc", d).onclick = () => window.NFCW_ECRIRE ? window.NFCW_ECRIRE(lien, prog.nom) : toast("NFC indisponible");
     $("#lq-copier", d).onclick = async () => { try { await navigator.clipboard.writeText(lien); toast("Lien copié"); } catch (e) { prompt("Copiez le lien :", lien); } };
     $("#lq-png", d).onclick = () => {

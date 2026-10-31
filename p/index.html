@@ -433,7 +433,7 @@ a:active,button:active{transform:scale(.98)}
       }
     }
     let poll = null;
-    const lienTicket = id => "https://nfcwork.ma/p/?s=" + slug + "&r=" + id;
+    const lienTicket = id => "https://nfcwork.ma/p/" + slug + "?r=" + id;
     async function confirmation(id, R, seul) {
       clearInterval(poll);
       if (!R) { app.innerHTML = `${brand}<div class="state"><div><b>…</b></div></div>`; try { R = await lire("reservations/" + id); } catch (e) {}

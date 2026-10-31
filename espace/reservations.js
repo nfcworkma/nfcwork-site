@@ -124,7 +124,7 @@
   const debutDe = r => +r.debutMin || hm(r.debut) || 0;
   const enRetard = r => r.statut === "confirmee" && (r.jour < auj() || (r.jour === auj() && minNow() > debutDe(r) + 10));
   const msgConf = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nVotre réservation chez ${P.nom || "nous"} est confirmée ✅\n🗓 ${jourLong(r.jour)} à ${r.debut}\n${r.mode === "tables" ? "🎱 " + emo(r.ressource)[1] : "✂️ " + (r.service || "") + (r.staff ? " avec " + r.staff : "")}\n\n🎟️ Votre ticket (à montrer à l’arrivée, une capture d’écran suffit) :\n${lienTicket(r)}\nÀ bientôt !`; };
-  const lienTicket = r => SITE + "/p/?s=" + r.page + "&r=" + r.id;
+  const lienTicket = r => SITE + "/p/" + r.page + "?r=" + r.id;
   const msgRappel = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nPetit rappel : votre réservation chez ${P.nom || "nous"} c’est demain, ${jourLong(r.jour)} à ${r.debut} (${quoi(r)}${r.staff ? " avec " + r.staff : ""}).\nÀ demain ! Si vous ne pouvez pas venir, prévenez-nous ici 🙏`; };
 
   function vueRes() {
