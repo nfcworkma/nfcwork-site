@@ -131,7 +131,7 @@
     const s0 = slugify(nom) || type; let s = s0, i = 2;
     while (liste.some(x => x.slug === s)) s = s0 + "-" + i++;
     const p = { v: 1, type, slug: s, nom: nom.trim(), theme: type === "profil" || type === "liens" ? "nuit" : "blanc", couleur: "#2F7BFF", langue: "fr", actif: true, photo: "" };
-    if (type === "profil") Object.assign(p, { fonction: "", entreprise: "", metiers: "", bio: "", tel: "", whatsapp: "", email: "", instagram: "", facebook: "", tiktok: "", linkedin: "", youtube: "", snapchat: "", site: "", adresse: "", maps: "", horaires: {}, liens: [], galerie: [] });
+    if (type === "profil") Object.assign(p, { fonction: "", entreprise: "", metiers: "", bio: "", tel: "", whatsapp: "", email: "", instagram: "", facebook: "", tiktok: "", linkedin: "", youtube: "", snapchat: "", site: "", adresse: "", maps: "", lieux: [], docs: [], horaires: {}, liens: [], galerie: [] });
     if (type === "avis") Object.assign(p, { lienGoogle: "", message: "", instagram: "" });
     if (type === "wifi") Object.assign(p, { ssid: "", motdepasse: "", securite: "WPA", cache: false, message: "" });
     if (type === "rdv") Object.assign(p, { mode: "services", whatsapp: "", services: "Coupe homme · 50 DH · 30 min\nCoupe + barbe · 70 DH · 45 min", equipe: "", ressources: "", durees: "60,120", options: "", facturation: "heure", prixHeure: "", prixPartie: "", minPartie: 15, parties: "1,2,3,5,10", ouverture: "09:00", fermeture: "21:00", pas: 30, auto: false, ownerEmail: "", fidPid: "", message: "" });
@@ -179,7 +179,7 @@
   async function ouvrir(slug) {
     if (!P || P.slug !== slug) {
       app.innerHTML = `<div class="empty"><h3>Chargement…</h3></div>`;
-      try { const d = await db.doc("settings/page-" + slug).get(); if (!d.exists) { toast("Page introuvable."); location.hash = ""; return; } P = JSON.parse(d.data().json || "{}"); saved = JSON.stringify(P); }
+      try { const d = await db.doc("settings/page-" + slug).get(); if (!d.exists) { toast("Page introuvable."); location.hash = ""; return; } P = JSON.parse(d.data().json || "{}"); migrerProfil(); saved = JSON.stringify(P); }
       catch (e) { erreur(e); return; }
     }
     renderEdit();
@@ -336,6 +336,27 @@ Skill Play | billard | 0602545454`;
     return `<div class="stack" style="gap:8px">${(P.liens || []).map((l, i) => `<div class="lrow"><input data-l="${i}.titre" value="${esc(l.titre)}" placeholder="Titre (Boutique)"><input data-l="${i}.url" value="${esc(l.url)}" placeholder="https://…" inputmode="url" autocapitalize="off"><button class="btn icon sm danger" data-act="l-del" data-i="${i}">✕</button></div>`).join("")}
       <button class="btn sm" data-act="l-add">＋ Ajouter un bouton</button></div>`;
   }
+  function migrerProfil() {
+    if (!P || P.type !== "profil") return;
+    if (!Array.isArray(P.lieux)) P.lieux = [];
+    if (!P.lieux.length && (P.adresse || P.maps)) P.lieux = [{ nom: "", adresse: P.adresse || "", maps: P.maps || "" }];
+    if (!Array.isArray(P.docs)) P.docs = [];
+  }
+  function lieuxHtml() {
+    const L = P.lieux || [];
+    return `<div class="stack" style="gap:10px">${L.map((x, i) => `<div class="sec paper" style="padding:10px;gap:6px;display:flex;flex-direction:column">
+      <div class="row between"><b style="font-size:13px">📍 Lieu ${i + 1}</b><button class="btn icon sm danger" data-act="lieu-del" data-i="${i}">✕</button></div>
+      <input data-lieu="${i}.nom" value="${esc(x.nom || "")}" placeholder="Nom du lieu (ex. Salle Al Wahda)" maxlength="60">
+      <input data-lieu="${i}.adresse" value="${esc(x.adresse || "")}" placeholder="Adresse" maxlength="160">
+      <input data-lieu="${i}.maps" value="${esc(x.maps || "")}" placeholder="Lien Google Maps (facultatif)" inputmode="url" autocapitalize="off">
+    </div>`).join("")}
+      <button class="btn sm" data-act="lieu-add">＋ Ajouter un lieu</button></div>`;
+  }
+  function docsHtml() {
+    const L = P.docs || [];
+    return `<div class="stack" style="gap:8px">${L.map((x, i) => `<div class="lrow"><input data-doc="${i}.titre" value="${esc(x.titre || "")}" placeholder="Nom du bouton (ex. Fiche d’inscription)" maxlength="60"><input data-doc="${i}.url" value="${esc(x.url || "")}" placeholder="https://… (lien du PDF)" inputmode="url" autocapitalize="off"><button class="btn icon sm danger" data-act="doc-del" data-i="${i}">✕</button></div>`).join("")}
+      <button class="btn sm" data-act="doc-add">＋ Ajouter un PDF</button></div>`;
+  }
   function renderEdit() {
     const [ic, tn] = TYPES[P.type] || ["📄", "Page"];
     $("#topTitle").textContent = ic + " " + P.nom; $("#topSub").textContent = "nfcwork.ma/p/" + P.slug; $("#backBtn").href = "#";
@@ -349,12 +370,14 @@ Skill Play | billard | 0602545454`;
         ${champ("nom", "Nom", 'maxlength="60"')}${champ("fonction", "Fonction / métier (sous le nom)", 'maxlength="80" placeholder="Cabinet vétérinaire"')}${champ("entreprise", "Entreprise (facultatif)", 'maxlength="60"')}
         ${zone("metiers", "Petites étiquettes (une par ligne, facultatif)", 'rows="2" maxlength="300" placeholder="Chirurgie\nVaccins"')}${zone("bio", "Petite présentation (facultatif)", 'rows="2" maxlength="300"')}</section>
       <section class="sec paper stack"><h3>📞 Contact</h3><div class="grid2">${champ("tel", "Téléphone", 'type="tel" inputmode="tel" maxlength="30" placeholder="06 12 34 56 78"')}${champ("whatsapp", "WhatsApp (si différent)", 'type="tel" inputmode="tel" maxlength="30"')}</div>
-        ${champ("email", "E-mail", 'type="email" inputmode="email" maxlength="80" autocapitalize="off"')}${champ("adresse", "Adresse", 'maxlength="160"')}${champ("maps", "Lien Google Maps (facultatif)", 'inputmode="url" maxlength="400" autocapitalize="off"')}</section>
+        ${champ("email", "E-mail", 'type="email" inputmode="email" maxlength="80" autocapitalize="off"')}</section>
+      <section class="sec paper stack"><h3>📍 Lieux (adresses)</h3><p class="muted" style="margin:0;font-size:13px">Un ou plusieurs lieux (ex. deux salles d’entraînement). Chaque lieu a son nom et sa localisation.</p>${lieuxHtml()}</section>
       <section class="sec paper stack"><div class="row between"><h3>🕒 Horaires</h3><button class="btn sm ghost" data-act="h-copie">Copier lundi partout</button></div>
         <p class="muted" style="margin:0;font-size:13px">Ex. « 09:00-14:00 · 16:00-19:00 ». Laissez vide = fermé. Vide partout = pas d’horaires affichés.</p>
         <div class="hgrid">${JOURS.map(([j, n]) => `<span>${n}</span><input data-h="${j}" value="${esc((P.horaires || {})[j] || "")}" placeholder="09:00-19:00">`).join("")}</div></section>
       <section class="sec paper stack"><h3>📱 Réseaux et site</h3><div class="grid2">${champ("instagram", "Instagram", 'autocapitalize="off" placeholder="@nom"')}${champ("facebook", "Facebook", 'autocapitalize="off"')}${champ("tiktok", "TikTok", 'autocapitalize="off"')}${champ("linkedin", "LinkedIn", 'autocapitalize="off"')}${champ("youtube", "YouTube", 'autocapitalize="off"')}${champ("snapchat", "Snapchat", 'autocapitalize="off"')}</div>
         ${champ("site", "Site web", 'inputmode="url" autocapitalize="off"')}<div class="eyebrow">Autres boutons</div>${liensHtml()}</section>
+      <section class="sec paper stack"><h3>📄 Documents PDF (facultatif)</h3><p class="muted" style="margin:0;font-size:13px">Un bouton qui ouvre un PDF (fiche d’inscription, brochure, règlement…). Collez le lien du PDF.</p>${docsHtml()}</section>
       <section class="sec paper stack"><h3>🖼 Galerie (facultatif)</h3><div class="gal">${(P.galerie || []).map((id, i) => `<div>${imgTag(id)}<button data-act="g-del" data-i="${i}">✕</button></div>`).join("")}</div>
         ${(P.galerie || []).length < 6 ? `<label class="btn sm">＋ Ajouter des photos<input type="file" accept="image/*" multiple hidden data-up="galerie"></label>` : ""}</section>`;
     if (P.type === "avis") corps = `<section class="sec paper stack"><h3>⭐ Avis Google</h3>${photoBloc}${champ("nom", "Nom du commerce", 'maxlength="60"')}
@@ -407,7 +430,10 @@ Skill Play | billard | 0602545454`;
   function majBarre() { const st = $("#st"), b = $("#saveBtn"); if (!st) return; const d = dirty(); st.textContent = d ? "Pas encore enregistré" : "✅ Enregistré · en ligne"; st.classList.toggle("dirty", d); b.disabled = !d; }
 
   /* ---------- enregistrer ---------- */
-  function nettoyer() { for (const k of Object.keys(P)) if (typeof P[k] === "string") P[k] = P[k].trim(); if (P.liens) P.liens = P.liens.filter(l => (l.titre || "").trim() || (l.url || "").trim()); }
+  function nettoyer() { for (const k of Object.keys(P)) if (typeof P[k] === "string") P[k] = P[k].trim(); if (P.liens) P.liens = P.liens.filter(l => (l.titre || "").trim() || (l.url || "").trim());
+    if (P.lieux) P.lieux = P.lieux.filter(x => (x.nom || "").trim() || (x.adresse || "").trim() || (x.maps || "").trim());
+    if (P.docs) P.docs = P.docs.filter(x => (x.url || "").trim());
+    if (P.type === "profil") { const l0 = (P.lieux || [])[0] || {}; P.adresse = l0.adresse || ""; P.maps = l0.maps || ""; } }
   async function enregistrer(b) {
     if (!dirty()) return;
     if (!P.nom) { toast("Donnez un nom."); return; }
@@ -489,6 +515,8 @@ Skill Play | billard | 0602545454`;
     else if (t.dataset.op) { const [i, k] = t.dataset.op.split("."), L = opLire(); if (L[+i]) { L[+i][k] = k === "nom" ? t.value : t.value.replace(/\D/g, ""); opEcrire(L); } }
     else if (t.dataset.sv) { const [i, k] = t.dataset.sv.split("."), L = svLire(); if (L[+i]) { L[+i][k] = k === "prix" ? t.value.replace(/\D/g, "") : k === "duree" ? +t.value : t.value; svEcrire(L); } }
     else if (t.dataset.l) { const [i, k] = t.dataset.l.split("."); P.liens[+i][k] = t.value; }
+    else if (t.dataset.lieu) { const [i, k] = t.dataset.lieu.split("."); if (P.lieux && P.lieux[+i]) P.lieux[+i][k] = t.value; }
+    else if (t.dataset.doc) { const [i, k] = t.dataset.doc.split("."); if (P.docs && P.docs[+i]) P.docs[+i][k] = t.value; }
     majBarre();
   });
   app.addEventListener("change", async e => {
@@ -551,6 +579,10 @@ Skill Play | billard | 0602545454`;
     if (a === "sv-mod") { const L = svLire(), noms = new Set(L.map(s => s.nom.toLowerCase())); (SV_MODELES[b.dataset.m] || []).forEach(([n, d]) => { if (!noms.has(n.toLowerCase())) L.push({ nom: n, prix: "", duree: d }); }); svEcrire(L); renderEdit(); majBarre(); toast("Liste ajoutée : mettez vos prix, supprimez ce que vous ne faites pas ✕"); }
     if (a === "l-add") { P.liens = P.liens || []; P.liens.push({ titre: "", url: "" }); renderEdit(); }
     if (a === "l-del") { P.liens.splice(i, 1); renderEdit(); }
+    if (a === "lieu-add") { P.lieux = P.lieux || []; P.lieux.push({ nom: "", adresse: "", maps: "" }); renderEdit(); }
+    if (a === "lieu-del") { P.lieux.splice(i, 1); renderEdit(); }
+    if (a === "doc-add") { P.docs = P.docs || []; P.docs.push({ titre: "", url: "" }); renderEdit(); }
+    if (a === "doc-del") { P.docs.splice(i, 1); renderEdit(); }
     if (a === "h-copie") { const v = (P.horaires || {})[1] || ""; if (!v) { toast("Remplissez d’abord lundi."); return; } [2, 3, 4, 5, 6].forEach(j => (P.horaires[j] = v)); renderEdit(); toast("Copié du mardi au samedi (dimanche : à vous de choisir)."); }
   });
   window.addEventListener("beforeunload", e => { if (dirty()) { e.preventDefault(); e.returnValue = ""; } });
