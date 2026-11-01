@@ -6,3 +6,7 @@ keep_vars = true
 
 [vars]
 ISSUER_ID = "3388000000023226403"
+
+# ⏰ chaque jour à 08:00 (UTC) : anniversaires du jour → message Google Wallet automatique
+[triggers]
+crons = ["0 8 * * *"]

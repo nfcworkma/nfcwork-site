@@ -38,6 +38,10 @@ export default {
       if (url.pathname === "/google/save") return page("Impossible d’ajouter la carte", "Réessayez dans un instant. (" + m.slice(0, 120) + ")");
       return json({ ok: false, erreur: m }, e.status || 500);
     }
+  },
+  // ⏰ tous les jours : anniversaires du jour → message automatique dans Google Wallet
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(anniversairesAuto(env).catch(e => console.log("anniv auto:", String(e && e.message || e))));
   }
 };
 
@@ -67,6 +71,16 @@ async function lire(chemin) {
   const j = await r.json(), o = { id: chemin.split("/").pop() };
   for (const k in j.fields || {}) o[k] = dec(j.fields[k]);
   return o;
+}
+// requête simple : une collection où <champ> == <valeur>
+async function requete(collection, champ, valeur, limite) {
+  const r = await fetch(FS.replace(/\/$/, "") + ":runQuery?key=" + FS_KEY, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: collection }], where: { fieldFilter: { field: { fieldPath: champ }, op: "EQUAL", value: { stringValue: String(valeur) } } }, limit: limite || 500 } })
+  });
+  if (!r.ok) throw err("Firebase query " + r.status, 502);
+  const a = await r.json();
+  return (Array.isArray(a) ? a : []).filter(x => x.document).map(x => { const o = { id: x.document.name.split("/").pop() }; for (const k in x.document.fields || {}) o[k] = dec(x.document.fields[k]); return o; });
 }
 async function carteEtProg(cid) {
   cid = propre(cid);
@@ -228,6 +242,32 @@ async function notifier(req, env) {
     if (r.status < 300) ok++; else absents++;
   }
   return { ok: true, envoyes: ok, sansWallet: absents };
+}
+
+/* ---------- 🎂 anniversaires automatiques (déclenché chaque jour par le cron) ---------- */
+async function anniversairesAuto(env) {
+  const d = new Date(), today = String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
+  const dateJour = d.toISOString().slice(0, 10);
+  const cartes = await requete("fidCartes", "anniv", today);   // toutes les cartes dont c'est l'anniversaire aujourd'hui
+  const parProg = {};
+  for (const c of cartes) { (parProg[c.pid] = parProg[c.pid] || []).push(c); }
+  let envoyes = 0;
+  for (const pid of Object.keys(parProg)) {
+    const p = await lire("fidProgrammes/" + propre(pid, 60)).catch(() => null);
+    if (!p || p.actif === false || p.annivAuto === false) continue;   // le commerçant peut couper l'envoi auto
+    const cadeau = String(p.cadeauAnniv || "").trim();
+    const titre = "🎂 Joyeux anniversaire !";
+    const texte = (`${p.nom || "Nous"} vous souhaite un très joyeux anniversaire ! ` + (cadeau ? `Votre cadeau : ${cadeau} — passez cette semaine 🎁` : "Passez cette semaine, une surprise vous attend 🎁")).slice(0, 400);
+    for (const c of parProg[pid]) {
+      const r = await wo(env, "POST", "loyaltyObject/" + encodeURIComponent(`${env.ISSUER_ID}.c-${propre(c.id)}`) + "/addMessage", {
+        message: { id: "anniv-" + dateJour + "-" + propre(c.id).slice(0, 8), header: titre, body: texte, messageType: "TEXT_AND_NOTIFY",
+          displayInterval: { start: { date: new Date().toISOString() }, end: { date: new Date(Date.now() + 7 * 86400e3).toISOString() } } }
+      }).catch(() => ({ status: 500 }));
+      if (r.status < 300) envoyes++;
+    }
+  }
+  console.log("anniversaires:", cartes.length, "cartes,", envoyes, "notifiées");
+  return envoyes;
 }
 
 /* ---------- logo ---------- */

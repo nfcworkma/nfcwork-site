@@ -230,6 +230,8 @@
           <div class="grid2"><label class="f">Prix de l’abonnement (DH)<input id="p-prix" type="number" min="0" inputmode="numeric" value="${esc(p.prix || "")}"></label>
             <label class="f">Période<select id="p-per">${Object.entries(PERIODES).map(([k, v]) => `<option value="${k}" ${(p.periode || "an") === k ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>
           <label class="f">⭐ Lien avis Google du commerce (le client qui laisse un avis gagne +1 point)<input id="p-avis" type="url" maxlength="300" value="${esc(p.lienAvis || "")}" placeholder="https://g.page/r/…/review" autocapitalize="off"></label>
+          <label class="f">🎂 Cadeau d’anniversaire (envoyé au client le jour J)<input id="p-anniv" maxlength="80" value="${esc(p.cadeauAnniv || "")}" placeholder="1 boisson offerte · -20 % · 1 partie offerte"></label>
+          <label class="check"><input type="checkbox" id="p-anniv-auto" ${p.annivAuto !== false ? "checked" : ""}> 🎁 Envoyer automatiquement le jour de l’anniversaire (Google Wallet)</label>
           <label class="f">Comment ça marche (affiché au client, une étape par ligne)<textarea id="p-guide" maxlength="400" rows="3">${esc(p.guide || "")}</textarea></label>
           <label class="check"><input type="checkbox" id="p-actif" ${p.actif !== false ? "checked" : ""}> Programme actif</label>
         </div></details>
@@ -297,7 +299,8 @@
         recompense: $("#p-rec", d).value.trim(), modeClient: val.modeClient, delaiH: num("#p-delai", 1, 72, 3), employes: $("#p-emp", d).checked, modeEmploye: val.modeEmploye,
         primeEmploye: $("#p-prime", d).value.trim(), actif: $("#p-actif", d).checked, maj: NOW(),
         prix: parseInt($("#p-prix", d).value, 10) || 0, periode: $("#p-per", d).value, guide: $("#p-guide", d).value.trim().slice(0, 400),
-        lienAvis: /^https:\/\//.test($("#p-avis", d).value.trim()) ? $("#p-avis", d).value.trim() : ""
+        lienAvis: /^https:\/\//.test($("#p-avis", d).value.trim()) ? $("#p-avis", d).value.trim() : "",
+        cadeauAnniv: $("#p-anniv", d).value.trim().slice(0, 80), annivAuto: $("#p-anniv-auto", d).checked
       };
       if (!data.ownerEmail) { $("#perr", d).textContent = "Indiquez l’e-mail du compte du commerçant."; return; }
       if ($("#p-essai", d).checked) {
@@ -426,15 +429,21 @@
   function relance(type) {
     const L = type === "anniv" ? annivs() : absents();
     if (!L.length) { toast(type === "anniv" ? "Aucun anniversaire aujourd’hui." : "Aucun client absent depuis 30 jours."); return; }
+    const cadeau = String(P.cadeauAnniv || "").trim();
     const t0 = type === "anniv" ? `🎂 Joyeux anniversaire !` : `On ne vous a pas vu depuis un moment 👋`;
-    const x0 = type === "anniv" ? `Toute l’équipe ${P.nom} vous souhaite un joyeux anniversaire ! Passez cette semaine : un petit cadeau vous attend 🎁` : `${P.nom} vous offre +1 point si vous passez cette semaine. À très vite !`;
+    const x0 = type === "anniv" ? `${P.nom} vous souhaite un joyeux anniversaire ! 🎂 ${cadeau ? "Votre cadeau : " + cadeau + " — passez cette semaine 🎁" : "Passez cette semaine, une surprise vous attend 🎁"}` : `${P.nom} vous offre +1 point si vous passez cette semaine. À très vite !`;
     const d = fenetre(`<h2>${type === "anniv" ? "🎂 Anniversaires du jour" : "😴 Clients absents"} (${L.length})</h2>
       <p class="muted" style="margin:2px 0 10px;font-size:13.5px">${esc(L.slice(0, 8).map(c => c.nom).join(", "))}${L.length > 8 ? "…" : ""}<br>Ils reçoivent une <b>notification</b> s’ils ont la carte dans Google Wallet.</p>
       <label class="f">Titre<input id="rl-t" maxlength="60" value="${esc(t0)}"></label>
       <label class="f">Message<textarea id="rl-x" rows="4" maxlength="400">${esc(x0)}</textarea></label>
       <p class="err" id="rl-e"></p>
-      <div class="row" style="gap:8px"><button class="btn primary" id="rl-go" style="flex:1">Envoyer</button><button class="btn ghost" data-fermer>Annuler</button></div>`);
-    $("#rl-go", d).onclick = async () => {
+      ${WALLET ? `<button class="btn primary block" id="rl-go">📲 Notifier dans Google Wallet (automatique)</button>` : ""}
+      <div class="eyebrow" style="margin:12px 0 6px">${WALLET ? "Ou un par un sur WhatsApp" : "Envoyer sur WhatsApp (un par un)"}</div>
+      <div class="wal" style="display:grid;gap:6px;max-height:40vh;overflow:auto">${L.map(c => { const w = waNum(c.tel); const msg = ($("#rl-x") ? "" : "") + x0; return `<div class="row between" style="gap:8px;align-items:center"><span>${esc(c.nom || "Client")}${c.tel ? ` · <small class="muted">${esc(c.tel)}</small>` : ""}</span>${w ? `<a class="btn sm primary" target="_blank" rel="noopener" data-wtmpl="${esc(c.tel)}" href="https://wa.me/${w}">💬 WhatsApp</a>` : `<small class="muted">pas de n°</small>`}</div>`; }).join("")}</div>
+      <div class="row" style="gap:8px;margin-top:12px"><button class="btn ghost" data-fermer style="flex:1">Fermer</button></div>`);
+    // les liens WhatsApp prennent le message à jour au clic
+    d.querySelectorAll("[data-wtmpl]").forEach(a => a.addEventListener("click", () => { const w = waNum(a.dataset.wtmpl); a.href = "https://wa.me/" + w + "?text=" + encodeURIComponent(($("#rl-x", d).value.trim() || x0)); }));
+    if ($("#rl-go", d)) $("#rl-go", d).onclick = async () => {
       const b = $("#rl-go", d); b.disabled = true; b.textContent = "Envoi…";
       try {
         const tok = await firebase.auth().currentUser.getIdToken();
@@ -476,7 +485,7 @@
       <div class="big2"><button class="btn primary" data-act="scan">📷 Scanner</button><button class="btn" data-act="affiches">🖨 Affiches & QR</button></div>
       ${P.modeClient === "caisse" ? `<a class="btn block" href="caisse.html#p=${esc(P.id)}" style="margin-top:8px">📱 Écran caisse : le client scanne le QR qui change</a>` : ""}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-4px 0 14px"><button class="btn sm" data-act="lienqr">🔗 Lien & QR code de la carte</button><button class="btn sm" data-act="rapport">📊 Rapport du mois</button>${WALLET ? `<button class="btn sm" data-act="wallet-msg" style="grid-column:1/-1">📣 Message aux clients (notification Wallet)</button>` : ""}</div>
-      ${WALLET && (absents().length || annivs().length) ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px">${annivs().length ? `<button class="btn sm" data-act="rl-anniv">🎂 ${annivs().length} anniversaire(s)</button>` : ""}${absents().length ? `<button class="btn sm" data-act="rl-abs">😴 ${absents().length} client(s) absent(s)</button>` : ""}</div>` : ""}
+      ${(absents().length || annivs().length) ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px">${annivs().length ? `<button class="btn sm" data-act="rl-anniv">🎂 ${annivs().length} anniversaire(s) aujourd’hui</button>` : ""}${absents().length ? `<button class="btn sm" data-act="rl-abs">😴 ${absents().length} client(s) absent(s)</button>` : ""}</div>` : ""}
       <div class="stats"><div><b>${cartes.length}</b><span>Clients</span></div><div><b>${prets}</b><span>Récompenses prêtes</span></div><div><b>${offerts}</b><span>Offertes</span></div></div>
       ${P.employes ? `<div class="tabs2"><button data-vue="clients" aria-pressed="${vue === "clients"}">Clients</button><button data-vue="employes" aria-pressed="${vue === "employes"}">Employés</button></div>` : ""}
       ${vue === "employes" && P.employes ? `
@@ -811,8 +820,8 @@
       if (a === "lienqr") lienQR(P, false);
       if (a === "rapport") rapport();
       if (a === "wallet-msg" && WALLET) walletMessage();
-      if (a === "rl-anniv" && WALLET) relance("anniv");
-      if (a === "rl-abs" && WALLET) relance("abs");
+      if (a === "rl-anniv") relance("anniv");
+      if (a === "rl-abs") relance("abs");
       if (a === "emp-add") empAjout();
     }
   });
