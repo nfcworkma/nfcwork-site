@@ -183,13 +183,15 @@ a:active,button:active{transform:scale(.98)}
   const brand = '<div class="brand"><img src="/assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></div>';
   const pied = () => `<div class="foot">${T("Créé par", "صُنع بواسطة")} <a href="https://nfcwork.ma" aria-label="NFCWORK"><img src="/assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></a></div>`;
   const JOURS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], JOURS_AR = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-  function horaires() {
-    const h = P.horaires || {}; const ordre = [1, 2, 3, 4, 5, 6, 0];
+  function horairesDe(h, titre) {
+    h = h || {}; const ordre = [1, 2, 3, 4, 5, 6, 0];
     if (!ordre.some(j => (h[j] || "").trim())) return "";
     const auj = new Date().getDay();
-    return `<div class="card hor"><div class="ht">🕒 ${T("Horaires", "أوقات العمل")}</div>${ordre.map(j => { const v = String(h[j] || "").trim(); const f = !v || /ferm|مغلق|سد/i.test(v);
+    return `<div class="card hor"><div class="ht">🕒 ${titre ? esc(titre) : T("Horaires", "أوقات العمل")}</div>${ordre.map(j => { const v = String(h[j] || "").trim(); const f = !v || /ferm|مغلق|سد/i.test(v);
       return `<div class="hr${f ? " f" : ""}${j === auj ? " today" : ""}"><span>${T(JOURS[j], JOURS_AR[j])}</span><b>${esc(f ? T("Fermé", "مغلق") : v)}</b></div>`; }).join("")}</div>`;
   }
+  function horaires() { return horairesDe(P.horaires); }
+  const aUnHoraire = h => { h = h || {}; return [0, 1, 2, 3, 4, 5, 6].some(j => (h[j] || "").trim()); };
   function vcard() {
     const l = ["BEGIN:VCARD", "VERSION:3.0", "N:" + (P.nom || "") + ";;;;", "FN:" + (P.nom || "")];
     if (P.entreprise) l.push("ORG:" + P.entreprise); if (P.fonction) l.push("TITLE:" + P.fonction);
@@ -207,6 +209,8 @@ a:active,button:active{transform:scale(.98)}
     const tags = String(P.metiers || "").split(/\n|·/).map(s => s.trim()).filter(Boolean);
     const maps = P.maps ? url(P.maps) : P.adresse ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(P.adresse) : "";
     const liens = (P.liens || []).filter(x => x && x.titre && x.url);
+    const lieuxAff = (P.lieux && P.lieux.length ? P.lieux : (P.adresse || P.maps ? [{ nom: "", adresse: P.adresse, maps: P.maps }] : []));
+    const lieuxHoraires = lieuxAff.some(L => aUnHoraire(L.horaires));
     app.innerHTML = `${brand}<div class="av${P.photoContain ? " contain" : ""}">${P.photo ? `<img data-img="${esc(P.photo)}" alt="">` : `<div>${esc((P.nom || "?").trim().charAt(0).toUpperCase())}</div>`}</div>
       <h1>${esc(P.nom || "")}</h1>${P.fonction || P.entreprise ? `<div class="co">${esc([P.fonction, P.entreprise].filter(Boolean).join(" · "))}</div>` : ""}
       ${tags.length ? `<div class="pills">${tags.map(t => `<span class="pill">${esc(t)}</span>`).join("")}</div>` : ""}
@@ -214,7 +218,7 @@ a:active,button:active{transform:scale(.98)}
       ${quick.length ? `<div class="quick" style="--n:${quick.length}">${quick.join("")}</div>` : ""}
       ${wa ? `<a class="main" href="https://wa.me/${wa}?text=${encodeURIComponent(T("Bonjour, j’ai vu votre carte NFCWORK", "السلام، شفت الكارطة ديالك"))}" target="_blank" rel="noopener">${I.wa}${T("Écrire sur WhatsApp", "كتب فالواتساب")}</a>` : ""}
       <button class="main ghost" id="vcf">${I.user}${T("Enregistrer le contact", "حفظ جهة الاتصال")}</button>
-      ${horaires()}
+      ${lieuxHoraires ? "" : horaires()}
       ${row(handle(P.instagram, "https://instagram.com/"), "insta", "Instagram", String(P.instagram || "").replace(/^https?:\/\/(www\.)?/, ""))}
       ${row(handle(P.facebook, "https://facebook.com/"), "fb", "Facebook", String(P.facebook || "").replace(/^https?:\/\/(www\.)?/, ""))}
       ${row(handle(P.tiktok, "https://tiktok.com/@"), "tiktok", "TikTok", String(P.tiktok || "").replace(/^https?:\/\/(www\.)?/, ""))}
@@ -225,7 +229,7 @@ a:active,button:active{transform:scale(.98)}
       ${liens.map(x => row(url(x.url), "link", x.titre, "")).join("")}
       ${tel ? row("tel:+" + tel, "tel", T("Téléphone", "الهاتف"), telFmt(P.tel)) : ""}
       ${P.email ? row("mailto:" + P.email, "mail", "E-mail", P.email) : ""}
-      ${(P.lieux && P.lieux.length ? P.lieux : (P.adresse || P.maps ? [{ nom: "", adresse: P.adresse, maps: P.maps }] : [])).map(L => { const m = L.maps ? url(L.maps) : L.adresse ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(L.adresse) : ""; if (!m && !L.adresse) return ""; return row(m || "#", "pin", L.nom || T("Adresse", "العنوان"), L.adresse || T("Voir la localisation", "شوف الموقع")); }).join("")}
+      ${lieuxAff.map(L => { const m = L.maps ? url(L.maps) : L.adresse ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(L.adresse) : ""; const adr = (!m && !L.adresse) ? "" : row(m || "#", "pin", L.nom || T("Adresse", "العنوان"), L.adresse || T("Voir la localisation", "شوف الموقع")); const sch = lieuxHoraires ? horairesDe(L.horaires, L.nom ? (T("Horaires", "أوقات") + " · " + L.nom) : null) : ""; return adr + sch; }).join("")}
       ${(P.docs || []).filter(d => d && (d.url || d.id)).map(d => d.id ? `<a class="row" href="#" data-pdf="${esc(d.id)}">${I.doc}<div><b>${esc(d.titre || T("Document (PDF)", "وثيقة PDF"))}</b><span>PDF</span></div>${I.ar}</a>` : row(url(d.url), "doc", d.titre || T("Document (PDF)", "وثيقة PDF"), "PDF")).join("")}
       ${(P.galerie || []).length ? `<div class="gal">${P.galerie.map(id => `<img data-img="${esc(id)}" alt="">`).join("")}</div>` : ""}
       ${pied()}`;

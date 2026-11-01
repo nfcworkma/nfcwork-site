@@ -349,6 +349,8 @@ Skill Play | billard | 0602545454`;
       <input data-lieu="${i}.nom" value="${esc(x.nom || "")}" placeholder="Nom du lieu (ex. Salle Al Wahda)" maxlength="60">
       <input data-lieu="${i}.adresse" value="${esc(x.adresse || "")}" placeholder="Adresse" maxlength="160">
       <input data-lieu="${i}.maps" value="${esc(x.maps || "")}" placeholder="Lien Google Maps (facultatif)" inputmode="url" autocapitalize="off">
+      <div class="eyebrow" style="margin-top:2px">🕒 Horaires de ce lieu (facultatif)</div>
+      <div class="hgrid">${JOURS.map(([j, n]) => `<span>${n}</span><input data-lieuh="${i}.${j}" value="${esc((x.horaires || {})[j] || "")}" placeholder="18:30-20:00">`).join("")}</div>
     </div>`).join("")}
       <button class="btn sm" data-act="lieu-add">＋ Ajouter un lieu</button></div>`;
   }
@@ -535,6 +537,7 @@ Skill Play | billard | 0602545454`;
     else if (t.dataset.sv) { const [i, k] = t.dataset.sv.split("."), L = svLire(); if (L[+i]) { L[+i][k] = k === "prix" ? t.value.replace(/\D/g, "") : k === "duree" ? +t.value : t.value; svEcrire(L); } }
     else if (t.dataset.l) { const [i, k] = t.dataset.l.split("."); P.liens[+i][k] = t.value; }
     else if (t.dataset.lieu) { const [i, k] = t.dataset.lieu.split("."); if (P.lieux && P.lieux[+i]) P.lieux[+i][k] = t.value; }
+    else if (t.dataset.lieuh) { const [i, j] = t.dataset.lieuh.split("."); if (P.lieux && P.lieux[+i]) { P.lieux[+i].horaires = P.lieux[+i].horaires || {}; P.lieux[+i].horaires[j] = t.value; } }
     else if (t.dataset.doc) { const [i, k] = t.dataset.doc.split("."); if (P.docs && P.docs[+i]) P.docs[+i][k] = t.value; }
     majBarre();
   });
@@ -606,7 +609,7 @@ Skill Play | billard | 0602545454`;
     if (a === "sv-mod") { const L = svLire(), noms = new Set(L.map(s => s.nom.toLowerCase())); (SV_MODELES[b.dataset.m] || []).forEach(([n, d]) => { if (!noms.has(n.toLowerCase())) L.push({ nom: n, prix: "", duree: d }); }); svEcrire(L); renderEdit(); majBarre(); toast("Liste ajoutée : mettez vos prix, supprimez ce que vous ne faites pas ✕"); }
     if (a === "l-add") { P.liens = P.liens || []; P.liens.push({ titre: "", url: "" }); renderEdit(); }
     if (a === "l-del") { P.liens.splice(i, 1); renderEdit(); }
-    if (a === "lieu-add") { P.lieux = P.lieux || []; P.lieux.push({ nom: "", adresse: "", maps: "" }); renderEdit(); }
+    if (a === "lieu-add") { P.lieux = P.lieux || []; P.lieux.push({ nom: "", adresse: "", maps: "", horaires: {} }); renderEdit(); }
     if (a === "lieu-del") { P.lieux.splice(i, 1); renderEdit(); }
     if (a === "doc-add") { P.docs = P.docs || []; P.docs.push({ titre: "", url: "" }); renderEdit(); }
     if (a === "doc-del") { P.docs.splice(i, 1); renderEdit(); }
