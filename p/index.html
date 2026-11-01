@@ -226,7 +226,7 @@ a:active,button:active{transform:scale(.98)}
       ${tel ? row("tel:+" + tel, "tel", T("Téléphone", "الهاتف"), telFmt(P.tel)) : ""}
       ${P.email ? row("mailto:" + P.email, "mail", "E-mail", P.email) : ""}
       ${(P.lieux && P.lieux.length ? P.lieux : (P.adresse || P.maps ? [{ nom: "", adresse: P.adresse, maps: P.maps }] : [])).map(L => { const m = L.maps ? url(L.maps) : L.adresse ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(L.adresse) : ""; if (!m && !L.adresse) return ""; return row(m || "#", "pin", L.nom || T("Adresse", "العنوان"), L.adresse || T("Voir la localisation", "شوف الموقع")); }).join("")}
-      ${(P.docs || []).filter(d => d && d.url).map(d => row(url(d.url), "doc", d.titre || T("Document (PDF)", "وثيقة PDF"), "PDF")).join("")}
+      ${(P.docs || []).filter(d => d && (d.url || d.id)).map(d => d.id ? `<a class="row" href="#" data-pdf="${esc(d.id)}">${I.doc}<div><b>${esc(d.titre || T("Document (PDF)", "وثيقة PDF"))}</b><span>PDF</span></div>${I.ar}</a>` : row(url(d.url), "doc", d.titre || T("Document (PDF)", "وثيقة PDF"), "PDF")).join("")}
       ${(P.galerie || []).length ? `<div class="gal">${P.galerie.map(id => `<img data-img="${esc(id)}" alt="">`).join("")}</div>` : ""}
       ${pied()}`;
     document.getElementById("vcf").onclick = vcard;
@@ -587,6 +587,17 @@ a:active,button:active{transform:scale(.98)}
   // aperçu depuis l'Espace (sans enregistrer)
   // dans un cadre (aperçu de l'espace) : Google, WhatsApp, Instagram… s'ouvrent dans un nouvel onglet (ils refusent de s'afficher dans un cadre)
   if (window.parent !== window) document.addEventListener("click", e => { const a = e.target.closest("a[href]"); if (a && /^(https?:|tel:|mailto:|sms:)/.test(a.getAttribute("href")) && !a.href.startsWith(location.origin)) a.target = "_blank"; }, true);
+  document.addEventListener("click", async e => {
+    const a = e.target.closest("[data-pdf]"); if (!a) return;
+    e.preventDefault(); const id = a.getAttribute("data-pdf"); if (!id) return;
+    const w = window.open("", "_blank");
+    try {
+      const f = await lireDoc("mpdf-" + id); const d = f && f.data && f.data.stringValue;
+      if (!d) { if (w) w.close(); return; }
+      const blob = await (await fetch(d)).blob(); const u = URL.createObjectURL(blob);
+      if (w) w.location = u; else window.open(u, "_blank");
+    } catch (x) { if (w) w.close(); }
+  });
   window.addEventListener("message", e => { if (e.origin === location.origin && e.data && e.data.type === "nfcwork-page-apercu") { Object.assign(imgs, e.data.images || {}); rendre(e.data.page); } });
   if (apercu && window.parent !== window) { etat("", ""); window.parent.postMessage({ type: "nfcwork-page-pret" }, location.origin); } else charger();
 })();

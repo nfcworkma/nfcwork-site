@@ -354,8 +354,24 @@ Skill Play | billard | 0602545454`;
   }
   function docsHtml() {
     const L = P.docs || [];
-    return `<div class="stack" style="gap:8px">${L.map((x, i) => `<div class="lrow"><input data-doc="${i}.titre" value="${esc(x.titre || "")}" placeholder="Nom du bouton (ex. Fiche d’inscription)" maxlength="60"><input data-doc="${i}.url" value="${esc(x.url || "")}" placeholder="https://… (lien du PDF)" inputmode="url" autocapitalize="off"><button class="btn icon sm danger" data-act="doc-del" data-i="${i}">✕</button></div>`).join("")}
+    return `<div class="stack" style="gap:10px">${L.map((x, i) => `<div class="sec paper" style="padding:10px;gap:8px;display:flex;flex-direction:column">
+      <div class="row between"><b style="font-size:13px">📄 Document ${i + 1}</b><button class="btn icon sm danger" data-act="doc-del" data-i="${i}">✕</button></div>
+      <input data-doc="${i}.titre" value="${esc(x.titre || "")}" placeholder="Nom du bouton (ex. Fiche d’inscription)" maxlength="60">
+      ${x.id
+        ? `<div class="row between" style="align-items:center;gap:8px"><span class="muted" style="font-size:13px">✅ PDF chargé</span><label class="btn sm ghost">Remplacer<input type="file" accept="application/pdf,.pdf" hidden data-uppdf="${i}"></label></div>`
+        : `<label class="btn sm primary" style="align-self:flex-start">📎 Choisir un PDF<input type="file" accept="application/pdf,.pdf" hidden data-uppdf="${i}"></label>
+           <input data-doc="${i}.url" value="${esc(x.url || "")}" placeholder="ou coller un lien PDF (https://…)" inputmode="url" autocapitalize="off">`}
+    </div>`).join("")}
       <button class="btn sm" data-act="doc-add">＋ Ajouter un PDF</button></div>`;
+  }
+  async function envoyerPdf(f) {
+    if (f.type && !/pdf/i.test(f.type) && !/\.pdf$/i.test(f.name || "")) throw { message: "pas-pdf" };
+    const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej({ message: "illisible" }); r.readAsDataURL(f); });
+    if (!/^data:application\/pdf/i.test(String(data))) throw { message: "pas-pdf" };
+    if (String(data).length > 980000) throw { message: "lourd" };
+    const id = rid();
+    await db.doc("settings/mpdf-" + id).set({ data, page: P.slug, maj: NOW() });
+    return id;
   }
   function renderEdit() {
     const [ic, tn] = TYPES[P.type] || ["📄", "Page"];
@@ -432,7 +448,7 @@ Skill Play | billard | 0602545454`;
   /* ---------- enregistrer ---------- */
   function nettoyer() { for (const k of Object.keys(P)) if (typeof P[k] === "string") P[k] = P[k].trim(); if (P.liens) P.liens = P.liens.filter(l => (l.titre || "").trim() || (l.url || "").trim());
     if (P.lieux) P.lieux = P.lieux.filter(x => (x.nom || "").trim() || (x.adresse || "").trim() || (x.maps || "").trim());
-    if (P.docs) P.docs = P.docs.filter(x => (x.url || "").trim());
+    if (P.docs) P.docs = P.docs.filter(x => (x.url || "").trim() || x.id);
     if (P.type === "profil") { const l0 = (P.lieux || [])[0] || {}; P.adresse = l0.adresse || ""; P.maps = l0.maps || ""; } }
   async function enregistrer(b) {
     if (!dirty()) return;
@@ -455,6 +471,8 @@ Skill Play | billard | 0602545454`;
       await ecrireListe();
       const now = new Set([P.photo, ...(P.galerie || [])].filter(Boolean));
       await Promise.all([avant.photo, ...(avant.galerie || [])].filter(id => id && !now.has(id)).map(id => db.doc("settings/mimg-" + id).delete().catch(() => {})));
+      const nowPdf = new Set((P.docs || []).map(d => d && d.id).filter(Boolean));
+      await Promise.all((avant.docs || []).map(d => d && d.id).filter(id => id && !nowPdf.has(id)).map(id => db.doc("settings/mpdf-" + id).delete().catch(() => {})));
       saved = doc.json; toast("✅ Enregistré ! La page est à jour.");
       renderEdit();
     } catch (e) { erreur(e); majBarre(); }
@@ -465,6 +483,7 @@ Skill Play | billard | 0602545454`;
     try {
       const ids = [P.photo, ...(P.galerie || [])].filter(Boolean);
       await Promise.all(ids.map(id => db.doc("settings/mimg-" + id).delete().catch(() => {})));
+      await Promise.all((P.docs || []).map(d => d && d.id).filter(Boolean).map(id => db.doc("settings/mpdf-" + id).delete().catch(() => {})));
       await db.doc("settings/page-" + P.slug).delete();
       liste = liste.filter(t => t.slug !== P.slug); await ecrireListe();
       P = null; saved = ""; toast("🗑 Supprimée."); location.hash = "";
@@ -520,7 +539,15 @@ Skill Play | billard | 0602545454`;
     majBarre();
   });
   app.addEventListener("change", async e => {
-    const t = e.target; if (!t.dataset.up || !t.files.length || !P) return;
+    const t = e.target; if (!P) return;
+    if (t.dataset.uppdf != null && t.files && t.files.length) {
+      const i = +t.dataset.uppdf, f = t.files[0]; t.value = "";
+      const box = t.closest("section"); box.classList.add("busy");
+      try { if (!P.docs[i]) P.docs[i] = { titre: "", url: "" }; const id = await envoyerPdf(f); P.docs[i].id = id; P.docs[i].url = ""; renderEdit(); toast("📄 PDF ajouté — pensez à Enregistrer"); }
+      catch (x) { box.classList.remove("busy"); toast(x && x.message === "lourd" ? "PDF trop lourd (max ~1 Mo). Compressez-le ou envoyez-le à NFCWORK." : x && x.message === "pas-pdf" ? "Fichier non reconnu : choisissez un vrai PDF." : "Échec de l’envoi du PDF.", true); }
+      majBarre(); return;
+    }
+    if (!t.dataset.up || !t.files.length) return;
     const fichiers = [...t.files]; t.value = "";
     // ⭕ logo : on le cadre dans le rond (même outil que les menus)
     let f0 = fichiers[0];
