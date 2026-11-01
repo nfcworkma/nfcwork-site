@@ -27,7 +27,7 @@
   const rid = (n = 10) => { const a = "abcdefghijkmnpqrstuvwxyz23456789"; let s = ""; for (let i = 0; i < n; i++) s += a[Math.floor(Math.random() * a.length)]; return s; };
   const slugify = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/&/g, " et ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 
-  let user = null, liste = [], E = null, saved = "", PROPRIO = null;
+  let user = null, liste = [], E = null, saved = "", PROPRIO = null, voirArch = false;
   const IMG = {};
   const dirty = () => E && JSON.stringify(E) !== saved;
 
@@ -92,11 +92,12 @@
     $("#topTitle").textContent = "Menus TV"; $("#topSub").textContent = "Menu → écran TV"; $("#backBtn").href = "./";
     app.innerHTML = `<div class="row between"><div><h2>Menus TV</h2><div class="muted">Choisissez un de vos menus : les écrans TV se fabriquent tout seuls (catégorie par catégorie), avec un lien pour la TV et une vidéo pour clé USB.</div></div>
       <div class="row" style="gap:6px;flex-wrap:wrap" data-adm><button class="btn primary" data-act="depuis-menu">🍽 Depuis un menu</button><button class="btn" data-act="nouveau">📄 PDF / photos</button></div></div>
-      ${liste.length ? `<div class="tvlist sec">${liste.map(t => `<a class="tvrow" href="#e=${esc(t.slug)}" style="text-decoration:none;color:inherit">
+      ${(() => { const nbA = liste.filter(x => x.arch).length; return nbA ? `<button class="btn sm" data-arch-voir style="margin-top:10px">${voirArch ? "← Retour aux menus TV actifs" : "🗄 Archivés (" + nbA + ")"}</button>` : ""; })()}
+      ${(() => { const l = liste.filter(t => voirArch ? t.arch : !t.arch); return l.length ? `<div class="tvlist sec">${l.map(t => `<a class="tvrow" href="#e=${esc(t.slug)}" style="text-decoration:none;color:inherit;opacity:${t.arch ? ".6" : "1"}">
           <div class="mini">${t.apercu ? imgTag(t.apercu) : "📺"}</div>
           <div class="tx"><b>${esc(t.nom)}</b><div class="u">nfcwork.ma/tv/${esc(t.slug)} · ${t.n || 0} page${(t.n || 0) > 1 ? "s" : ""}</div></div>
-          <span class="btn sm">Ouvrir</span></a>`).join("")}</div>`
-      : `<div class="empty paper sec"><h3>Aucun menu TV</h3><p>Choisissez un menu déjà fait : tout se prépare en un clic.</p><button class="btn primary" data-act="depuis-menu" data-adm>🍽 Créer depuis un menu</button></div>`}`;
+          <span class="arch" role="button" data-${t.arch ? "unarch" : "arch"}="${esc(t.slug)}">${t.arch ? "↩︎" : "🗄"}</span></a>`).join("")}</div>`
+      : `<div class="empty paper sec"><h3>${voirArch ? "Aucun menu TV archivé." : "Aucun menu TV"}</h3>${voirArch ? "" : "<p>Choisissez un menu déjà fait : tout se prépare en un clic.</p><button class=\"btn primary\" data-act=\"depuis-menu\" data-adm>🍽 Créer depuis un menu</button>"}</div>`; })()}`;
     remplir();
   }
 
@@ -361,6 +362,9 @@
   document.addEventListener("click", async e => {
     const ef = e.target.closest("[data-effet]"); if (ef && E) { E.effet = ef.dataset.effet; renderEdit(); return; }
     const fo = e.target.closest("[data-fond]"); if (fo && E) { E.fond = fo.dataset.fond; renderEdit(); return; }
+    if (e.target.closest("[data-arch-voir]")) { voirArch = !voirArch; renderListe(); return; }
+    const ar = e.target.closest("[data-arch],[data-unarch]");
+    if (ar) { e.preventDefault(); e.stopPropagation(); const sl = ar.dataset.arch || ar.dataset.unarch, it = liste.find(x => x.slug === sl); if (it) { it.arch = !!ar.dataset.arch; it.maj = Date.now(); if (!it.arch) voirArch = false; try { await ecrireListe(); } catch (x) { erreur(x); } renderListe(); toast(it.arch ? "🗄 Archivé (dans « Archivés »)" : "↩︎ Restauré"); } return; }
     const b = e.target.closest("[data-act]"); if (!b) return;
     const a = b.dataset.act, i = +b.dataset.i;
     const bouge = d => { const j = i + d; if (j < 0 || j >= E.pages.length) return; [E.pages[i], E.pages[j]] = [E.pages[j], E.pages[i]]; renderEdit(); };

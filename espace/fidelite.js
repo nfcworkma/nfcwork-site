@@ -93,7 +93,7 @@
   }
   const prixTxt = m => m && m.prix ? `${m.prix} DH ${PERIODES[m.periode] || ""}`.trim() : "";
 
-  let user = null, email = "", admin = false, progs = [], P = null, cartes = [], employes = [], secret = "", vue = "clients", recherche = "", subs = [];
+  let user = null, email = "", admin = false, progs = [], P = null, cartes = [], employes = [], secret = "", vue = "clients", recherche = "", voirArch = false, subs = [];
   const unsub = () => { subs.forEach(f => f()); subs = []; };
   const moisCle = (d, decal) => { d = new Date(d || Date.now()); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + (decal || 0)); return String(d.getUTCFullYear() * 100 + d.getUTCMonth() + 1); };
   const nomMois = k => new Date(Date.UTC(+k.slice(0, 4), +k.slice(4) - 1, 1)).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
@@ -157,11 +157,12 @@
     app.innerHTML = `<div class="row between"><div><h2>Cartes fidélité</h2><div class="muted">Points, récompenses et classement des employés.</div></div>
       ${admin ? `<div class="row"><button class="btn" data-act="metiers">✏️ Métiers & prix</button><button class="btn primary" data-act="nouveau">＋ Nouveau programme</button></div>` : ""}</div>
       ${admin && new Date().getDate() <= 5 && progs.length ? `<div class="notice" style="margin-top:10px">📊 Début du mois : envoyez le rapport à chaque commerçant (Ouvrir → 📊 Rapport du mois). Ils voient ce que la carte leur rapporte, et ils renouvellent.</div>` : ""}
-      ${progs.length ? `<div class="mlist sec">${progs.map(p => `<div class="paper mcard">
+      ${(() => { const nbA = progs.filter(p => p.arch).length; return nbA ? `<button class="btn sm" data-arch-voir style="margin-top:10px">${voirArch ? "← Retour aux programmes actifs" : "🗄 Archivés (" + nbA + ")"}</button>` : ""; })()}
+      ${(() => { const vus = progs.filter(p => voirArch ? p.arch : !p.arch); return vus.length ? `<div class="mlist sec">${vus.map(p => `<div class="paper mcard"${p.arch ? ' style="opacity:.6"' : ""}>
         <div class="row between"><span class="n">${(METIERS[p.metier] || {}).ico || ""} ${esc(p.nom)}</span><span class="pill ${p.actif === false ? "off" : "pro"}">${p.actif === false ? "Désactivé" : p.essai && p.expire ? (jourLocal() > p.expire ? "Essai terminé" : "🎁 Essai → " + esc(p.expire.slice(8, 10) + "/" + p.expire.slice(5, 7))) : esc(TYPES[p.type] ? TYPES[p.type][0] : "")}</span></div>
         <div class="l">${esc(p.objectif)} ${unite(p)} = ${esc(p.recompense)}${admin ? `<br>${esc(p.ownerEmail || "sans compte commerçant")}${p.prix ? ` · ${esc(p.prix)} DH ${PERIODES[p.periode] || ""}` : ""}` : ""}</div>
-        <div class="row"><a class="btn sm primary" href="#p=${esc(p.id)}">Ouvrir</a><button class="btn sm" data-lienqr="${esc(p.id)}">🔗 Lien & QR</button>${p.modeClient === "caisse" ? `<a class="btn sm" href="caisse.html#p=${esc(p.id)}">📱 Écran caisse</a>` : ""}${admin ? `<button class="btn sm" data-reglages="${esc(p.id)}">Réglages</button>` : ""}</div></div>`).join("")}</div>`
-      : `<div class="empty paper sec"><h3>Aucun programme</h3><p>Créez le programme fidélité d’un commerce : type de points, récompense, employés.</p><button class="btn primary" data-act="nouveau">＋ Créer un programme</button></div>`}`;
+        <div class="row"><a class="btn sm primary" href="#p=${esc(p.id)}">Ouvrir</a><button class="btn sm" data-lienqr="${esc(p.id)}">🔗 Lien & QR</button>${p.modeClient === "caisse" ? `<a class="btn sm" href="caisse.html#p=${esc(p.id)}">📱 Écran caisse</a>` : ""}${admin ? `<button class="btn sm" data-reglages="${esc(p.id)}">Réglages</button><button class="btn sm ghost" data-arch-p="${esc(p.id)}" data-v="${p.arch ? 0 : 1}">${p.arch ? "↩︎ Restaurer" : "🗄 Archiver"}</button>` : ""}</div></div>`).join("")}</div>`
+      : `<div class="empty paper sec"><h3>${voirArch ? "Aucun programme archivé." : "Aucun programme"}</h3>${voirArch ? "" : "<p>Créez le programme fidélité d’un commerce : type de points, récompense, employés.</p><button class=\"btn primary\" data-act=\"nouveau\">＋ Créer un programme</button>"}</div>`; })()}`;
   }
 
   /* dates locales AAAA-MM-JJ */
@@ -804,6 +805,8 @@
     if (e.target.closest(".modal")) return;
     const t = (sel) => e.target.closest(sel);
     let b;
+    if (t("[data-arch-voir]")) { voirArch = !voirArch; return void renderListe(); }
+    if ((b = t("[data-arch-p]"))) { const id = b.dataset.archP, on = b.dataset.v === "1"; b.disabled = true; db.doc("fidProgrammes/" + id).update({ arch: on }).then(() => { const pp = progs.find(x => x.id === id); if (pp) pp.arch = on; if (on === false) voirArch = false; renderListe(); toast(on ? "🗄 Archivé (dans « Archivés »)" : "↩︎ Restauré"); }).catch(erreur); return; }
     if ((b = t("[data-reglages]"))) return void reglages(b.dataset.reglages);
     if ((b = t("[data-lienqr]"))) return void lienQR(progs.find(x => x.id === b.dataset.lienqr), false);
     if ((b = t("[data-vue]"))) { vue = b.dataset.vue; return void renderDash(); }

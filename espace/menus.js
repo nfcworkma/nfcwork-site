@@ -37,6 +37,7 @@
 
   let user = null;
   let liste = [];               // index des menus
+  let voirArch = false;
   let M = null;                 // menu ouvert
   let saved = "";               // JSON du menu tel qu'enregistré
   let savedIds = new Set();     // photos utilisées par la version enregistrée
@@ -221,15 +222,17 @@
   function renderListe() {
     M = null;
     entete(PROPRIO ? "Mes menus" : "Menus digitaux", PROPRIO ? "Mon commerce" : "Espace gestion", "./", "");
-    const l = [...liste].sort((a, b) => (b.maj || 0) - (a.maj || 0));
-    app.innerHTML = `<div class="row between"><div><h2>Menus digitaux</h2><div class="muted">${l.length} menu${l.length > 1 ? "s" : ""} · Standard, Pro, Premium</div></div>
+    const nbA = liste.filter(x => x.arch).length;
+    const l = [...liste].filter(x => voirArch ? x.arch : !x.arch).sort((a, b) => (b.maj || 0) - (a.maj || 0));
+    app.innerHTML = `<div class="row between"><div><h2>Menus digitaux</h2><div class="muted">${liste.filter(x => !x.arch).length} menu${liste.filter(x => !x.arch).length > 1 ? "s" : ""} · Standard, Pro, Premium</div></div>
       <div class="row" style="gap:6px;flex-wrap:wrap" data-adm><a class="btn" href="#banque">🖼 Banque photos</a><button class="btn" data-act="fichier-in" title="Ouvrir un menu tout prêt (.json)">📥 Fichier</button><button class="btn primary" data-act="nouveau">＋ Nouveau menu</button></div></div>
-      ${l.length ? `<div class="mlist sec">${l.map(m => `<div class="paper mcard">
+      ${nbA ? `<button class="btn sm" data-arch-voir style="margin-top:10px">${voirArch ? "← Retour aux menus actifs" : "🗄 Archivés (" + nbA + ")"}</button>` : ""}
+      ${l.length ? `<div class="mlist sec">${l.map(m => `<div class="paper mcard"${m.arch ? ' style="opacity:.6"' : ""}>
         <div class="row between"><span class="n">${esc(m.nom)}</span><span class="row"><span class="pill ${esc(m.formule)}">${esc((FORMULES[m.formule] || [m.formule])[0])}</span>${m.actif === false ? '<span class="pill off">Désactivé</span>' : ""}</span></div>
         <div class="l">${esc(lienPublic(m.slug).replace(/^https?:\/\//, ""))}</div>
-        <div class="row"><a class="btn sm primary" href="#m=${esc(m.slug)}">Modifier</a><a class="btn sm" href="${esc(lienPublic(m.slug))}" target="_blank" rel="noopener">Ouvrir</a><button class="btn sm ghost" data-act="copier" data-v="${esc(lienPublic(m.slug))}">Copier le lien</button></div>
+        <div class="row"><a class="btn sm primary" href="#m=${esc(m.slug)}">Modifier</a><a class="btn sm" href="${esc(lienPublic(m.slug))}" target="_blank" rel="noopener">Ouvrir</a><button class="btn sm ghost" data-arch-m="${esc(m.slug)}" data-v="${m.arch ? 0 : 1}">${m.arch ? "↩︎ Restaurer" : "🗄 Archiver"}</button><button class="btn sm ghost" data-act="copier" data-v="${esc(lienPublic(m.slug))}">Copier le lien</button></div>
       </div>`).join("")}</div>`
-      : `<div class="empty paper sec"><h3>Aucun menu pour l’instant</h3><p>Créez le premier menu : choisissez la formule, puis ajoutez les photos ou les produits.</p><button class="btn primary" data-act="nouveau">＋ Créer un menu</button></div>`}`;
+      : `<div class="empty paper sec"><h3>${voirArch ? "Aucun menu archivé." : "Aucun menu pour l’instant"}</h3>${voirArch ? "" : "<p>Créez le premier menu : choisissez la formule, puis ajoutez les photos ou les produits.</p><button class=\"btn primary\" data-act=\"nouveau\">＋ Créer un menu</button>"}</div>`}`;
   }
 
   // pre : { nom, formule, tel, commande } quand on vient d'une commande (Espace → Commandes → « Créer le menu »)
@@ -617,6 +620,9 @@
     if (fo && M && app.contains(fo)) { changerFormule(fo.dataset.formule); return; }
     const th = e.target.closest("[data-theme]");
     if (th && M) { M.theme = th.dataset.theme; M.couleur = ""; renderEdit(); return; }
+    if (e.target.closest("[data-arch-voir]")) { voirArch = !voirArch; renderListe(); return; }
+    const am = e.target.closest("[data-arch-m]");
+    if (am) { const sl = am.dataset.archM, on = am.dataset.v === "1", it = liste.find(x => x.slug === sl); if (it) { it.arch = on; it.maj = Date.now(); if (!on) voirArch = false; try { await ecrireListe(); } catch (x) { erreur && erreur(x); } renderListe(); toast(on ? "🗄 Archivé (dans « Archivés »)" : "↩︎ Restauré"); } return; }
     const b = e.target.closest("[data-act]");
     if (!b) return;
     const a = b.dataset.act, i = +b.dataset.i, ci = +b.dataset.ci, ii = +b.dataset.ii;
