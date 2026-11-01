@@ -111,16 +111,17 @@
     P = null; saved = "";
     $("#topTitle").textContent = PROPRIO ? "Mes pages" : "Cartes, avis, Wi-Fi"; $("#topSub").textContent = PROPRIO ? "Mon commerce" : "Créer sans Mac"; $("#backBtn").href = "./";
     const q = recherche.toLowerCase();
-    const l = liste.filter(x => (filtre === "tous" || x.type === filtre) && (!q || (x.nom + " " + x.slug).toLowerCase().includes(q))).sort((a, b) => (b.maj || 0) - (a.maj || 0));
+    const nbArch = liste.filter(x => x.arch).length;
+    const l = liste.filter(x => (filtre === "arch" ? x.arch : !x.arch && (filtre === "tous" || x.type === filtre)) && (!q || (x.nom + " " + x.slug).toLowerCase().includes(q))).sort((a, b) => (b.maj || 0) - (a.maj || 0));
     app.innerHTML = `<div data-adm><h2 style="margin-bottom:10px">＋ Créer</h2>
       <div class="types">${Object.entries(TYPES).map(([k, [ic, n, s]]) => `<button data-new="${k}"><span>${ic}</span><b>${n}</b><small>${s}</small></button>`).join("")}</div></div>
       <button class="btn block" data-adm data-lot style="margin-top:12px">⚡ Créer plusieurs pages de réservation (prospection)</button>
-      <div class="row between" style="margin-top:24px"><h2>📋 Mes pages (${liste.length})</h2></div>
+      <div class="row between" style="margin-top:24px"><h2>📋 Mes pages (${liste.filter(x => !x.arch).length})</h2></div>
       <input id="rech" placeholder="🔎 Chercher un nom…" value="${esc(recherche)}" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px">
-      <div class="chipsf">${[["tous", "Tout"], ...Object.entries(TYPES).map(([k, v]) => [k, v[0] + " " + v[1]])].map(([k, n]) => `<button class="chip" data-f="${k}" aria-pressed="${filtre === k}">${n}</button>`).join("")}</div>
+      <div class="chipsf">${[["tous", "Tout"], ...Object.entries(TYPES).map(([k, v]) => [k, v[0] + " " + v[1]]), ...(nbArch ? [["arch", "🗄 Archivées (" + nbArch + ")"]] : [])].map(([k, n]) => `<button class="chip" data-f="${k}" aria-pressed="${filtre === k}">${n}</button>`).join("")}</div>
       ${l.length ? `<div class="plist">${l.map(x => `<a class="prow" href="#e=${esc(x.slug)}"><span class="ph">${x.photo ? imgTag(x.photo) : (TYPES[x.type] || ["📄"])[0]}</span>
-        <span class="tx"><b>${esc(x.nom)}</b><div class="u">${(TYPES[x.type] || ["", ""])[1]} · nfcwork.ma/p/${esc(x.slug)}</div></span>${x.actif === false ? '<span class="pill" style="color:var(--warn)">⏸ Pause</span>' : ""}</a>`).join("")}</div>`
-      : `<div class="empty paper"><h3>Rien pour l’instant</h3><p>Touchez un bouton en haut pour créer votre première page.</p></div>`}
+        <span class="tx"><b>${esc(x.nom)}</b><div class="u">${(TYPES[x.type] || ["", ""])[1]} · nfcwork.ma/p/${esc(x.slug)}</div></span>${x.actif === false && !x.arch ? '<span class="pill" style="color:var(--warn)">⏸ Pause</span>' : ""}${PROPRIO ? "" : `<span class="arch" role="button" tabindex="0" data-${x.arch ? "unarch" : "arch"}="${esc(x.slug)}" title="${x.arch ? "Restaurer" : "Archiver"}">${x.arch ? "↩︎" : "🗄"}</span>`}</a>`).join("")}</div>`
+      : `<div class="empty paper"><h3>${filtre === "arch" ? "Aucune page archivée." : "Rien pour l’instant"}</h3>${filtre === "arch" ? "" : "<p>Touchez un bouton en haut pour créer votre première page.</p>"}</div>`}
       <p data-adm class="muted" style="font-size:12.5px;margin-top:16px">ℹ️ Les anciennes pages faites avec l’outil du Mac (nfcworkma.github.io/profils/…) continuent de marcher.</p>`;
     remplir();
     const r = $("#rech"); r.oninput = () => { recherche = r.value; const pos = r.selectionStart; renderListe(); const n = $("#rech"); n.focus(); n.setSelectionRange(pos, pos); };
@@ -510,6 +511,8 @@ Skill Play | billard | 0602545454`;
     if (e.target.closest(".modal")) return;
     const nw = e.target.closest("[data-new]"); if (nw) { nouveau(nw.dataset.new); return; }
     if (e.target.closest("[data-lot]")) { lotFenetre(); return; }
+    const ar = e.target.closest("[data-arch],[data-unarch]");
+    if (ar) { e.preventDefault(); e.stopPropagation(); const slug = ar.dataset.arch || ar.dataset.unarch, it = liste.find(t => t.slug === slug); if (it) { it.arch = !!ar.dataset.arch; it.maj = Date.now(); ecrireListe().then(() => { renderListe(); toast(it.arch ? "🗄 Archivée (toujours là, dans « Archivées »)" : "↩︎ Restaurée"); }).catch(erreur); } return; }
     const f = e.target.closest("[data-f]"); if (f) { filtre = f.dataset.f; renderListe(); return; }
     const th = e.target.closest("[data-theme]"); if (th && P) { P.theme = th.dataset.theme; renderEdit(); return; }
     const lg = e.target.closest("[data-lang]"); if (lg && P) { P.langue = lg.dataset.lang; renderEdit(); return; }
