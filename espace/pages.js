@@ -435,7 +435,7 @@ Skill Play | billard | 0602545454`;
     <section class="sec linkbox" style="margin-top:0"><div class="row between" style="align-items:flex-start;gap:12px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><div style="color:#c5d4ee;font-size:13px">${ic} ${tn} · lien à mettre dans la puce</div><code>${esc(L.replace(/^https?:\/\//, ""))}</code></div>${qr ? `<div class="qr">${qr}</div>` : ""}</div>
       ${!saved ? `<div style="color:#ffd27a;font-size:13px">⚠️ Pas encore enregistrée : touchez « Enregistrer » en bas.</div>` : dirty() ? `<div style="color:#ffd27a;font-size:13px">⚠️ Modifications pas encore enregistrées.</div>` : ""}
       <div class="acts"><button class="btn sm primary" data-act="copier">📋 Copier le lien</button><button class="btn sm" data-act="nfc" data-adm>📲 Écrire sur la puce</button><a class="btn sm" href="/p/${esc(P.slug)}" target="_blank" rel="noopener">👀 Voir</a>
-        <a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(P.nom + " : " + L)}">💬 WhatsApp</a><button class="btn sm" data-act="qrpng">⬇️ QR en image</button><button class="btn sm" data-act="dupliquer" data-adm>📄 Dupliquer</button></div></section>
+        <a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(P.nom + " : " + L)}">💬 WhatsApp</a><button class="btn sm" data-act="qrpng">⬇️ QR en image</button><button class="btn sm" data-act="dupliquer" data-adm>📄 Dupliquer</button>${saved ? `<button class="btn sm" data-act="rename" data-adm>✏️ Modifier le lien</button>` : ""}</div></section>
     ${corps}
     <section class="sec paper stack"><h3>🎨 Style</h3><div class="themes2">${Object.entries(THEMES).map(([k, [n, bg, fg]]) => `<button data-theme="${k}" aria-pressed="${P.theme === k}" style="background:${bg};color:${fg}">${n}</button>`).join("")}</div>
       <label class="f">Couleur principale<input type="color" data-k="couleur" value="${esc(/^#[0-9a-f]{6}$/i.test(P.couleur || "") ? P.couleur : "#2F7BFF")}" style="height:46px;padding:4px"></label>
@@ -498,6 +498,30 @@ Skill Play | billard | 0602545454`;
     c.slug = b.slug; c.nom = nom.trim(); c.photo = ""; c.galerie = [];
     P = c; saved = ""; history.replaceState(null, "", "#e=" + P.slug); renderEdit();
     toast("📄 Copie prête : changez ce qu’il faut, puis Enregistrer.", true);
+  }
+  async function renommer() {
+    if (!saved) { toast("Enregistrez d’abord la page.", true); return; }
+    if (dirty()) { toast("Enregistrez vos modifications avant de changer le lien.", true); return; }
+    const neo = slugify(prompt("Nouveau lien :\nnfcwork.ma/p/______\n\n(lettres, chiffres et tirets)", slugify(P.nom) || P.slug) || "");
+    if (!neo) return;
+    if (neo === P.slug) return;
+    try {
+      const [a, b] = await Promise.all([db.doc("settings/page-" + neo).get(), db.doc("settings/fidlien-" + neo).get()]);
+      if (a.exists || b.exists) { toast("Ce lien est déjà pris, choisissez-en un autre.", true); return; }
+      const ancien = P.slug;
+      P.slug = neo;
+      const json = JSON.stringify(P), doc = { json, v: String(Date.now()), maj: NOW(), par: user.email };
+      if (P.type === "rdv" && P.ownerEmail) doc.ownerEmail = P.ownerEmail;
+      await db.doc("settings/page-" + neo).set(doc);
+      const x = liste.find(t => t.slug === ancien); if (x) x.slug = neo;
+      await ecrireListe();
+      await db.doc("settings/predir-" + ancien).set({ to: neo, maj: NOW() }).catch(() => {});
+      await db.doc("settings/page-" + ancien).delete().catch(() => {});
+      saved = json;
+      history.replaceState(null, "", "#e=" + neo);
+      renderEdit();
+      toast("✅ Nouveau lien : nfcwork.ma/p/" + neo + " (l’ancien redirige).");
+    } catch (e) { erreur(e); }
   }
   function apercu() {
     const d = document.createElement("div"); d.className = "modal";
@@ -580,6 +604,7 @@ Skill Play | billard | 0602545454`;
     if (a === "nfc") { if (!saved) toast("Enregistrez d’abord la page, puis écrivez la puce.", true); window.NFCW_ECRIRE(lien(P.slug), P.nom); }
     if (a === "qrpng") qrPng();
     if (a === "dupliquer" && !PROPRIO) dupliquer();
+    if (a === "rename" && !PROPRIO) renommer();
     if (a === "apercu") apercu();
     if (a === "enregistrer") enregistrer(b);
     if (a === "supprimer" && !PROPRIO) supprimer();

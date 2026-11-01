@@ -578,7 +578,7 @@ a:active,button:active{transform:scale(.98)}
     if (memo) { try { rendre(JSON.parse(memo)); } catch (e) {} }
     try {
       const [f, c] = await Promise.all([lireDoc("page-" + slug), lireDoc("coupures").catch(() => null)]);
-      if (!f) { if (!P) etat("Page introuvable", "Vérifiez le lien ou contactez NFCWORK."); return; }
+      if (!f) { try { const rd = await lireDoc("predir-" + slug); const to = rd && rd.to && rd.to.stringValue; if (to && to !== slug) { location.replace("/p/" + to); return; } } catch (e) {} if (!P) etat("Page introuvable", "Vérifiez le lien ou contactez NFCWORK."); return; }
       const j = (f.json && f.json.stringValue) || "{}";
       const data = JSON.parse(j);
       try { const cp = JSON.parse((c && c.json && c.json.stringValue) || "{}")[slug]; if (cp && (cp.actif === false || cp.expire)) { if (cp.actif === false) data.actif = false; if (cp.expire) data.expire = cp.expire; if (cp.preavis) data.preavis = cp.preavis; } } catch (e) {}
