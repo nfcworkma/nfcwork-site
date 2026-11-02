@@ -134,7 +134,7 @@
     if (type === "profil") Object.assign(p, { fonction: "", entreprise: "", metiers: "", bio: "", tel: "", whatsapp: "", email: "", instagram: "", facebook: "", tiktok: "", linkedin: "", youtube: "", snapchat: "", site: "", adresse: "", maps: "", lieux: [], docs: [], horaires: {}, liens: [], galerie: [] });
     if (type === "avis") Object.assign(p, { lienGoogle: "", message: "", instagram: "" });
     if (type === "wifi") Object.assign(p, { ssid: "", motdepasse: "", securite: "WPA", cache: false, message: "" });
-    if (type === "rdv") Object.assign(p, { mode: "services", whatsapp: "", services: "Coupe homme · 50 DH · 30 min\nCoupe + barbe · 70 DH · 45 min", equipe: "", ressources: "", durees: "60,120", options: "", facturation: "heure", prixHeure: "", prixPartie: "", minPartie: 15, parties: "1,2,3,5,10", ouverture: "09:00", fermeture: "21:00", pas: 30, auto: false, ownerEmail: "", fidPid: "", galerie: [], message: "" });
+    if (type === "rdv") Object.assign(p, { mode: "services", whatsapp: "", services: "Coupe homme · 50 DH · 30 min\nCoupe + barbe · 70 DH · 45 min", equipe: "", ressources: "", durees: "60,120", options: "", facturation: "heure", prixHeure: "", prixPartie: "", minPartie: 15, parties: "1,2,3,5,10", ouverture: "09:00", fermeture: "21:00", pas: 30, auto: false, ownerEmail: "", fidPid: "", galerie: [], paiement: "place", ribPdf: "", message: "" });
     if (type === "liens") Object.assign(p, { slogan: "", whatsapp: "", localisation: "", liens: [{ titre: "Instagram", url: "" }] });
     return p;
   }
@@ -433,6 +433,8 @@ Skill Play | billard | 0602545454`;
         ${champ("ferme", "Jours fermés (facultatif)", 'maxlength="60" placeholder="dimanche"')}
         <label class="check"><input type="checkbox" data-k="auto" ${P.auto ? "checked" : ""}> Confirmer automatiquement (sinon le commerçant confirme dans son Espace)</label>
         ${champ("whatsapp", "WhatsApp du commerce (le client peut le prévenir)", 'type="tel" inputmode="tel" placeholder="06…"')}
+        <label class="f">💳 Paiement<select data-k="paiement" data-rerender><option value="place" ${(P.paiement || "place") === "place" ? "selected" : ""}>💵 Sur place (le commerçant confirme)</option><option value="virement" ${P.paiement === "virement" ? "selected" : ""}>🏦 Virement bancaire (RIB)</option><option value="deux" ${P.paiement === "deux" ? "selected" : ""}>Les deux (le client choisit)</option></select></label>
+        ${(P.paiement && P.paiement !== "place") ? `<div class="sec paper" style="padding:10px;gap:8px;display:flex;flex-direction:column"><b style="font-size:13px">📄 PDF du RIB (le client le reçoit pour virer)</b>${P.ribPdf ? `<div class="row between" style="align-items:center;gap:8px"><span class="muted" style="font-size:13px">✅ RIB chargé</span><label class="btn sm ghost">Remplacer<input type="file" accept="application/pdf,.pdf" hidden data-uppdf="rib"></label></div>` : `<label class="btn sm primary" style="align-self:flex-start">📎 Choisir le PDF du RIB<input type="file" accept="application/pdf,.pdf" hidden data-uppdf="rib"></label>`}<p class="muted" style="margin:0;font-size:12.5px">Le client fait le virement, envoie le reçu sur WhatsApp, puis vous confirmez.</p></div>` : ""}
         <div data-adm class="stack" style="gap:10px">${champ("ownerEmail", "E-mail du compte commerçant (il reçoit les réservations dans son Espace)", 'type="email" autocapitalize="off" placeholder="vide = les réservations arrivent dans votre Espace admin"')}
         ${fidSelect()}</div>
         ${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Réservez en 30 secondes"')}${champ("instagram", "Instagram (facultatif)", 'autocapitalize="off"')}</section>
@@ -481,8 +483,8 @@ Skill Play | billard | 0602545454`;
       await ecrireListe();
       const now = new Set([P.photo, ...(P.galerie || [])].filter(Boolean));
       await Promise.all([avant.photo, ...(avant.galerie || [])].filter(id => id && !now.has(id)).map(id => db.doc("settings/mimg-" + id).delete().catch(() => {})));
-      const nowPdf = new Set((P.docs || []).map(d => d && d.id).filter(Boolean));
-      await Promise.all((avant.docs || []).map(d => d && d.id).filter(id => id && !nowPdf.has(id)).map(id => db.doc("settings/mpdf-" + id).delete().catch(() => {})));
+      const nowPdf = new Set([P.ribPdf, ...(P.docs || []).map(d => d && d.id)].filter(Boolean));
+      await Promise.all([avant.ribPdf, ...(avant.docs || []).map(d => d && d.id)].filter(id => id && !nowPdf.has(id)).map(id => db.doc("settings/mpdf-" + id).delete().catch(() => {})));
       saved = doc.json; toast("✅ Enregistré ! La page est à jour.");
       renderEdit();
     } catch (e) { erreur(e); majBarre(); }
@@ -493,7 +495,7 @@ Skill Play | billard | 0602545454`;
     try {
       const ids = [P.photo, ...(P.galerie || [])].filter(Boolean);
       await Promise.all(ids.map(id => db.doc("settings/mimg-" + id).delete().catch(() => {})));
-      await Promise.all((P.docs || []).map(d => d && d.id).filter(Boolean).map(id => db.doc("settings/mpdf-" + id).delete().catch(() => {})));
+      await Promise.all([P.ribPdf, ...(P.docs || []).map(d => d && d.id)].filter(Boolean).map(id => db.doc("settings/mpdf-" + id).delete().catch(() => {})));
       await db.doc("settings/page-" + P.slug).delete();
       liste = liste.filter(t => t.slug !== P.slug); await ecrireListe();
       P = null; saved = ""; toast("🗑 Supprimée."); location.hash = "";
@@ -579,9 +581,9 @@ Skill Play | billard | 0602545454`;
   app.addEventListener("change", async e => {
     const t = e.target; if (!P) return;
     if (t.dataset.uppdf != null && t.files && t.files.length) {
-      const i = +t.dataset.uppdf, f = t.files[0]; t.value = "";
+      const key = t.dataset.uppdf, f = t.files[0]; t.value = "";
       const box = t.closest("section"); box.classList.add("busy");
-      try { if (!P.docs[i]) P.docs[i] = { titre: "", url: "" }; const id = await envoyerPdf(f); P.docs[i].id = id; P.docs[i].url = ""; renderEdit(); toast("📄 PDF ajouté — pensez à Enregistrer"); }
+      try { const id = await envoyerPdf(f); if (key === "rib") { P.ribPdf = id; } else { const i = +key; if (!P.docs[i]) P.docs[i] = { titre: "", url: "" }; P.docs[i].id = id; P.docs[i].url = ""; } renderEdit(); toast("📄 PDF ajouté — pensez à Enregistrer"); }
       catch (x) { box.classList.remove("busy"); toast(x && x.message === "lourd" ? "PDF trop lourd (max ~1 Mo). Compressez-le ou envoyez-le à NFCWORK." : x && x.message === "pas-pdf" ? "Fichier non reconnu : choisissez un vrai PDF." : "Échec de l’envoi du PDF.", true); }
       majBarre(); return;
     }
