@@ -290,18 +290,24 @@ Skill Play | billard | 0602545454`;
   // tables / terrains : « ⚽ Terrain foot · 250 DH/h · 10 DH/partie » <-> lignes d'édition
   const rsLire = () => String(P.ressources || "").split(/\n+/).map(x => x.trim()).filter(Boolean).map(l => { const o = { nom: l, ph: "", pp: "" };
     l = l.replace(/[·|•-]?\s*(\d+)\s*dh\s*\/\s*(h|heure)\b/i, (m, n) => { o.ph = n; return ""; }).replace(/[·|•-]?\s*(\d+)\s*dh\s*\/\s*(p|partie)\w*/i, (m, n) => { o.pp = n; return ""; });
-    o.nom = l.replace(/\s*[·|•-]\s*$/, "").trim() || o.nom; return o; });
-  const rsEcrire = L => { P.ressources = L.filter(r => (r.nom || "").trim()).map(r => [r.nom.trim(), r.ph ? r.ph + " DH/h" : "", r.pp ? r.pp + " DH/partie" : ""].filter(Boolean).join(" · ")).join("\n"); };
+    o.nom = l.replace(/\s*[·|•-]\s*$/, "").trim() || o.nom;
+    const g = o.nom.split(/\s*>\s*/); o.cat = ""; if (g.length > 1) { o.cat = g[0].trim(); o.nom = g.slice(1).join(" > ").trim(); } return o; });
+  const rsEcrire = L => { P.ressources = L.filter(r => (r.nom || "").trim() || (r.cat || "").trim()).map(r => { const nom = (r.cat || "").trim() ? (r.cat.trim() + " > " + (r.nom || "").trim()) : (r.nom || "").trim(); return [nom, r.ph ? r.ph + " DH/h" : "", r.pp ? r.pp + " DH/partie" : ""].filter(Boolean).join(" · "); }).join("\n"); };
   function ressourcesHtml() {
     const f = P.facturation || "heure", L = rsLire(), h = f !== "partie", pt = f !== "heure";
     // anciens prix généraux → recopiés sur les lignes sans prix
     if (L.length && ((h && +P.prixHeure) || (pt && +P.prixPartie)) && L.some(r => (h && !r.ph) || (pt && !r.pp))) { L.forEach(r => { if (h && !r.ph && +P.prixHeure) r.ph = String(P.prixHeure); if (pt && !r.pp && +P.prixPartie) r.pp = String(P.prixPartie); }); rsEcrire(L); }
     const cols = `1fr${h ? " 74px" : ""}${pt ? " 74px" : ""} 40px`;
+    const subcols = `1fr${h ? " 74px" : ""}${pt ? " 74px" : ""} 40px`;
+    const cats = [...new Set(L.map(r => (r.cat || "").trim()).filter(Boolean))];
     return `<div class="eyebrow">Tables, terrains ou postes, avec leur prix (le client voit le total)</div>
-      <p class="muted" style="margin:0 0 6px;font-size:12.5px">💡 Plusieurs sports ? Écrivez « <b>Basket &gt; Terrain 1</b> », « <b>Tennis &gt; Court 1</b> »… Le client choisira d'abord le sport, puis le terrain.</p>
-      <div class="rshead" style="grid-template-columns:${cols}"><span>Nom</span>${h ? "<span>DH / heure</span>" : ""}${pt ? "<span>DH / partie</span>" : ""}<span></span></div>
-      <div class="stack" style="gap:8px">${L.map((r, i) => `<div class="svrow" style="grid-template-columns:${cols}"><input data-rs="${i}.nom" value="${esc(r.nom)}" placeholder="⚽ Terrain 1">${h ? `<input data-rs="${i}.ph" value="${esc(r.ph)}" placeholder="250" inputmode="numeric">` : ""}${pt ? `<input data-rs="${i}.pp" value="${esc(r.pp)}" placeholder="5" inputmode="numeric">` : ""}<button class="btn icon sm danger" data-act="rs-del" data-i="${i}">✕</button></div>`).join("")}
-      <button class="btn sm" data-act="rs-add">＋ Ajouter une ligne</button></div>`;
+      <p class="muted" style="margin:0 0 8px;font-size:12.5px">💡 Plusieurs sports ou types ? Mettez une <b>Catégorie</b> (ex. Grand foot, Mini-foot, Spa, Musculation…). Le client choisira d'abord la catégorie, puis le terrain. Laissez vide s'il n'y a qu'un type.</p>
+      <datalist id="rscats">${cats.map(c => `<option value="${esc(c)}">`).join("")}</datalist>
+      <div class="stack" style="gap:10px">${L.map((r, i) => `<div class="sec paper" style="padding:10px;gap:8px;display:flex;flex-direction:column">
+        <input data-rs="${i}.cat" value="${esc(r.cat || "")}" placeholder="Catégorie / sport (facultatif) — ex. Grand foot" maxlength="40" style="font-weight:600" list="rscats" autocomplete="off">
+        <div class="svrow" style="grid-template-columns:${subcols}"><input data-rs="${i}.nom" value="${esc(r.nom)}" placeholder="Nom du terrain — ex. Terrain A">${h ? `<input data-rs="${i}.ph" value="${esc(r.ph)}" placeholder="250" inputmode="numeric">` : ""}${pt ? `<input data-rs="${i}.pp" value="${esc(r.pp)}" placeholder="5" inputmode="numeric">` : ""}<button class="btn icon sm danger" data-act="rs-del" data-i="${i}">✕</button></div>
+        <div class="rshead" style="grid-template-columns:${subcols};margin:0"><span></span>${h ? "<span style='font-size:11px'>DH / heure</span>" : ""}${pt ? "<span style='font-size:11px'>DH / partie</span>" : ""}<span></span></div></div>`).join("")}
+      <button class="btn sm" data-act="rs-add">＋ Ajouter un terrain</button></div>`;
   }
   // options en plus (location raquette, balles…) : « 🎾 Raquette · 20 DH »
   const opLire = () => String(P.options || "").split(/\n+/).map(x => x.trim()).filter(Boolean).map(l => { const m = l.match(/^(.*?)\s*[·|•-]\s*(\d+)\s*dh\s*$/i); return m ? { nom: m[1], prix: m[2] } : { nom: l, prix: "" }; });
@@ -580,7 +586,7 @@ Skill Play | billard | 0602545454`;
     if (t.dataset.k) { P[t.dataset.k] = t.type === "checkbox" ? t.checked : t.value; if (t.hasAttribute("data-rerender")) { renderEdit(); majBarre(); return; } if (t.dataset.k === "fidPid" && t.value && !String(P.ownerEmail || "").trim()) { const f = (FIDS || []).find(x => x.id === t.value); if (f && f.mail) { P.ownerEmail = f.mail; const o = app.querySelector('[data-k="ownerEmail"]'); if (o) o.value = f.mail; } } if (t.dataset.k === "nom") $("#topTitle").textContent = (TYPES[P.type] || [""])[0] + " " + t.value; }
     else if (t.dataset.h != null) { P.horaires = P.horaires || {}; P.horaires[t.dataset.h] = t.value; }
     else if (t.hasAttribute("data-metier")) { if (t.value && appliquerMetier(t.value)) { renderEdit(); toast("✅ Modèle appliqué : mettez vos prix, puis Enregistrer"); } else if (t.value) t.value = P.metier || ""; }
-    else if (t.dataset.rs) { const [i, k] = t.dataset.rs.split("."), L = rsLire(); if (L[+i]) { L[+i][k] = k === "nom" ? t.value : t.value.replace(/\D/g, ""); rsEcrire(L); } }
+    else if (t.dataset.rs) { const [i, k] = t.dataset.rs.split("."), L = rsLire(); if (L[+i]) { L[+i][k] = (k === "nom" || k === "cat") ? t.value : t.value.replace(/\D/g, ""); rsEcrire(L); } }
     else if (t.dataset.op) { const [i, k] = t.dataset.op.split("."), L = opLire(); if (L[+i]) { L[+i][k] = k === "nom" ? t.value : t.value.replace(/\D/g, ""); opEcrire(L); } }
     else if (t.dataset.sv) { const [i, k] = t.dataset.sv.split("."), L = svLire(); if (L[+i]) { L[+i][k] = k === "prix" ? t.value.replace(/\D/g, "") : k === "duree" ? +t.value : t.value; svEcrire(L); } }
     else if (t.dataset.l) { const [i, k] = t.dataset.l.split("."); P.liens[+i][k] = t.value; }
@@ -650,7 +656,7 @@ Skill Play | billard | 0602545454`;
         renderEdit(); majBarre(); toast(`🎁 Carte créée (${R[1]} ${R[2]} = ${R[0]}). Appuyez sur Enregistrer. Logo et récompense : dans Fidélité.`);
       } catch (x) { b.disabled = false; erreur(x); }
     }
-    if (a === "rs-add") { const L = rsLire(); L.push({ nom: "Nouveau " + (L.length + 1), ph: "", pp: "" }); rsEcrire(L); renderEdit(); majBarre(); }
+    if (a === "rs-add") { const L = rsLire(); L.push({ cat: "", nom: "Nouveau " + (L.length + 1), ph: "", pp: "" }); rsEcrire(L); renderEdit(); majBarre(); }
     if (a === "rs-del") { const L = rsLire(); L.splice(i, 1); rsEcrire(L); renderEdit(); majBarre(); }
     if (a === "op-add") { const L = opLire(); L.push({ nom: "Nouvelle option", prix: "" }); opEcrire(L); renderEdit(); majBarre(); }
     if (a === "op-del") { const L = opLire(); L.splice(i, 1); opEcrire(L); renderEdit(); majBarre(); }
