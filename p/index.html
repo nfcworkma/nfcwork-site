@@ -128,16 +128,23 @@ a:active,button:active{transform:scale(.98)}
 #rbook .rsb,#rbook .chip,#rbook .sv,#rbook .inp{background:color-mix(in srgb,var(--bg) 58%,transparent)}
 #rbook .rsb.on,#rbook .chip.on{background:var(--accent)}
 #rbook .rsb.on{box-shadow:0 8px 26px var(--glow)}
+.rdesc{font-size:14.5px;line-height:1.65;color:var(--fg)}
 .hero-cta{position:relative;overflow:hidden}
 .hero-cta::after{content:"";position:absolute;top:0;left:-60%;width:38%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:skewX(-20deg);animation:sheen 3.4s ease-in-out infinite}
 @keyframes sheen{0%{left:-60%}55%{left:135%}100%{left:135%}}
 @media(prefers-reduced-motion:reduce){.hero-cta::after{display:none}}
-/* ===== ordinateur : colonne centrée façon app (plus de hero pleine largeur) ===== */
-@media(min-width:600px){
-  .wrap{max-width:468px}
-  .hero{width:100%;margin-left:0;min-height:400px;border-radius:0 0 26px 26px}
-  .hero.artbg .hero-bg img,.hero:not(.artbg) .hero-bg img{object-position:center 28%}
-  body::after{content:"";position:fixed;inset:0;z-index:-4;background:var(--bg)}
+/* ===== ordinateur : vraie mise en page large (hero pleine largeur + 2 colonnes) ===== */
+@media(min-width:860px){
+  body.rdv-page .wrap{max-width:none;padding-left:0;padding-right:0}
+  body.rdv-page .hero{min-height:min(60vh,520px)}
+  body.rdv-page .hero-in{max-width:1120px;margin:0 auto;text-align:start;align-items:flex-start;padding-left:max(36px,env(safe-area-inset-left,0px));padding-right:36px}
+  body.rdv-page .hero-t{font-size:clamp(42px,4.6vw,64px)}
+  body.rdv-page .hero-badge{margin-inline:0}
+  body.rdv-page .gstrip{max-width:1120px;margin:18px auto 0;padding:0 36px}
+  body.rdv-page .rbk{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:26px;max-width:1120px;margin:10px auto 0;padding:0 36px;align-items:start;box-sizing:border-box}
+  body.rdv-page .rbk-main,body.rdv-page .rbk-side{min-width:0}
+  body.rdv-page .rbk-side{position:sticky;top:18px;display:flex;flex-direction:column;gap:0}
+  body.rdv-page #rbook .card,body.rdv-page #rbook .main{margin-top:0;margin-bottom:16px}
 }
 </style>
 </head>
@@ -429,6 +436,7 @@ a:active,button:active{transform:scale(.98)}
         ${(P.galerie && P.galerie.length) ? `<div class="gstrip">${P.galerie.map(id => `<img data-img="${esc(id)}" alt="">`).join("")}</div>` : ""}`;
     }
     function monterShell() {
+      try { document.body.classList.add("rdv-page"); } catch (e) {}
       app.innerHTML = (COVER ? `<div class="amb"><img data-img="${esc(COVER)}" alt=""></div>` : `<div class="amb"><img src="${ART}" alt=""></div>`) + heroHTML() + `<div id="rbook" class="rise1"></div>`;
       remplir();
       const cta = document.getElementById("toBook");
@@ -450,6 +458,8 @@ a:active,button:active{transform:scale(.98)}
       if (HERO && !host) { monterShell(); host = document.getElementById("rbook"); }
       host.innerHTML = `${tete}
         ${mes.length ? `<div class="card mesr"><div class="lab" style="margin-bottom:8px">${T("Vos réservations", "الحجوزات ديالك")}</div>${mes.map(r => `<button class="mr" data-voir="${esc(r.id)}"><b>${esc(jourCourt(r.jour))} · ${esc(r.debut)}</b><span>${esc(r.quoi || "")}</span><i>›</i></button>`).join("")}</div>` : ""}
+        <div class="rbk"><div class="rbk-main">
+        ${P.description ? `<div class="card rdesc">${esc(P.description).replace(/\n/g, "<br>")}</div>` : ""}
         ${tb ? `<div class="card"><div class="lab">${++k} · ${({ foot: T("Le terrain", "التيران"), terrains: T("Le terrain", "التيران"), padel: T("Le court", "التيران"), salle: T("L’espace", "البلاصة"), studio: T("Le studio", "الستوديو"), location: T("Le véhicule", "الموطور"), fete: T("La salle", "الصالة"), loisir: T("L’activité", "النشاط"), ps: T("Le poste", "البوسط") })[P.metier] || T("La table", "الطابلة")}</div>${CATS.length ? `<div class="chips" style="margin-top:10px">${CATS.map(c => `<button class="chip${S.cat === c ? " on" : ""}" data-cat="${esc(c)}">${esc(c)} <small style="opacity:.65">${RSO.filter(r => r.cat === c).length}</small></button>`).join("")}</div>` : ""}<div class="rs">${RS.map((r, i) => { if (CATS.length && RSO[i].cat !== S.cat) return ""; const [e, t] = emo(r), pl = resPleine(r); const o = RSO[i], px = S.unit === "partie" ? (o.pp ?? (+P.prixPartie || 0)) : (o.ph ?? (+P.prixHeure || 0));
           return `<button class="rsb${S.res === r ? " on" : ""}${pl ? " pris" : ""}" data-res="${i}" ${pl ? "disabled" : ""}><span>${emo(o.cat || r)[0] || e || DEFIC}</span>${esc(o.cat ? o.label : t)}${px ? `<small class="px">${px} DH/${S.unit === "partie" ? T("partie", "پارتية") : "h"}</small>` : ""}</button>`; }).join("")}</div></div>`
         : SV.length ? `<div class="card"><div class="lab">${++k} · ${["salon", "barber", "ongles", "spa", ""].includes(P.metier || "") ? T("Les soins (un ou plusieurs)", "الخدمات (وحدة ولا كثر)") : T("Le service (un ou plusieurs)", "الخدمة (وحدة ولا كثر)")}</div><div class="svl">${SV.map((s, i) => `<button class="sv${S.svcs.includes(i) ? " on" : ""}" data-svc="${i}"><span><b>${esc(s.nom)}</b>${s.duree ? `<small>${fdur(s.duree)}</small>` : ""}</span>${s.prix ? `<em>${s.prix} DH</em>` : ""}</button>`).join("")}</div></div>` : ""}
@@ -463,6 +473,7 @@ a:active,button:active{transform:scale(.98)}
           ${tb ? `<div class="lab" style="margin-top:14px">${T("À quelle heure ?", "شمن ساعة؟")}</div>` + HEURES : ""}
         </div>
         ${OPT.length ? `<div class="card"><div class="lab">${T("Options en plus", "زيادات")}</div><div class="opl">${OPT.map((o, i) => `<div class="op"><span><b>${esc(o.nom)}</b>${o.prix ? `<small>${o.prix} DH</small>` : ""}</span><div class="qty"><button data-opm="${i}" ${S.opt[i] ? "" : "disabled"} aria-label="moins">−</button><b>${S.opt[i] || 0}</b><button data-opp="${i}" aria-label="plus">+</button></div></div>`).join("")}</div></div>` : ""}
+        </div><aside class="rbk-side">
         ${tot ? `<div class="card totc"><span>💰 ${T("Total", "المجموع")}<small>${esc(quoiCh())}${tb ? " · " + esc(emo(S.res)[1]) : ""} · ${S.pay === "virement" ? T("par virement", "بالتحويل") : T("à payer sur place", "تخلص فالمحل")}</small></span><b>${tot} DH</b></div>` : ""}
         ${PAY !== "place" ? `<div class="card"><div class="lab">${++k} · 💳 ${T("Paiement", "الخلاص")}</div>
           ${PAY === "deux" ? `<div class="seg2" style="margin-top:10px"><button class="${S.pay === "place" ? "on" : ""}" data-pay="place">💵 ${T("Sur place", "فالمحل")}</button><button class="${S.pay === "virement" ? "on" : ""}" data-pay="virement">🏦 ${T("Virement", "تحويل بنكي")}</button></div>` : `<p class="aide" style="margin:8px 0 0;text-align:start">🏦 ${T("Paiement par virement bancaire", "الخلاص بتحويل بنكي")}</p>`}
@@ -476,6 +487,7 @@ a:active,button:active{transform:scale(.98)}
         <button class="main" id="rv-go">${enLigne ? "" : I.wa}${esc(bouton())}</button>
         <p class="aide">${enLigne ? (P.auto ? T("Votre réservation est confirmée tout de suite.", "الحجز كيتأكد دغيا.") : T("Le commerce confirme votre réservation en quelques minutes.", "المحل كيأكد الحجز فدقايق.")) : T("Le commerce confirme votre rendez-vous sur WhatsApp.", "المحل كيأكد ليك الموعد فواتساب.")}</p>
         ${P.instagram ? row(handle(P.instagram, "https://instagram.com/"), "insta", "Instagram", String(P.instagram).replace(/^https?:\/\/(www\.)?/, "")) : ""}
+        </aside></div>
         ${pied()}`;
       remplir();
       const nn = document.getElementById("rv-n"), tt = document.getElementById("rv-t"), ff = document.getElementById("rv-f");
@@ -533,7 +545,7 @@ a:active,button:active{transform:scale(.98)}
         const id = rid(20), statut = P.auto ? "confirmee" : "attente";
         const R = { page: slug, ownerEmail: String(P.ownerEmail).toLowerCase(), nom: S.n.trim().slice(0, 40), tel: tel.slice(0, 20), mode: tb ? "tables" : "services",
           ressource: tb ? S.res : "", service: detail.slice(0, 120), prix: tot, staff, jour: S.j, debut: lab(S.h), debutMin: S.h, duree: d, statut, pay: S.pay, fid: fid ? fid.cid : "" };
-        const F = {}; for (const kk in R) F[kk] = enc(R[kk]);
+        const F = {}; for (const kk in R) if (kk !== "pay") F[kk] = enc(R[kk]);   // « pay » reste local (évite un refus si les règles Firestore limitent les champs)
         const occF = { page: enc(slug), jour: enc(S.j), debut: enc(S.h), fin: enc(S.h + d), ressource: enc(R.ressource), staff: enc(staff), statut: enc(statut) };
         await commit([
           { update: { name: nom("reservations/" + id), fields: F }, updateTransforms: [{ fieldPath: "cree", setToServerValue: "REQUEST_TIME" }], currentDocument: { exists: false } },
@@ -612,7 +624,7 @@ a:active,button:active{transform:scale(.98)}
           ${fid && WALLET && !IOS && !non && !DEMO ? `<a class="main gw" href="${WALLET}/google/save?c=${encodeURIComponent(fid.cid)}" rel="noopener">${T("Ajouter à Google Wallet", "زيد لـ Google Wallet")}</a>` : ""}
           ${fid && !non && !DEMO ? `<a class="row2" href="/f/?c=${encodeURIComponent(fid.cid)}">🎁 ${T("Voir ma carte fidélité", "شوف كارطة الوفاء")}${fid.recompense ? ` <small>${fid.objectif} ${esc(fid.unite)} = ${esc(fid.recompense)}</small>` : ""}</a>` : ""}
 
-          ${R.pay === "virement" && !non && st !== "venu" ? `${P.ribPdf ? `<a class="row2" href="#" data-pdf="${esc(P.ribPdf)}">📄 ${T("Voir le RIB pour le virement", "شوف RIB ديال التحويل")}</a>` : ""}${waNum(P.whatsapp) ? `<a class="main waok" target="_blank" rel="noopener" href="https://wa.me/${waNum(P.whatsapp)}?text=${encodeURIComponent(T("Bonjour, voici le reçu de mon virement pour ma réservation", "السلام، ها الريسي ديال التحويل ديال الحجز") + " #" + id.slice(0, 6).toUpperCase())}">${I.wa}${T("Envoyer le reçu du virement", "صيفط ريسي التحويل")}</a>` : ""}<p class="aide" style="margin:6px 0 2px">${T("Votre créneau est confirmé dès réception du virement.", "الوقت ديالك كيتأكد ملي يوصل التحويل.")}</p>` : ""}
+          ${(R.pay === "virement" || P.paiement === "virement") && !non && st !== "venu" ? `${P.ribPdf ? `<a class="row2" href="#" data-pdf="${esc(P.ribPdf)}">📄 ${T("Voir le RIB pour le virement", "شوف RIB ديال التحويل")}</a>` : ""}${waNum(P.whatsapp) ? `<a class="main waok" target="_blank" rel="noopener" href="https://wa.me/${waNum(P.whatsapp)}?text=${encodeURIComponent(T("Bonjour, voici le reçu de mon virement pour ma réservation", "السلام، ها الريسي ديال التحويل ديال الحجز") + " #" + id.slice(0, 6).toUpperCase())}">${I.wa}${T("Envoyer le reçu du virement", "صيفط ريسي التحويل")}</a>` : ""}<p class="aide" style="margin:6px 0 2px">${T("Votre créneau est confirmé dès réception du virement.", "الوقت ديالك كيتأكد ملي يوصل التحويل.")}</p>` : ""}
           ${!non && st !== "venu" && !DEMO ? `<button class="row2 lien" id="rv-ann">${T("Annuler ma réservation", "لغي الحجز")}</button>` : ""}
           <button class="main" id="rv-new" style="margin-top:14px">${non ? T("Choisir un autre créneau", "اختار وقت آخر") : T("Nouvelle réservation", "حجز جديد")}</button>
           ${pied()}`;
