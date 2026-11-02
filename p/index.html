@@ -132,6 +132,13 @@ a:active,button:active{transform:scale(.98)}
 .hero-cta::after{content:"";position:absolute;top:0;left:-60%;width:38%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:skewX(-20deg);animation:sheen 3.4s ease-in-out infinite}
 @keyframes sheen{0%{left:-60%}55%{left:135%}100%{left:135%}}
 @media(prefers-reduced-motion:reduce){.hero-cta::after{display:none}}
+/* ===== ordinateur : colonne centrée façon app (plus de hero pleine largeur) ===== */
+@media(min-width:600px){
+  .wrap{max-width:468px}
+  .hero{width:100%;margin-left:0;min-height:400px;border-radius:0 0 26px 26px}
+  .hero.artbg .hero-bg img,.hero:not(.artbg) .hero-bg img{object-position:center 28%}
+  body::after{content:"";position:fixed;inset:0;z-index:-4;background:var(--bg)}
+}
 </style>
 </head>
 <body>
