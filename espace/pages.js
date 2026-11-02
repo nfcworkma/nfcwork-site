@@ -292,6 +292,7 @@ Skill Play | billard | 0602545454`;
     if (L.length && ((h && +P.prixHeure) || (pt && +P.prixPartie)) && L.some(r => (h && !r.ph) || (pt && !r.pp))) { L.forEach(r => { if (h && !r.ph && +P.prixHeure) r.ph = String(P.prixHeure); if (pt && !r.pp && +P.prixPartie) r.pp = String(P.prixPartie); }); rsEcrire(L); }
     const cols = `1fr${h ? " 74px" : ""}${pt ? " 74px" : ""} 40px`;
     return `<div class="eyebrow">Tables, terrains ou postes, avec leur prix (le client voit le total)</div>
+      <p class="muted" style="margin:0 0 6px;font-size:12.5px">💡 Plusieurs sports ? Écrivez « <b>Basket &gt; Terrain 1</b> », « <b>Tennis &gt; Court 1</b> »… Le client choisira d'abord le sport, puis le terrain.</p>
       <div class="rshead" style="grid-template-columns:${cols}"><span>Nom</span>${h ? "<span>DH / heure</span>" : ""}${pt ? "<span>DH / partie</span>" : ""}<span></span></div>
       <div class="stack" style="gap:8px">${L.map((r, i) => `<div class="svrow" style="grid-template-columns:${cols}"><input data-rs="${i}.nom" value="${esc(r.nom)}" placeholder="⚽ Terrain 1">${h ? `<input data-rs="${i}.ph" value="${esc(r.ph)}" placeholder="250" inputmode="numeric">` : ""}${pt ? `<input data-rs="${i}.pp" value="${esc(r.pp)}" placeholder="5" inputmode="numeric">` : ""}<button class="btn icon sm danger" data-act="rs-del" data-i="${i}">✕</button></div>`).join("")}
       <button class="btn sm" data-act="rs-add">＋ Ajouter une ligne</button></div>`;
