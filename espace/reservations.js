@@ -116,16 +116,19 @@
     if (r.statut === "attente") act = `<button class="ic ok" data-ok="${r.id}" aria-label="Confirmer">✓</button><button class="ic no" data-non="${r.id}" aria-label="Refuser">✕</button>`;
     else if (r.statut === "confirmee") act = `${wa ? `<a class="ic" href="https://wa.me/${wa}?text=${encodeURIComponent(msgConf(r))}" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>` : ""}${r.jour <= auj() ? `<button class="tag arr" data-arr="${r.id}">Arrivé ? +1</button>` : `<span class="tag c">Confirmé</span>`}${enRetard(r) ? `<button class="tag r" data-abs="${r.id}" style="cursor:pointer;font:700 12px var(--body)">Pas venu</button>` : `<button class="ic no" data-ann="${r.id}" aria-label="Annuler">✕</button>`}`;
     else if (r.statut === "venu") act = `<span class="tag v">Venu ✓</span>`;
-    else act = `<span class="tag r">${r.statut === "annulee" ? "Annulé" : "Refusé"}</span>`;
+    else act = `<span class="tag r">${r.statut === "absent" ? "Pas venu" : r.statut === "annulee" ? "Annulé" : "Refusé"}</span>`;
+    const mm = t => String(t || "").replace(/\D/g, "").slice(-9);
+    const abs = r.tel && r.statut !== "absent" ? R.filter(x => x.statut === "absent" && x.id !== r.id && mm(x.tel) === mm(r.tel)).length : 0;
+    const flag = abs ? ` <span class="tag r" title="Ce numéro a déjà ${abs} absence(s)">⚠️ ${abs}×</span>` : "";
     return `<div class="rv"${ACTIF(r) ? "" : ' style="opacity:.55"'}><div class="h">${esc(r.debut)}${avecJour ? `<small>${esc(NJ[deCle(r.jour).getDay()] + " " + deCle(r.jour).getDate())}</small>` : `<small>→ ${lab(fin)}</small>`}</div>
-      <div class="q"><b>${esc(r.nom)} · ${esc(quoi(r))}</b><small>${esc(sous)}</small></div><div class="a">${act}</div></div>`;
+      <div class="q"><b>${esc(r.nom)} · ${esc(quoi(r))}</b>${flag}<small>${esc(sous)}</small></div><div class="a">${act}</div></div>`;
   }
   const minNow = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
   const debutDe = r => +r.debutMin || hm(r.debut) || 0;
   const enRetard = r => r.statut === "confirmee" && (r.jour < auj() || (r.jour === auj() && minNow() > debutDe(r) + 10));
   const msgConf = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nVotre réservation chez ${P.nom || "nous"} est confirmée ✅\n🗓 ${jourLong(r.jour)} à ${r.debut}\n${r.mode === "tables" ? "🎱 " + emo(r.ressource)[1] : "✂️ " + (r.service || "") + (r.staff ? " avec " + r.staff : "")}\n\n🎟️ Votre ticket (à montrer à l’arrivée, une capture d’écran suffit) :\n${lienTicket(r)}\nÀ bientôt !`; };
   const lienTicket = r => SITE + "/p/" + r.page + "?r=" + r.id;
-  const msgRappel = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nPetit rappel : votre réservation chez ${P.nom || "nous"} c’est demain, ${jourLong(r.jour)} à ${r.debut} (${quoi(r)}${r.staff ? " avec " + r.staff : ""}).\nÀ demain ! Si vous ne pouvez pas venir, prévenez-nous ici 🙏`; };
+  const msgRappel = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nPetit rappel : votre réservation chez ${P.nom || "nous"} c’est demain, ${jourLong(r.jour)} à ${r.debut} (${quoi(r)}${r.staff ? " avec " + r.staff : ""}).\nÀ demain ! 🙏\n\nEmpêché(e) ? Annulez en 1 clic ici pour libérer le créneau :\n${lienTicket(r)}`; };
 
   function vueRes() {
     const L = RF(), A = L.filter(r => r.statut === "attente" && r.jour >= auj()).sort(tri);
@@ -184,7 +187,7 @@
 
   function vueStats() {
     const L = RF().filter(r => r.jour.slice(0, 7) === mois), A = L.filter(ACTIF);
-    const venus = L.filter(r => r.statut === "venu").length, absents = L.filter(r => r.statut === "confirmee" && r.jour < auj()).length;
+    const venus = L.filter(r => r.statut === "venu").length, absents = L.filter(r => r.statut === "absent" || (r.statut === "confirmee" && r.jour < auj())).length;
     const non = L.filter(r => r.statut === "refusee" || r.statut === "annulee").length;
     const ca = A.reduce((s, r) => s + (+r.prix || 0), 0);
     const premiers = {}; RF().slice().sort(tri).forEach(r => { const t = String(r.tel || "").replace(/\D/g, "").slice(-9); if (t && !premiers[t]) premiers[t] = r.jour.slice(0, 7); });
@@ -309,7 +312,7 @@
     const b = db.batch();
     const champs = st === "venu" ? { statut: st, maj: NOW(), venuA: NOW() } : { statut: st, maj: NOW() };
     b.update(db.doc("reservations/" + r.id), champs);
-    if (st === "refusee" || st === "annulee") b.delete(db.doc("rdvOccupe/" + r.id));
+    if (st === "refusee" || st === "annulee" || st === "absent") b.delete(db.doc("rdvOccupe/" + r.id));
     else b.update(db.doc("rdvOccupe/" + r.id), { statut: st });
     try { await b.commit(); return true; }
     catch (e) {   // ancienne réservation sans créneau public
@@ -347,7 +350,7 @@
     if (d.ok) { const r = R1(d.ok); if (r && await statut(r, "confirmee")) envoyerTicket(r); }
     else if (d.non) { const r = R1(d.non); if (r && confirm(`Refuser la réservation de ${r.nom} ?`)) { if (await statut(r, "refusee")) toast("Réservation refusée · le créneau est libéré"); } }
     else if (d.ann) { const r = R1(d.ann); if (r && confirm(`Annuler la réservation de ${r.nom} (${r.debut}) ?`)) { if (await statut(r, "annulee")) toast("Réservation annulée · le créneau est libéré"); } }
-    else if (d.abs) { const r = R1(d.abs); if (r && confirm(`${r.nom} n’est pas venu ? Le créneau sera libéré.`)) { if (await statut(r, "annulee")) toast("Créneau libéré ✓"); } }
+    else if (d.abs) { const r = R1(d.abs); if (r && confirm(`${r.nom} n’est pas venu ? Le créneau sera libéré.`)) { if (await statut(r, "absent")) toast("Créneau libéré · noté « pas venu »"); } }
     else if (d.arr) { const r = R1(d.arr); if (r) await arrive(r); }
     else if (d.plus) { try { await db.doc("fidCartes/" + d.plus).update({ points: inc(1), total: inc(1), lastAt: NOW() }); if (WALLET) fetch(WALLET + "/google/sync?c=" + d.plus, { mode: "no-cors" }).catch(() => {}); toast("+1 ✓"); } catch (x) { toast("Échec."); } }
     else if (d.offrir) { const pr = FID[d.pid] && FID[d.pid].prog, obj = Math.max(1, (pr && pr.objectif) || 10); if (confirm("Offrir le cadeau à ce client ?")) { try { await db.doc("fidCartes/" + d.offrir).update({ points: inc(-obj), recompenses: inc(1), lastAt: NOW() }); toast("🎁 Cadeau offert"); } catch (x) { toast("Échec."); } } }

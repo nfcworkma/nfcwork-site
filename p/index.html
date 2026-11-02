@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Sora:wght@700;800&display=swap">
 <style>
 /* PAGES NFC créées depuis l'Espace (sans Mac) : carte digitale, avis Google, Wi-Fi, page liens
    Lien : nfcwork.ma/p/<nom>  (404.html renvoie ici avec ?s=<nom>) ; données : Firestore settings/page-<nom> */
@@ -86,6 +86,35 @@ a:active,button:active{transform:scale(.98)}
 .state b{display:block;color:var(--fg);font-size:22px;margin-bottom:6px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;transition:.25s;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%)}
+/* ===== Réservation premium (hero cinématique) ===== */
+.hero{position:relative;width:100vw;margin-left:calc(50% - 50vw);margin-top:-34px;min-height:62vh;display:flex;align-items:flex-end;overflow:hidden;isolation:isolate}
+.hero.noimg{min-height:48vh;background:radial-gradient(130% 100% at 50% -10%,var(--surf2) 0%,var(--bg) 70%)}
+.hero-bg{position:absolute;inset:-6% -3%;z-index:-2;will-change:transform}
+.hero-bg img{width:100%;height:100%;object-fit:cover;display:block}
+.hero.kb .hero-bg img{animation:kb 22s ease-out both}
+.hero-ov{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(5,8,15,.30) 0%,rgba(5,8,15,.06) 30%,rgba(5,8,15,.80) 80%,var(--bg) 100%)}
+.hero-glow{position:absolute;left:50%;bottom:8%;width:min(560px,88%);height:320px;transform:translateX(-50%);background:radial-gradient(closest-side,var(--glow),transparent);z-index:-1;animation:breathe 7s ease-in-out infinite}
+.hero-in{position:relative;width:100%;max-width:430px;margin:0 auto;padding:48px 20px 36px;text-align:center}
+.hero-in>*{animation:rise .6s both}
+.hero-in>*:nth-child(2){animation-delay:.05s}.hero-in>*:nth-child(3){animation-delay:.1s}.hero-in>*:nth-child(4){animation-delay:.15s}.hero-in>*:nth-child(5){animation-delay:.2s}.hero-in>*:nth-child(6){animation-delay:.25s}
+.hbrand{margin-bottom:16px}.hbrand img{height:18px;width:auto;opacity:.92}
+.hero-badge{width:88px;height:88px;border-radius:24px;background:#fff;margin:0 auto 16px;display:grid;place-items:center;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.45);animation:float 5s ease-in-out infinite}
+.hero-badge img{width:84%;height:84%;object-fit:contain}
+.hero-eyebrow{font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent2);font-weight:700;margin-bottom:10px}
+.hero-t{font-family:"Sora","Readex Pro",sans-serif;font-weight:800;font-size:clamp(30px,8.5vw,46px);line-height:1.05;letter-spacing:-.02em;text-wrap:balance;text-shadow:0 2px 26px rgba(0,0,0,.55)}
+.hero-s{color:#dbe6f8;margin-top:11px;font-size:15.5px;line-height:1.5}
+.hero-cta{display:inline-flex;align-items:center;gap:8px;margin-top:22px;background:var(--accent);color:var(--accentfg);border:0;border-radius:999px;padding:14px 26px;font:inherit;font-weight:700;font-size:15.5px;cursor:pointer;box-shadow:0 12px 34px var(--glow)}
+.hero-cta .a{display:inline-block;animation:bob 1.6s ease-in-out infinite}
+.gstrip{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:16px 0 0;padding-bottom:4px;scroll-snap-type:x proximity;animation:rise .6s both;animation-delay:.1s}
+.gstrip::-webkit-scrollbar{display:none}
+.gstrip img{height:120px;width:auto;max-width:none;border-radius:16px;object-fit:cover;flex:none;scroll-snap-align:start;border:1px solid var(--line)}
+#rbook.rise1{animation:rise .55s both;animation-delay:.08s}
+@keyframes kb{from{transform:scale(1.02)}to{transform:scale(1.14)}}
+@keyframes breathe{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.hero.kb .hero-bg img,.hero-glow,.hero-badge,.hero-cta .a,.hero-in>*,.gstrip,#rbook.rise1{animation:none!important}}
 </style>
 </head>
 <body>
@@ -311,7 +340,7 @@ a:active,button:active{transform:scale(.98)}
         { fieldFilter: { field: { fieldPath: "page" }, op: "EQUAL", value: { stringValue: slug } } },
         { fieldFilter: { field: { fieldPath: "jour" }, op: "EQUAL", value: { stringValue: j } } }] } } } };
       try { const r = await fetch(API + PRJ + ":runQuery?key=" + KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(q) });
-        const a = r.ok ? await r.json() : []; occ[j] = a.filter(x => x.document).map(x => obj(x.document.fields)).filter(x => x.statut !== "refusee" && x.statut !== "annulee"); }
+        const a = r.ok ? await r.json() : []; occ[j] = a.filter(x => x.document).map(x => obj(x.document.fields)).filter(x => x.statut !== "refusee" && x.statut !== "annulee" && x.statut !== "absent"); }
       catch (e) { occ[j] = []; }
       return occ[j];
     }
@@ -338,13 +367,44 @@ a:active,button:active{transform:scale(.98)}
     }
     const resPleine = r => { const s = S.res; S.res = r; const pl = !creneaux(S.j).some(x => x.ok); S.res = s; return pl; };
 
+    const COVER = (P.galerie && P.galerie[0]) || P.photo || "";
+    const HERO = P.hero !== false;
+    const metLabel = { foot: "Terrain de foot", terrains: "Réservation terrain", padel: "Padel", tennis: "Tennis", billard: "Billard & snooker", ps: "Gaming", gaming: "Gaming", salon: "Salon beauté", barber: "Barbier", ongles: "Onglerie", spa: "Spa & bien-être", studio: "Studio", location: "Location", fete: "Événementiel", loisir: "Loisirs", resto: "Restaurant" }[P.metier] || T("Réservation en ligne", "الحجز أونلاين");
+    function heroHTML() {
+      return `<section class="hero${COVER ? " kb" : " noimg"}">
+        ${COVER ? `<div class="hero-bg"><img data-img="${esc(COVER)}" alt=""></div>` : ""}
+        <div class="hero-ov"></div><div class="hero-glow"></div>
+        <div class="hero-in">
+          <div class="brand hbrand"><img src="/assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></div>
+          ${P.photo ? `<div class="hero-badge"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}
+          <div class="hero-eyebrow">${esc(metLabel)}</div>
+          <h1 class="hero-t">${esc(P.nom || "")}</h1>
+          <p class="hero-s">${esc(P.message || (tb ? T("Réservez votre créneau en 30 secondes", "احجز وقتك فـ 30 ثانية") : T("Prenez rendez-vous en ligne", "خود موعد أونلاين")))}</p>
+          <button class="hero-cta" id="toBook">${T("Réserver", "احجز")} <span class="a">▾</span></button>
+        </div></section>
+        ${(P.galerie && P.galerie.length) ? `<div class="gstrip">${P.galerie.map(id => `<img data-img="${esc(id)}" alt="">`).join("")}</div>` : ""}`;
+    }
+    function monterShell() {
+      app.innerHTML = heroHTML() + `<div id="rbook" class="rise1"></div>`;
+      remplir();
+      const cta = document.getElementById("toBook");
+      if (cta) cta.onclick = () => { const b = document.getElementById("rbook"); if (b) b.scrollIntoView({ behavior: "smooth", block: "start" }); };
+      const bg = document.querySelector(".hero-bg");
+      if (bg && !matchMedia("(prefers-reduced-motion:reduce)").matches) {
+        let tick = false;
+        window.addEventListener("scroll", () => { if (tick) return; tick = true; requestAnimationFrame(() => { const y = Math.min(window.scrollY || window.pageYOffset || 0, 700); bg.style.transform = "translateY(" + (y * 0.16) + "px)"; tick = false; }); }, { passive: true });
+      }
+    }
     function dessiner() {
       const cr = creneaux(S.j), tot = total();
       const HEURES = `<div class="chips" style="margin-top:10px">${occ[S.j] ? cr.map(x => `<button class="chip${S.h === x.m ? " on" : ""}${x.ok ? "" : " pris"}" data-h="${x.m}" ${x.ok ? "" : "disabled"}>${lab(x.m)}</button>`).join("") || `<span class="aide" style="margin:0">${T("Plus de créneau ce jour-là.", "ما بقاش وقت فهاد النهار.")}</span>` : `<span class="aide" style="margin:0">${T("Chargement des créneaux…", "كنشوفو الأوقات…")}</span>`}</div>`;
       if (S.h != null && !cr.some(x => x.m === S.h && x.ok)) S.h = null;
       const mes = mesResas().filter(r => r.jour >= cle(new Date()));
       let k = 0;
-      app.innerHTML = `${brand}${P.photo ? `<div class="logo"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}<h1>${esc(P.nom || "")}</h1><p class="sub">${esc(P.message || (tb ? T("Réservez en 30 secondes", "احجز فـ 30 ثانية") : T("Prenez rendez-vous en ligne", "خود موعد أونلاين")))}</p>
+      const tete = HERO ? "" : `${brand}${P.photo ? `<div class="logo"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}<h1>${esc(P.nom || "")}</h1><p class="sub">${esc(P.message || (tb ? T("Réservez en 30 secondes", "احجز فـ 30 ثانية") : T("Prenez rendez-vous en ligne", "خود موعد أونلاين")))}</p>`;
+      let host = HERO ? document.getElementById("rbook") : app;
+      if (HERO && !host) { monterShell(); host = document.getElementById("rbook"); }
+      host.innerHTML = `${tete}
         ${mes.length ? `<div class="card mesr"><div class="lab" style="margin-bottom:8px">${T("Vos réservations", "الحجوزات ديالك")}</div>${mes.map(r => `<button class="mr" data-voir="${esc(r.id)}"><b>${esc(jourCourt(r.jour))} · ${esc(r.debut)}</b><span>${esc(r.quoi || "")}</span><i>›</i></button>`).join("")}</div>` : ""}
         ${tb ? `<div class="card"><div class="lab">${++k} · ${({ foot: T("Le terrain", "التيران"), terrains: T("Le terrain", "التيران"), padel: T("Le court", "التيران"), salle: T("L’espace", "البلاصة"), studio: T("Le studio", "الستوديو"), location: T("Le véhicule", "الموطور"), fete: T("La salle", "الصالة"), loisir: T("L’activité", "النشاط"), ps: T("Le poste", "البوسط") })[P.metier] || T("La table", "الطابلة")}</div><div class="rs">${RS.map((r, i) => { const [e, t] = emo(r), pl = resPleine(r); const o = RSO[i], px = S.unit === "partie" ? (o.pp ?? (+P.prixPartie || 0)) : (o.ph ?? (+P.prixHeure || 0));
           return `<button class="rsb${S.res === r ? " on" : ""}${pl ? " pris" : ""}" data-res="${i}" ${pl ? "disabled" : ""}><span>${e || DEFIC}</span>${esc(t)}${px ? `<small class="px">${px} DH/${S.unit === "partie" ? T("partie", "پارتية") : "h"}</small>` : ""}</button>`; }).join("")}</div></div>`
@@ -448,6 +508,19 @@ a:active,button:active{transform:scale(.98)}
         if (R && !mesResas().some(x => x.id === id) && R.jour >= cle(new Date())) { const L = mesResas(); L.unshift({ id, jour: R.jour, debut: R.debut, quoi: (R.ressource ? emo(R.ressource)[1] + " · " : "") + (R.service || "") + (R.staff ? " · " + R.staff : "") }); try { localStorage.setItem(LS, JSON.stringify(L.slice(0, 10))); } catch (e) {} }
         if (!R) { const L = mesResas().filter(r => r.id !== id); try { localStorage.setItem(LS, JSON.stringify(L)); } catch (e) {} dessiner(); return; } }
       let fid = R.fidInfo; if (!fid && R.fid && P.fidPid) { try { const c = await lire("fidCartes/" + R.fid), p = await lire("fidProgrammes/" + P.fidPid); if (c && p) fid = { cid: R.fid, points: c.points || 0, objectif: Math.max(1, p.objectif || 10), unite: p.unite || "visites", recompense: p.recompense || "" }; } catch (e) {} }
+      function brancherAnnuler() {
+        const an = document.getElementById("rv-ann"); if (!an) return;
+        an.onclick = async () => {
+          if (!confirm(T("Annuler cette réservation ? Le créneau sera libéré.", "تلغي هاد الحجز؟ الوقت غادي يتسالا."))) return;
+          an.disabled = true;
+          try {
+            await commit([{ update: { name: nom("reservations/" + id), fields: { statut: enc("annulee") } }, updateMask: { fieldPaths: ["statut"] }, currentDocument: { exists: true } },
+              { delete: nom("rdvOccupe/" + id) }]);
+            R.statut = "annulee"; delete occ[R.jour]; peint(); toast(T("Réservation annulée · créneau libéré", "الحجز تلغى · الوقت تسالا"));
+            try { const L = mesResas().filter(r => r.id !== id); localStorage.setItem(LS, JSON.stringify(L)); } catch (e) {}
+          } catch (e) { an.disabled = false; toast(T("Échec. Contactez le commerce sur WhatsApp.", "ما خدمش. تواصل مع المحل فواتساب.")); }
+        };
+      }
       const peint = () => {
         const st = R.statut, ok = st === "confirmee" || st === "venu", non = st === "refusee" || st === "annulee";
         if (seul) {   // lien du ticket (WhatsApp) : seulement le ticket, sans formulaire
@@ -467,8 +540,9 @@ a:active,button:active{transform:scale(.98)}
               : `<p class="tkh">${non ? T("Cette réservation n’est plus valable.", "هاد الحجز ما بقاش صالح.") : T("Le QR code apparaîtra ici dès la confirmation.", "QR غادي يبان هنا ملي يتأكد الحجز.")}</p>`}
             </div>
             ${P.adresse || P.localisation ? `<p class="aide">📍 ${esc(P.adresse || P.localisation)}</p>` : ""}
+            ${!non && st !== "venu" && !DEMO ? `<button class="row2 lien" id="rv-ann" style="margin-top:12px">${T("Annuler ma réservation", "لغي الحجز")}</button>` : ""}
             <p class="aide" style="opacity:.7">nfcwork.ma</p>`;
-          remplir(); return;
+          remplir(); brancherAnnuler(); return;
         }
         const titre = non ? (st === "annulee" ? T("Réservation annulée", "الحجز تلغى") : T("Créneau indisponible", "هاد الوقت ما متاحش")) : ok ? (tb ? T("Réservation confirmée !", "الحجز تأكد!") : T("Rendez-vous réservé", "الموعد محجوز")) : T("Demande envoyée !", "الطلب تصيفط!");
         const sous = non ? T("Choisissez un autre créneau, ou contactez le commerce.", "اختار وقت آخر ولا تواصل مع المحل.") : ok ? (R.jour === cle(new Date()) ? T("À tout à l’heure ! Pensez à arriver 5 minutes avant.", "نتسناوك! جي 5 دقايق قبل.") : T("À " + jourLong(R.jour).split(" ")[0].toLowerCase() + " ! Pensez à arriver 5 minutes avant.", "نتسناوك! جي 5 دقايق قبل.")) : esc(P.nom || "") + T(" vous confirme dans quelques minutes.", " غادي يأكد ليك فدقايق.");
@@ -494,16 +568,7 @@ a:active,button:active{transform:scale(.98)}
           <button class="main" id="rv-new" style="margin-top:14px">${non ? T("Choisir un autre créneau", "اختار وقت آخر") : T("Nouvelle réservation", "حجز جديد")}</button>
           ${pied()}`;
         document.getElementById("rv-new").onclick = () => { clearInterval(poll); history.replaceState(null, "", location.pathname + location.search); dessiner(); };
-        const an = document.getElementById("rv-ann");
-        if (an) an.onclick = async () => {
-          if (!confirm(T("Annuler cette réservation ?", "تلغي هاد الحجز؟"))) return;
-          an.disabled = true;
-          try {
-            await commit([{ update: { name: nom("reservations/" + id), fields: { statut: enc("annulee") } }, updateMask: { fieldPaths: ["statut"] }, currentDocument: { exists: true } },
-              { delete: nom("rdvOccupe/" + id) }]);
-            R.statut = "annulee"; delete occ[R.jour]; peint(); toast(T("Réservation annulée", "الحجز تلغى"));
-          } catch (e) { an.disabled = false; toast(T("Échec. Contactez le commerce sur WhatsApp.", "ما خدمش. تواصل مع المحل فواتساب.")); }
-        };
+        brancherAnnuler();
       };
       peint();
       if (!DEMO && (R.statut === "attente" || R.statut === "confirmee")) poll = setInterval(async () => {
