@@ -118,6 +118,9 @@ a:active,button:active{transform:scale(.98)}
 /* ===== ambiance haut de gamme : fond immersif + verre dépoli ===== */
 .amb{position:fixed;inset:0;z-index:-3;overflow:hidden;pointer-events:none}
 .amb img{width:100%;height:120%;object-fit:cover;filter:blur(44px) brightness(.32) saturate(1.2);transform:scale(1.25)}
+.hero.artbg .hero-bg img{object-position:center 20%}
+.hero.artbg .hero-ov{background:linear-gradient(180deg,rgba(5,8,15,.12) 0%,rgba(5,8,15,.2) 48%,rgba(5,8,15,.78) 86%,var(--bg) 100%)}
+.hero.artbg::after{background:radial-gradient(130% 90% at 50% 30%,transparent 65%,rgba(0,0,0,.35) 100%)}
 .amb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,8,15,.55),rgba(5,8,15,.86))}
 .hero::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(125% 85% at 50% 32%,transparent 52%,rgba(0,0,0,.5) 100%)}
 #rbook .card,#rbook .totc{background:color-mix(in srgb,var(--surf) 80%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
@@ -386,14 +389,30 @@ a:active,button:active{transform:scale(.98)}
     const COVER = (P.galerie && P.galerie[0]) || P.photo || "";
     const HERO = P.hero !== false;
     const metLabel = { foot: "Terrain de foot", terrains: "Réservation terrain", padel: "Padel", tennis: "Tennis", billard: "Billard & snooker", ps: "Gaming", gaming: "Gaming", salon: "Salon beauté", barber: "Barbier", ongles: "Onglerie", spa: "Spa & bien-être", studio: "Studio", location: "Location", fete: "Événementiel", loisir: "Loisirs", resto: "Restaurant" }[P.metier] || T("Réservation en ligne", "الحجز أونلاين");
+    function coverSvg(s) {
+      const FL = "<g>" + [170, 400, 630].map(cx => "<circle cx='" + cx + "' cy='64' r='160' fill='url(#spot)'/>").join("") + "</g>";
+      const wrap = (stops, body) => "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 1120' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'>" + stops + "</linearGradient><radialGradient id='spot' cx='50%' cy='50%' r='50%'><stop offset='0' stop-color='#eaf4ff' stop-opacity='.55'/><stop offset='1' stop-color='#eaf4ff' stop-opacity='0'/></radialGradient></defs><rect width='800' height='1120' fill='url(#g)'/>" + FL + body + "</svg>");
+      const L = (st, w, lines) => "<g fill='none' stroke='" + st + "' stroke-width='" + w + "' stroke-opacity='.62'>" + lines + "</g>";
+      if (s === "foot") return wrap("<stop offset='0' stop-color='#11552f'/><stop offset='1' stop-color='#05180d'/>", L("#fff", 5, "<rect x='90' y='150' width='620' height='880'/><line x1='90' y1='590' x2='710' y2='590'/><circle cx='400' cy='590' r='120'/><rect x='250' y='150' width='300' height='160'/><rect x='250' y='870' width='300' height='160'/><rect x='340' y='150' width='120' height='60'/><rect x='340' y='970' width='120' height='60'/>"));
+      if (s === "basket") return wrap("<stop offset='0' stop-color='#6b4024'/><stop offset='1' stop-color='#24150b'/>", L("#fff1df", 5, "<rect x='90' y='150' width='620' height='880'/><line x1='90' y1='590' x2='710' y2='590'/><circle cx='400' cy='590' r='95'/><rect x='300' y='150' width='200' height='240'/><rect x='300' y='790' width='200' height='240'/><circle cx='400' cy='390' r='95'/><circle cx='400' cy='790' r='95'/>"));
+      if (s === "tennis") return wrap("<stop offset='0' stop-color='#17547f'/><stop offset='1' stop-color='#071f34'/>", L("#eefaff", 5, "<rect x='130' y='150' width='540' height='860'/><line x1='120' y1='580' x2='680' y2='580' stroke-width='8'/><line x1='210' y1='150' x2='210' y2='1010'/><line x1='590' y1='150' x2='590' y2='1010'/><line x1='210' y1='360' x2='590' y2='360'/><line x1='210' y1='800' x2='590' y2='800'/><line x1='400' y1='360' x2='400' y2='800'/>"));
+      if (s === "padel") return wrap("<stop offset='0' stop-color='#15558a'/><stop offset='1' stop-color='#071f34'/>", "<rect x='108' y='150' width='584' height='860' fill='none' stroke='#bfe3ff' stroke-opacity='.3' stroke-width='16'/>" + L("#e3f3ff", 5, "<rect x='150' y='180' width='500' height='800'/><line x1='150' y1='580' x2='650' y2='580' stroke-width='8'/><line x1='150' y1='380' x2='650' y2='380'/><line x1='150' y1='780' x2='650' y2='780'/><line x1='400' y1='380' x2='400' y2='780'/>"));
+      return wrap("<stop offset='0' stop-color='#223050'/><stop offset='1' stop-color='#070b14'/>", "<g stroke='#7aa2ff' stroke-opacity='.2' stroke-width='2'><line x1='-100' y1='340' x2='900' y2='100'/><line x1='-100' y1='560' x2='900' y2='320'/><line x1='-100' y1='780' x2='900' y2='540'/></g><circle cx='620' cy='260' r='200' fill='#2f6bff' fill-opacity='.14'/>");
+    }
+    const bag = (CATS.join(" ") + " " + (P.ressources || "") + " " + (P.metier || "") + " " + (P.nom || "")).toLowerCase();
+    const sport = (["foot", "basket", "tennis", "padel"].find(s => bag.includes(s)))
+      || (/🏀/.test(bag) ? "basket" : /🎾|🎿/.test(bag) ? "tennis" : /⚽/.test(bag) ? "foot" : "")
+      || ({ foot: "foot", padel: "padel", tennis: "tennis" }[P.metier])
+      || "generic";
+    const ART = COVER ? "" : coverSvg(sport);
     function heroHTML() {
-      return `<section class="hero${COVER ? " kb" : " noimg"}">
-        ${COVER ? `<div class="hero-bg"><img data-img="${esc(COVER)}" alt=""></div>` : ""}
+      return `<section class="hero kb${COVER ? "" : " artbg"}">
+        ${COVER ? `<div class="hero-bg"><img data-img="${esc(COVER)}" alt=""></div>` : `<div class="hero-bg"><img src="${ART}" alt=""></div>`}
         <div class="hero-ov"></div><div class="hero-glow"></div>
         <div class="hero-in">
           <div class="brand hbrand"><img src="/assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></div>
           ${P.photo ? `<div class="hero-badge"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}
-          <div class="hero-eyebrow">${esc(metLabel)}</div>
+          <div class="hero-eyebrow">${esc(sport !== "generic" ? ({ foot: "Terrain de foot", basket: "Basketball", tennis: "Tennis", padel: "Padel" }[sport]) : metLabel)}</div>
           <h1 class="hero-t">${esc(P.nom || "")}</h1>
           <p class="hero-s">${esc(P.message || (tb ? T("Réservez votre créneau en 30 secondes", "احجز وقتك فـ 30 ثانية") : T("Prenez rendez-vous en ligne", "خود موعد أونلاين")))}</p>
           <button class="hero-cta" id="toBook">${T("Réserver", "احجز")} <span class="a">▾</span></button>
@@ -401,7 +420,7 @@ a:active,button:active{transform:scale(.98)}
         ${(P.galerie && P.galerie.length) ? `<div class="gstrip">${P.galerie.map(id => `<img data-img="${esc(id)}" alt="">`).join("")}</div>` : ""}`;
     }
     function monterShell() {
-      app.innerHTML = (COVER ? `<div class="amb"><img data-img="${esc(COVER)}" alt=""></div>` : "") + heroHTML() + `<div id="rbook" class="rise1"></div>`;
+      app.innerHTML = (COVER ? `<div class="amb"><img data-img="${esc(COVER)}" alt=""></div>` : `<div class="amb"><img src="${ART}" alt=""></div>`) + heroHTML() + `<div id="rbook" class="rise1"></div>`;
       remplir();
       const cta = document.getElementById("toBook");
       if (cta) cta.onclick = () => { const b = document.getElementById("rbook"); if (b) b.scrollIntoView({ behavior: "smooth", block: "start" }); };
