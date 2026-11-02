@@ -179,7 +179,13 @@
   async function ouvrir(slug) {
     if (!P || P.slug !== slug) {
       app.innerHTML = `<div class="empty"><h3>Chargement…</h3></div>`;
-      try { const d = await db.doc("settings/page-" + slug).get(); if (!d.exists) { toast("Page introuvable."); location.hash = ""; return; } P = JSON.parse(d.data().json || "{}"); migrerProfil(); saved = JSON.stringify(P); }
+      try {
+        let d = await db.doc("settings/page-" + slug).get();
+        if (!d.exists) { try { d = await db.doc("settings/page-" + slug).get({ source: "server" }); } catch (e) {} }   // cache périmé / 4G faible → on force le serveur
+        if (!d.exists) { const r = await db.doc("settings/predir-" + slug).get().catch(() => null); const to = r && r.exists && r.data().to; if (to && to !== slug) { history.replaceState(null, "", "#e=" + to); return ouvrir(to); } }
+        if (!d.exists) { toast("Page introuvable."); location.hash = ""; return; }
+        P = JSON.parse(d.data().json || "{}"); migrerProfil(); saved = JSON.stringify(P);
+      }
       catch (e) { erreur(e); return; }
     }
     renderEdit();
@@ -515,10 +521,13 @@ Skill Play | billard | 0602545454`;
       const json = JSON.stringify(P), doc = { json, v: String(Date.now()), maj: NOW(), par: user.email };
       if (P.type === "rdv" && P.ownerEmail) doc.ownerEmail = P.ownerEmail;
       await db.doc("settings/page-" + neo).set(doc);
+      // sécurité : on vérifie que la nouvelle page est bien écrite AVANT de toucher au reste
+      const chk = await db.doc("settings/page-" + neo).get();
+      if (!chk.exists) { P.slug = ancien; toast("Échec : réessayez (connexion). L’ancienne page est intacte.", true); return; }
       const x = liste.find(t => t.slug === ancien); if (x) x.slug = neo;
       await ecrireListe();
       await db.doc("settings/predir-" + ancien).set({ to: neo, maj: NOW() }).catch(() => {});
-      await db.doc("settings/page-" + ancien).delete().catch(() => {});
+      // on NE supprime PAS l’ancienne page (sécurité anti-perte) : elle reste comme sauvegarde + redirige
       saved = json;
       history.replaceState(null, "", "#e=" + neo);
       renderEdit();
