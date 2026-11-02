@@ -134,7 +134,7 @@
     if (type === "profil") Object.assign(p, { fonction: "", entreprise: "", metiers: "", bio: "", tel: "", whatsapp: "", email: "", instagram: "", facebook: "", tiktok: "", linkedin: "", youtube: "", snapchat: "", site: "", adresse: "", maps: "", lieux: [], docs: [], horaires: {}, liens: [], galerie: [] });
     if (type === "avis") Object.assign(p, { lienGoogle: "", message: "", instagram: "" });
     if (type === "wifi") Object.assign(p, { ssid: "", motdepasse: "", securite: "WPA", cache: false, message: "" });
-    if (type === "rdv") Object.assign(p, { mode: "services", whatsapp: "", services: "Coupe homme · 50 DH · 30 min\nCoupe + barbe · 70 DH · 45 min", equipe: "", ressources: "", durees: "60,120", options: "", facturation: "heure", prixHeure: "", prixPartie: "", minPartie: 15, parties: "1,2,3,5,10", ouverture: "09:00", fermeture: "21:00", pas: 30, auto: false, ownerEmail: "", fidPid: "", galerie: [], paiement: "place", ribPdf: "", description: "", message: "" });
+    if (type === "rdv") Object.assign(p, { mode: "services", whatsapp: "", services: "Coupe homme · 50 DH · 30 min\nCoupe + barbe · 70 DH · 45 min", equipe: "", ressources: "", durees: "60,120", options: "", facturation: "heure", prixHeure: "", prixPartie: "", minPartie: 15, parties: "1,2,3,5,10", ouverture: "09:00", fermeture: "21:00", pas: 30, auto: false, ownerEmail: "", fidPid: "", galerie: [], paiement: "place", ribPdf: "", description: "", formules: [], message: "" });
     if (type === "liens") Object.assign(p, { slogan: "", whatsapp: "", localisation: "", liens: [{ titre: "Instagram", url: "" }] });
     return p;
   }
@@ -373,6 +373,14 @@ Skill Play | billard | 0602545454`;
     </div>`).join("")}
       <button class="btn sm" data-act="doc-add">＋ Ajouter un PDF</button></div>`;
   }
+  function formulesHtml() {
+    const L = P.formules || [];
+    return `<div class="stack" style="gap:8px">${L.map((f, i) => `<div class="row" style="gap:6px;align-items:center">
+      <input data-fo="${i}.nom" value="${esc(f.nom || "")}" placeholder="Nom (ex. Abonnement mensuel)" maxlength="50" style="flex:1;min-width:0">
+      <input data-fo="${i}.prix" value="${esc(f.prix || "")}" placeholder="Prix (ex. 300 DH / mois · à partir de 200 DH)" maxlength="45" style="flex:1;min-width:0">
+      <button class="btn icon sm danger" data-act="fo-del" data-i="${i}">✕</button></div>`).join("")}
+      <button class="btn sm" data-act="fo-add">＋ Ajouter une formule</button></div>`;
+  }
   async function envoyerPdf(f) {
     if (f.type && !/pdf/i.test(f.type) && !/\.pdf$/i.test(f.name || "")) throw { message: "pas-pdf" };
     const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej({ message: "illisible" }); r.readAsDataURL(f); });
@@ -439,6 +447,7 @@ Skill Play | billard | 0602545454`;
         ${fidSelect()}</div>
         ${champ("message", "Phrase sous le nom (facultatif)", 'maxlength="80" placeholder="Réservez en 30 secondes"')}${champ("instagram", "Instagram (facultatif)", 'autocapitalize="off"')}
         ${zone("description", "Description (ce que le client lit sur la page : équipements, règles, infos…)", 'rows="4" maxlength="600" placeholder="Ex. Centre sportif : mini-foot, grand foot, foot à 7, spa & musculation. Douches, parking, vestiaires…"')}</section>
+      <section class="sec paper stack"><h3>💳 Formules & abonnements (facultatif)</h3><p class="muted" style="margin:0;font-size:12.5px">Pour le spa, la musculation… : séance, mois, pack, « à partir de »… Écrivez le prix comme vous voulez. Affiché sur la page sous la description.</p>${formulesHtml()}</section>
       <section class="sec paper stack"><h3>📸 Photos (couverture + galerie)</h3><p class="muted" style="margin:0;font-size:13px">La 1ʳᵉ photo = image de couverture (le grand visuel en haut de la page). Mettez une belle photo du lieu.</p><div class="gal">${(P.galerie || []).map((id, i) => `<div>${imgTag(id)}<button data-act="g-del" data-i="${i}">✕</button></div>`).join("")}</div>${(P.galerie || []).length < 6 ? `<label class="btn sm">＋ Ajouter des photos<input type="file" accept="image/*" multiple hidden data-up="galerie"></label>` : ""}</section>`; }
     if (P.type === "liens") corps = `<section class="sec paper stack"><h3>🔗 Page liens</h3>${photoBloc}${champ("nom", "Nom", 'maxlength="60"')}${champ("slogan", "Petite phrase (facultatif)", 'maxlength="100"')}
         ${champ("whatsapp", "WhatsApp (bouton en haut)", 'type="tel" inputmode="tel"')}<div class="eyebrow">Boutons</div>${liensHtml()}${champ("localisation", "Localisation (adresse ou lien Maps)", 'maxlength="300"')}</section>`;
@@ -462,6 +471,7 @@ Skill Play | billard | 0602545454`;
   function nettoyer() { for (const k of Object.keys(P)) if (typeof P[k] === "string") P[k] = P[k].trim(); if (P.liens) P.liens = P.liens.filter(l => (l.titre || "").trim() || (l.url || "").trim());
     if (P.lieux) P.lieux = P.lieux.filter(x => (x.nom || "").trim() || (x.adresse || "").trim() || (x.maps || "").trim());
     if (P.docs) P.docs = P.docs.filter(x => (x.url || "").trim() || x.id);
+    if (P.formules) P.formules = P.formules.filter(f => (f.nom || "").trim() || (f.prix || "").trim());
     if (P.type === "profil") { const l0 = (P.lieux || [])[0] || {}; P.adresse = l0.adresse || ""; P.maps = l0.maps || ""; } }
   async function enregistrer(b) {
     if (!dirty()) return;
@@ -577,6 +587,7 @@ Skill Play | billard | 0602545454`;
     else if (t.dataset.lieu) { const [i, k] = t.dataset.lieu.split("."); if (P.lieux && P.lieux[+i]) P.lieux[+i][k] = t.value; }
     else if (t.dataset.lieuh) { const [i, j] = t.dataset.lieuh.split("."); if (P.lieux && P.lieux[+i]) { P.lieux[+i].horaires = P.lieux[+i].horaires || {}; P.lieux[+i].horaires[j] = t.value; } }
     else if (t.dataset.doc) { const [i, k] = t.dataset.doc.split("."); if (P.docs && P.docs[+i]) P.docs[+i][k] = t.value; }
+    else if (t.dataset.fo) { const [i, k] = t.dataset.fo.split("."); if (P.formules && P.formules[+i]) P.formules[+i][k] = t.value; }
     majBarre();
   });
   app.addEventListener("change", async e => {
@@ -652,6 +663,8 @@ Skill Play | billard | 0602545454`;
     if (a === "lieu-del") { P.lieux.splice(i, 1); renderEdit(); }
     if (a === "doc-add") { P.docs = P.docs || []; P.docs.push({ titre: "", url: "" }); renderEdit(); }
     if (a === "doc-del") { P.docs.splice(i, 1); renderEdit(); }
+    if (a === "fo-add") { P.formules = P.formules || []; P.formules.push({ nom: "", prix: "" }); renderEdit(); }
+    if (a === "fo-del") { P.formules.splice(i, 1); renderEdit(); }
     if (a === "h-copie") { const v = (P.horaires || {})[1] || ""; if (!v) { toast("Remplissez d’abord lundi."); return; } [2, 3, 4, 5, 6].forEach(j => (P.horaires[j] = v)); renderEdit(); toast("Copié du mardi au samedi (dimanche : à vous de choisir)."); }
   });
   window.addEventListener("beforeunload", e => { if (dirty()) { e.preventDefault(); e.returnValue = ""; } });

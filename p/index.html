@@ -129,6 +129,11 @@ a:active,button:active{transform:scale(.98)}
 #rbook .rsb.on,#rbook .chip.on{background:var(--accent)}
 #rbook .rsb.on{box-shadow:0 8px 26px var(--glow)}
 .rdesc{font-size:14.5px;line-height:1.65;color:var(--fg)}
+.fol{display:grid;gap:8px;margin-top:10px}
+.fo{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line)}
+.fo:first-child{border-top:0}
+.fo b{font-weight:600;font-size:14.5px}
+.fo em{font-style:normal;font-weight:700;color:var(--accent2);white-space:nowrap;font-size:14.5px}
 .hero-cta{position:relative;overflow:hidden}
 .hero-cta::after{content:"";position:absolute;top:0;left:-60%;width:38%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:skewX(-20deg);animation:sheen 3.4s ease-in-out infinite}
 @keyframes sheen{0%{left:-60%}55%{left:135%}100%{left:135%}}
@@ -460,6 +465,7 @@ a:active,button:active{transform:scale(.98)}
         ${mes.length ? `<div class="card mesr"><div class="lab" style="margin-bottom:8px">${T("Vos réservations", "الحجوزات ديالك")}</div>${mes.map(r => `<button class="mr" data-voir="${esc(r.id)}"><b>${esc(jourCourt(r.jour))} · ${esc(r.debut)}</b><span>${esc(r.quoi || "")}</span><i>›</i></button>`).join("")}</div>` : ""}
         <div class="rbk"><div class="rbk-main">
         ${P.description ? `<div class="card rdesc">${esc(P.description).replace(/\n/g, "<br>")}</div>` : ""}
+        ${(P.formules && P.formules.filter(f => f && (f.nom || f.prix)).length) ? `<div class="card"><div class="lab">💳 ${T("Formules & tarifs", "الصيغ والأثمنة")}</div><div class="fol">${P.formules.filter(f => f && (f.nom || f.prix)).map(f => `<div class="fo"><b>${esc(f.nom || "")}</b><em>${esc(f.prix || "")}</em></div>`).join("")}</div></div>` : ""}
         ${tb ? `<div class="card"><div class="lab">${++k} · ${({ foot: T("Le terrain", "التيران"), terrains: T("Le terrain", "التيران"), padel: T("Le court", "التيران"), salle: T("L’espace", "البلاصة"), studio: T("Le studio", "الستوديو"), location: T("Le véhicule", "الموطور"), fete: T("La salle", "الصالة"), loisir: T("L’activité", "النشاط"), ps: T("Le poste", "البوسط") })[P.metier] || T("La table", "الطابلة")}</div>${CATS.length ? `<div class="chips" style="margin-top:10px">${CATS.map(c => `<button class="chip${S.cat === c ? " on" : ""}" data-cat="${esc(c)}">${esc(c)} <small style="opacity:.65">${RSO.filter(r => r.cat === c).length}</small></button>`).join("")}</div>` : ""}<div class="rs">${RS.map((r, i) => { if (CATS.length && RSO[i].cat !== S.cat) return ""; const [e, t] = emo(r), pl = resPleine(r); const o = RSO[i], px = S.unit === "partie" ? (o.pp ?? (+P.prixPartie || 0)) : (o.ph ?? (+P.prixHeure || 0));
           return `<button class="rsb${S.res === r ? " on" : ""}${pl ? " pris" : ""}" data-res="${i}" ${pl ? "disabled" : ""}><span>${emo(o.cat || r)[0] || e || DEFIC}</span>${esc(o.cat ? o.label : t)}${px ? `<small class="px">${px} DH/${S.unit === "partie" ? T("partie", "پارتية") : "h"}</small>` : ""}</button>`; }).join("")}</div></div>`
         : SV.length ? `<div class="card"><div class="lab">${++k} · ${["salon", "barber", "ongles", "spa", ""].includes(P.metier || "") ? T("Les soins (un ou plusieurs)", "الخدمات (وحدة ولا كثر)") : T("Le service (un ou plusieurs)", "الخدمة (وحدة ولا كثر)")}</div><div class="svl">${SV.map((s, i) => `<button class="sv${S.svcs.includes(i) ? " on" : ""}" data-svc="${i}"><span><b>${esc(s.nom)}</b>${s.duree ? `<small>${fdur(s.duree)}</small>` : ""}</span>${s.prix ? `<em>${s.prix} DH</em>` : ""}</button>`).join("")}</div></div>` : ""}
