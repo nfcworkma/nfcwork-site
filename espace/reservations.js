@@ -29,6 +29,9 @@
   const fdur = m => !m ? "" : m < 60 ? m + " min" : Math.floor(m / 60) + " h" + (m % 60 ? " " + String(m % 60).padStart(2, "0") : "");
   const waNum = t => { let d = String(t || "").replace(/\D/g, ""); if (d.startsWith("00")) d = d.slice(2); if (d.startsWith("0")) d = "212" + d.slice(1); if (d.length === 9) d = "212" + d; return d.length >= 11 ? d : ""; };
   const emo = t => { const m = String(t || "").match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u); return m ? [m[1], m[2] || t] : ["", String(t || "")]; };
+  const SPMAP = [[/basket/, "🏀"], [/tennis/, "🎾"], [/padel/, "🎾"], [/volley/, "🏐"], [/handball|\bhand\b/, "🤾"], [/spa|hammam|massage|\bsoin|détente|detente/, "💆"], [/muscu|fitness|\bgym\b|salle de sport|cardio/, "🏋️"], [/billard|snooker|\bpool\b/, "🎱"], [/bowling/, "🎳"], [/\bps[0-9]?\b|playstation|gaming|console|manette/, "🎮"], [/studio/, "🎙️"], [/piscine|natation/, "🏊"], [/mini[- ]?foot|futsal|football|soccer|\bfoot\b/, "⚽"], [/terrain|court/, "⚽"]];
+  const spIc = s => { s = String(s || "").toLowerCase(); for (const [re, e] of SPMAP) if (re.test(s)) return e; return ""; };
+  const icRes = r => emo(r)[0] || spIc(r) || "📍";
   const lignes = t => String(t || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
   const ACTIF = r => r.statut === "attente" || r.statut === "confirmee" || r.statut === "venu";
 
@@ -126,7 +129,7 @@
   const minNow = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
   const debutDe = r => +r.debutMin || hm(r.debut) || 0;
   const enRetard = r => r.statut === "confirmee" && (r.jour < auj() || (r.jour === auj() && minNow() > debutDe(r) + 10));
-  const msgConf = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nVotre réservation chez ${P.nom || "nous"} est confirmée ✅\n🗓 ${jourLong(r.jour)} à ${r.debut}\n${r.mode === "tables" ? "🎱 " + emo(r.ressource)[1] : "✂️ " + (r.service || "") + (r.staff ? " avec " + r.staff : "")}\n\n🎟️ Votre ticket (à montrer à l’arrivée, une capture d’écran suffit) :\n${lienTicket(r)}\nÀ bientôt !`; };
+  const msgConf = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nVotre réservation chez ${P.nom || "nous"} est confirmée ✅\n🗓 ${jourLong(r.jour)} à ${r.debut}\n${r.mode === "tables" ? icRes(r.ressource) + " " + emo(r.ressource)[1] : "✂️ " + (r.service || "") + (r.staff ? " avec " + r.staff : "")}\n\n🎟️ Votre ticket (à montrer à l’arrivée, une capture d’écran suffit) :\n${lienTicket(r)}\nÀ bientôt !`; };
   const lienTicket = r => SITE + "/p/" + r.page + "?r=" + r.id;
   const msgRappel = r => { const P = PAGES[r.page] || {}; return `Bonjour ${r.nom} 👋\nPetit rappel : votre réservation chez ${P.nom || "nous"} c’est demain, ${jourLong(r.jour)} à ${r.debut} (${quoi(r)}${r.staff ? " avec " + r.staff : ""}).\nÀ demain ! 🙏\n\nEmpêché(e) ? Annulez en 1 clic ici pour libérer le créneau :\n${lienTicket(r)}`; };
 
