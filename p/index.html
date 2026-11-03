@@ -693,6 +693,40 @@ a:active,button:active{transform:scale(.98)}
       ${pied()}`;
   }
 
+  async function majIcone() {
+    try {
+      const src = P.photo ? await photo(P.photo) : null;
+      if (!src) return;
+      const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+      // luminance du logo -> fond clair ou foncé
+      const tw = 64, tc = document.createElement("canvas"); tc.width = tc.height = tw; const tx = tc.getContext("2d");
+      const r0 = Math.min(tw / img.width, tw / img.height); tx.drawImage(img, (tw - img.width * r0) / 2, (tw - img.height * r0) / 2, img.width * r0, img.height * r0);
+      let lum = 255; try { const d = tx.getImageData(0, 0, tw, tw).data; let s = 0, op = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 40) { s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; op++; } lum = op ? s / op : 255; } catch (e) {}
+      const dark = lum > 165;
+      const S = 512, cv = document.createElement("canvas"); cv.width = cv.height = S; const x = cv.getContext("2d");
+      x.fillStyle = dark ? "#0B1220" : "#ffffff"; x.fillRect(0, 0, S, S);
+      const pad = S * 0.15, r = Math.min((S - pad * 2) / img.width, (S - pad * 2) / img.height), w = img.width * r, h = img.height * r;
+      x.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+      const url = cv.toDataURL("image/png");
+      let ati = document.querySelector('link[rel="apple-touch-icon"]');
+      if (!ati) { ati = document.createElement("link"); ati.rel = "apple-touch-icon"; document.head.appendChild(ati); }
+      ati.href = url;
+      const metaSet = (n, c) => { let m = document.querySelector(`meta[name="${n}"]`); if (!m) { m = document.createElement("meta"); m.name = n; document.head.appendChild(m); } m.content = c; };
+      metaSet("apple-mobile-web-app-title", P.nom || "NFCWORK");
+      metaSet("apple-mobile-web-app-capable", "yes");
+      metaSet("mobile-web-app-capable", "yes");
+      try {
+        const bg = (getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()) || "#05080f";
+        const man = { name: P.nom || "NFCWORK", short_name: (P.nom || "NFCWORK").slice(0, 28), start_url: location.pathname + location.search, display: "standalone", background_color: bg, theme_color: bg, icons: [{ src: url, sizes: "192x192", type: "image/png", purpose: "any" }, { src: url, sizes: "512x512", type: "image/png", purpose: "any" }] };
+        let ml = document.querySelector('link[rel="manifest"]');
+        if (!ml) { ml = document.createElement("link"); ml.rel = "manifest"; document.head.appendChild(ml); }
+        if (ml._u) URL.revokeObjectURL(ml._u);
+        ml._u = URL.createObjectURL(new Blob([JSON.stringify(man)], { type: "application/manifest+json" }));
+        ml.href = ml._u;
+      } catch (e) {}
+    } catch (e) {}
+  }
+
   function rendre(data) {
     P = data || {};
     if (!apercu && P.actif === false) { etat(T("Service momentanément indisponible", "الخدمة متوقفة مؤقتاً"), T("Merci de réessayer un peu plus tard.", "عاود من بعد شوية.")); return; }
@@ -701,6 +735,7 @@ a:active,button:active{transform:scale(.98)}
     if (!apercu && window.NFCW_PREAVIS && P.expire) NFCW_PREAVIS(P.preavis, P.expire);
     if (!apercu && window.NFCW_VUE && !/^demo-/.test(slug)) NFCW_VUE("page", slug);
     document.title = (P.nom || "NFCWORK") + (P.fonction ? " · " + P.fonction : "");
+    if (!apercu) majIcone();
     ({ profil, avis, wifi, liens, rdv }[P.type] || profil)();
     remplir();
   }
