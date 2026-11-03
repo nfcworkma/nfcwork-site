@@ -601,7 +601,7 @@ a:active,button:active{transform:scale(.98)}
               <div class="tkn">${esc(R.nom)}</div>
               <div class="tkq">${R.ressource ? `${icRes(R.ressource)} <b>${esc(emo(R.ressource)[1])}</b>${R.service ? " · " + esc(R.service) : ""}` : R.service ? `✂️ <b>${esc(R.service)}</b>` : ""}${R.staff ? ` · ${T("avec", "مع")} <b>${esc(R.staff)}</b>` : ""}</div>
               <div class="tkd"><div><small>${T("Date", "النهار")}</small><b>${esc(jourLong(R.jour))}</b></div><div><small>${T("Heure", "الساعة")}</small><b>${esc(R.debut)} → ${fin}</b></div></div>
-              ${R.prix ? `<div class="tkp"><span>${T("Total à payer sur place", "المجموع تخلصو فالمحل")}</span><b>${R.prix} DH</b></div>` : ""}
+              ${R.prix ? `<div class="tkp"><span>${R.pay === "virement" ? T("Total par virement", "المجموع بالتحويل") : T("Total à payer sur place", "المجموع تخلصو فالمحل")}</span><b>${R.prix} DH</b></div>` : ""}
               <div class="tkcut"></div>
               ${ok ? `<div class="qrt${st === "venu" ? " used" : ""}">${(() => { try { return window.QRGEN.svg(lienTicket(id), { marge: 1, couleur: "#111111" }); } catch (e) { return ""; } })()}</div>
                 <div class="code">#${esc(id.slice(0, 6).toUpperCase())}</div>
@@ -618,7 +618,7 @@ a:active,button:active{transform:scale(.98)}
         app.innerHTML = `${brand}${DEMO ? `<p class="aide" style="background:var(--surf2);border-radius:12px;padding:8px 12px">🧪 ${T("Démonstration : aucune réservation n’est envoyée. Voici ce que voit votre client.", "تجربة: حتى حجز ما كيتصيفط. هادشي اللي كيشوف الزبون ديالك.")}</p>` : ""}<div class="okc ${non ? "non" : ok ? "" : "att"}">${non ? "✕" : ok ? "✓" : "⏳"}</div><h1>${titre}</h1><p class="sub">${sous}</p>
           <div class="card recap">
             ${R.ressource ? `<div>${icRes(R.ressource)} <b>${esc(emo(R.ressource)[1])}</b>${R.service ? " · " + esc(R.service) : ""}</div>` : R.service ? `<div>✂️ <b>${esc(R.service)}</b></div>` : ""}
-            ${R.prix ? `<div>💰 ${T("Total à payer sur place", "المجموع تخلصو فالمحل")} : <b>${R.prix} DH</b></div>` : ""}${R.staff ? `<div>👤 ${T("avec", "مع")} <b>${esc(R.staff)}</b></div>` : ""}
+            ${R.prix ? `<div>💰 ${R.pay === "virement" ? T("Total par virement", "المجموع بالتحويل") : T("Total à payer sur place", "المجموع تخلصو فالمحل")} : <b>${R.prix} DH</b></div>` : ""}${R.staff ? `<div>👤 ${T("avec", "مع")} <b>${esc(R.staff)}</b></div>` : ""}
             <div>🗓 <b>${esc(jourLong(R.jour))}</b> · ${esc(R.debut)} → ${lab((+R.debutMin || hm(R.debut)) + (+R.duree || 0))}</div>
             <div>👤 ${esc(R.nom)} · ${esc(String(R.tel || "").replace(/(\d{2})(?=\d)/g, "$1 ").trim())}</div>
             ${fid ? `<div>🎁 ${T("Carte fidélité", "كارطة الوفاء")} : <b>${fid.points} / ${fid.objectif} ${esc(fid.unite)}</b></div>` : ""}
