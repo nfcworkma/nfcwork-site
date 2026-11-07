@@ -520,7 +520,7 @@
       txt = [U.hello, "", ...liste, "", `${U.total} : ${fmtPrix(arr(total))}`]
         .concat(table.trim() ? [`${U.table} : ${table.trim()}`] : [], note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
     }
-    if (caisseOn() && M.type !== "location" && M.type !== "salon") { versCaisse(lignes, total, table, note, txt, d); return; }
+    if ((caisseOn() || enLivraison()) && M.type !== "location" && M.type !== "salon") { versCaisse(lignes, total, table, note, txt, d); return; }
     window.open(`https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt)}`, "_blank");
   }
 
@@ -552,7 +552,7 @@
       panier = {}; majPanier(); document.querySelectorAll("[data-item]").forEach(el => { const id = el.dataset.item; rafraichirItem(id); });
       d.querySelector(".box").innerHTML = `<div style="text-align:center;padding:10px 0 4px"><div style="font-size:54px;line-height:1">✅</div>
         <h2 style="margin:10px 0 4px">Commande envoyée</h2><p class="hint" style="margin:0 0 14px">${lv ? "Elle est en préparation. Nous vous appelons si besoin." : "Elle est arrivée à la caisse et part en préparation."}</p>
-        <div style="display:inline-block;border:2px dashed currentColor;border-radius:16px;padding:10px 22px;margin-bottom:14px"><small style="display:block;opacity:.7">Votre numéro</small><b style="font-size:38px;letter-spacing:2px">${num}</b></div>${lv && oid ? codeBloc(code, oid) : ""}
+        <div style="display:inline-block;border:2px dashed currentColor;border-radius:16px;padding:10px 22px;margin-bottom:14px"><small style="display:block;opacity:.7">Votre numéro</small><b style="font-size:38px;letter-spacing:2px">${num}</b></div>${lv && oid ? codeBloc(code, oid) : ""}${lv && oid ? `<a href="/suivi/?s=${encodeURIComponent(slug)}&o=${encodeURIComponent(oid)}" style="display:block;text-align:center;margin:0 0 12px;padding:11px;border-radius:12px;background:var(--accent,#e0b15c);color:var(--on-accent,#fff);font-weight:700;text-decoration:none">📍 Suivre ma commande</a>` : ""}
         ${table.trim() ? `<p style="margin:0 0 12px">${esc(table.trim())}</p>` : ""}
         ${M.suivi && oid ? `<div id="suivi" class="suivi"></div><p class="hint" style="margin:6px 0 12px">🔔 Gardez cette page ouverte : votre téléphone sonnera quand la commande sera prête.</p>` : ""}<button class="ghost" data-fermer>${U.close}</button></div>`;
       if (M.suivi && oid) suivre(oid, num, d, lv);
