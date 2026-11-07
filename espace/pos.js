@@ -404,7 +404,18 @@
 
   // 🛵 Assigner un livreur à une commande livraison → passe en « En route »
   let LIVREURS = null;
-  async function chargerLivreurs() { if (LIVREURS) return LIVREURS; try { const s = await db.doc("settings/livreurs").get(); LIVREURS = s.exists ? JSON.parse(s.data().json || "[]") : []; } catch (e) { LIVREURS = []; } return LIVREURS; }
+  async function chargerLivreurs() {
+    if (LIVREURS) return LIVREURS;
+    let flat = [], soc = [];
+    try { const s = await db.doc("settings/livreurs").get(); flat = s.exists ? JSON.parse(s.data().json || "[]") : []; } catch (e) {}
+    try {
+      const c = await db.doc("settings/charikat").get();
+      const list = c.exists ? JSON.parse(c.data().json || "[]") : [];
+      (list || []).forEach(co => { if (co && co.actif !== false && (co.restos || []).includes(slug)) soc = soc.concat((co.livreurs || []).map(l => ({ nom: l.nom, tel: l.tel, actif: l.actif }))); });
+    } catch (e) {}
+    LIVREURS = soc.concat(flat);   // la société du resto d'abord, puis le pool général
+    return LIVREURS;
+  }
   async function assignerLivreur(o) {
     let prev = []; try { prev = JSON.parse(localStorage.getItem("nfc-livreurs") || "[]"); } catch (e) {}
     const centraux = (await chargerLivreurs()).filter(l => l && l.nom && l.actif !== false);

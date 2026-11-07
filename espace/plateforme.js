@@ -13,7 +13,7 @@
   const fmt = n => (Math.round((+n || 0) * 100) / 100) + " DH";
   const rid = () => Math.random().toString(36).slice(2, 9);
 
-  let user = null, liste = [], det = {}, livreurs = [], tab = "restos", saving = false;
+  let user = null, liste = [], det = {}, livreurs = [], charikat = [], tab = "restos", saving = false;
 
   function toast(msg, bad) {
     const t = document.getElementById("toast"); if (!t) return;
@@ -46,7 +46,7 @@
 
   async function charger() {
     app.innerHTML = '<div class="empty"><h3>Chargement…</h3></div>';
-    await Promise.all([chargerMenus(), chargerLivreurs()]);
+    await Promise.all([chargerMenus(), chargerLivreurs(), chargerCharikat()]);
     shell();
   }
   async function chargerMenus() {
@@ -61,7 +61,7 @@
 
   /* ===== coquille + onglets ===== */
   function shell() {
-    const T = [["restos", "🍽 Restaurants"], ["livreurs", "🛵 Livreurs"], ["commandes", "🧾 Commandes"]];
+    const T = [["restos", "🍽 Restos"], ["charikat", "🏢 Sociétés"], ["commandes", "🧾 Commandes"]];
     app.innerHTML = '<div class="pf-tabs">' + T.map(t => '<button data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + '</button>').join("") + '</div><div id="tabc"></div>';
     app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { tab = b.dataset.tab; app.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", x.dataset.tab === tab)); renderTab(); });
     renderTab();
@@ -69,7 +69,7 @@
   function renderTab() {
     const c = document.getElementById("tabc");
     if (tab === "restos") renderRestos(c);
-    else if (tab === "livreurs") renderLivreurs(c);
+    else if (tab === "charikat") renderCharikat(c);
     else renderCommandes(c);
   }
 
@@ -151,6 +151,58 @@
   async function sauverLivreurs() {
     try { await db.doc("settings/livreurs").set({ json: JSON.stringify(livreurs), maj: NOW(), par: user.email }); }
     catch (e) { toast(e && e.code === "permission-denied" ? "Refusé : admin requis." : "Échec de l'enregistrement.", true); }
+  }
+
+  /* ===== onglet SOCIÉTÉS DE LIVRAISON ===== */
+  async function chargerCharikat() {
+    try { const d = await db.doc("settings/charikat").get(); charikat = d.exists ? JSON.parse(d.data().json || "[]") : []; }
+    catch (e) { charikat = []; }
+  }
+  async function sauverCharikat() {
+    try { await db.doc("settings/charikat").set({ json: JSON.stringify(charikat.map(s => { const r = Object.assign({}, s); delete r._open; return r; })), maj: NOW(), par: user.email }); }
+    catch (e) { toast(e && e.code === "permission-denied" ? "Refusé : admin requis." : "Échec de l'enregistrement.", true); }
+  }
+  function renderCharikat(c) {
+    c.innerHTML = '<div class="pf-head"><div class="pf-count">' + charikat.filter(s => s.actif !== false).length + ' société(s) · chacune a ses livreurs et ses restaurants</div></div>' +
+      '<form id="scadd" class="pf-add"><input id="sc-n" placeholder="Nom de la société de livraison" maxlength="40" autocomplete="off" required><select id="sc-p" class="pf-sel"><option value="25">25% livreur</option><option value="50" selected>50%</option><option value="75">75%</option></select><button class="btn primary">➕ Ajouter</button></form>' +
+      (charikat.length ? charikat.map(carteCharika).join("") : '<div class="empty paper" style="margin-top:12px"><p>Aucune société. Ajoutez-en une, puis liez-lui des livreurs et des restaurants (le contrat).</p></div>');
+    c.querySelector("#scadd").onsubmit = e => {
+      e.preventDefault();
+      const n = c.querySelector("#sc-n").value.trim(); if (!n) return;
+      const p = c.querySelector("#sc-p").value;
+      charikat.unshift({ id: rid(), nom: n, tel: "", part: p, actif: true, restos: [], livreurs: [] });
+      sauverCharikat(); renderCharikat(c); toast("Société ajoutée");
+    };
+    brancherCharika(c);
+  }
+  function carteCharika(s) {
+    const nl = (s.livreurs || []).filter(l => l.actif !== false).length, nr = (s.restos || []).length, on = s.actif !== false, open = s._open;
+    let h = '<div class="sc-card' + (on ? "" : " off") + '"><div class="sc-top"><div class="pf-logo">🏢</div>' +
+      '<div class="pf-info"><div class="pf-nm">' + esc(s.nom) + '</div><div class="pf-meta"><span>' + esc(s.part || "50") + '% livreur</span><span>🛵 ' + nl + '</span><span>🏪 ' + nr + '</span>' + (on ? '<span class="on">● Active</span>' : '<span class="no">● Inactive</span>') + '</div></div>' +
+      '<button class="sw" data-sca="' + s.id + '" aria-pressed="' + on + '"></button>' +
+      '<div class="pf-acts"><button class="pf-del" data-sctoggle="' + s.id + '">' + (open ? "▲" : "⚙️") + '</button><button class="pf-del" data-scd="' + s.id + '">🗑</button></div></div>';
+    if (open) {
+      h += '<div class="sc-body"><div class="sc-lbl">🛵 Livreurs de la société</div>' +
+        '<form class="pf-add sc-lvadd" data-scid="' + s.id + '"><input class="sc-lvn" placeholder="Nom du livreur" maxlength="40" autocomplete="off" required><input class="sc-lvt" type="tel" inputmode="tel" placeholder="Téléphone" maxlength="20" autocomplete="off"><button class="btn primary">➕</button></form>' +
+        ((s.livreurs || []).length ? '<div class="pf-list">' + s.livreurs.map(l => ligneLivreurSoc(s.id, l)).join("") + '</div>' : '<p class="sc-mut">Aucun livreur pour l\'instant.</p>') +
+        '<div class="sc-lbl">🏪 Restaurants liés (contrat)</div>' +
+        (liste.length ? '<div class="sc-restos">' + liste.map(m => { const lk = (s.restos || []).includes(m.slug); return '<label class="sc-chk"><input type="checkbox" data-scresto="' + s.id + '" value="' + esc(m.slug) + '"' + (lk ? " checked" : "") + '> ' + esc((det[m.slug] || {}).nom || m.nom || m.slug) + '</label>'; }).join("") + '</div>' : '<p class="sc-mut">Aucun restaurant.</p>') +
+        '</div>';
+    }
+    return h + '</div>';
+  }
+  function ligneLivreurSoc(sid, l) {
+    const on = l.actif !== false;
+    return '<div class="pf-row' + (on ? "" : " off") + '"><div class="pf-logo">🛵</div><div class="pf-info"><div class="pf-nm">' + esc(l.nom) + '</div><div class="pf-meta">' + (l.tel ? '<span>' + esc(l.tel) + '</span>' : '<span>—</span>') + (on ? '<span class="on">● Actif</span>' : '<span class="no">● Inactif</span>') + '</div></div><button class="sw" data-sclva="' + sid + '|' + l.id + '" aria-pressed="' + on + '"></button><div class="pf-acts"><button class="pf-del" data-sclvd="' + sid + '|' + l.id + '">🗑</button></div></div>';
+  }
+  function brancherCharika(c) {
+    c.querySelectorAll("[data-sca]").forEach(b => b.onclick = () => { const s = charikat.find(x => x.id === b.dataset.sca); if (s) { s.actif = s.actif === false ? true : false; sauverCharikat(); renderCharikat(c); } });
+    c.querySelectorAll("[data-sctoggle]").forEach(b => b.onclick = () => { const s = charikat.find(x => x.id === b.dataset.sctoggle); if (s) { s._open = !s._open; renderCharikat(c); } });
+    c.querySelectorAll("[data-scd]").forEach(b => b.onclick = () => { if (!confirm("Supprimer cette société ?")) return; charikat = charikat.filter(x => x.id !== b.dataset.scd); sauverCharikat(); renderCharikat(c); toast("Société supprimée"); });
+    c.querySelectorAll(".sc-lvadd").forEach(f => f.onsubmit = e => { e.preventDefault(); const s = charikat.find(x => x.id === f.dataset.scid); if (!s) return; const n = f.querySelector(".sc-lvn").value.trim(); if (!n) return; const t = f.querySelector(".sc-lvt").value.trim(); s.livreurs = s.livreurs || []; s.livreurs.unshift({ id: rid(), nom: n, tel: t, actif: true }); sauverCharikat(); renderCharikat(c); });
+    c.querySelectorAll("[data-sclva]").forEach(b => b.onclick = () => { const p = b.dataset.sclva.split("|"), s = charikat.find(x => x.id === p[0]), l = s && (s.livreurs || []).find(x => x.id === p[1]); if (l) { l.actif = l.actif === false ? true : false; sauverCharikat(); renderCharikat(c); } });
+    c.querySelectorAll("[data-sclvd]").forEach(b => b.onclick = () => { const p = b.dataset.sclvd.split("|"), s = charikat.find(x => x.id === p[0]); if (s) { s.livreurs = (s.livreurs || []).filter(x => x.id !== p[1]); sauverCharikat(); renderCharikat(c); } });
+    c.querySelectorAll("[data-scresto]").forEach(cb => cb.onchange = () => { const s = charikat.find(x => x.id === cb.dataset.scresto); if (!s) return; s.restos = s.restos || []; const sl = cb.value; if (cb.checked) { if (!s.restos.includes(sl)) s.restos.push(sl); } else { s.restos = s.restos.filter(x => x !== sl); } sauverCharikat(); const card = cb.closest(".sc-card"); const meta = card && card.querySelector(".pf-meta span:nth-child(3)"); if (meta) meta.textContent = "🏪 " + s.restos.length; });
   }
 
   /* ===== onglet COMMANDES (vue d'ensemble, lecture seule) ===== */
