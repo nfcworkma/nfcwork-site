@@ -66,14 +66,47 @@
         recu + confirmBox() +
       '</div>' +
       '<p class="num" style="text-align:center">Cette page se met à jour toute seule.</p>';
-    const inp = app.querySelector("#cf-code"), ok = app.querySelector("#cf-ok"), err = app.querySelector("#cf-err");
+    const inp = app.querySelector("#cf-code"), ok = app.querySelector("#cf-ok"), err = app.querySelector("#cf-err"), sc = app.querySelector("#cf-scan");
     if (ok) ok.onclick = () => tryConfirm(inp ? inp.value : "", err);
+    if (sc) sc.onclick = () => scanner(err);
     if (cparam && !autoTried) { autoTried = true; if (inp) inp.value = cparam; tryConfirm(cparam, err); }
   }
+  async function scanner(err) {
+    if (!window.jsQR) { if (err) { err.style.color = "var(--accent)"; err.textContent = "Scanner indisponible — tapez le code."; } return; }
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center";
+    ov.innerHTML = '<video playsinline muted style="width:100%;max-width:460px;max-height:70vh;object-fit:cover"></video>' +
+      '<div style="position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:0;right:0;text-align:center;color:#fff;font-weight:700">Visez le QR du client</div>' +
+      '<button style="position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:14px;width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:22px" aria-label="Fermer">✕</button>';
+    document.body.appendChild(ov);
+    const video = ov.querySelector("video");
+    let stream, raf;
+    const stop = () => { if (raf) cancelAnimationFrame(raf); if (stream) stream.getTracks().forEach(t => t.stop()); ov.remove(); };
+    ov.querySelector("button").onclick = stop;
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }); video.srcObject = stream; await video.play(); }
+    catch (e) { stop(); if (err) { err.style.color = "var(--accent)"; err.textContent = "Caméra refusée — tapez le code à la main."; } return; }
+    const cv = document.createElement("canvas"), ctx = cv.getContext("2d");
+    const loop = () => {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        cv.width = video.videoWidth; cv.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, cv.width, cv.height);
+        let img; try { img = ctx.getImageData(0, 0, cv.width, cv.height); } catch (e) {}
+        const qr = img && window.jsQR(img.data, img.width, img.height);
+        if (qr && qr.data) {
+          const m = qr.data.match(/[?&]c=(\d{4})/), code = m ? m[1] : (/^\d{4}$/.test(qr.data.trim()) ? qr.data.trim() : "");
+          if (code) { stop(); if (inpRef()) inpRef().value = code; tryConfirm(code, app.querySelector("#cf-err")); return; }
+        }
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+  }
+  function inpRef() { return app.querySelector("#cf-code"); }
   function confirmBox() {
     return '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">' +
       '<div style="font-weight:800;font-size:14px;margin-bottom:4px">✅ Confirmer la livraison</div>' +
       '<p class="num" style="margin:0 0 8px">Scannez le QR du client, ou tapez son code à 4 chiffres.</p>' +
+      '<button class="btn" id="cf-scan" style="background:var(--accent);color:#fff;margin:0 0 8px">📷 Scanner le QR du client</button>' +
       '<div style="display:flex;gap:8px"><input id="cf-code" inputmode="numeric" maxlength="4" placeholder="0000" style="flex:1;min-width:0;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--fg);font-size:22px;letter-spacing:6px;text-align:center">' +
       '<button class="btn done" id="cf-ok" style="width:auto;margin:0;padding:0 18px">Valider</button></div>' +
       '<p id="cf-err" style="color:var(--accent);min-height:1em;margin:8px 0 0;font-size:13px"></p></div>';
