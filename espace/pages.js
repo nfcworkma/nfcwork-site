@@ -111,17 +111,18 @@
     P = null; saved = "";
     $("#topTitle").textContent = PROPRIO ? "Mes pages" : "Cartes, avis, Wi-Fi"; $("#topSub").textContent = PROPRIO ? "Mon commerce" : "Créer sans Mac"; $("#backBtn").href = "./";
     const q = recherche.toLowerCase();
-    const nbArch = liste.filter(x => x.arch).length;
-    const l = liste.filter(x => (filtre === "arch" ? x.arch : !x.arch && (filtre === "tous" || x.type === filtre)) && (!q || (x.nom + " " + x.slug).toLowerCase().includes(q))).sort((a, b) => (b.maj || 0) - (a.maj || 0));
+    const nbArch = liste.filter(x => x.arch && !x.corb).length;
+    const nbCorb = liste.filter(x => x.corb).length;
+    const l = liste.filter(x => (filtre === "corb" ? x.corb : filtre === "arch" ? (x.arch && !x.corb) : (!x.arch && !x.corb && (filtre === "tous" || x.type === filtre))) && (!q || (x.nom + " " + x.slug).toLowerCase().includes(q))).sort((a, b) => (b.maj || 0) - (a.maj || 0));
     app.innerHTML = `<div data-adm><h2 style="margin-bottom:10px">＋ Créer</h2>
       <div class="types">${Object.entries(TYPES).map(([k, [ic, n, s]]) => `<button data-new="${k}"><span>${ic}</span><b>${n}</b><small>${s}</small></button>`).join("")}</div></div>
       <button class="btn block" data-adm data-lot style="margin-top:12px">⚡ Créer plusieurs pages de réservation (prospection)</button>
-      <div class="row between" style="margin-top:24px"><h2>📋 Mes pages (${liste.filter(x => !x.arch).length})</h2></div>
+      <div class="row between" style="margin-top:24px"><h2>📋 Mes pages (${liste.filter(x => !x.arch && !x.corb).length})</h2></div>
       <input id="rech" placeholder="🔎 Chercher un nom…" value="${esc(recherche)}" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px">
-      <div class="chipsf">${[["tous", "Tout"], ...Object.entries(TYPES).map(([k, v]) => [k, v[0] + " " + v[1]]), ...(nbArch ? [["arch", "🗄 Archivées (" + nbArch + ")"]] : [])].map(([k, n]) => `<button class="chip" data-f="${k}" aria-pressed="${filtre === k}">${n}</button>`).join("")}</div>
+      <div class="chipsf">${[["tous", "Tout"], ...Object.entries(TYPES).map(([k, v]) => [k, v[0] + " " + v[1]]), ...(nbArch ? [["arch", "🗄 Archivées (" + nbArch + ")"]] : []), ...(nbCorb ? [["corb", "🗑 Corbeille (" + nbCorb + ")"]] : [])].map(([k, n]) => `<button class="chip" data-f="${k}" aria-pressed="${filtre === k}">${n}</button>`).join("")}</div>
       ${l.length ? `<div class="plist">${l.map(x => `<a class="prow" href="#e=${esc(x.slug)}"><span class="ph">${x.photo ? imgTag(x.photo) : (TYPES[x.type] || ["📄"])[0]}</span>
-        <span class="tx"><b>${esc(x.nom)}</b><div class="u">${(TYPES[x.type] || ["", ""])[1]} · nfcwork.ma/p/${esc(x.slug)}</div></span>${x.actif === false && !x.arch ? '<span class="pill" style="color:var(--warn)">⏸ Pause</span>' : ""}${PROPRIO ? "" : `<span class="arch" role="button" tabindex="0" data-${x.arch ? "unarch" : "arch"}="${esc(x.slug)}" title="${x.arch ? "Restaurer" : "Archiver"}">${x.arch ? "↩︎" : "🗄"}</span>`}</a>`).join("")}</div>`
-      : `<div class="empty paper"><h3>${filtre === "arch" ? "Aucune page archivée." : "Rien pour l’instant"}</h3>${filtre === "arch" ? "" : "<p>Touchez un bouton en haut pour créer votre première page.</p>"}</div>`}
+        <span class="tx"><b>${esc(x.nom)}</b><div class="u">${(TYPES[x.type] || ["", ""])[1]} · nfcwork.ma/p/${esc(x.slug)}</div></span>${x.actif === false && !x.arch && !x.corb ? '<span class="pill" style="color:var(--warn)">⏸ Pause</span>' : ""}${PROPRIO ? "" : (x.corb ? `<span class="arch" role="button" tabindex="0" data-restcorb="${esc(x.slug)}" title="Restaurer">↩︎</span><span class="arch" role="button" tabindex="0" data-delcorb="${esc(x.slug)}" title="Supprimer définitivement" style="color:#e0564e">✕</span>` : `<span class="arch" role="button" tabindex="0" data-${x.arch ? "unarch" : "arch"}="${esc(x.slug)}" title="${x.arch ? "Restaurer" : "Archiver"}">${x.arch ? "↩︎" : "🗄"}</span>`)}</a>`).join("")}</div>`
+      : `<div class="empty paper"><h3>${filtre === "corb" ? "🗑 La corbeille est vide." : filtre === "arch" ? "Aucune page archivée." : "Rien pour l’instant"}</h3>${(filtre === "arch" || filtre === "corb") ? "" : "<p>Touchez un bouton en haut pour créer votre première page.</p>"}</div>`}
       <p data-adm class="muted" style="font-size:12.5px;margin-top:16px">ℹ️ Les anciennes pages faites avec l’outil du Mac (nfcworkma.github.io/profils/…) continuent de marcher.</p>`;
     remplir();
     const r = $("#rech"); r.oninput = () => { recherche = r.value; const pos = r.selectionStart; renderListe(); const n = $("#rech"); n.focus(); n.setSelectionRange(pos, pos); };
@@ -467,7 +468,7 @@ Skill Play | billard | 0602545454`;
       <label class="f">Couleur principale<input type="color" data-k="couleur" value="${esc(/^#[0-9a-f]{6}$/i.test(P.couleur || "") ? P.couleur : "#2F7BFF")}" style="height:46px;padding:4px"></label>
       <div class="seg" style="grid-template-columns:1fr 1fr"><button type="button" data-lang="fr" aria-pressed="${P.langue !== "ar"}"><b>🇫🇷 Français</b></button><button type="button" data-lang="ar" aria-pressed="${P.langue === "ar"}"><b>🇲🇦 العربية</b></button></div>
       <label class="check" data-adm><input type="checkbox" data-k="actif" ${P.actif !== false ? "checked" : ""}> ✅ Page en ligne (décochez pour la mettre en pause)</label></section>
-    <section class="sec paper row between" data-adm><div><b>🗑 Supprimer</b><div class="muted" style="font-size:13px">Le lien ne marchera plus.</div></div><button class="btn sm danger" data-act="supprimer">Supprimer</button></section>
+    <section class="sec paper row between" data-adm><div><b>🗑 Mettre à la corbeille</b><div class="muted" style="font-size:13px">Le lien sera désactivé. Récupérable dans « 🗑 Corbeille ».</div></div><button class="btn sm danger" data-act="supprimer">Corbeille</button></section>
     <div class="savebar"><div class="in"><span class="st" id="st"></span><button class="btn" data-act="apercu">👀 Aperçu</button><button class="btn primary" data-act="enregistrer" id="saveBtn">💾 Enregistrer</button></div></div>`;
     majBarre(); remplir();
   }
@@ -506,16 +507,39 @@ Skill Play | billard | 0602545454`;
       renderEdit();
     } catch (e) { erreur(e); majBarre(); }
   }
+  async function setActif(slug, actif) {
+    const d = await db.doc("settings/page-" + slug).get();
+    if (!d.exists) return;
+    const dd = d.data(); let p; try { p = JSON.parse(dd.json || "{}"); } catch (e) { p = {}; }
+    p.actif = actif;
+    const doc = { json: JSON.stringify(p), v: String(Date.now()), maj: NOW(), par: user.email };
+    if (dd.ownerEmail) doc.ownerEmail = dd.ownerEmail;
+    await db.doc("settings/page-" + slug).set(doc);
+  }
   async function supprimer() {
-    const r = prompt(`Pour supprimer « ${P.nom} », écrivez SUPPRIMER :`);
+    if (!confirm(`Mettre « ${P.nom} » à la corbeille ?\nLe lien sera désactivé, mais vous pourrez la restaurer.`)) return;
+    const slug = P.slug;
+    try {
+      await setActif(slug, false);
+      const it = liste.find(t => t.slug === slug);
+      if (it) { it.corb = true; it.actif = false; it.corbLe = Date.now(); it.maj = Date.now(); }
+      await ecrireListe();
+      P = null; saved = ""; toast("🗑 Dans la corbeille. Le lien est désactivé."); location.hash = "";
+    } catch (e) { erreur(e); }
+  }
+  async function supprimerDef(slug) {
+    const it = liste.find(t => t.slug === slug), nom = it ? it.nom : slug;
+    const r = prompt(`Supprimer DÉFINITIVEMENT « ${nom} » ? Irréversible.\nÉcrivez SUPPRIMER :`);
     if (!r || r.trim().toUpperCase() !== "SUPPRIMER") return;
     try {
-      const ids = [P.photo, ...(P.galerie || [])].filter(Boolean);
-      await Promise.all(ids.map(id => db.doc("settings/mimg-" + id).delete().catch(() => {})));
-      await Promise.all([P.ribPdf, ...(P.docs || []).map(d => d && d.id)].filter(Boolean).map(id => db.doc("settings/mpdf-" + id).delete().catch(() => {})));
-      await db.doc("settings/page-" + P.slug).delete();
-      liste = liste.filter(t => t.slug !== P.slug); await ecrireListe();
-      P = null; saved = ""; toast("🗑 Supprimée."); location.hash = "";
+      let p = null; try { const d = await db.doc("settings/page-" + slug).get(); if (d.exists) p = JSON.parse(d.data().json || "{}"); } catch (e) {}
+      if (p) {
+        await Promise.all([p.photo, ...(p.galerie || [])].filter(Boolean).map(id => db.doc("settings/mimg-" + id).delete().catch(() => {})));
+        await Promise.all([p.ribPdf, ...(p.docs || []).map(d => d && d.id)].filter(Boolean).map(id => db.doc("settings/mpdf-" + id).delete().catch(() => {})));
+      }
+      await db.doc("settings/page-" + slug).delete().catch(() => {});
+      liste = liste.filter(t => t.slug !== slug); await ecrireListe();
+      renderListe(); toast("🗑 Supprimée définitivement.");
     } catch (e) { erreur(e); }
   }
   function dupliquer() {
@@ -626,6 +650,8 @@ Skill Play | billard | 0602545454`;
     if (e.target.closest("[data-lot]")) { lotFenetre(); return; }
     const ar = e.target.closest("[data-arch],[data-unarch]");
     if (ar) { e.preventDefault(); e.stopPropagation(); const slug = ar.dataset.arch || ar.dataset.unarch, it = liste.find(t => t.slug === slug); if (it) { it.arch = !!ar.dataset.arch; it.maj = Date.now(); ecrireListe().then(() => { renderListe(); toast(it.arch ? "🗄 Archivée (toujours là, dans « Archivées »)" : "↩︎ Restaurée"); }).catch(erreur); } return; }
+    const rc = e.target.closest("[data-restcorb]"); if (rc && !PROPRIO) { e.preventDefault(); e.stopPropagation(); const slug = rc.dataset.restcorb, it = liste.find(t => t.slug === slug); setActif(slug, true).then(async () => { if (it) { it.corb = false; it.actif = true; it.maj = Date.now(); } await ecrireListe(); renderListe(); toast("↩︎ Restaurée — le lien remarche."); }).catch(erreur); return; }
+    const dc = e.target.closest("[data-delcorb]"); if (dc && !PROPRIO) { e.preventDefault(); e.stopPropagation(); supprimerDef(dc.dataset.delcorb); return; }
     const f = e.target.closest("[data-f]"); if (f) { filtre = f.dataset.f; renderListe(); return; }
     const th = e.target.closest("[data-theme]"); if (th && P) { P.theme = th.dataset.theme; renderEdit(); return; }
     const lg = e.target.closest("[data-lang]"); if (lg && P) { P.langue = lg.dataset.lang; renderEdit(); return; }
