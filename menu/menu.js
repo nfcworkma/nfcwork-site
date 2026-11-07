@@ -550,7 +550,7 @@
         <div style="display:inline-block;border:2px dashed currentColor;border-radius:16px;padding:10px 22px;margin-bottom:14px"><small style="display:block;opacity:.7">Votre numéro</small><b style="font-size:38px;letter-spacing:2px">${num}</b></div>
         ${table.trim() ? `<p style="margin:0 0 12px">${esc(table.trim())}</p>` : ""}
         ${M.suivi && oid ? `<div id="suivi" class="suivi"></div><p class="hint" style="margin:6px 0 12px">🔔 Gardez cette page ouverte : votre téléphone sonnera quand la commande sera prête.</p>` : ""}<button class="ghost" data-fermer>${U.close}</button></div>`;
-      if (M.suivi && oid) suivre(oid, num, d);
+      if (M.suivi && oid) suivre(oid, num, d, lv);
     } catch (e) {
       console.error(e);
       if (btn) { btn.disabled = false; btn.textContent = "Réessayer"; }
@@ -567,9 +567,11 @@
     try { [0, .25, .5, .9, 1.15, 1.4].forEach((t, i) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.value = [880, 1175, 1568][i % 3]; g.gain.setValueAtTime(.0001, AC.currentTime + t); g.gain.exponentialRampToValueAtTime(.7, AC.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, AC.currentTime + t + .22); o.connect(g).connect(AC.destination); o.start(AC.currentTime + t); o.stop(AC.currentTime + t + .25); }); } catch (e) {}
     try { navigator.vibrate && navigator.vibrate([400, 150, 400, 150, 800]); } catch (e) {}
   }
-  function suivre(oid, num, d) {
+  function suivre(oid, num, d, lv) {
     const url = DOC.replace(/settings\/$/, "") + "commandes/" + encodeURIComponent(slug) + "/liste/" + oid;
-    const ETAPES = [["nouvelle", "📥", "Reçue"], ["cuisine", "👨‍🍳", "En préparation"], ["prete", "✅", "Prête !"]];
+    const ETAPES = lv
+      ? [["nouvelle", "📥", "Reçue"], ["cuisine", "👨‍🍳", "En préparation"], ["prete", "📦", "Prête, livreur en route"], ["enroute", "🛵", "En route"], ["livree", "✅", "Livrée !"]]
+      : [["nouvelle", "📥", "Reçue"], ["cuisine", "👨‍🍳", "En préparation"], ["prete", "✅", "Prête !"]];
     try { navigator.wakeLock && navigator.wakeLock.request("screen").then(l => { verrou = l; }).catch(() => {}); } catch (e) {}
     let fini = false, n = 0, dernier = "";
     const dessiner = st => {
@@ -580,7 +582,7 @@
     const pret = () => {
       if (document.querySelector(".pretfs")) return;
       const f = document.createElement("div"); f.className = "pretfs";
-      f.innerHTML = `<div><div style="font-size:80px;line-height:1">✅</div><h1>Votre commande est prête !</h1><div class="pn">N° ${esc(num)}</div><p>${M.type === "hotel" ? "Elle arrive." : "Venez la récupérer au comptoir."}</p><button>OK</button></div>`;
+      f.innerHTML = `<div><div style="font-size:80px;line-height:1">${lv ? "🛵" : "✅"}</div><h1>${lv ? "Votre commande est livrée !" : "Votre commande est prête !"}</h1><div class="pn">N° ${esc(num)}</div><p>${lv ? "Bon appétit 🍽" : (M.type === "hotel" ? "Elle arrive." : "Venez la récupérer au comptoir.")}</p><button>OK</button></div>`;
       document.body.appendChild(f);
       sonPret(); bipT = setInterval(sonPret, 4000);
       document.title = "✅ Commande prête !";
@@ -593,7 +595,7 @@
         if (r.ok) {
           const f = (await r.json()).fields || {}, st = (f.statut || {}).stringValue || "nouvelle";
           if (st !== dernier) { dernier = st; dessiner(st); }
-          if (st === "prete") { fini = true; pret(); return; }
+          if (st === (lv ? "livree" : "prete")) { fini = true; pret(); return; }
           if (st === "payee" || st === "annulee") { fini = true; return; }
         }
       } catch (e) {}

@@ -18,7 +18,7 @@
   const W = {
     fr: { start: "Démarrer la caisse", startTx: "Les commandes du menu arrivent ici en direct.", who: "Touchez votre nom", code: "Entrez votre code", wrong: "Code incorrect", hello: "Bonjour", what: "Que voulez-vous faire ?",
       place: "Sur place", emporter: "À emporter", livraison: "Livraison", commandes: "Commandes", tables: "Tables", libre: "Libre", occ: "occupées",
-      nouvelle: "Nouvelle", cuisine: "En cuisine", prete: "Prête", payee: "Payée", annulee: "Annulée", lancer: "Envoyer en cuisine", lancerTout: "Envoyer en cuisine", pret: "C’est prêt",
+      nouvelle: "Nouvelle", cuisine: "En cuisine", prete: "Prête", payee: "Payée", annulee: "Annulée", enroute: "En route", livree: "Livrée", assigner: "Assigner un livreur", livre: "Livré", lancer: "Envoyer en cuisine", lancerTout: "Envoyer en cuisine", pret: "C’est prêt",
       encaisser: "Encaisser", ticket: "Ticket", bon: "Bon cuisine", annuler: "Annuler", ajouter: "Ajouter des produits", total: "Total", especes: "Espèces", carte: "Carte",
       donne: "Le client donne", rendre: "À rendre", manque: "Il manque", valider: "C’est payé", effacer: "Effacer", exact: "Montant exact", retour: "Retour", fermer: "Fermer",
       encaisse: "Encaissé aujourd’hui", payees: "Payées", encours: "En cours", aucune: "Aucune", vide: "Table libre", envoyee: "Envoyée en cuisine", paye: "Payé",
@@ -33,7 +33,7 @@
       gerer: "Gérer la caisse", equipe: "Serveurs et codes", ajouterS: "Ajouter un serveur", nbTables: "Nombre de tables", entete: "Adresse sur le ticket", contact: "Pour changer les codes, les prix ou les produits, contactez NFCWORK", pinErr: "Chaque code doit avoir 4 chiffres, différents" },
     ar: { start: "بدا الكيسة", startTx: "الطلبات ديال المنيو كيوصلو هنا مباشرة.", who: "ورك على سميتك", code: "دخل الكود ديالك", wrong: "الكود غالط", hello: "مرحبا", what: "شنو بغيتي دير؟",
       place: "فالمحل", emporter: "ديها معاك", livraison: "توصيل", commandes: "الطلبات", tables: "الطوابل", libre: "خاوية", occ: "عامرين",
-      nouvelle: "جديدة", cuisine: "فالكوزينة", prete: "واجدة", payee: "تخلصات", annulee: "تلغات", lancer: "صيفط للكوزينة", lancerTout: "صيفط للكوزينة", pret: "واجدة",
+      nouvelle: "جديدة", cuisine: "فالكوزينة", prete: "واجدة", payee: "تخلصات", annulee: "تلغات", enroute: "فالطريق", livree: "توصلات", assigner: "عيّن ليفرور", livre: "توصل", lancer: "صيفط للكوزينة", lancerTout: "صيفط للكوزينة", pret: "واجدة",
       encaisser: "خلّص", ticket: "التيكي", bon: "ورقة الكوزينة", annuler: "لغي", ajouter: "زيد شي حاجة", total: "المجموع", especes: "كاش", carte: "كارط",
       donne: "الكليان عطاك", rendre: "رجّع ليه", manque: "ناقص", valider: "صافي، تخلّص", effacer: "مسح", exact: "الحساب نيشان", retour: "رجوع", fermer: "سد",
       encaisse: "دخل اليوم", payees: "تخلصو", encours: "باقيين", aucune: "والو", vide: "الطابلة خاوية", envoyee: "تصيفطات للكوزينة", paye: "تخلّص",
@@ -56,7 +56,7 @@
   const depuis = d => { if (!d) return ""; const m = Math.round((Date.now() - d) / 60000); return m < 1 ? t("instant") : m < 60 ? `${t("depuis")} ${m} ${t("min")}` : `${t("depuis")} ${Math.floor(m / 60)} h ${m % 60}`; };
   const toast = (txt, cls) => { const d = document.createElement("div"); d.className = "toast" + (cls ? " " + cls : ""); d.textContent = txt; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); };
   const COUL = ["#2f7bff", "#ff9f1c", "#1faa59", "#e14eca", "#00b3a4", "#ff5d5d", "#8b5cf6", "#f5b301"];
-  const ICO = { nouvelle: "🔔", cuisine: "👨‍🍳", prete: "✅", payee: "💰", annulee: "✖" };
+  const ICO = { nouvelle: "🔔", cuisine: "👨‍🍳", prete: "✅", enroute: "🛵", livree: "📦", payee: "💰", annulee: "✖" };
 
   firebase.initializeApp(window.FIREBASE_CONFIG);
   const auth = firebase.auth(), db = firebase.firestore();
@@ -305,7 +305,7 @@
       alarme(); rendre();
     }, e => { console.error(e); setEtat(false); });
   }
-  const ouvertes = () => ORD.filter(o => o.statut !== "payee" && o.statut !== "annulee");
+  const ouvertes = () => ORD.filter(o => o.statut !== "payee" && o.statut !== "annulee" && o.statut !== "livree");
   const numTable = tb => { const m = String(tb || "").match(/(\d+)/); return m ? +m[1] : 0; };
   const deTable = (o, n) => (o.mode === "place" || o.mode === "chambre") && numTable(o.table) === n;
   function maj(o, data) { return db.collection("commandes").doc(slug).collection("liste").doc(o.id).update(Object.assign({ maj: firebase.firestore.FieldValue.serverTimestamp() }, data)).catch(e => { console.error(e); toast("⚠️ " + e.message); }); }
@@ -370,11 +370,14 @@
   /* ---------- carte d'une commande : un gros bouton selon l'étape ---------- */
   function carte(o) {
     const mode = o.mode === "livraison" ? "🛵 " + t("livraison") : o.mode === "emporter" ? "🥡 " + t("emporter") : "🍽 " + esc(o.table || t("place"));
+    const estLiv = o.mode === "livraison";
     const gros = o.statut === "nouvelle" ? `<button class="btn w big" data-a="lancer" data-o="${o.id}">👨‍🍳 ${t("lancer")}</button>`
       : o.statut === "cuisine" ? `<button class="btn ok big" data-a="prete" data-o="${o.id}">✅ ${t("pret")}</button>`
+      : (o.statut === "prete" && estLiv) ? `<button class="btn p big" data-a="assigner" data-o="${o.id}">🛵 ${t("assigner")}</button>`
+      : o.statut === "enroute" ? `<button class="btn ok big" data-a="livre" data-o="${o.id}">📦 ${t("livre")}</button>`
       : o.statut === "prete" ? `<button class="btn p big" data-a="encaisser" data-o="${o.id}">💰 ${t("encaisser")} ${fmt(num(o.total))}</button>` : "";
     return `<div class="oc ${esc(o.statut)}"><div class="h"><span class="st ${esc(o.statut)}">${ICO[o.statut] || ""} ${t(o.statut)}</span><b class="nb">N° ${esc(o.num)}</b></div>
-      <div class="meta">${mode} · ${o.source === "menu" ? "📲 " + t("menuQR") : "👤 " + esc(o.employe || "")} · 🕒 ${heure(o.d)} (${depuis(o.d)})</div>
+      <div class="meta">${mode} · ${o.source === "menu" ? "📲 " + t("menuQR") : "👤 " + esc(o.employe || "")} · 🕒 ${heure(o.d)} (${depuis(o.d)})${o.livreurNom ? " · 🛵 " + esc(o.livreurNom) : ""}</div>
       ${o.items.map(i => `<div class="ln"><span><b class="q">${i.q}×</b> ${esc(i.n)}</span><b>${fmt(i.q * num(i.p))}</b></div>`).join("")}
       ${num(o.frais) ? `<div class="ln"><span>🛵 ${t("livr")}</span><b>${fmt(num(o.frais))}</b></div>` : ""}
       <div class="ln tot2"><span>${t("total")}</span><b>${fmt(num(o.total))}</b></div>
@@ -389,6 +392,8 @@
       const a = b.dataset.a;
       if (a === "lancer") lancer([o]);
       if (a === "prete") maj(o, { statut: "prete" });
+      if (a === "assigner") assignerLivreur(o);
+      if (a === "livre") maj(o, { statut: "livree" });
       if (a === "bon") imprimer(bonCuisine(o));
       if (a === "ticket") imprimer(ticket([o]));
       if (a === "encaisser") encaisser([o]);
@@ -397,10 +402,43 @@
   }
   function lancer(os) { os.forEach(o => { maj(o, { statut: "cuisine", employe: o.employe || employe.nom }); if (LS.get("bon", true)) imprimer(bonCuisine(o)); }); toast("👨‍🍳 " + t("envoyee"), "ok"); }
 
+  // 🛵 Assigner un livreur à une commande livraison → passe en « En route »
+  function assignerLivreur(o) {
+    let prev = []; try { prev = JSON.parse(localStorage.getItem("nfc-livreurs") || "[]"); } catch (e) {}
+    const d = document.createElement("div");
+    d.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
+    d.innerHTML = `<div style="background:#fff;color:#141414;width:100%;max-width:440px;border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom,0px));font-family:inherit">
+      <h2 style="margin:0 0 4px;font-size:18px">🛵 ${esc(t("assigner"))}</h2>
+      <p style="margin:0 0 14px;color:#666;font-size:13px">N° ${esc(o.num)}${o.nom ? " · " + esc(o.nom) : ""}${o.tel ? " · " + esc(o.tel) : ""}</p>
+      ${prev.length ? `<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">${prev.map(p => `<button type="button" data-ln="${esc(p.nom)}" data-lt="${esc(p.tel || "")}" style="border:1px solid #ddd;background:#f4f4f4;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer">${esc(p.nom)}</button>`).join("")}</div>` : ""}
+      <label style="display:block;font-size:12px;font-weight:700;color:#666;margin:0 0 4px">Nom du livreur</label>
+      <input id="lvn" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccc;border-radius:10px;font-size:15px;margin-bottom:10px" autocomplete="off">
+      <label style="display:block;font-size:12px;font-weight:700;color:#666;margin:0 0 4px">Téléphone (facultatif)</label>
+      <input id="lvt" type="tel" inputmode="tel" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #ccc;border-radius:10px;font-size:15px;margin-bottom:16px" autocomplete="off">
+      <div style="display:flex;gap:10px">
+        <button id="lvx" type="button" style="padding:13px 16px;border:1px solid #ddd;background:#fff;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer">Annuler</button>
+        <button id="lvok" type="button" style="flex:1;padding:13px;border:0;background:#d62828;color:#fff;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">🛵 En route</button>
+      </div></div>`;
+    document.body.appendChild(d);
+    const nom = d.querySelector("#lvn"), tel = d.querySelector("#lvt");
+    setTimeout(() => nom.focus(), 60);
+    d.querySelectorAll("[data-ln]").forEach(b => b.onclick = () => { nom.value = b.dataset.ln; tel.value = b.dataset.lt || ""; });
+    const fermer = () => d.remove();
+    d.querySelector("#lvx").onclick = fermer;
+    d.onclick = e => { if (e.target === d) fermer(); };
+    d.querySelector("#lvok").onclick = () => {
+      const n = nom.value.trim(); if (!n) { nom.focus(); return; }
+      const tl = tel.value.trim();
+      try { const list = prev.filter(p => p.nom !== n); list.unshift({ nom: n, tel: tl }); localStorage.setItem("nfc-livreurs", JSON.stringify(list.slice(0, 8))); } catch (e) {}
+      maj(o, { statut: "enroute", livreurNom: n, livreurTel: tl });
+      fermer();
+    };
+  }
+
   function enligne() {
     const O = ouvertes();
     const col = (st, c) => { const L = O.filter(o => o.statut === st); return `<div class="col"><h3 class="${c}">${ICO[st]} ${t(st)} <span>${L.length}</span></h3>${L.length ? L.map(carte).join("") : `<div class="empty">${t("aucune")}</div>`}</div>`; };
-    app.innerHTML = `${retour("home")}<h1>📲 ${t("commandes")}</h1><div class="cols">${col("nouvelle", "c2")}${col("cuisine", "c1")}${col("prete", "c3")}</div>`;
+    app.innerHTML = `${retour("home")}<h1>📲 ${t("commandes")}</h1><div class="cols">${col("nouvelle", "c2")}${col("cuisine", "c1")}${col("prete", "c3")}${O.some(o => o.statut === "enroute") ? col("enroute", "c3") : ""}</div>`;
     brancherRetour(); brancher(app);
   }
 
