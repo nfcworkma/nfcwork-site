@@ -36,7 +36,7 @@
     if (lf === null) { etat('<div class="empty"><div><div style="font-size:48px">📡</div><h2>Connexion impossible</h2><p>Vérifiez votre connexion et réessayez.</p></div></div>'); return; }
     let liste = [];
     try { liste = JSON.parse((lf.json && lf.json.stringValue) || "[]"); } catch (e) {}
-    liste = liste.filter(m => m && m.slug && m.actif !== false && !m.arch && !m.corb);
+    liste = liste.filter(m => m && m.slug && m.actif !== false && !m.arch && !m.corb && m.plateforme !== false);
     if (!liste.length) { vide(); return; }
 
     const restos = [];
