@@ -37,6 +37,19 @@
   .pf-acts a{padding:7px 9px;border-radius:9px;border:1px solid var(--line,#2a2f3b);text-decoration:none;color:inherit;font-size:12px;font-weight:600}
   .pf-foot{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
   @media(max-width:520px){.pf-acts a .lbl{display:none}}
+  .pf-tabs{display:flex;gap:6px;background:var(--sunk,#1f232d);padding:5px;border-radius:12px;margin:4px 0 14px;position:sticky;top:8px;z-index:5}
+  .pf-tabs button{flex:1;border:0;background:transparent;color:var(--muted,#8a93a6);font-weight:700;font-size:13px;padding:10px 6px;border-radius:9px;cursor:pointer}
+  .pf-tabs button[aria-selected=true]{background:var(--surface,#171a22);color:var(--fg,#fff);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .pf-add{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .pf-add input{flex:1;min-width:120px;padding:11px;border:1px solid var(--line,#2a2f3b);border-radius:11px;background:var(--surface,#171a22);color:inherit;font:inherit}
+  .pf-add button{flex:0 0 auto}
+  .pf-del{border:1px solid var(--line,#2a2f3b);background:var(--sunk,#1f232d);color:inherit;border-radius:9px;padding:7px 9px;cursor:pointer;font-size:13px}
+  .pf-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .pf-stats .st{background:var(--surface,#171a22);border:1px solid var(--line,#2a2f3b);border-radius:12px;padding:12px 8px;text-align:center}
+  .pf-stats .st b{display:block;font-size:18px}
+  .pf-stats .st span{font-size:11px;color:var(--muted,#8a93a6)}
+  .spin2{width:26px;height:26px;border-radius:50%;border:3px solid var(--line,#2a2f3b);border-top-color:var(--accent,#d62828);animation:sp 1s linear infinite;margin:0 auto 10px}
+  @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>

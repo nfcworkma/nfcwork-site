@@ -403,8 +403,15 @@
   function lancer(os) { os.forEach(o => { maj(o, { statut: "cuisine", employe: o.employe || employe.nom }); if (LS.get("bon", true)) imprimer(bonCuisine(o)); }); toast("👨‍🍳 " + t("envoyee"), "ok"); }
 
   // 🛵 Assigner un livreur à une commande livraison → passe en « En route »
-  function assignerLivreur(o) {
+  let LIVREURS = null;
+  async function chargerLivreurs() { if (LIVREURS) return LIVREURS; try { const s = await db.doc("settings/livreurs").get(); LIVREURS = s.exists ? JSON.parse(s.data().json || "[]") : []; } catch (e) { LIVREURS = []; } return LIVREURS; }
+  async function assignerLivreur(o) {
     let prev = []; try { prev = JSON.parse(localStorage.getItem("nfc-livreurs") || "[]"); } catch (e) {}
+    const centraux = (await chargerLivreurs()).filter(l => l && l.nom && l.actif !== false);
+    const vus = {}, prevChips = [];
+    centraux.forEach(l => { if (!vus[l.nom]) { vus[l.nom] = 1; prevChips.push({ nom: l.nom, tel: l.tel || "" }); } });
+    prev.forEach(l => { if (l && l.nom && !vus[l.nom]) { vus[l.nom] = 1; prevChips.push({ nom: l.nom, tel: l.tel || "" }); } });
+    prev = prevChips;
     const d = document.createElement("div");
     d.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center";
     d.innerHTML = `<div style="background:#fff;color:#141414;width:100%;max-width:440px;border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom,0px));font-family:inherit">
