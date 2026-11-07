@@ -432,6 +432,12 @@
       try { const list = prev.filter(p => p.nom !== n); list.unshift({ nom: n, tel: tl }); localStorage.setItem("nfc-livreurs", JSON.stringify(list.slice(0, 8))); } catch (e) {}
       maj(o, { statut: "enroute", livreurNom: n, livreurTel: tl });
       fermer();
+      if (tl) {
+        const lignes = (o.items || []).map(it => `• ${it.q}× ${it.n}`).join("\n");
+        const lien = location.origin + "/livreur/?s=" + encodeURIComponent(slug) + "&o=" + encodeURIComponent(o.id);
+        const txt = `🛵 Nouvelle livraison — ${MENU.nom || ""}\nCommande N° ${o.num}\n${lignes}\nTotal : ${fmt(num(o.total))} (${o.pay === "virement" ? "Virement déjà payé" : "Cash à encaisser"})\nClient : ${o.nom || ""} ${o.tel || ""}${o.adresse ? "\nAdresse : " + o.adresse : ""}\n\n👉 Détails + GPS : ${lien}`;
+        window.open(`https://wa.me/${String(tl).replace(/\D/g, "").replace(/^0/, "212")}?text=${encodeURIComponent(txt)}`, "_blank");
+      }
     };
   }
 

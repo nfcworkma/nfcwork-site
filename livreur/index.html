@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Livraison · NFCWORK</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#d62828">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/img/icons/favicon-32.png">
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+  :root{
+    --bg:#f4f3f1; --fg:#17150f; --muted:#6b6459; --line:#e7e3dc;
+    --accent:#d62828; --accent-soft:#fce8e8; --ok:#1f7a4d; --ok-soft:#e3f3ea;
+    --chip:#efece7; --card:#fff; --shadow:0 6px 24px rgba(20,16,8,.10);
+    --font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#131210; --fg:#f3efe8; --muted:#a79f92; --line:#2d2a24;
+    --accent:#ff6b5e; --accent-soft:#3a1d1a; --ok:#5fd199; --ok-soft:#1b2f25;
+    --chip:#2a2721; --card:#1d1b17; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#131210; --fg:#f3efe8; --muted:#a79f92; --line:#2d2a24;
+    --accent:#ff6b5e; --accent-soft:#3a1d1a; --ok:#5fd199; --ok-soft:#1b2f25;
+    --chip:#2a2721; --card:#1d1b17; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.5}
+  #app{max-width:460px;margin:0 auto;min-height:100vh;
+    padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));
+    padding-top:max(16px,env(safe-area-inset-top,0px));padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+  .bar{display:flex;align-items:center;gap:8px;font-weight:800;font-size:17px;margin-bottom:14px}
+  .bar .pill{margin-left:auto;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+  .bar .pill.ok{background:var(--ok-soft);color:var(--ok)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:12px}
+  .num{font-size:13px;color:var(--muted)}
+  .num b{color:var(--fg)}
+  .addr{display:flex;gap:10px;margin:10px 0;font-size:14px}
+  .addr .pin{font-size:17px}
+  .addr small{color:var(--muted)}
+  .items{font-size:14px;margin:4px 0}
+  .items .l{display:flex;justify-content:space-between;padding:3px 0}
+  .tot{display:flex;justify-content:space-between;font-weight:800;font-size:16px;border-top:1px solid var(--line);margin-top:8px;padding-top:10px}
+  .pay{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;margin-top:8px}
+  .pay.cash{background:var(--ok-soft);color:var(--ok)}
+  .pay.vir{background:var(--accent-soft);color:var(--accent)}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:13px;
+    padding:14px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;margin-top:10px}
+  .btn.gps{background:var(--accent);color:#fff}
+  .btn.call{background:var(--chip);color:var(--fg)}
+  .btn.done{background:var(--ok);color:#fff}
+  .state{min-height:70vh;display:grid;place-items:center;text-align:center;color:var(--muted);padding:20px}
+  .state h2{color:var(--fg);margin:8px 0 4px}
+  .spin{width:32px;height:32px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite;margin:0 auto 12px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .big{text-align:center;padding:30px 10px}
+  .big .em{font-size:60px}
+</style>
+</head>
+<body>
+<div id="app"><div class="state"><div><div class="spin"></div>Chargement de la livraison…</div></div></div>
+<script src="/livreur/livreur.js"></script>
+</body>
+</html>
