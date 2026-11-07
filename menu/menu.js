@@ -531,10 +531,11 @@
   async function versCaisse(lignes, total, table, note, txt, d) {
     const lv = enLivraison(), frais = lv ? liv.frais : 0;
     const num = String(Date.now() % 10000).padStart(4, "0");
+    const code = String(Math.floor(1000 + Math.random() * 9000));   // code de confirmation de livraison
     const f = {
       statut: FS("nouvelle"), source: FS("menu"), num: FS(num), cree: { timestampValue: new Date().toISOString() },
       mode: FS(lv ? "livraison" : M.type === "hotel" ? "chambre" : (table.trim() ? "place" : "emporter")),
-      pay: FS(lv ? (saisie.pay || "cash") : "place"),
+      pay: FS(lv ? (saisie.pay || "cash") : "place"), code: FS(code),
       table: FS(table.trim()), nom: FS(saisie.nom.trim()), tel: FS(saisie.tel.trim()), adresse: FS(saisie.adresse.trim()),
       pos: FS(lv ? (positionTexte()[1] || saisie.pos || "").replace(/^Google Maps : /, "") : ""), note: FS(note.trim()),
       items: { arrayValue: { values: lignes.map(l => ({ mapValue: { fields: { id: FS(l.it.id), n: FS(tr(l.it.nom)), q: { integerValue: String(l.q) }, p: { doubleValue: prixNum(l.it.prix) } } } })) } },
@@ -551,7 +552,7 @@
       panier = {}; majPanier(); document.querySelectorAll("[data-item]").forEach(el => { const id = el.dataset.item; rafraichirItem(id); });
       d.querySelector(".box").innerHTML = `<div style="text-align:center;padding:10px 0 4px"><div style="font-size:54px;line-height:1">✅</div>
         <h2 style="margin:10px 0 4px">Commande envoyée</h2><p class="hint" style="margin:0 0 14px">${lv ? "Elle est en préparation. Nous vous appelons si besoin." : "Elle est arrivée à la caisse et part en préparation."}</p>
-        <div style="display:inline-block;border:2px dashed currentColor;border-radius:16px;padding:10px 22px;margin-bottom:14px"><small style="display:block;opacity:.7">Votre numéro</small><b style="font-size:38px;letter-spacing:2px">${num}</b></div>
+        <div style="display:inline-block;border:2px dashed currentColor;border-radius:16px;padding:10px 22px;margin-bottom:14px"><small style="display:block;opacity:.7">Votre numéro</small><b style="font-size:38px;letter-spacing:2px">${num}</b></div>${lv && oid ? codeBloc(code, oid) : ""}
         ${table.trim() ? `<p style="margin:0 0 12px">${esc(table.trim())}</p>` : ""}
         ${M.suivi && oid ? `<div id="suivi" class="suivi"></div><p class="hint" style="margin:6px 0 12px">🔔 Gardez cette page ouverte : votre téléphone sonnera quand la commande sera prête.</p>` : ""}<button class="ghost" data-fermer>${U.close}</button></div>`;
       if (M.suivi && oid) suivre(oid, num, d, lv);
@@ -570,6 +571,12 @@
     if (init) return;
     try { [0, .25, .5, .9, 1.15, 1.4].forEach((t, i) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.value = [880, 1175, 1568][i % 3]; g.gain.setValueAtTime(.0001, AC.currentTime + t); g.gain.exponentialRampToValueAtTime(.7, AC.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, AC.currentTime + t + .22); o.connect(g).connect(AC.destination); o.start(AC.currentTime + t); o.stop(AC.currentTime + t + .25); }); } catch (e) {}
     try { navigator.vibrate && navigator.vibrate([400, 150, 400, 150, 800]); } catch (e) {}
+  }
+  function codeBloc(code, oid) {
+    const url = location.origin + "/livreur/?s=" + encodeURIComponent(slug) + "&o=" + encodeURIComponent(oid) + "&c=" + encodeURIComponent(code);
+    let qr = "";
+    try { if (window.QRGEN) qr = `<div style="width:116px;margin:10px auto 0">${QRGEN.svg(url, { marge: 2 })}</div>`; } catch (e) {}
+    return `<div style="border:2px dashed var(--accent,#e0b15c);border-radius:16px;padding:12px 16px;margin:0 0 14px"><small style="display:block;opacity:.7;margin-bottom:2px">🛵 Code de livraison — donnez-le au livreur</small><b style="font-size:34px;letter-spacing:6px">${esc(code)}</b>${qr}</div>`;
   }
   function suivre(oid, num, d, lv) {
     const url = DOC.replace(/settings\/$/, "") + "commandes/" + encodeURIComponent(slug) + "/liste/" + oid;

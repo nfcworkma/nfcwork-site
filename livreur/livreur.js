@@ -8,6 +8,8 @@
   const qs = new URLSearchParams(location.search);
   const slug = (qs.get("s") || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
   const oid = (qs.get("o") || "").replace(/[^A-Za-z0-9_-]/g, "");
+  const cparam = (qs.get("c") || "").replace(/\D/g, "");
+  let CODE = "", confirming = false, autoTried = false;
 
   const S = f => (f && f.stringValue) || "";
   const N = f => f ? (f.doubleValue != null ? +f.doubleValue : f.integerValue != null ? +f.integerValue : 0) : 0;
@@ -36,6 +38,7 @@
 
   function rendre(f) {
     const st = S(f.statut) || "nouvelle";
+    CODE = S(f.code);
     const info = STAT[st] || STAT.nouvelle;
     const its = items(f.items);
     const total = N(f.total), num = S(f.num), nom = S(f.nom), tel = S(f.tel), adresse = S(f.adresse), pos = S(f.pos), pay = S(f.pay);
@@ -60,9 +63,33 @@
         '<span class="pay ' + (pay === "virement" ? "vir" : "cash") + '">' + (pay === "virement" ? "🏦 Virement (déjà payé)" : "💵 Cash à encaisser") + '</span>' +
         (gps ? '<a class="btn gps" target="_blank" rel="noopener" href="' + esc(gps) + '">🗺 Ouvrir l\'itinéraire GPS</a>' : "") +
         (tel ? '<a class="btn call" href="tel:' + esc(tel.replace(/[^0-9+]/g, "")) + '">📞 Appeler le client</a>' : "") +
-        recu +
+        recu + confirmBox() +
       '</div>' +
       '<p class="num" style="text-align:center">Cette page se met à jour toute seule.</p>';
+    const inp = app.querySelector("#cf-code"), ok = app.querySelector("#cf-ok"), err = app.querySelector("#cf-err");
+    if (ok) ok.onclick = () => tryConfirm(inp ? inp.value : "", err);
+    if (cparam && !autoTried) { autoTried = true; if (inp) inp.value = cparam; tryConfirm(cparam, err); }
+  }
+  function confirmBox() {
+    return '<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">' +
+      '<div style="font-weight:800;font-size:14px;margin-bottom:4px">✅ Confirmer la livraison</div>' +
+      '<p class="num" style="margin:0 0 8px">Scannez le QR du client, ou tapez son code à 4 chiffres.</p>' +
+      '<div style="display:flex;gap:8px"><input id="cf-code" inputmode="numeric" maxlength="4" placeholder="0000" style="flex:1;min-width:0;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:var(--fg);font-size:22px;letter-spacing:6px;text-align:center">' +
+      '<button class="btn done" id="cf-ok" style="width:auto;margin:0;padding:0 18px">Valider</button></div>' +
+      '<p id="cf-err" style="color:var(--accent);min-height:1em;margin:8px 0 0;font-size:13px"></p></div>';
+  }
+  async function tryConfirm(val, err) {
+    const v = String(val || "").replace(/\D/g, "");
+    if (v.length !== 4) { if (err) { err.style.color = "var(--accent)"; err.textContent = "Entrez le code à 4 chiffres."; } return; }
+    if (CODE && v !== CODE) { if (err) { err.style.color = "var(--accent)"; err.textContent = "Code incorrect."; } return; }
+    if (confirming) return; confirming = true;
+    if (err) { err.style.color = "var(--muted)"; err.textContent = "Confirmation…"; }
+    try {
+      const now = new Date().toISOString();
+      const r = await fetch(DOC + "commandes/" + encodeURIComponent(slug) + "/liste/" + encodeURIComponent(oid) + "?updateMask.fieldPaths=statut&updateMask.fieldPaths=maj&updateMask.fieldPaths=livreLe", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: { statut: { stringValue: "livree" }, maj: { timestampValue: now }, livreLe: { timestampValue: now } } }) });
+      if (!r.ok) throw new Error("http " + r.status);
+      last = ""; tick();
+    } catch (e) { confirming = false; if (err) { err.style.color = "var(--accent)"; err.textContent = "Échec. Réessayez, ou prévenez le resto sur WhatsApp."; } }
   }
 
   let last = "";
