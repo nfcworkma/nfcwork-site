@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Créer une livraison · nfcwork.ma</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/img/icons/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="outil.css">
+<style>
+  .lv-f{display:grid;gap:12px;max-width:520px}
+  .lv-f label{display:block;font-size:12px;font-weight:700;color:var(--muted,#8a93a6);margin-bottom:5px}
+  .lv-f input,.lv-f select{width:100%;padding:12px;border:1px solid var(--line,#2a2f3b);border-radius:11px;background:var(--surface,#171a22);color:inherit;font:inherit;font-size:15px}
+  .lv-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .lv-res{background:var(--surface,#171a22);border:1px solid var(--line,#2a2f3b);border-radius:16px;padding:16px;margin-top:14px;max-width:520px}
+  .lv-res h3{margin:0 0 10px;font-size:16px}
+  .lv-link{display:flex;gap:8px;align-items:center;background:var(--sunk,#1f232d);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px}
+  .lv-link code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace}
+  .lv-link .btn{flex:0 0 auto}
+  .lv-code{text-align:center;border:2px dashed var(--accent,#d62828);border-radius:14px;padding:12px;margin-bottom:12px}
+  .lv-code b{font-size:30px;letter-spacing:6px;display:block}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="btn sm ghost" href="./" aria-label="Retour">←</a>
+  <div class="t"><b>Créer une livraison</b><small>Pour les menus sans caisse</small></div>
+  <a class="btn sm" href="plateforme.html">Plateforme</a>
+</div></header>
+<main id="app"><div class="empty"><h3>Chargement…</h3></div></main>
+<div id="toast" hidden></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="livraison.js"></script>
+</body>
+</html>
