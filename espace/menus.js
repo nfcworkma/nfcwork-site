@@ -496,6 +496,8 @@
         <label class="f">Frais de livraison (DH)<input data-b="livraison.frais" value="${esc((M.livraison || {}).frais || "")}" inputmode="decimal" maxlength="8" placeholder="0 = gratuite"></label>
         <label class="f">Commande minimum (DH)<input data-b="livraison.min" value="${esc((M.livraison || {}).min || "")}" inputmode="decimal" maxlength="8" placeholder="facultatif"></label></div>
         ${champ("livraison.zone", "Zone de livraison (facultatif)", 'maxlength="60" placeholder="Kénitra centre, Mimosas…"')}
+        ${champ("infos.ribNom", "🏦 Titulaire du compte — pour le paiement par virement (facultatif)", 'maxlength="60" placeholder="Nom sur le RIB"')}
+        ${champ("infos.rib", "RIB / numéro de compte — le client peut payer par virement", 'maxlength="60" placeholder="Banque · 000 000 0000 0000 0000 00"')}
         <div class="paper" style="padding:12px 14px;border-radius:14px;min-width:0;overflow:hidden"><b>Lien pour Instagram, Facebook, WhatsApp</b><div class="muted" style="font-size:13px;margin:2px 0 8px">À mettre dans la bio : le menu s’ouvre directement en mode livraison.</div>
           <div style="display:flex;gap:6px;align-items:center;min-width:0"><code style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(lienPublic(M.slug).replace(/^https?:\/\//, ""))}?livraison</code><button class="btn sm" data-act="copier" data-v="${esc(lienPublic(M.slug))}?livraison">Copier</button></div></div>` : ""}
     </section>` : ""}

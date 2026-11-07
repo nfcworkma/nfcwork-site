@@ -377,7 +377,7 @@
       : o.statut === "enroute" ? `<button class="btn ok big" data-a="livre" data-o="${o.id}">📦 ${t("livre")}</button>`
       : o.statut === "prete" ? `<button class="btn p big" data-a="encaisser" data-o="${o.id}">💰 ${t("encaisser")} ${fmt(num(o.total))}</button>` : "";
     return `<div class="oc ${esc(o.statut)}"><div class="h"><span class="st ${esc(o.statut)}">${ICO[o.statut] || ""} ${t(o.statut)}</span><b class="nb">N° ${esc(o.num)}</b></div>
-      <div class="meta">${mode} · ${o.source === "menu" ? "📲 " + t("menuQR") : "👤 " + esc(o.employe || "")} · 🕒 ${heure(o.d)} (${depuis(o.d)})${o.livreurNom ? " · 🛵 " + esc(o.livreurNom) : ""}</div>
+      <div class="meta">${mode} · ${o.source === "menu" ? "📲 " + t("menuQR") : "👤 " + esc(o.employe || "")} · 🕒 ${heure(o.d)} (${depuis(o.d)})${o.mode === "livraison" ? " · " + (o.pay === "virement" ? "🏦 Virement" : "💵 Cash") : ""}${o.livreurNom ? " · 🛵 " + esc(o.livreurNom) : ""}</div>
       ${o.items.map(i => `<div class="ln"><span><b class="q">${i.q}×</b> ${esc(i.n)}</span><b>${fmt(i.q * num(i.p))}</b></div>`).join("")}
       ${num(o.frais) ? `<div class="ln"><span>🛵 ${t("livr")}</span><b>${fmt(num(o.frais))}</b></div>` : ""}
       <div class="ln tot2"><span>${t("total")}</span><b>${fmt(num(o.total))}</b></div>

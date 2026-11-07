@@ -399,7 +399,7 @@
   }
   // ce que le client a écrit reste gardé, même si la fenêtre se redessine (quand il change une quantité)
   const joursLoc = () => { if (!saisie.date || !saisie.fin) return 0; const n = Math.round((new Date(saisie.fin + "T12:00:00") - new Date(saisie.date + "T12:00:00")) / 864e5); return n > 0 ? n : 0; };
-  const saisie = { fin: "", hfin: "", table: tableQR ? "Table " + tableQR : "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "", gps: "", date: "", heure: "", pers: "" };
+  const saisie = { pay: "cash", fin: "", hfin: "", table: tableQR ? "Table " + tableQR : "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "", gps: "", date: "", heure: "", pers: "" };
   function feuille() {
     const its = tousItems();
     const lignes = Object.entries(panier).map(([id, q]) => ({ it: its.find(x => x.id === id), q })).filter(x => x.it && x.q);
@@ -421,6 +421,8 @@
       if (p || m) { changer((p || m).dataset[p ? "plus" : "moins"], p ? 1 : -1); d.remove(); feuille(); return; }
       const md = e.target.closest("[data-mode]");
       if (md) { saisie.mode = md.dataset.mode; d.remove(); feuille(); return; }
+      const py = e.target.closest("[data-pay]");
+      if (py) { saisie.pay = py.dataset.pay; d.remove(); feuille(); return; }
       if (e.target.closest("#c-geo")) { position(d); return; }
       if (e.target.closest("#c-send")) envoyer(lignes, total, d);
     });
@@ -455,6 +457,7 @@
     return choix + `<div class="sous"><span>Sous-total</span><span>${esc(fmtPrix(arr(total)))}</span></div>
         <div class="sous"><span>Livraison</span><span>${liv.frais ? esc(fmtPrix(arr(liv.frais))) : '<b class="gratuit">Gratuite</b>'}</span></div>
         <div class="total"><span>${U.total}</span><span>${esc(fmtPrix(arr(total + liv.frais)))}</span></div>
+        ${(M.infos || {}).rib ? `<div class="mode" style="margin-top:4px"><button type="button" data-pay="cash" aria-pressed="${saisie.pay !== "virement"}">💵 Cash à la livraison</button><button type="button" data-pay="virement" aria-pressed="${saisie.pay === "virement"}">🏦 Virement</button></div>${saisie.pay === "virement" ? `<div class="cmin"><b>🏦 ${esc((M.infos || {}).ribNom || M.nom || "RIB")}</b><br><span style="font-family:ui-monospace,monospace;word-break:break-all">${esc((M.infos || {}).rib)}</span><br><small>Faites le virement, puis envoyez le reçu sur WhatsApp pour confirmer la commande.</small></div>` : ""}` : ""}
         ${manque ? `<p class="cmin">Commande minimum ${esc(fmtPrix(arr(liv.min)))} pour la livraison : ajoutez encore ${esc(fmtPrix(arr(manque)))}.</p>` : ""}
         ${champ("nom", "Votre nom", 'maxlength="60" autocomplete="name"')}
         ${champ("tel", "Téléphone", 'type="tel" inputmode="tel" maxlength="20" autocomplete="tel"')}
@@ -512,7 +515,7 @@
         `Sous-total : ${fmtPrix(arr(total))}`, `Livraison : ${liv.frais ? fmtPrix(arr(liv.frais)) : "gratuite"}`, `${U.total} : ${fmtPrix(arr(total + liv.frais))}`, ""]
         .concat(saisie.nom.trim() ? [`Nom : ${saisie.nom.trim()}`] : [], [`Téléphone : ${saisie.tel.trim()}`],
           saisie.adresse.trim() ? [`Adresse : ${saisie.adresse.trim()}`] : [], positionTexte(),
-          note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
+          note.trim() ? [`${U.note} : ${note.trim()}`] : [], (M.infos || {}).rib ? [`Paiement : ${saisie.pay === "virement" ? "Virement (reçu à envoyer)" : "Cash à la livraison"}`] : []).join("\n");
     } else {
       txt = [U.hello, "", ...liste, "", `${U.total} : ${fmtPrix(arr(total))}`]
         .concat(table.trim() ? [`${U.table} : ${table.trim()}`] : [], note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
@@ -531,6 +534,7 @@
     const f = {
       statut: FS("nouvelle"), source: FS("menu"), num: FS(num), cree: { timestampValue: new Date().toISOString() },
       mode: FS(lv ? "livraison" : M.type === "hotel" ? "chambre" : (table.trim() ? "place" : "emporter")),
+      pay: FS(lv ? (saisie.pay || "cash") : "place"),
       table: FS(table.trim()), nom: FS(saisie.nom.trim()), tel: FS(saisie.tel.trim()), adresse: FS(saisie.adresse.trim()),
       pos: FS(lv ? (positionTexte()[1] || saisie.pos || "").replace(/^Google Maps : /, "") : ""), note: FS(note.trim()),
       items: { arrayValue: { values: lignes.map(l => ({ mapValue: { fields: { id: FS(l.it.id), n: FS(tr(l.it.nom)), q: { integerValue: String(l.q) }, p: { doubleValue: prixNum(l.it.prix) } } } })) } },
