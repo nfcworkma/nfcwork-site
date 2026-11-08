@@ -530,12 +530,13 @@
   const FS = v => typeof v === "number" ? (Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v }) : { stringValue: String(v == null ? "" : v).slice(0, 300) };
   async function versCaisse(lignes, total, table, note, txt, d) {
     const lv = enLivraison(), frais = lv ? liv.frais : 0;
+    const part = lv ? await partCharika() : "";
     const num = String(Date.now() % 10000).padStart(4, "0");
     const code = String(Math.floor(1000 + Math.random() * 9000));   // code de confirmation de livraison
     const f = {
       statut: FS("nouvelle"), source: FS("menu"), num: FS(num), cree: { timestampValue: new Date().toISOString() },
       mode: FS(lv ? "livraison" : M.type === "hotel" ? "chambre" : (table.trim() ? "place" : "emporter")),
-      pay: FS(lv ? (saisie.pay || "cash") : "place"), code: FS(code),
+      pay: FS(lv ? (saisie.pay || "cash") : "place"), code: FS(code), part: FS(part),
       table: FS(table.trim()), nom: FS(saisie.nom.trim()), tel: FS(saisie.tel.trim()), adresse: FS(saisie.adresse.trim()),
       pos: FS(lv ? (positionTexte()[1] || saisie.pos || "").replace(/^Google Maps : /, "") : ""), note: FS(note.trim()),
       items: { arrayValue: { values: lignes.map(l => ({ mapValue: { fields: { id: FS(l.it.id), n: FS(tr(l.it.nom)), q: { integerValue: String(l.q) }, p: { doubleValue: prixNum(l.it.prix) } } } })) } },
@@ -571,6 +572,17 @@
     if (init) return;
     try { [0, .25, .5, .9, 1.15, 1.4].forEach((t, i) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.value = [880, 1175, 1568][i % 3]; g.gain.setValueAtTime(.0001, AC.currentTime + t); g.gain.exponentialRampToValueAtTime(.7, AC.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, AC.currentTime + t + .22); o.connect(g).connect(AC.destination); o.start(AC.currentTime + t); o.stop(AC.currentTime + t + .25); }); } catch (e) {}
     try { navigator.vibrate && navigator.vibrate([400, 150, 400, 150, 800]); } catch (e) {}
+  }
+  let _partCache;
+  async function partCharika() {
+    if (_partCache !== undefined) return _partCache;
+    _partCache = "";
+    try {
+      const r = await fetch(DOC.replace(/settings\/$/, "settings/") + "charikat", { cache: "no-store" });
+      if (r.ok) { const f = (await r.json()).fields || {}; const list = JSON.parse((f.json && f.json.stringValue) || "[]");
+        for (const s of (list || [])) { if (s && s.actif !== false && (s.restos || []).includes(slug)) { _partCache = String(s.part || ""); break; } } }
+    } catch (e) {}
+    return _partCache;
   }
   function codeBloc(code, oid) {
     const url = location.origin + "/livreur/?s=" + encodeURIComponent(slug) + "&o=" + encodeURIComponent(oid) + "&c=" + encodeURIComponent(code);
