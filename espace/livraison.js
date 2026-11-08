@@ -62,14 +62,16 @@
     try {
       const ref = db.collection("commandes").doc(slug).collection("liste").doc();
       await ref.set(o);
-      resultat(slug, ref.id, code, { nom, tel, adr, tot, pay, livNom, livTel });
+      resultat(slug, ref.id, code, { nom, tel, adr, tot, pay, livNom, livTel, frais, part });
     } catch (x) { console.error(x); toast("Échec : " + (x.message || x), true); btn.disabled = false; btn.textContent = "🛵 Créer la livraison"; }
   }
 
   function resultat(slug, oid, code, d) {
     const suivi = location.origin + "/suivi/?s=" + encodeURIComponent(slug) + "&o=" + encodeURIComponent(oid);
     const livlien = location.origin + "/livreur/?s=" + encodeURIComponent(slug) + "&o=" + encodeURIComponent(oid) + "&c=" + encodeURIComponent(code);
-    const waLiv = d.livTel ? 'https://wa.me/' + wa(d.livTel) + '?text=' + encodeURIComponent("🛵 Nouvelle livraison\nClient : " + d.nom + " " + d.tel + (d.adr ? "\nAdresse : " + d.adr : "") + "\nMontant : " + d.tot + " DH (" + (d.pay === "virement" ? "Virement" : "Cash") + ")\n\n👉 Détails + GPS : " + livlien) : "";
+    const pl = (d.part && d.frais) ? Math.round(d.frais * d.part / 100) : 0;
+    const reg = (d.part && d.frais) ? "\n\n💰 Règlement (part livreur " + d.part + "%)\nÀ encaisser : " + d.tot + " DH\nLe resto reçoit : " + (d.tot - pl) + " DH\nTa part : " + pl + " DH" : "";
+    const waLiv = d.livTel ? 'https://wa.me/' + wa(d.livTel) + '?text=' + encodeURIComponent("🛵 Nouvelle livraison\nClient : " + d.nom + " " + d.tel + (d.adr ? "\nAdresse : " + d.adr : "") + "\nMontant : " + d.tot + " DH (" + (d.pay === "virement" ? "Virement" : "Cash") + ")" + reg + "\n\n👉 Détails + GPS : " + livlien) : "";
     const waCli = 'https://wa.me/' + wa(d.tel) + '?text=' + encodeURIComponent("Votre commande est en route 🛵\nSuivez-la ici : " + suivi + "\nVotre code de livraison : " + code);
     app.innerHTML = '<div class="lv-res"><h3>✅ Livraison créée</h3>' +
       '<div class="lv-code"><small>Code de livraison</small><b>' + esc(code) + '</b></div>' +

@@ -411,7 +411,7 @@
     try {
       const c = await db.doc("settings/charikat").get();
       const list = c.exists ? JSON.parse(c.data().json || "[]") : [];
-      (list || []).forEach(co => { if (co && co.actif !== false && (co.restos || []).includes(slug)) soc = soc.concat((co.livreurs || []).map(l => ({ nom: l.nom, tel: l.tel, actif: l.actif }))); });
+      (list || []).forEach(co => { if (co && co.actif !== false && (co.restos || []).includes(slug)) soc = soc.concat((co.livreurs || []).map(l => ({ nom: l.nom, tel: l.tel, actif: l.actif, part: co.part }))); });
     } catch (e) {}
     LIVREURS = soc.concat(flat);   // la société du resto d'abord, puis le pool général
     return LIVREURS;
@@ -448,12 +448,16 @@
       const n = nom.value.trim(); if (!n) { nom.focus(); return; }
       const tl = tel.value.trim();
       try { const list = prev.filter(p => p.nom !== n); list.unshift({ nom: n, tel: tl }); localStorage.setItem("nfc-livreurs", JSON.stringify(list.slice(0, 8))); } catch (e) {}
-      maj(o, { statut: "enroute", livreurNom: n, livreurTel: tl });
+      const match = (LIVREURS || []).find(l => l.nom === n);
+      const part = match && match.part ? String(match.part) : (o.part || "");
+      maj(o, { statut: "enroute", livreurNom: n, livreurTel: tl, part: part });
       fermer();
       if (tl) {
         const lignes = (o.items || []).map(it => `• ${it.q}× ${it.n}`).join("\n");
         const lien = location.origin + "/livreur/?s=" + encodeURIComponent(slug) + "&o=" + encodeURIComponent(o.id);
-        const txt = `🛵 Nouvelle livraison — ${MENU.nom || ""}\nCommande N° ${o.num}\n${lignes}\nTotal : ${fmt(num(o.total))} (${o.pay === "virement" ? "Virement déjà payé" : "Cash à encaisser"})\nClient : ${o.nom || ""} ${o.tel || ""}${o.adresse ? "\nAdresse : " + o.adresse : ""}\n\n👉 Détails + GPS : ${lien}`;
+        const frais = num(o.frais) || 0, pl = (part && frais) ? Math.round(frais * part / 100) : 0;
+        const reg = (part && frais) ? `\n\n💰 Règlement (part livreur ${part}%)\nÀ encaisser : ${fmt(num(o.total))}\nLe resto reçoit : ${fmt(num(o.total) - pl)}\nTa part : ${fmt(pl)}` : "";
+        const txt = `🛵 Nouvelle livraison — ${MENU.nom || ""}\nCommande N° ${o.num}\n${lignes}\nTotal : ${fmt(num(o.total))} (${o.pay === "virement" ? "Virement déjà payé" : "Cash à encaisser"})\nClient : ${o.nom || ""} ${o.tel || ""}${o.adresse ? "\nAdresse : " + o.adresse : ""}${reg}\n\n👉 Détails + GPS : ${lien}`;
         window.open(`https://wa.me/${String(tl).replace(/\D/g, "").replace(/^0/, "212")}?text=${encodeURIComponent(txt)}`, "_blank");
       }
     };
