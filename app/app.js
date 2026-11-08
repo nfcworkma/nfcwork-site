@@ -242,6 +242,7 @@
   function subHead(titre) { return '<div class="sub-bar"><button class="back" data-back>‹</button><h1>' + esc(titre) + '</h1></div>'; }
   function renderCompte() {
     const p = profil();
+    const verif = !!(auth && auth.currentUser && auth.currentUser.emailVerified);
     const ava = p.photo
       ? '<img src="' + esc(p.photo) + '" style="width:88px;height:88px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow)">'
       : '<div style="width:88px;height:88px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center;font-weight:900;font-size:28px;color:var(--accent)">' + esc(initiales(p.nom)) + '</div>';
@@ -251,11 +252,14 @@
       '<div class="list" style="margin-top:8px">' +
       '<label class="lrow" style="cursor:default"><span class="ic">👤</span><input id="c-nom" placeholder="Ton nom" value="' + esc(p.nom) + '" style="flex:1;border:none;background:none;outline:none;font:inherit;font-weight:700;font-size:15px;color:var(--fg)"></label>' +
       '<label class="lrow" style="cursor:default"><span class="ic">📱</span><input id="c-tel" type="tel" inputmode="tel" placeholder="Ton téléphone" value="' + esc(p.tel) + '" style="flex:1;border:none;background:none;outline:none;font:inherit;font-weight:700;font-size:15px;color:var(--fg)"></label>' +
-      '<div class="lrow" style="cursor:default"><span class="ic">✉️</span><span class="lt" style="font-weight:600;color:var(--muted)">' + esc(p.email || "") + '</span></div>' +
+      '<div class="lrow" style="cursor:default"><span class="ic">✉️</span><span class="lt" style="font-weight:600;color:var(--muted)">' + esc(p.email || "") + '</span>' + (verif ? '<span class="lv" style="color:var(--ok)">✓ vérifié</span>' : '<a id="c-verif" style="color:var(--accent);font-weight:700;cursor:pointer">Vérifier</a>') + '</div>' +
+      (verif ? "" : '<p style="font-size:12px;color:var(--muted);margin:2px 2px 6px">Confirme ton e-mail pour sécuriser ton compte et pouvoir réinitialiser ton mot de passe.</p>') +
       '<button class="obtn p" id="c-save" style="width:100%;padding:13px;margin:6px 0 14px;font-size:15px">Enregistrer</button>' +
       '<a class="lrow danger" id="c-out"><span class="ic">↩</span><span class="lt">Se déconnecter</span></a>' +
       '</div>';
     bindBack();
+    const vb = document.getElementById("c-verif");
+    if (vb) vb.onclick = async () => { try { await auth.currentUser.sendEmailVerification(); toast("E-mail de vérification envoyé 📧"); } catch (e) { toast("Réessaie dans un moment"); } };
     const save = async (patch, msg, stay) => {
       const base = { nom: document.getElementById("c-nom") ? document.getElementById("c-nom").value.trim() : p.nom, tel: document.getElementById("c-tel") ? document.getElementById("c-tel").value.trim() : p.tel };
       await saveClient(Object.assign(base, patch || {}));
@@ -327,6 +331,8 @@
           if (pass.length < 6) { b.disabled = false; return err("Mot de passe : 6 caractères minimum."); }
           const cred = await auth.createUserWithEmailAndPassword(mail, pass);
           if (fdb) await fdb.collection("clients").doc(cred.user.uid).set({ nom: nom, tel: tel, email: mail, photo: "", cree: Date.now() });
+          try { if (cred.user && cred.user.sendEmailVerification) await cred.user.sendEmailVerification(); } catch (e) {}
+          toast("Compte créé 📧 Vérifie ton e-mail");
         } else {
           await auth.signInWithEmailAndPassword(mail, pass);
         }
