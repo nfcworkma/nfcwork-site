@@ -13,6 +13,8 @@
     { id: "marrakech", nom: "Marrakech", actif: false }
   ];
   const imgCache = {};
+  // slogan peut être un objet multilingue {fr, ar,…} → on sort une chaîne
+  const tx = v => (v && typeof v === "object") ? (v.fr || v.ar || Object.values(v).find(x => typeof x === "string" && x) || "") : (v || "");
   let ALL = [];           // tous les restos chargés
   let VILLE = "kenitra";  // ville sélectionnée
   let Q = "";             // recherche
@@ -75,7 +77,7 @@
       const inf = m.infos || {};
       restos.push({
         slug: e.slug, nom: m.nom || e.nom || e.slug, type: m.type || "resto",
-        logo: m.logo || "", slogan: m.slogan || "", livraison: m.livraison || {},
+        logo: m.logo || "", slogan: tx(m.slogan), livraison: m.livraison || {},
         ville: (m.ville || inf.ville || "kenitra").toLowerCase(),
         ouv: inf.ouv || "", ferm: inf.ferm || ""
       });

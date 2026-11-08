@@ -12,6 +12,7 @@
     { id: "marrakech", nom: "Marrakech", actif: false }
   ];
   const imgCache = {};
+  const tx = v => (v && typeof v === "object") ? (v.fr || v.ar || Object.values(v).find(x => typeof x === "string" && x) || "") : (v || "");
   let ALL = null, VILLE = "kenitra", Q = "";
 
   // ---------- storage ----------
@@ -68,7 +69,7 @@
     for (const e of liste) {
       const f = await lire("menu-" + e.slug); if (!f) continue; const m = parse(f);
       if (m.actif === false) continue; const inf = m.infos || {};
-      restos.push({ slug: e.slug, nom: m.nom || e.nom || e.slug, type: m.type || "resto", logo: m.logo || "", slogan: m.slogan || "", livraison: m.livraison || {}, ville: (m.ville || inf.ville || "kenitra").toLowerCase(), ouv: inf.ouv || "", ferm: inf.ferm || "" });
+      restos.push({ slug: e.slug, nom: m.nom || e.nom || e.slug, type: m.type || "resto", logo: m.logo || "", slogan: tx(m.slogan), livraison: m.livraison || {}, ville: (m.ville || inf.ville || "kenitra").toLowerCase(), ouv: inf.ouv || "", ferm: inf.ferm || "" });
     }
     ALL = restos;
   }
