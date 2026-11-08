@@ -116,6 +116,7 @@
     else if (r === "profil") { renderNav("profil"); renderProfile(); }
     else if (r === "compte") { renderNav("profil"); renderCompte(); }
     else if (r === "reglages") { renderNav("profil"); renderReglages(); }
+    else if (r === "messages") { renderNav("profil"); renderMessages(); }
     else { location.hash = "#home"; return; }
     window.scrollTo(0, 0);
   }
@@ -217,6 +218,7 @@
   function renderProfile() {
     const p = profil();
     const rows = [
+      ["📬", "Messages", "#messages", '<span id="msg-badge"></span>'],
       ["🧾", "Historique des commandes", "#commandes", ""],
       ["👤", "Mon compte", "#compte", ""],
       ["🎁", "Carte de fidélité", "@fidelite", "Bientôt"],
@@ -236,6 +238,7 @@
       if (g === "@partage") { if (navigator.share) navigator.share({ title: "Ncommandiw", text: "Commande direct, 0 commission 🛵", url: location.origin }).catch(() => {}); else toast("Partage ce lien : " + location.origin); return; }
       location.hash = g;
     }));
+    msgUnread().then(n => { const b = document.getElementById("msg-badge"); if (b && n > 0) { b.textContent = n; b.className = "badge"; } }).catch(() => {});
   }
 
   // ---------- COMPTE ----------
@@ -269,6 +272,41 @@
     const px = document.getElementById("c-photo-x"); if (px) px.onclick = () => save({ photo: "" }, "Photo retirée", true);
     document.getElementById("c-save").onclick = () => save({}, "Enregistré ✓", false);
     document.getElementById("c-out").onclick = () => { if (auth) auth.signOut(); toast("Déconnecté"); };
+  }
+
+  // ---------- MESSAGES (annonces des restos) ----------
+  function slugsNoms() {
+    const map = {}; orders().forEach(o => { if (o.slug && !map[o.slug]) map[o.slug] = o.nom || o.slug; }); return map;
+  }
+  async function chargerMessages() {
+    if (!fdb) return [];
+    const map = slugsNoms(), slugs = Object.keys(map), out = [];
+    await Promise.all(slugs.map(async s => {
+      try {
+        const snap = await fdb.collection("messages").doc(s).collection("liste").orderBy("date", "desc").limit(20).get();
+        snap.forEach(d => { const m = d.data() || {}; out.push({ slug: s, nom: map[s], texte: m.texte || "", date: m.date || 0 }); });
+      } catch (e) {}
+    }));
+    out.sort((a, b) => (b.date || 0) - (a.date || 0));
+    return out;
+  }
+  async function msgUnread() {
+    const seen = LS.get("ncw-msg-seen", 0);
+    const all = await chargerMessages();
+    return all.filter(m => (m.date || 0) > seen).length;
+  }
+  async function renderMessages() {
+    app.innerHTML = subHead("Messages") + '<div class="pad" id="msgs"><div class="state"><div><div class="spin"></div></div></div></div>';
+    bindBack();
+    const box = document.getElementById("msgs");
+    const all = await chargerMessages();
+    LS.set("ncw-msg-seen", Date.now());
+    const badge = document.getElementById("msg-badge"); if (badge) badge.remove();
+    if (!all.length) { box.innerHTML = '<div class="empty"><div><div class="em">📬</div><h2>Aucun message</h2><p>Les restos chez qui tu commandes<br>t’écriront ici (promos, infos…).</p></div></div>'; return; }
+    box.innerHTML = all.map(m =>
+      '<div class="ocard" style="display:block"><div class="on" style="font-size:14px"><span>' + esc(m.nom) + '</span><span class="ost">' + esc(dateLisible(m.date)) + '</span></div>' +
+      '<div style="font-size:14.5px;margin-top:6px;line-height:1.5">' + esc(m.texte) + '</div></div>'
+    ).join("") + pied();
   }
 
   // ---------- REGLAGES ----------

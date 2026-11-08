@@ -61,7 +61,7 @@
 
   /* ===== coquille + onglets ===== */
   function shell() {
-    const T = [["restos", "🍽 Restos"], ["charikat", "🏢 Sociétés"], ["commandes", "🧾 Commandes"]];
+    const T = [["restos", "🍽 Restos"], ["charikat", "🏢 Sociétés"], ["commandes", "🧾 Commandes"], ["messages", "💬 Messages"]];
     app.innerHTML = '<div class="pf-tabs">' + T.map(t => '<button data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + '</button>').join("") + '</div><div id="tabc"></div>';
     app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { tab = b.dataset.tab; app.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", x.dataset.tab === tab)); renderTab(); });
     renderTab();
@@ -70,7 +70,40 @@
     const c = document.getElementById("tabc");
     if (tab === "restos") renderRestos(c);
     else if (tab === "charikat") renderCharikat(c);
+    else if (tab === "messages") renderMsg(c);
     else renderCommandes(c);
+  }
+
+  /* ===== onglet MESSAGES (annonces aux clients) ===== */
+  function renderMsg(c) {
+    c.innerHTML = '<div class="paper" style="padding:16px">' +
+      '<h3 style="margin:0 0 6px">💬 Message aux clients</h3>' +
+      '<p class="muted" style="font-size:13px;margin:0 0 12px">Le message apparaît dans l\'app (onglet Messages) des clients connectés qui ont déjà commandé chez ce resto.</p>' +
+      '<label class="f">Restaurant<select id="m-slug">' + liste.map(m => '<option value="' + esc(m.slug) + '">' + esc(m.nom || m.slug) + '</option>').join("") + '</select></label>' +
+      '<label class="f" style="margin-top:10px">Message<textarea id="m-txt" rows="4" maxlength="300" placeholder="Ex : Promo du jour 🌮 -20% sur les tacos ce soir !"></textarea></label>' +
+      '<button class="btn primary" id="m-send" style="margin-top:10px">Envoyer</button>' +
+      '<div id="m-list" style="margin-top:16px"></div></div>';
+    const sel = document.getElementById("m-slug");
+    async function load() {
+      const slug = sel.value, box = document.getElementById("m-list"); if (!slug) return;
+      box.innerHTML = '<div class="muted" style="font-size:13px">Chargement…</div>';
+      try {
+        const snap = await db.collection("messages").doc(slug).collection("liste").orderBy("date", "desc").limit(10).get();
+        if (snap.empty) { box.innerHTML = '<div class="muted" style="font-size:13px">Aucun message envoyé.</div>'; return; }
+        box.innerHTML = '<div class="muted" style="font-size:12px;font-weight:700;margin-bottom:6px">Derniers messages</div>' +
+          snap.docs.map(d => { const m = d.data() || {}; return '<div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:10px 12px;margin-bottom:8px"><div style="font-size:14px">' + esc(m.texte || "") + '</div><button class="btn sm" data-del="' + d.id + '" style="margin-top:6px">Supprimer</button></div>'; }).join("");
+        box.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => { try { await db.collection("messages").doc(slug).collection("liste").doc(b.dataset.del).delete(); } catch (e) {} load(); });
+      } catch (e) { box.innerHTML = '<div class="muted" style="font-size:13px">—</div>'; }
+    }
+    sel.onchange = load; load();
+    document.getElementById("m-send").onclick = async () => {
+      const slug = sel.value, txt = (document.getElementById("m-txt").value || "").trim();
+      if (!txt) return toast("Écris un message", true);
+      const b = document.getElementById("m-send"); b.disabled = true;
+      try { await db.collection("messages").doc(slug).collection("liste").add({ texte: txt, date: Date.now(), par: user.email || "" }); document.getElementById("m-txt").value = ""; toast("Message envoyé ✓"); load(); }
+      catch (e) { toast("Échec : " + (e.message || e), true); }
+      b.disabled = false;
+    };
   }
 
   /* ===== onglet RESTOS ===== */
