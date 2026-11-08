@@ -20,7 +20,17 @@
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
-  const profil = () => LS.get("ncw-profil", { nom: "", tel: "", photo: "" });
+  // ---------- compte (Firebase Auth) ----------
+  const FB = window.firebase;
+  if (FB && !FB.apps.length && window.FIREBASE_CONFIG) FB.initializeApp(window.FIREBASE_CONFIG);
+  const auth = FB ? FB.auth() : null;
+  const fdb = FB ? FB.firestore() : null;
+  let ME = null; // { uid, email, nom, tel, photo }
+  const profil = () => ME || { nom: "", tel: "", photo: "", email: "" };
+  async function saveClient(patch) {
+    if (!ME) return; Object.assign(ME, patch);
+    if (fdb && ME.uid) { try { await fdb.collection("clients").doc(ME.uid).set(patch, { merge: true }); } catch (e) {} }
+  }
   // choisir + réduire une photo (data-URI, max 256px) stockée en local
   function pickPhoto(cb) {
     const i = document.createElement("input"); i.type = "file"; i.accept = "image/*";
@@ -241,15 +251,20 @@
       '<div class="list" style="margin-top:8px">' +
       '<label class="lrow" style="cursor:default"><span class="ic">👤</span><input id="c-nom" placeholder="Ton nom" value="' + esc(p.nom) + '" style="flex:1;border:none;background:none;outline:none;font:inherit;font-weight:700;font-size:15px;color:var(--fg)"></label>' +
       '<label class="lrow" style="cursor:default"><span class="ic">📱</span><input id="c-tel" type="tel" inputmode="tel" placeholder="Ton téléphone" value="' + esc(p.tel) + '" style="flex:1;border:none;background:none;outline:none;font:inherit;font-weight:700;font-size:15px;color:var(--fg)"></label>' +
+      '<div class="lrow" style="cursor:default"><span class="ic">✉️</span><span class="lt" style="font-weight:600;color:var(--muted)">' + esc(p.email || "") + '</span></div>' +
       '<button class="obtn p" id="c-save" style="width:100%;padding:13px;margin:6px 0 14px;font-size:15px">Enregistrer</button>' +
       '<a class="lrow danger" id="c-out"><span class="ic">↩</span><span class="lt">Se déconnecter</span></a>' +
-      '</div><p style="font-size:12px;text-align:center;padding:0 24px;color:var(--muted)">Tes infos restent sur ton téléphone. Elles servent à pré-remplir tes commandes.</p>';
+      '</div>';
     bindBack();
-    const save = (patch, msg, stay) => { const cur = profil(); LS.set("ncw-profil", Object.assign({ nom: document.getElementById("c-nom") ? document.getElementById("c-nom").value.trim() : cur.nom, tel: document.getElementById("c-tel") ? document.getElementById("c-tel").value.trim() : cur.tel, photo: cur.photo }, patch || {})); if (msg) toast(msg); if (stay) renderCompte(); else location.hash = "#profil"; };
+    const save = async (patch, msg, stay) => {
+      const base = { nom: document.getElementById("c-nom") ? document.getElementById("c-nom").value.trim() : p.nom, tel: document.getElementById("c-tel") ? document.getElementById("c-tel").value.trim() : p.tel };
+      await saveClient(Object.assign(base, patch || {}));
+      if (msg) toast(msg); if (stay) renderCompte(); else location.hash = "#profil";
+    };
     document.getElementById("c-photo").onclick = () => pickPhoto(d => save({ photo: d }, "Photo ajoutée ✓", true));
     const px = document.getElementById("c-photo-x"); if (px) px.onclick = () => save({ photo: "" }, "Photo retirée", true);
     document.getElementById("c-save").onclick = () => save({}, "Enregistré ✓", false);
-    document.getElementById("c-out").onclick = () => { LS.set("ncw-profil", { nom: "", tel: "", photo: "" }); toast("Déconnecté"); location.hash = "#profil"; };
+    document.getElementById("c-out").onclick = () => { if (auth) auth.signOut(); toast("Déconnecté"); };
   }
 
   // ---------- REGLAGES ----------
@@ -266,28 +281,58 @@
 
   function bindBack() { const b = app.querySelector("[data-back]"); if (b) b.onclick = () => { location.hash = "#profil"; }; }
 
-  // ---------- onboarding (1re visite : on fait un profil d'abord) ----------
-  function needsOnboard() { return !LS.get("ncw-onboarded", false); }
-  function renderOnboarding() {
-    const p = profil();
+  // ---------- connexion / inscription (Firebase Auth) ----------
+  let AUTHMODE = "up"; // 'up' = créer un compte, 'in' = se connecter
+  function authMsg(e) {
+    const c = (e && e.code) || "";
+    if (c.includes("email-already-in-use")) return "Cet e-mail a déjà un compte. Connecte-toi.";
+    if (c.includes("invalid-email")) return "E-mail invalide.";
+    if (c.includes("wrong-password") || c.includes("invalid-credential") || c.includes("invalid-login")) return "E-mail ou mot de passe incorrect.";
+    if (c.includes("user-not-found")) return "Aucun compte avec cet e-mail.";
+    if (c.includes("weak-password")) return "Mot de passe trop faible (6 caractères min).";
+    if (c.includes("too-many-requests")) return "Trop d'essais, réessaie plus tard.";
+    if (c.includes("network")) return "Problème de connexion.";
+    return "Une erreur est survenue. Réessaie.";
+  }
+  function renderAuth() {
     nav.hidden = true;
+    const up = AUTHMODE === "up";
     app.innerHTML =
       '<div class="onb">' +
       '<img class="onb-ico" src="/assets/img/ncommandiw-logo.svg" alt="" width="80" height="80">' +
-      '<h1>Bienvenue \u{1F44B}</h1>' +
-      '<p class="sub">On fait connaissance ? Ça sert juste à pré-remplir tes commandes — rien ne quitte ton téléphone.</p>' +
+      '<h1>' + (up ? "Bienvenue \u{1F44B}" : "Content de te revoir") + '</h1>' +
+      '<p class="sub">' + (up ? "Crée ton compte Ncommandiw en 1 minute." : "Connecte-toi pour commander.") + '</p>' +
       '<div class="onb-form">' +
-      '<label class="obf"><span>\u{1F464}</span><input id="ob-nom" placeholder="Ton prénom" value="' + esc(p.nom) + '" autocomplete="given-name"></label>' +
-      '<label class="obf"><span>\u{1F4F1}</span><input id="ob-tel" type="tel" inputmode="tel" placeholder="Téléphone (facultatif)" value="' + esc(p.tel) + '"></label>' +
-      '<button class="obtn p" id="ob-go" style="width:100%;padding:14px;font-size:16px;margin-top:4px">Commencer \u{1F680}</button>' +
-      '<button class="onb-skip" id="ob-skip">Plus tard</button>' +
+      (up ? '<label class="obf"><span>\u{1F464}</span><input id="au-nom" placeholder="Ton prénom" autocomplete="name"></label>' : "") +
+      '<label class="obf"><span>✉️</span><input id="au-mail" type="email" inputmode="email" placeholder="E-mail" autocomplete="email"></label>' +
+      (up ? '<label class="obf"><span>\u{1F4F1}</span><input id="au-tel" type="tel" inputmode="tel" placeholder="Téléphone" autocomplete="tel"></label>' : "") +
+      '<label class="obf"><span>\u{1F512}</span><input id="au-pass" type="password" placeholder="Mot de passe" autocomplete="' + (up ? "new-password" : "current-password") + '"></label>' +
+      '<p class="au-err" id="au-err" hidden></p>' +
+      '<button class="obtn p" id="au-go" style="width:100%;padding:14px;font-size:16px;margin-top:2px">' + (up ? "Créer mon compte \u{1F680}" : "Se connecter") + '</button>' +
+      (up ? "" : '<button class="onb-skip" id="au-forgot">Mot de passe oublié ?</button>') +
+      '<div style="text-align:center;font-size:13.5px;color:var(--muted);margin-top:8px">' + (up ? "Déjà un compte ? " : "Pas encore de compte ? ") + '<a id="au-tog" style="color:var(--accent);font-weight:700;cursor:pointer">' + (up ? "Se connecter" : "Créer un compte") + '</a></div>' +
       '</div></div>';
-    const fin = (skip) => {
-      if (!skip) { const nom = (document.getElementById("ob-nom").value || "").trim(), tel = (document.getElementById("ob-tel").value || "").trim(); LS.set("ncw-profil", { nom: nom, tel: tel, photo: profil().photo || "" }); }
-      LS.set("ncw-onboarded", true); nav.hidden = false; location.hash = "#home"; route();
+    const err = m => { const e = document.getElementById("au-err"); if (e) { e.textContent = m; e.hidden = false; } };
+    document.getElementById("au-tog").onclick = () => { AUTHMODE = up ? "in" : "up"; renderAuth(); };
+    const fg = document.getElementById("au-forgot");
+    if (fg) fg.onclick = async () => { const m = (document.getElementById("au-mail").value || "").trim(); if (!m) return err("Écris ton e-mail d'abord."); try { await auth.sendPasswordResetEmail(m); toast("E-mail de réinitialisation envoyé 📧"); } catch (e) { err(authMsg(e)); } };
+    document.getElementById("au-go").onclick = async () => {
+      if (!auth) return err("Service indisponible, réessaie.");
+      const mail = (document.getElementById("au-mail").value || "").trim(), pass = document.getElementById("au-pass").value || "";
+      const b = document.getElementById("au-go"); b.disabled = true;
+      try {
+        if (up) {
+          const nom = (document.getElementById("au-nom").value || "").trim(), tel = (document.getElementById("au-tel").value || "").trim();
+          if (!nom) { b.disabled = false; return err("Ton prénom ?"); }
+          if (pass.length < 6) { b.disabled = false; return err("Mot de passe : 6 caractères minimum."); }
+          const cred = await auth.createUserWithEmailAndPassword(mail, pass);
+          if (fdb) await fdb.collection("clients").doc(cred.user.uid).set({ nom: nom, tel: tel, email: mail, photo: "", cree: Date.now() });
+        } else {
+          await auth.signInWithEmailAndPassword(mail, pass);
+        }
+        // onAuthStateChanged prend le relais
+      } catch (e) { b.disabled = false; err(authMsg(e)); }
     };
-    document.getElementById("ob-go").onclick = () => fin(false);
-    document.getElementById("ob-skip").onclick = () => fin(true);
   }
 
   // ---------- splash (logo + nom qui s'écrit) ----------
@@ -304,7 +349,20 @@
     setTimeout(tick, 180);
   }
 
-  window.addEventListener("hashchange", () => { if (!needsOnboard()) route(); });
-  if (needsOnboard()) renderOnboarding(); else route();
+  window.addEventListener("hashchange", () => { if (ME) route(); });
   splash();
+
+  if (auth) {
+    auth.onAuthStateChanged(async u => {
+      if (!u) { ME = null; nav.hidden = true; renderAuth(); return; }
+      ME = { uid: u.uid, email: u.email || "", nom: "", tel: "", photo: "" };
+      if (fdb) { try { const d = await fdb.collection("clients").doc(u.uid).get(); if (d.exists) ME = Object.assign(ME, d.data()); } catch (e) {} }
+      nav.hidden = false;
+      if (!location.hash || location.hash === "#") location.hash = "#home";
+      route();
+    });
+  } else {
+    // Firebase indisponible : écran de connexion informatif
+    renderAuth();
+  }
 })();

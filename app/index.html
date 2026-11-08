@@ -186,6 +186,7 @@
   .obf input{flex:1;border:none;background:none;outline:none;font:inherit;font-size:15px;color:var(--fg)}
   .obf input::placeholder{color:var(--muted)}
   .onb-skip{border:none;background:none;color:var(--muted);font:inherit;font-weight:600;font-size:14px;padding:8px;cursor:pointer}
+  .au-err{color:var(--red);font-size:13px;font-weight:600;text-align:center;margin:0}
 
   /* ---- Bottom sheet (villes) ---- */
   .sheet-bg{position:fixed;inset:0;background:rgba(20,16,8,.45);z-index:70;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s}
@@ -223,6 +224,10 @@
 <div id="app"><div class="state"><div><div class="spin"></div>Chargement…</div></div></div>
 <nav class="nav" id="nav" hidden></nav>
 <div class="toast" id="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="/espace/config.js"></script>
 <script src="/app/app.js"></script>
 </body>
 </html>
