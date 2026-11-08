@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="260" viewBox="0 0 260 260">
+  <g fill="none" stroke="#C98A3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.16">
+    <!-- café -->
+    <g transform="translate(26,30) rotate(-8)">
+      <path d="M2 10 h26 l-3 22 a5 5 0 0 1-5 4 H10 a5 5 0 0 1-5-4 Z"/>
+      <path d="M28 14 h5 a6 6 0 0 1 0 12 h-4"/>
+      <path d="M9 2 q4 -4 0 -8 M17 2 q4 -4 0 -8"/>
+    </g>
+    <!-- part de pizza -->
+    <g transform="translate(150,24) rotate(12)">
+      <path d="M20 0 L40 44 L0 44 Z"/>
+      <path d="M2 40 Q20 48 38 40"/>
+      <circle cx="16" cy="22" r="2.6"/><circle cx="26" cy="30" r="2.6"/>
+    </g>
+    <!-- fourchette + couteau -->
+    <g transform="translate(118,96) rotate(-6)">
+      <path d="M2 0 v10 a4 4 0 0 0 8 0 V0 M6 10 v26"/>
+      <path d="M22 0 c6 2 6 12 0 14 v22"/>
+    </g>
+    <!-- scooter de livraison -->
+    <g transform="translate(40,150)">
+      <circle cx="10" cy="34" r="9"/><circle cx="52" cy="34" r="9"/>
+      <path d="M10 34 h14 l8 -18 h10"/>
+      <path d="M24 34 h20 l6 -14"/>
+      <path d="M30 16 h-8 v-10 h12 v8"/>
+    </g>
+    <!-- burger -->
+    <g transform="translate(168,150) rotate(6)">
+      <path d="M2 10 a22 10 0 0 1 44 0 Z"/>
+      <path d="M2 18 h44"/>
+      <path d="M4 26 q20 8 40 0"/>
+      <circle cx="16" cy="6" r="1.4"/><circle cx="26" cy="4" r="1.4"/><circle cx="34" cy="6" r="1.4"/>
+    </g>
+    <!-- sac de commande -->
+    <g transform="translate(206,86) rotate(-10)">
+      <path d="M2 10 h30 l-3 30 H5 Z"/>
+      <path d="M9 10 a8 8 0 0 1 16 0"/>
+      <path d="M12 24 q5 5 10 0"/>
+    </g>
+    <!-- coeur -->
+    <g transform="translate(96,186) rotate(8)">
+      <path d="M12 20 C2 12 2 2 10 2 c3 0 5 2 6 4 c1-2 3-4 6-4 c8 0 8 10 -2 18 Z"/>
+    </g>
+  </g>
+</svg>
