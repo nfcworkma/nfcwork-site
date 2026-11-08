@@ -251,7 +251,7 @@
     const pro = M.formule === "pro" || M.formule === "premium";
     const prem = M.formule === "premium";
     const off = (M.categories || []).some(c => (c.items || []).some(i => String(i.photo || "").startsWith("o:")));
-    const pied = `<footer>${U.by} <a href="https://nfcwork.ma" target="_blank" rel="noopener"><b>NFCWORK</b></a>${off ? `<br><small style="opacity:.7">Photos produits : <a href="https://openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a> (CC BY-SA)</small>` : ""}</footer>`;
+    const pied = `<footer>${U.by} <a href="https://nfcwork.ma" target="_blank" rel="noopener"><b>Ncommandiw</b></a>${off ? `<br><small style="opacity:.7">Photos produits : <a href="https://openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a> (CC BY-SA)</small>` : ""}</footer>`;
     document.body.classList.toggle("prem", prem);
     document.body.classList.toggle("has-cover", pro && !prem && !!M.couverture);
 

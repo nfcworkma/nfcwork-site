@@ -59,7 +59,7 @@
   }
 
   function rendre(restos) {
-    etat('<div class="bar"><h1>NFCWORK</h1><span class="loc">📍 Kénitra</span></div>' +
+    etat('<div class="bar"><img src="/assets/img/ncommandiw-logo.svg" alt="" width="28" height="28" style="border-radius:8px"><h1 style="color:var(--fg)">N<span style="color:var(--accent)">&rsquo;</span>commandiw</h1><span class="loc">📍 Kénitra</span></div>' +
       '<div class="pad"><div class="search">🔎 Rechercher un restaurant…</div>' +
       '<div class="sec">' + restos.length + ' établissement' + (restos.length > 1 ? "s" : "") + '</div>' +
       restos.map(r => {
@@ -75,7 +75,7 @@
           '<span class="meta">' + badge + '</span></span>' +
           '<span class="chev">›</span></a>';
       }).join("") +
-      '<footer>Propulsé par <b>NFCWORK</b> · Le digital qui ramène des clients</footer></div>');
+      '<footer>Propulsé par <b style="color:var(--accent)">Ncommandiw</b> · une plateforme <a href="https://nfcwork.ma" target="_blank" rel="noopener">NFCWORK</a></footer></div>');
   }
 
   charger();
