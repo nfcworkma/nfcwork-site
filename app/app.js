@@ -20,7 +20,15 @@
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
-  const profil = () => LS.get("ncw-profil", { nom: "", tel: "" });
+  const profil = () => LS.get("ncw-profil", { nom: "", tel: "", photo: "" });
+  // choisir + réduire une photo (data-URI, max 256px) stockée en local
+  function pickPhoto(cb) {
+    const i = document.createElement("input"); i.type = "file"; i.accept = "image/*";
+    i.onchange = () => { const f = i.files && i.files[0]; if (!f) return; const r = new FileReader();
+      r.onload = () => { const img = new Image(); img.onload = () => { const s = 256, k = Math.min(1, s / Math.max(img.width, img.height)); const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); try { cb(c.toDataURL("image/jpeg", 0.82)); } catch (e) { toast("Photo trop lourde"); } }; img.src = r.result; };
+      r.readAsDataURL(f); };
+    i.click();
+  }
   const orders = () => LS.get("ncw-orders", []);
 
   // ---------- theme ----------
@@ -188,7 +196,7 @@
       ["❓", "Aide", "@aide", ""]
     ];
     app.innerHTML =
-      '<div class="phead"><div class="av">' + esc(initiales(p.nom)) + '</div><div><div class="pn">' + esc(p.nom || "Invité") + '</div><div class="ps">' + (p.tel ? esc(p.tel) : "Ajoute tes infos pour suivre tes commandes") + '</div></div></div>' +
+      '<div class="phead">' + (p.photo ? '<img class="av" src="' + esc(p.photo) + '" alt="" style="object-fit:cover">' : '<div class="av">' + esc(initiales(p.nom)) + '</div>') + '<div><div class="pn">' + esc(p.nom || "Invité") + '</div><div class="ps">' + (p.tel ? esc(p.tel) : "Ajoute tes infos pour suivre tes commandes") + '</div></div></div>' +
       '<div class="list" style="margin-top:14px">' + rows.map(([ic, lt, href, lv]) =>
         '<a class="lrow" data-go="' + href + '"><span class="ic">' + ic + '</span><span class="lt">' + lt + '</span>' + (lv ? '<span class="lv">' + lv + '</span>' : "") + '<span class="chev">›</span></a>'
       ).join("") + '</div>' + pied();
@@ -205,16 +213,24 @@
   function subHead(titre) { return '<div class="sub-bar"><button class="back" data-back>‹</button><h1>' + esc(titre) + '</h1></div>'; }
   function renderCompte() {
     const p = profil();
+    const ava = p.photo
+      ? '<img src="' + esc(p.photo) + '" style="width:88px;height:88px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow)">'
+      : '<div style="width:88px;height:88px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center;font-weight:900;font-size:28px;color:var(--accent)">' + esc(initiales(p.nom)) + '</div>';
     app.innerHTML = subHead("Mon compte") +
-      '<div class="list" style="margin-top:10px">' +
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 0 4px">' + ava +
+      '<div style="display:flex;gap:8px"><button class="obtn g" id="c-photo">📷 ' + (p.photo ? "Changer" : "Ajouter une photo") + '</button>' + (p.photo ? '<button class="obtn g" id="c-photo-x">Retirer</button>' : "") + '</div></div>' +
+      '<div class="list" style="margin-top:8px">' +
       '<label class="lrow" style="cursor:default"><span class="ic">👤</span><input id="c-nom" placeholder="Ton nom" value="' + esc(p.nom) + '" style="flex:1;border:none;background:none;outline:none;font:inherit;font-weight:700;font-size:15px;color:var(--fg)"></label>' +
       '<label class="lrow" style="cursor:default"><span class="ic">📱</span><input id="c-tel" type="tel" inputmode="tel" placeholder="Ton téléphone" value="' + esc(p.tel) + '" style="flex:1;border:none;background:none;outline:none;font:inherit;font-weight:700;font-size:15px;color:var(--fg)"></label>' +
       '<button class="obtn p" id="c-save" style="width:100%;padding:13px;margin:6px 0 14px;font-size:15px">Enregistrer</button>' +
-      '<a class="lrow danger" id="c-out"><span class="ic">↩</span><span class="lt">Effacer mes infos</span></a>' +
-      '</div><p class="muted" style="font-size:12px;text-align:center;padding:0 24px;color:var(--muted)">Tes infos restent sur ton téléphone. Elles servent à pré-remplir tes commandes.</p>';
+      '<a class="lrow danger" id="c-out"><span class="ic">↩</span><span class="lt">Se déconnecter</span></a>' +
+      '</div><p style="font-size:12px;text-align:center;padding:0 24px;color:var(--muted)">Tes infos restent sur ton téléphone. Elles servent à pré-remplir tes commandes.</p>';
     bindBack();
-    document.getElementById("c-save").onclick = () => { LS.set("ncw-profil", { nom: document.getElementById("c-nom").value.trim(), tel: document.getElementById("c-tel").value.trim() }); toast("Enregistré ✓"); location.hash = "#profil"; };
-    document.getElementById("c-out").onclick = () => { LS.set("ncw-profil", { nom: "", tel: "" }); toast("Infos effacées"); location.hash = "#profil"; };
+    const save = (patch, msg, stay) => { const cur = profil(); LS.set("ncw-profil", Object.assign({ nom: document.getElementById("c-nom") ? document.getElementById("c-nom").value.trim() : cur.nom, tel: document.getElementById("c-tel") ? document.getElementById("c-tel").value.trim() : cur.tel, photo: cur.photo }, patch || {})); if (msg) toast(msg); if (stay) renderCompte(); else location.hash = "#profil"; };
+    document.getElementById("c-photo").onclick = () => pickPhoto(d => save({ photo: d }, "Photo ajoutée ✓", true));
+    const px = document.getElementById("c-photo-x"); if (px) px.onclick = () => save({ photo: "" }, "Photo retirée", true);
+    document.getElementById("c-save").onclick = () => save({}, "Enregistré ✓", false);
+    document.getElementById("c-out").onclick = () => { LS.set("ncw-profil", { nom: "", tel: "", photo: "" }); toast("Déconnecté"); location.hash = "#profil"; };
   }
 
   // ---------- REGLAGES ----------
