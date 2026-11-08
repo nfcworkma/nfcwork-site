@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Ncommandiw">
-  <rect width="48" height="48" rx="12" fill="url(#g)"/>
-  <defs><linearGradient id="g" x1="8" y1="4" x2="40" y2="44" gradientUnits="userSpaceOnUse">
-    <stop stop-color="#FFC24B"/><stop offset=".55" stop-color="#F2A20C"/><stop offset="1" stop-color="#E07B0A"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs><linearGradient id="g" x1="90" y1="50" x2="430" y2="470" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#FFC24B"/><stop offset=".5" stop-color="#F2A20C"/><stop offset="1" stop-color="#E07B0A"/>
   </linearGradient></defs>
-  <path d="M11 9h26a5 5 0 0 1 5 5v15a5 5 0 0 1-5 5h-8l-4 6-4-6H11a5 5 0 0 1-5-5V14a5 5 0 0 1 5-5Z" fill="#fff"/>
-  <path d="M20 27V16l13 11V16" stroke="#E07B0A" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <path d="M182 150 H330 A36 36 0 0 1 366 186 V284 A36 36 0 0 1 330 320 H278 L256 384 L234 320 H182 A36 36 0 0 1 146 284 V186 A36 36 0 0 1 182 150 Z" fill="#fff"/>
+  <path d="M204 288 V182 L308 288 V182" stroke="#E07B0A" stroke-width="31" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>

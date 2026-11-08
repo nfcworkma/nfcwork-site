@@ -256,7 +256,7 @@
     nav.hidden = true;
     app.innerHTML =
       '<div class="onb">' +
-      '<div class="onb-ico"><svg width="46" height="46" viewBox="0 0 74 74" fill="none"><path d="M16 12h42a8 8 0 0 1 8 8v26a8 8 0 0 1-8 8H44l-7 11-7-11H16a8 8 0 0 1-8-8V20a8 8 0 0 1 8-8Z" fill="#fff"/><path d="M30 40V18l22 22V18" stroke="#E07B0A" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' +
+      '<img class="onb-ico" src="/assets/img/ncommandiw-logo.svg" alt="" width="80" height="80">' +
       '<h1>Bienvenue \u{1F44B}</h1>' +
       '<p class="sub">On fait connaissance ? Ça sert juste à pré-remplir tes commandes — rien ne quitte ton téléphone.</p>' +
       '<div class="onb-form">' +

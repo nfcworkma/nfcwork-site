@@ -164,9 +164,8 @@
     display:grid;place-items:center;transition:opacity .45s ease}
   #splash.hide{opacity:0;pointer-events:none}
   .sp-in{display:flex;flex-direction:column;align-items:center;gap:20px;transform:translateY(-5%)}
-  .sp-icon{width:96px;height:96px;border-radius:26px;display:grid;place-items:center;
-    background:linear-gradient(155deg,#FFC24B 0%,#F2A20C 45%,#E07B0A 100%);
-    box-shadow:0 18px 40px -12px rgba(224,123,10,.6),inset 0 2px 2px rgba(255,255,255,.45),inset 0 -8px 18px rgba(150,70,0,.28);
+  .sp-icon{width:96px;height:96px;border-radius:22px;display:block;
+    box-shadow:0 18px 40px -12px rgba(224,123,10,.55);
     animation:sp-pop .55s cubic-bezier(.2,1.1,.3,1) both}
   .sp-wm{font-weight:800;font-size:32px;letter-spacing:-.02em;color:var(--fg);min-height:1.3em;display:flex;align-items:center}
   .sp-wm .ap{color:var(--accent)}
@@ -177,9 +176,8 @@
   /* ---- Onboarding (1re fois) ---- */
   .onb{min-height:calc(100vh - var(--navh));display:flex;flex-direction:column;align-items:center;justify-content:center;
     padding:30px 24px calc(30px + env(safe-area-inset-bottom,0px));text-align:center;gap:12px}
-  .onb-ico{width:80px;height:80px;border-radius:22px;display:grid;place-items:center;margin-bottom:4px;
-    background:linear-gradient(155deg,#FFC24B,#F2A20C 45%,#E07B0A);
-    box-shadow:0 16px 36px -12px rgba(224,123,10,.55),inset 0 2px 2px rgba(255,255,255,.45)}
+  .onb-ico{width:80px;height:80px;border-radius:19px;display:block;margin-bottom:4px;
+    box-shadow:0 16px 36px -12px rgba(224,123,10,.5)}
   .onb h1{font-size:26px;font-weight:900;letter-spacing:-.02em;margin:0}
   .onb .sub{font-size:14.5px;color:var(--muted);max-width:32ch;margin:0 0 8px}
   .onb-form{width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px}
@@ -192,7 +190,7 @@
 </head>
 <body>
 <div id="splash"><div class="sp-in">
-  <div class="sp-icon"><svg width="54" height="54" viewBox="0 0 74 74" fill="none" aria-label="Ncommandiw"><path d="M16 12h42a8 8 0 0 1 8 8v26a8 8 0 0 1-8 8H44l-7 11-7-11H16a8 8 0 0 1-8-8V20a8 8 0 0 1 8-8Z" fill="#fff"/><path d="M30 40V18l22 22V18" stroke="#E07B0A" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <img class="sp-icon" src="/assets/img/ncommandiw-logo.svg" alt="N'commandiw" width="96" height="96">
   <div class="sp-wm"><span id="sp-type"></span><span class="sp-cur"></span></div>
 </div></div>
 <div id="app"><div class="state"><div><div class="spin"></div>Chargement…</div></div></div>
