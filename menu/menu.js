@@ -521,6 +521,7 @@
         .concat(table.trim() ? [`${U.table} : ${table.trim()}`] : [], note.trim() ? [`${U.note} : ${note.trim()}`] : []).join("\n");
     }
     if ((caisseOn() || enLivraison()) && M.type !== "location" && M.type !== "salon") { versCaisse(lignes, total, table, note, txt, d); return; }
+    if (M.type !== "location" && M.type !== "salon") memoCmd(lignes, arr(total), "", "", "wa");
     window.open(`https://wa.me/${waNum((M.infos || {}).whatsapp)}?text=${encodeURIComponent(txt)}`, "_blank");
   }
 
@@ -528,6 +529,15 @@
   function caisseOn() { const r = (M && M.reception) || "wa"; return (r === "caisse" || r === "les2") && M.type !== "location" && M.type !== "salon"; }
   function waOn() { const r = (M && M.reception) || "wa"; return r !== "caisse" && !!waNum((M.infos || {}).whatsapp); }
   const FS = v => typeof v === "number" ? (Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v }) : { stringValue: String(v == null ? "" : v).slice(0, 300) };
+  // 🗂 mémorise la commande sur l'appareil (pour l'app Ncommandiw → onglet Commandes)
+  function memoCmd(lignes, montant, oid, code, mode) {
+    try {
+      const k = "ncw-orders";
+      const a = JSON.parse(localStorage.getItem(k) || "[]");
+      a.unshift({ slug: slug, nom: M.nom || "", logo: M.logo || "", items: lignes.map(l => ({ q: l.q, nom: tr(l.it.nom) })), total: Number(montant) || 0, devise: M.devise || "DH", id: oid || "", code: code || "", mode: mode || "", date: Date.now() });
+      localStorage.setItem(k, JSON.stringify(a.slice(0, 30)));
+    } catch (e) {}
+  }
   async function versCaisse(lignes, total, table, note, txt, d) {
     const lv = enLivraison(), frais = lv ? liv.frais : 0;
     const part = lv ? await partCharika() : "";
@@ -550,6 +560,7 @@
       const r = await fetch(DOC.replace(/settings\/$/, "") + "commandes/" + encodeURIComponent(slug) + "/liste", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: f }) });
       if (!r.ok) throw new Error("http " + r.status);
       const rep = await r.json().catch(() => ({})), oid = String(rep.name || "").split("/").pop();
+      memoCmd(lignes, arr(total + frais), oid, code, lv ? "livraison" : "place");
       panier = {}; majPanier(); document.querySelectorAll("[data-item]").forEach(el => { const id = el.dataset.item; rafraichirItem(id); });
       d.querySelector(".box").innerHTML = `<div style="text-align:center;padding:10px 0 4px"><div style="font-size:54px;line-height:1">✅</div>
         <h2 style="margin:10px 0 4px">Commande envoyée</h2><p class="hint" style="margin:0 0 14px">${lv ? "Elle est en préparation. Nous vous appelons si besoin." : "Elle est arrivée à la caisse et part en préparation."}</p>
