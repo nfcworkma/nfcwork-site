@@ -19,6 +19,14 @@
     return vs.map(v => { const x = (v.mapValue && v.mapValue.fields) || {}; return { n: S(x.n), q: N(x.q), p: N(x.p) }; });
   }
   function fmt(n) { return (Math.round(n * 100) / 100) + " DH"; }
+  function partBloc(total, frais, part, pay) {
+    const pl = Math.round(frais * part / 100);
+    const row = (a, b, strong, ok) => '<div style="display:flex;justify-content:space-between;padding:4px 0' + (strong ? ';border-top:1px solid var(--line);margin-top:4px;padding-top:8px;font-weight:700' : '') + '"><span>' + a + '</span><span' + (ok ? ' style="color:var(--ok);font-weight:700"' : '') + '>' + b + '</span></div>';
+    let inner;
+    if (pay === "virement") inner = row("Payé par le client", "Virement ✓") + row("🛵 Ta part (à récupérer du resto)", fmt(pl), false, true);
+    else inner = row("À encaisser du client", fmt(total)) + row("🛵 Ta part (livraison)", fmt(pl), false, true) + row("À remettre au resto", fmt(total - pl), true);
+    return '<div style="background:var(--chip);border-radius:12px;padding:12px 14px;margin-top:10px;font-size:13.5px"><div style="font-weight:800;margin-bottom:4px">💰 Règlement (part livreur ' + part + '%)</div>' + inner + '</div>';
+  }
   function waNum(t) { const d = String(t || "").replace(/\D/g, ""); return d.replace(/^0/, "212"); }
 
   let resto = { nom: "", wa: "" };
@@ -41,7 +49,7 @@
     CODE = S(f.code);
     const info = STAT[st] || STAT.nouvelle;
     const its = items(f.items);
-    const total = N(f.total), num = S(f.num), nom = S(f.nom), tel = S(f.tel), adresse = S(f.adresse), pos = S(f.pos), pay = S(f.pay);
+    const total = N(f.total), num = S(f.num), nom = S(f.nom), tel = S(f.tel), adresse = S(f.adresse), pos = S(f.pos), pay = S(f.pay), frais = N(f.frais), part = N(f.part);
 
     if (st === "livree" || st === "payee") {
       app.innerHTML = '<div class="bar">🛵 ' + esc(resto.nom || "Livraison") + '<span class="pill ok">✓ Livrée</span></div>' +
@@ -61,6 +69,7 @@
         '<div class="items">' + its.map(i => '<div class="l"><span>' + i.q + '× ' + esc(i.n) + '</span><span>' + fmt(i.q * i.p) + '</span></div>').join("") +
           '<div class="tot"><span>Total' + (pay === "virement" ? " (payé par virement)" : " à encaisser") + '</span><span>' + fmt(total) + '</span></div></div>' +
         '<span class="pay ' + (pay === "virement" ? "vir" : "cash") + '">' + (pay === "virement" ? "🏦 Virement (déjà payé)" : "💵 Cash à encaisser") + '</span>' +
+        ((part && frais) ? partBloc(total, frais, part, pay) : "") +
         (gps ? '<a class="btn gps" target="_blank" rel="noopener" href="' + esc(gps) + '">🗺 Ouvrir l\'itinéraire GPS</a>' : "") +
         (tel ? '<a class="btn call" href="tel:' + esc(tel.replace(/[^0-9+]/g, "")) + '">📞 Appeler le client</a>' : "") +
         recu + confirmBox() +

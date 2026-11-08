@@ -24,7 +24,7 @@
     try { const d = await db.doc("settings/menus").get(); menus = (d.exists ? JSON.parse(d.data().json || "[]") : []).filter(m => m && m.slug && !m.corb && !m.arch); } catch (e) { menus = []; }
     livreurs = [];
     try { const d = await db.doc("settings/livreurs").get(); if (d.exists) livreurs = livreurs.concat(JSON.parse(d.data().json || "[]")); } catch (e) {}
-    try { const d = await db.doc("settings/charikat").get(); if (d.exists) JSON.parse(d.data().json || "[]").forEach(s => { if (s.actif !== false) (s.livreurs || []).forEach(l => { if (l.actif !== false) livreurs.push({ nom: l.nom + " (" + s.nom + ")", tel: l.tel }); }); }); } catch (e) {}
+    try { const d = await db.doc("settings/charikat").get(); if (d.exists) JSON.parse(d.data().json || "[]").forEach(s => { if (s.actif !== false) (s.livreurs || []).forEach(l => { if (l.actif !== false) livreurs.push({ nom: l.nom + " (" + s.nom + ")", tel: l.tel, part: s.part || "" }); }); }); } catch (e) {}
     livreurs = livreurs.filter(l => l && l.nom);
     form();
   }
@@ -34,7 +34,8 @@
       '<div><label>Restaurant</label><select id="f-resto" required>' + menus.map(m => '<option value="' + esc(m.slug) + '">' + esc(m.nom || m.slug) + '</option>').join("") + '</select></div>' +
       '<div class="lv-row"><div><label>Nom du client</label><input id="f-nom" maxlength="60" required></div><div><label>Téléphone</label><input id="f-tel" type="tel" inputmode="tel" maxlength="20" required></div></div>' +
       '<div><label>Adresse</label><input id="f-adr" maxlength="200" placeholder="Quartier, rue, immeuble…"></div>' +
-      '<div class="lv-row"><div><label>Montant (DH)</label><input id="f-tot" inputmode="decimal" maxlength="8" placeholder="0"></div><div><label>Paiement</label><select id="f-pay"><option value="cash">💵 Cash</option><option value="virement">🏦 Virement</option></select></div></div>' +
+      '<div class="lv-row"><div><label>Sous-total plats (DH)</label><input id="f-tot" inputmode="decimal" maxlength="8" placeholder="0"></div><div><label>Frais livraison (DH)</label><input id="f-frais" inputmode="decimal" maxlength="8" placeholder="0"></div></div>' +
+      '<div><label>Paiement</label><select id="f-pay"><option value="cash">💵 Cash</option><option value="virement">🏦 Virement</option></select></div>' +
       '<div><label>Livreur</label><select id="f-liv">' + (livreurs.length ? '<option value="">— Choisir —</option>' + livreurs.map((l, i) => '<option value="' + i + '">' + esc(l.nom) + (l.tel ? " · " + esc(l.tel) : "") + '</option>').join("") : '') + '<option value="autre">+ Autre (saisir)</option></select></div>' +
       '<div class="lv-row" id="f-livm" hidden><div><label>Nom livreur</label><input id="f-livn" maxlength="40"></div><div><label>Tél livreur</label><input id="f-livt" type="tel" maxlength="20"></div></div>' +
       '<button class="btn primary" style="margin-top:4px">🛵 Créer la livraison</button></form>';
@@ -47,16 +48,17 @@
     e.preventDefault();
     const slug = document.getElementById("f-resto").value;
     const nom = document.getElementById("f-nom").value.trim(), tel = document.getElementById("f-tel").value.trim(), adr = document.getElementById("f-adr").value.trim();
-    const tot = parseFloat(document.getElementById("f-tot").value) || 0, pay = document.getElementById("f-pay").value;
+    const plats = parseFloat(document.getElementById("f-tot").value) || 0, frais = parseFloat(document.getElementById("f-frais").value) || 0, pay = document.getElementById("f-pay").value;
+    const tot = plats + frais;
     const sv = document.getElementById("f-liv").value;
-    let livNom = "", livTel = "";
+    let livNom = "", livTel = "", part = "";
     if (sv === "autre") { livNom = document.getElementById("f-livn").value.trim(); livTel = document.getElementById("f-livt").value.trim(); }
-    else if (sv !== "") { const l = livreurs[+sv] || {}; livNom = (l.nom || "").replace(/\s*\(.*\)$/, ""); livTel = l.tel || ""; }
+    else if (sv !== "") { const l = livreurs[+sv] || {}; livNom = (l.nom || "").replace(/\s*\(.*\)$/, ""); livTel = l.tel || ""; part = l.part || ""; }
     if (!nom || !tel) { toast("Nom et téléphone du client requis.", true); return; }
     const btn = e.target.querySelector("button"); btn.disabled = true; btn.textContent = "Création…";
     const code = String(Math.floor(1000 + Math.random() * 9000));
     const num = String(Date.now() % 10000).padStart(4, "0");
-    const o = { statut: livNom ? "enroute" : "prete", source: "manuel", num, cree: new Date(), mode: "livraison", table: "", nom, tel, adresse: adr, pos: "", note: "", items: [], total: Math.round(tot * 100) / 100, frais: 0, devise: "DH", pay, code, livreurNom: livNom, livreurTel: livTel, maj: NOW(), par: user.email };
+    const o = { statut: livNom ? "enroute" : "prete", source: "manuel", num, cree: new Date(), mode: "livraison", table: "", nom, tel, adresse: adr, pos: "", note: "", items: [], total: Math.round(tot * 100) / 100, frais: Math.round(frais * 100) / 100, part: part ? String(part) : "", devise: "DH", pay, code, livreurNom: livNom, livreurTel: livTel, maj: NOW(), par: user.email };
     try {
       const ref = db.collection("commandes").doc(slug).collection("liste").doc();
       await ref.set(o);
