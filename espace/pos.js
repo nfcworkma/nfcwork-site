@@ -411,7 +411,7 @@
     try {
       const c = await db.doc("settings/charikat").get();
       const list = c.exists ? JSON.parse(c.data().json || "[]") : [];
-      (list || []).forEach(co => { if (co && co.actif !== false && (co.restos || []).includes(slug)) soc = soc.concat((co.livreurs || []).map(l => ({ nom: l.nom, tel: l.tel, actif: l.actif, part: co.part }))); });
+      (list || []).forEach(co => { if (co && co.actif !== false && (co.restos || []).includes(slug)) soc = soc.concat((co.livreurs || []).map(l => ({ nom: l.nom, tel: l.tel, email: l.email, actif: l.actif, part: co.part }))); });
     } catch (e) {}
     LIVREURS = soc.concat(flat);   // la société du resto d'abord, puis le pool général
     return LIVREURS;
@@ -450,7 +450,8 @@
       try { const list = prev.filter(p => p.nom !== n); list.unshift({ nom: n, tel: tl }); localStorage.setItem("nfc-livreurs", JSON.stringify(list.slice(0, 8))); } catch (e) {}
       const match = (LIVREURS || []).find(l => l.nom === n);
       const part = match && match.part ? String(match.part) : (o.part || "");
-      maj(o, { statut: "enroute", livreurNom: n, livreurTel: tl, part: part });
+      const em = (match && match.email ? match.email : "").toLowerCase();
+      maj(o, { statut: "enroute", livreurNom: n, livreurTel: tl, part: part, livreurEmail: em });
       fermer();
       if (tl) {
         const lignes = (o.items || []).map(it => `• ${it.q}× ${it.n}`).join("\n");

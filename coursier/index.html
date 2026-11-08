@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Espace livreur · Ncommandiw</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#E07B0A">
+<link rel="apple-touch-icon" href="/assets/img/app-icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/img/icons/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+<style>
+  :root{--bg:#FBF6EC;--fg:#201A12;--muted:#6E6555;--line:#ECE3D4;--accent:#E07B0A;--accent-soft:#FBEAD0;--ok:#2E8B6A;--red:#C6472F;--card:#fff;--shadow:0 6px 22px rgba(20,16,8,.09);--font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15110B;--fg:#F3ECDF;--muted:#A99C86;--line:#352C20;--accent:#F2A20C;--accent-soft:#2A2113;--ok:#56C79A;--red:#E58266;--card:#201A12;color-scheme:dark}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.5}
+  #app{max-width:520px;margin:0 auto;min-height:100vh;padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
+  .bar{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--card) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px}
+  .bar img{border-radius:8px}
+  .bar h1{font-size:17px;font-weight:800;margin:0}
+  .bar .out{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:7px 12px;cursor:pointer}
+  .pad{padding:14px 16px}
+  .sec{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:4px 2px 12px;display:flex;align-items:center;gap:8px}
+  .refresh{margin-left:auto;background:none;border:none;color:var(--accent);font-weight:800;font-size:13px;cursor:pointer}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px;margin-bottom:12px;box-shadow:var(--shadow)}
+  .card .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .card .resto{font-weight:800;font-size:16px}
+  .card .num{font-size:12px;color:var(--muted);font-weight:700}
+  .card .row{display:flex;gap:9px;align-items:flex-start;margin-top:8px;font-size:14px}
+  .card .row .ic{width:20px;text-align:center;flex:0 0 auto}
+  .pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .pill{font-size:12px;font-weight:800;border-radius:999px;padding:4px 10px}
+  .pill.pay{background:var(--accent-soft);color:var(--accent)}
+  .pill.tot{background:rgba(46,139,106,.14);color:var(--ok)}
+  .reg{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px;font-size:13px}
+  .reg .l{display:flex;justify-content:space-between;padding:2px 0}
+  .reg .l.b{border-top:1px solid var(--line);margin-top:4px;padding-top:6px;font-weight:800}
+  .btn{display:block;width:100%;text-align:center;text-decoration:none;font-weight:800;font-size:15px;border-radius:13px;padding:13px;margin-top:12px;border:none;cursor:pointer}
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.g{background:var(--bg);color:var(--fg);border:1px solid var(--line)}
+  .state,.empty{min-height:50vh;display:grid;place-items:center;text-align:center;padding:30px 24px;color:var(--muted)}
+  .empty .em{font-size:52px}.empty h2{color:var(--fg);margin:12px 0 4px;font-size:20px}
+  .spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite;margin:0 auto 14px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  /* auth */
+  .auth{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;text-align:center;gap:12px}
+  .auth .ic{width:80px;height:80px;border-radius:20px}
+  .auth h1{font-size:25px;font-weight:900;margin:0}
+  .auth .sub{font-size:14px;color:var(--muted);max-width:30ch;margin:0 0 8px}
+  .form{width:100%;max-width:330px;display:flex;flex-direction:column;gap:10px}
+  .f{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .f span{font-size:18px}
+  .f input{flex:1;border:none;background:none;outline:none;font:inherit;font-size:15px;color:var(--fg)}
+  .err{color:var(--red);font-size:13px;font-weight:600;margin:0}
+  .tog{color:var(--accent);font-weight:700;cursor:pointer}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:11px 18px;border-radius:999px;font-size:13.5px;font-weight:700;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app"><div class="state"><div><div class="spin"></div>Chargement…</div></div></div>
+<div class="toast" id="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="/espace/config.js"></script>
+<script src="/coursier/coursier.js"></script>
+</body>
+</html>

@@ -24,7 +24,7 @@
     try { const d = await db.doc("settings/menus").get(); menus = (d.exists ? JSON.parse(d.data().json || "[]") : []).filter(m => m && m.slug && !m.corb && !m.arch); } catch (e) { menus = []; }
     livreurs = [];
     try { const d = await db.doc("settings/livreurs").get(); if (d.exists) livreurs = livreurs.concat(JSON.parse(d.data().json || "[]")); } catch (e) {}
-    try { const d = await db.doc("settings/charikat").get(); if (d.exists) JSON.parse(d.data().json || "[]").forEach(s => { if (s.actif !== false) (s.livreurs || []).forEach(l => { if (l.actif !== false) livreurs.push({ nom: l.nom + " (" + s.nom + ")", tel: l.tel, part: s.part || "" }); }); }); } catch (e) {}
+    try { const d = await db.doc("settings/charikat").get(); if (d.exists) JSON.parse(d.data().json || "[]").forEach(s => { if (s.actif !== false) (s.livreurs || []).forEach(l => { if (l.actif !== false) livreurs.push({ nom: l.nom + " (" + s.nom + ")", tel: l.tel, email: l.email, part: s.part || "" }); }); }); } catch (e) {}
     livreurs = livreurs.filter(l => l && l.nom);
     form();
   }
@@ -51,14 +51,14 @@
     const plats = parseFloat(document.getElementById("f-tot").value) || 0, frais = parseFloat(document.getElementById("f-frais").value) || 0, pay = document.getElementById("f-pay").value;
     const tot = plats + frais;
     const sv = document.getElementById("f-liv").value;
-    let livNom = "", livTel = "", part = "";
+    let livNom = "", livTel = "", part = "", livEmail = "";
     if (sv === "autre") { livNom = document.getElementById("f-livn").value.trim(); livTel = document.getElementById("f-livt").value.trim(); }
-    else if (sv !== "") { const l = livreurs[+sv] || {}; livNom = (l.nom || "").replace(/\s*\(.*\)$/, ""); livTel = l.tel || ""; part = l.part || ""; }
+    else if (sv !== "") { const l = livreurs[+sv] || {}; livNom = (l.nom || "").replace(/\s*\(.*\)$/, ""); livTel = l.tel || ""; part = l.part || ""; livEmail = (l.email || "").toLowerCase(); }
     if (!nom || !tel) { toast("Nom et téléphone du client requis.", true); return; }
     const btn = e.target.querySelector("button"); btn.disabled = true; btn.textContent = "Création…";
     const code = String(Math.floor(1000 + Math.random() * 9000));
     const num = String(Date.now() % 10000).padStart(4, "0");
-    const o = { statut: livNom ? "enroute" : "prete", source: "manuel", num, cree: new Date(), mode: "livraison", table: "", nom, tel, adresse: adr, pos: "", note: "", items: [], total: Math.round(tot * 100) / 100, frais: Math.round(frais * 100) / 100, part: part ? String(part) : "", devise: "DH", pay, code, livreurNom: livNom, livreurTel: livTel, maj: NOW(), par: user.email };
+    const o = { statut: livNom ? "enroute" : "prete", source: "manuel", num, cree: new Date(), mode: "livraison", table: "", nom, tel, adresse: adr, pos: "", note: "", items: [], total: Math.round(tot * 100) / 100, frais: Math.round(frais * 100) / 100, part: part ? String(part) : "", devise: "DH", pay, code, livreurNom: livNom, livreurTel: livTel, livreurEmail: livEmail, maj: NOW(), par: user.email };
     try {
       const ref = db.collection("commandes").doc(slug).collection("liste").doc();
       await ref.set(o);
