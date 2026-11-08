@@ -165,6 +165,21 @@
   .sp-cur{display:inline-block;width:2px;height:1.05em;margin-left:3px;background:var(--accent);animation:sp-blink 1s step-end infinite;border-radius:2px}
   @keyframes sp-pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
   @keyframes sp-blink{50%{opacity:0}}
+
+  /* ---- Onboarding (1re fois) ---- */
+  .onb{min-height:calc(100vh - var(--navh));display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:30px 24px calc(30px + env(safe-area-inset-bottom,0px));text-align:center;gap:12px}
+  .onb-ico{width:80px;height:80px;border-radius:22px;display:grid;place-items:center;margin-bottom:4px;
+    background:linear-gradient(155deg,#FFC24B,#F2A20C 45%,#E07B0A);
+    box-shadow:0 16px 36px -12px rgba(224,123,10,.55),inset 0 2px 2px rgba(255,255,255,.45)}
+  .onb h1{font-size:26px;font-weight:900;letter-spacing:-.02em;margin:0}
+  .onb .sub{font-size:14.5px;color:var(--muted);max-width:32ch;margin:0 0 8px}
+  .onb-form{width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px}
+  .obf{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .obf span{font-size:18px}
+  .obf input{flex:1;border:none;background:none;outline:none;font:inherit;font-size:15px;color:var(--fg)}
+  .obf input::placeholder{color:var(--muted)}
+  .onb-skip{border:none;background:none;color:var(--muted);font:inherit;font-weight:600;font-size:14px;padding:8px;cursor:pointer}
 </style>
 </head>
 <body>

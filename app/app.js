@@ -249,6 +249,30 @@
 
   function bindBack() { const b = app.querySelector("[data-back]"); if (b) b.onclick = () => { location.hash = "#profil"; }; }
 
+  // ---------- onboarding (1re visite : on fait un profil d'abord) ----------
+  function needsOnboard() { return !LS.get("ncw-onboarded", false); }
+  function renderOnboarding() {
+    const p = profil();
+    nav.hidden = true;
+    app.innerHTML =
+      '<div class="onb">' +
+      '<div class="onb-ico"><svg width="46" height="46" viewBox="0 0 74 74" fill="none"><path d="M16 12h42a8 8 0 0 1 8 8v26a8 8 0 0 1-8 8H44l-7 11-7-11H16a8 8 0 0 1-8-8V20a8 8 0 0 1 8-8Z" fill="#fff"/><path d="M26 44V28l22 16V28" stroke="#E07B0A" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>' +
+      '<h1>Bienvenue \u{1F44B}</h1>' +
+      '<p class="sub">On fait connaissance ? Ça sert juste à pré-remplir tes commandes — rien ne quitte ton téléphone.</p>' +
+      '<div class="onb-form">' +
+      '<label class="obf"><span>\u{1F464}</span><input id="ob-nom" placeholder="Ton prénom" value="' + esc(p.nom) + '" autocomplete="given-name"></label>' +
+      '<label class="obf"><span>\u{1F4F1}</span><input id="ob-tel" type="tel" inputmode="tel" placeholder="Téléphone (facultatif)" value="' + esc(p.tel) + '"></label>' +
+      '<button class="obtn p" id="ob-go" style="width:100%;padding:14px;font-size:16px;margin-top:4px">Commencer \u{1F680}</button>' +
+      '<button class="onb-skip" id="ob-skip">Plus tard</button>' +
+      '</div></div>';
+    const fin = (skip) => {
+      if (!skip) { const nom = (document.getElementById("ob-nom").value || "").trim(), tel = (document.getElementById("ob-tel").value || "").trim(); LS.set("ncw-profil", { nom: nom, tel: tel, photo: profil().photo || "" }); }
+      LS.set("ncw-onboarded", true); nav.hidden = false; location.hash = "#home"; route();
+    };
+    document.getElementById("ob-go").onclick = () => fin(false);
+    document.getElementById("ob-skip").onclick = () => fin(true);
+  }
+
   // ---------- splash (logo + nom qui s'écrit) ----------
   function splash() {
     const sp = document.getElementById("splash"), el = document.getElementById("sp-type");
@@ -260,10 +284,10 @@
       if (i < S.length) setTimeout(tick, 95);
       else setTimeout(() => { sp.classList.add("hide"); setTimeout(() => { if (sp.parentNode) sp.remove(); }, 480); }, 620);
     };
-    setTimeout(tick, 320);
+    setTimeout(tick, 180);
   }
 
-  window.addEventListener("hashchange", route);
-  route();
+  window.addEventListener("hashchange", () => { if (!needsOnboard()) route(); });
+  if (needsOnboard()) renderOnboarding(); else route();
   splash();
 })();
