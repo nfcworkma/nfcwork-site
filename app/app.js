@@ -113,8 +113,8 @@
   // ---------- ACCUEIL / RECHERCHE ----------
   async function renderHome(focus) {
     app.innerHTML =
-      '<div class="bar"><img src="/assets/img/ncommandiw-logo.svg" alt="" width="28" height="28" style="border-radius:8px">' +
-      '<h1 class="wm">N<span class="ap">&rsquo;</span>commandiw</h1>' +
+      '<div class="bar"><span id="brandtap" style="display:flex;align-items:center;gap:10px;cursor:pointer" title="Actualiser"><img src="/assets/img/ncommandiw-logo.svg" alt="" width="28" height="28" style="border-radius:8px">' +
+      '<h1 class="wm">N<span class="ap">&rsquo;</span>commandiw</h1></span>' +
       '<button class="citybtn" id="citytop">📍 ' + esc(villeNom(VILLE)) + ' ▾</button></div>' +
       '<div class="hero">' + (focus ? "" : '<h2>Qu’est-ce qu’on commande ?</h2>') +
       '<div class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>' +
@@ -122,6 +122,8 @@
       '<div class="cities">' + VILLES.map(v => '<button class="citychip' + (v.id === VILLE ? " on" : "") + (v.actif ? "" : " lock") + '" data-ville="' + v.id + '" data-actif="' + (v.actif ? 1 : 0) + '">' + (v.actif ? "" : "🔒 ") + esc(v.nom) + '</button>').join("") + '</div>' +
       '<div class="pad" id="results"><div class="state"><div><div class="spin"></div></div></div></div>';
 
+    const bt = document.getElementById("brandtap");
+    if (bt) bt.addEventListener("click", () => location.reload());
     const qi = document.getElementById("q");
     if (qi) { qi.addEventListener("input", () => { Q = qi.value.trim(); paint(); }); if (focus) qi.focus(); }
     document.querySelectorAll("[data-ville]").forEach(b => b.addEventListener("click", () => {
@@ -247,6 +249,21 @@
 
   function bindBack() { const b = app.querySelector("[data-back]"); if (b) b.onclick = () => { location.hash = "#profil"; }; }
 
+  // ---------- splash (logo + nom qui s'écrit) ----------
+  function splash() {
+    const sp = document.getElementById("splash"), el = document.getElementById("sp-type");
+    if (!sp || !el) return;
+    const S = "N'commandiw"; let i = 0;
+    const tick = () => {
+      i++;
+      el.innerHTML = esc(S.slice(0, i)).replace("'", '<span class="ap">’</span>');
+      if (i < S.length) setTimeout(tick, 95);
+      else setTimeout(() => { sp.classList.add("hide"); setTimeout(() => { if (sp.parentNode) sp.remove(); }, 480); }, 620);
+    };
+    setTimeout(tick, 320);
+  }
+
   window.addEventListener("hashchange", route);
   route();
+  splash();
 })();
