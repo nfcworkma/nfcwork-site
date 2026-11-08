@@ -1,0 +1,13 @@
+{
+  "name": "N'commandiw",
+  "short_name": "N'commandiw",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "background_color": "#FBF6EC",
+  "theme_color": "#E07B0A",
+  "icons": [
+    { "src": "/assets/img/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/img/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
