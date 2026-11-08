@@ -11,57 +11,98 @@
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
 <style>
   :root{
     --bg:#FBF6EC; --fg:#201A12; --muted:#6E6555; --line:#ECE3D4;
-    --accent:#E07B0A; --accent-soft:#FBEAD0; --ok:#2E8B6A; --card:#fff;
-    --shadow:0 6px 24px rgba(20,16,8,.10);
+    --accent:#E07B0A; --accent-soft:#FBEAD0; --ok:#2E8B6A; --red:#C6472F; --card:#fff;
+    --shadow:0 6px 22px rgba(20,16,8,.09);
     --font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   }
   @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
     --bg:#15110B; --fg:#F3ECDF; --muted:#A99C86; --line:#352C20;
-    --accent:#F2A20C; --accent-soft:#2A2113; --ok:#56C79A; --card:#201A12; color-scheme:dark;
+    --accent:#F2A20C; --accent-soft:#2A2113; --ok:#56C79A; --red:#E58266; --card:#201A12; color-scheme:dark;
   }}
   :root[data-theme="dark"]{
     --bg:#15110B; --fg:#F3ECDF; --muted:#A99C86; --line:#352C20;
-    --accent:#F2A20C; --accent-soft:#2A2113; --ok:#56C79A; --card:#201A12; color-scheme:dark;
+    --accent:#F2A20C; --accent-soft:#2A2113; --ok:#56C79A; --red:#E58266; --card:#201A12; color-scheme:dark;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.5}
-  #app{max-width:460px;margin:0 auto;min-height:100vh;
+  #app{max-width:480px;margin:0 auto;min-height:100vh;
     padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
-  .bar{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--line);
-    padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px}
-  .bar h1{font-size:17px;margin:0;font-weight:800;letter-spacing:-.01em;color:var(--accent)}
-  .bar .loc{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600}
-  .pad{padding:16px}
-  .search{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);
-    border-radius:13px;padding:11px 13px;color:var(--muted);font-size:14px;margin-bottom:16px}
-  .sec{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:4px 0 12px}
+
+  /* ---- Header ---- */
+  .bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--card) 88%,transparent);
+    backdrop-filter:saturate(1.6) blur(10px);-webkit-backdrop-filter:saturate(1.6) blur(10px);
+    border-bottom:1px solid var(--line);padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top,0px));
+    display:flex;align-items:center;gap:10px}
+  .bar .wm{font-size:18px;margin:0;font-weight:800;letter-spacing:-.02em;color:var(--fg)}
+  .bar .wm .ap{color:var(--accent)}
+  .citybtn{margin-left:auto;display:inline-flex;align-items:center;gap:5px;background:var(--accent-soft);
+    color:var(--accent);font-weight:800;font-size:12.5px;border:none;border-radius:999px;padding:7px 12px;cursor:pointer}
+
+  /* ---- Hero / search ---- */
+  .hero{padding:18px 16px 2px}
+  .hero h2{font-size:21px;font-weight:900;letter-spacing:-.02em;margin:0 0 12px;text-wrap:balance}
+  .searchbar{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);
+    border-radius:15px;padding:13px 15px;box-shadow:var(--shadow)}
+  .searchbar svg{flex:0 0 auto;color:var(--muted)}
+  .searchbar input{border:none;background:none;outline:none;font:inherit;font-size:15px;color:var(--fg);width:100%}
+  .searchbar input::placeholder{color:var(--muted)}
+
+  /* ---- City chips ---- */
+  .cities{display:flex;gap:8px;overflow-x:auto;padding:14px 16px 4px;scrollbar-width:none;-ms-overflow-style:none}
+  .cities::-webkit-scrollbar{display:none}
+  .citychip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--fg);font-weight:700;
+    font-size:13px;border-radius:999px;padding:8px 15px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .citychip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .citychip.lock{color:var(--muted)}
+
+  /* ---- Results ---- */
+  .pad{padding:8px 16px 0}
+  .sec{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:8px 2px 12px}
   .rcard{display:flex;align-items:center;gap:13px;background:var(--card);border:1px solid var(--line);
-    border-radius:16px;padding:13px;margin-bottom:11px;box-shadow:var(--shadow);text-decoration:none;color:inherit}
-  .rcard .logo{width:56px;height:56px;border-radius:14px;background:var(--accent-soft);display:grid;place-items:center;
-    font-size:26px;flex:0 0 auto;background-size:cover;background-position:center;overflow:hidden}
+    border-radius:18px;padding:13px;margin-bottom:12px;box-shadow:var(--shadow);text-decoration:none;color:inherit;
+    transition:transform .12s ease, box-shadow .12s ease}
+  .rcard:active{transform:scale(.985)}
+  .rcard .logo{width:62px;height:62px;border-radius:16px;background:var(--accent-soft);display:grid;place-items:center;
+    font-size:28px;flex:0 0 auto;background-size:cover;background-position:center;overflow:hidden}
   .rcard .logo.img{background-color:var(--card)}
   .rcard .info{min-width:0;flex:1}
-  .rcard .nm{font-weight:800;font-size:15px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rcard .ty{font-size:12.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rcard .meta{font-size:11.5px;color:var(--muted);margin-top:3px;display:flex;gap:9px;flex-wrap:wrap}
-  .rcard .meta .liv{color:var(--ok);font-weight:700}
-  .rcard .chev{margin-left:auto;color:var(--muted);font-size:20px;align-self:center;flex:0 0 auto}
-  .state,.empty{min-height:70vh;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted)}
-  .empty h2{color:var(--fg);margin:10px 0 4px;font-size:20px}
+  .rcard .nm{font-weight:800;font-size:16px;letter-spacing:-.01em;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rcard .ty{font-size:12.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .rcard .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:7px}
+  .tag{font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;display:inline-flex;align-items:center;gap:4px;line-height:1.5}
+  .tag.open{background:rgba(46,139,106,.14);color:var(--ok)}
+  .tag.closed{background:rgba(198,71,47,.15);color:var(--red)}
+  .tag.liv{background:var(--accent-soft);color:var(--accent)}
+  .tag.hrs{color:var(--muted);padding-left:2px;font-weight:600}
+  .rcard.off{opacity:.6}
+  .rcard .chev{margin-left:auto;color:var(--muted);font-size:22px;align-self:center;flex:0 0 auto}
+
+  /* ---- States ---- */
+  .state,.empty,.lockbox{min-height:50vh;display:grid;place-items:center;text-align:center;padding:30px 24px;color:var(--muted)}
+  .empty h2,.lockbox h2{color:var(--fg);margin:12px 0 4px;font-size:20px}
+  .lockbox .em{font-size:48px}
   .spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);
     animation:sp 1s linear infinite;margin:0 auto 14px}
   @keyframes sp{to{transform:rotate(360deg)}}
-  footer{text-align:center;color:var(--muted);font-size:12px;padding:24px 16px calc(32px + env(safe-area-inset-bottom,0px))}
+
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:26px 16px calc(34px + env(safe-area-inset-bottom,0px))}
   footer b{color:var(--accent)}
   footer a{color:var(--muted);font-weight:600}
+
+  /* ---- Toast ---- */
+  .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+    background:var(--fg);color:var(--bg);padding:11px 18px;border-radius:999px;font-size:13.5px;font-weight:700;
+    z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transition:opacity .2s, transform .2s;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-2px)}
 </style>
 </head>
 <body>
 <div id="app"><div class="state"><div><div class="spin"></div>Chargement des restaurants…</div></div></div>
+<div class="toast" id="toast"></div>
 <script src="/commander/commander.js"></script>
 </body>
 </html>

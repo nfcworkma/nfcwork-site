@@ -467,13 +467,17 @@
       ${pro ? photoPick("couverture", "Photo de couverture", "cover", "Une belle photo de la salle ou d’un plat (format paysage).") : ""}
       ${champLangues("slogan", "Petite phrase sous le nom (facultatif)", { max: 140 })}
       <div class="grid2">
-        ${champ("infos.horaires", "Horaires", 'maxlength="80" placeholder="8h – 23h, 7j/7"')}
+        ${champ("infos.horaires", "Horaires (texte affiché)", 'maxlength="80" placeholder="8h – 23h, 7j/7"')}
+        <label class="f">Ville<select data-b="infos.ville">${[["kenitra", "Kénitra"], ["rabat", "Rabat"], ["tanger", "Tanger"], ["casablanca", "Casablanca"], ["marrakech", "Marrakech"]].map(([v, n]) => `<option value="${v}"${(getPath(M, "infos.ville") || "kenitra") === v ? " selected" : ""}>${n}</option>`).join("")}</select></label>
+        ${champ("infos.ouv", "Ouvre à 🕒", 'type="time"')}
+        ${champ("infos.ferm", "Ferme à 🕒", 'type="time"')}
         ${champ("infos.tel", "Téléphone", 'type="tel" inputmode="tel" maxlength="30"')}
         ${champ("infos.adresse", "Adresse", 'maxlength="120"')}
         ${champ("infos.maps", "Lien Google Maps (facultatif)", 'type="url" maxlength="300" autocapitalize="off"')}
         ${champ("infos.instagram", "Instagram", 'maxlength="60" placeholder="@moncafe" autocapitalize="off"')}
         ${pro ? champ("devise", "Devise des prix", 'maxlength="6" placeholder="DH"') : ""}
       </div>
+      <p class="muted" style="font-size:12.5px;margin:8px 0 0">🕒 « Ouvre à » et « Ferme à » affichent <b>Ouvert / Fermé</b> en direct sur la plateforme Ncommandiw. Laissez vide si vous ne voulez pas l’afficher.</p>
     </section>
 
     ${prem ? `<section class="sec paper stack"><h3>Premium : commande WhatsApp</h3>
