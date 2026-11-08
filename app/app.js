@@ -126,12 +126,29 @@
     if (bt) bt.addEventListener("click", () => location.reload());
     const qi = document.getElementById("q");
     if (qi) { qi.addEventListener("input", () => { Q = qi.value.trim(); paint(); }); if (focus) qi.focus(); }
+    const ct = document.getElementById("citytop");
+    if (ct) ct.addEventListener("click", villePicker);
     document.querySelectorAll("[data-ville]").forEach(b => b.addEventListener("click", () => {
       if (b.dataset.actif === "0") { toast("Bientôt à " + b.textContent.replace("🔒", "").trim() + " 🔒"); return; }
       VILLE = b.dataset.ville; const on = document.querySelector(".citychip.on"); if (on) on.classList.remove("on"); b.classList.add("on");
       const c = document.getElementById("citytop"); if (c) c.textContent = "📍 " + villeNom(VILLE) + " ▾"; paint();
     }));
     await charger(); paint();
+  }
+
+  function villePicker() {
+    const bg = document.createElement("div"); bg.className = "sheet-bg";
+    bg.innerHTML = '<div class="sheet"><h3>Choisis ta ville</h3><div class="shs">Ncommandiw arrive dans tout le Maroc \u{1F1F2}\u{1F1E6}</div>' +
+      VILLES.map(v => '<div class="vrow' + (v.id === VILLE ? " on" : "") + '" data-v="' + v.id + '" data-a="' + (v.actif ? 1 : 0) + '">' + (v.actif ? "📍" : "🔒") + " " + esc(v.nom) + (v.actif ? "" : '<span class="lock">Bientôt</span>') + '</div>').join("") + '</div>';
+    document.body.appendChild(bg);
+    const sh = bg.querySelector(".sheet");
+    requestAnimationFrame(() => { bg.classList.add("show"); sh.classList.add("show"); });
+    const close = () => { bg.classList.remove("show"); sh.classList.remove("show"); setTimeout(() => bg.remove(), 260); };
+    bg.addEventListener("click", e => { if (e.target === bg) close(); });
+    bg.querySelectorAll("[data-v]").forEach(r => r.onclick = () => {
+      if (r.dataset.a === "0") { toast("Bientôt à " + villeNom(r.dataset.v) + " 🔒"); return; }
+      VILLE = r.dataset.v; close(); renderHome(false);
+    });
   }
 
   function paint() {
