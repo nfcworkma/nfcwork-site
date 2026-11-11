@@ -67,9 +67,23 @@
       const r = document.getElementById("rr"); if (r) r.onclick = charger; return;
     }
     docs.sort((a, b) => { const ea = a.data().cree, eb = b.data().cree; const va = ea && ea.seconds ? ea.seconds : 0, vb = eb && eb.seconds ? eb.seconds : 0; return va - vb; });
+    // stats des gains (livraisons terminées) — réutilise l'index livreurEmail+statut
+    let stats = "";
+    try {
+      const sl = await db.collectionGroup("liste").where("livreurEmail", "==", (ME.email || "").toLowerCase()).where("statut", "==", "livree").limit(1000).get();
+      const now = Date.now(), dj = (function () { const x = new Date(); x.setHours(0, 0, 0, 0); return x.getTime(); })();
+      const sem = now - 7 * 864e5, moi = now - 30 * 864e5;
+      const part = o => { const f = num(o.frais), p = num(o.part); return (f && p) ? Math.round(f * p / 100) : 0; };
+      const tms = o => { const c = o.cree; return c && c.seconds ? c.seconds * 1000 : (c && c.toDate ? c.toDate().getTime() : 0); };
+      let gj = 0, nj = 0, gs = 0, gm = 0;
+      sl.forEach(d => { const o = d.data(), t = tms(o), g = part(o); if (t >= moi) gm += g; if (t >= sem) gs += g; if (t >= dj) { gj += g; nj++; } });
+      stats = '<div class="stats"><div class="stile big"><div><div class="v">' + fmt(gj) + '</div></div><div class="k">💰 Gains aujourd\'hui<br>' + nj + ' livraison' + (nj > 1 ? "s" : "") + '</div></div>' +
+        '<div class="stile"><div class="v">' + fmt(gs) + '</div><div class="k">📅 Cette semaine</div></div>' +
+        '<div class="stile"><div class="v">' + fmt(gm) + '</div><div class="k">🗓️ Ce mois-ci</div></div></div>';
+    } catch (e) {}
     if (!docs.length) {
-      shell('<div class="empty"><div><div class="em">✅</div><h2>Aucune livraison en cours</h2><p>Tes nouvelles livraisons<br>apparaîtront ici.</p><button class="btn g" id="rr" style="max-width:220px;margin:14px auto 0">Actualiser</button></div></div>');
-      const r = document.getElementById("rr"); if (r) r.onclick = charger; return;
+      shell(stats + '<div class="sec">Livraisons en cours <button class="refresh" id="rf">↻</button></div><div class="empty" style="min-height:28vh"><div><div class="em">✅</div><h2>Aucune livraison en cours</h2><p>Tes nouvelles livraisons<br>apparaîtront ici.</p></div></div>');
+      const rf = document.getElementById("rf"); if (rf) rf.onclick = charger; return;
     }
     const cards = docs.map(d => {
       const o = d.data(), slug = d.ref.parent.parent.id, resto = noms[slug] || slug;
@@ -83,7 +97,7 @@
         reg +
         '<a class="btn primary" href="' + lien + '">📍 Ouvrir — GPS & confirmer</a></div>';
     }).join("");
-    shell('<div class="sec">' + docs.length + ' livraison' + (docs.length > 1 ? "s" : "") + ' en cours <button class="refresh" id="rf">↻ Actualiser</button></div>' + cards);
+    shell(stats + '<div class="sec">' + docs.length + ' livraison' + (docs.length > 1 ? "s" : "") + ' en cours <button class="refresh" id="rf">↻ Actualiser</button></div>' + cards);
     const rf = document.getElementById("rf"); if (rf) rf.onclick = charger;
   }
 
@@ -92,19 +106,32 @@
     { k: "cin_recto", emo: "🪪", t: "CIN — recto" },
     { k: "cin_verso", emo: "🪪", t: "CIN — verso" },
     { k: "permis", emo: "🚗", t: "Permis de conduire" },
-    { k: "selfie", emo: "🤳", t: "Selfie (photo de toi)" }
+    { k: "selfie", emo: "🤳", t: "Selfie", cam: true }
   ];
   const val = id => ((document.getElementById(id) || {}).value || "").trim();
-  function tile(d) { return '<label class="up"><span class="emo">' + d.emo + '</span><span class="t">' + d.t + '</span><input type="file" accept="image/*" data-f="' + d.k + '"></label>'; }
+  function tile(d) {
+    if (d.cam) return '<button type="button" class="up" data-cam="' + d.k + '"><span class="emo">' + d.emo + '</span><span class="t">' + d.t + '<br><small style="opacity:.65">📸 en direct</small></span></button>';
+    return '<label class="up"><span class="emo">' + d.emo + '</span><span class="t">' + d.t + '</span><input type="file" accept="image/*" data-f="' + d.k + '"></label>';
+  }
+  function markFull(up, src) {
+    const old = up.querySelector("img.pv"); if (old) old.remove();
+    const img = document.createElement("img"); img.className = "pv"; img.src = src; up.appendChild(img);
+    if (!up.querySelector(".chk")) { const c = document.createElement("span"); c.className = "chk"; c.textContent = "✓"; up.appendChild(c); }
+    up.classList.add("full");
+  }
   function wireUploads(store) {
     app.querySelectorAll("input[data-f]").forEach(inp => {
-      inp.onchange = () => {
-        const f = inp.files && inp.files[0]; if (!f) return;
-        store[inp.dataset.f] = f;
-        const up = inp.closest(".up"), old = up.querySelector("img.pv"); if (old) old.remove();
-        const img = document.createElement("img"); img.className = "pv"; img.src = URL.createObjectURL(f); up.appendChild(img);
-        if (!up.querySelector(".chk")) { const c = document.createElement("span"); c.className = "chk"; c.textContent = "✓"; up.appendChild(c); }
-        up.classList.add("full");
+      inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; store[inp.dataset.f] = f; markFull(inp.closest(".up"), URL.createObjectURL(f)); };
+    });
+    app.querySelectorAll("[data-cam]").forEach(btn => {
+      const k = btn.dataset.cam;
+      btn.onclick = () => {
+        NCW.captureSelfie().then(durl => { store[k] = durl; markFull(btn, durl); }).catch(e => {
+          if (e && e.message === "annulé") return;
+          const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*"; inp.capture = "user";
+          inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; store[k] = f; markFull(btn, URL.createObjectURL(f)); };
+          inp.click();
+        });
       };
     });
   }
@@ -136,7 +163,7 @@
       const b = document.getElementById("vgo"); b.disabled = true;
       try {
         const docs = {}; let i = 0;
-        for (const d of LIV_DOCS) { i++; b.textContent = "Envoi… (" + i + "/" + LIV_DOCS.length + ")"; docs[d.k] = await NCW.toDataURL(store[d.k]); }
+        for (const d of LIV_DOCS) { i++; b.textContent = "Envoi… (" + i + "/" + LIV_DOCS.length + ")"; docs[d.k] = (typeof store[d.k] === "string") ? store[d.k] : await NCW.toDataURL(store[d.k]); }
         b.textContent = "Enregistrement…";
         await db.doc("verifications/" + ME.uid).set({ role: "livreur", statut: "en_attente", email: ME.email, nom, tel, ville, cin, vehicule: veh, matricule: mat, docs, cree: new Date(), maj: new Date() });
         renderAttente();

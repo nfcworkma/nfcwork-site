@@ -280,7 +280,11 @@
   }
   async function chargerMessages() {
     if (!fdb) return [];
-    const map = slugsNoms(), slugs = Object.keys(map), out = [];
+    try { await charger(); } catch (e) {}
+    const map = {};
+    (ALL || []).forEach(r => { if (r.slug) map[r.slug] = r.nom || r.slug; });
+    const o2 = slugsNoms(); Object.keys(o2).forEach(s => { if (!map[s]) map[s] = o2[s]; });
+    const slugs = Object.keys(map), out = [];
     await Promise.all(slugs.map(async s => {
       try {
         const snap = await fdb.collection("messages").doc(s).collection("liste").orderBy("date", "desc").limit(20).get();

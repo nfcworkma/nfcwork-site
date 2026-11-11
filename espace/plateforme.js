@@ -75,19 +75,27 @@
     else renderCommandes(c);
   }
 
-  /* ===== onglet VALIDATIONS (comptes livreurs / commerçants à vérifier) ===== */
+  /* ===== onglet VALIDATIONS (dossiers livreurs / commerçants + archive des documents) ===== */
+  let vfilter = "en_attente";
   async function renderValidations(c) {
-    c.innerHTML = '<div class="muted" style="font-size:13px;padding:14px">Chargement…</div>';
+    const segs = [["en_attente", "⏳ En attente"], ["valide", "✅ Validés"], ["refuse", "✖ Refusés"]];
+    const seg = '<div class="vseg">' + segs.map(s => '<button data-vf="' + s[0] + '" class="' + (vfilter === s[0] ? "on" : "") + '">' + s[1] + '</button>').join("") + '</div>';
+    c.innerHTML = seg + '<div id="vbox"><div class="muted" style="font-size:13px;padding:14px">Chargement…</div></div>';
+    c.querySelectorAll("[data-vf]").forEach(b => b.onclick = () => { vfilter = b.dataset.vf; renderValidations(c); });
+    const box = document.getElementById("vbox");
     let docs = [];
     try {
-      const snap = await db.collection("verifications").where("statut", "==", "en_attente").get();
+      const snap = await db.collection("verifications").where("statut", "==", vfilter).get();
       snap.forEach(d => { const o = d.data(); o.id = d.id; docs.push(o); });
     } catch (e) {
-      c.innerHTML = '<div class="paper" style="padding:16px"><b style="color:#C6472F">Erreur</b><p class="muted" style="font-size:13px">' + esc((e && e.message) || "") + '</p></div>'; return;
+      box.innerHTML = '<div class="paper" style="padding:16px"><b style="color:#C6472F">Erreur</b><p class="muted" style="font-size:13px">' + esc((e && e.message) || "") + '</p></div>'; return;
     }
-    docs.sort((a, b) => { const va = a.cree && a.cree.seconds ? a.cree.seconds : 0, vb = b.cree && b.cree.seconds ? b.cree.seconds : 0; return va - vb; });
-    if (!docs.length) { c.innerHTML = '<div class="paper" style="padding:22px;text-align:center"><div style="font-size:40px">✅</div><h3 style="margin:8px 0 2px">Aucune demande en attente</h3><p class="muted" style="font-size:13px;margin:0">Les nouveaux livreurs et commerçants apparaîtront ici.</p></div>'; return; }
-    c.innerHTML = docs.map(o => {
+    docs.sort((a, b) => { const va = a.cree && a.cree.seconds ? a.cree.seconds : 0, vb = b.cree && b.cree.seconds ? b.cree.seconds : 0; return vfilter === "en_attente" ? va - vb : vb - va; });
+    if (!docs.length) {
+      const msg = vfilter === "en_attente" ? "Aucune demande en attente" : vfilter === "valide" ? "Aucun compte validé" : "Aucun dossier refusé";
+      box.innerHTML = '<div class="paper" style="padding:22px;text-align:center"><div style="font-size:40px">🗂️</div><h3 style="margin:8px 0 2px">' + msg + '</h3><p class="muted" style="font-size:13px;margin:0">Les dossiers apparaîtront ici.</p></div>'; return;
+    }
+    box.innerHTML = docs.map(o => {
       const liv = o.role === "livreur";
       const titre = liv ? esc(o.nom || "Livreur") : esc(o.commerce || "Commerce");
       const badge = liv ? '🛵 Livreur' : '🧾 Commerçant';
@@ -96,18 +104,22 @@
         : [["Tél", o.tel], ["Ville", o.ville], ["Adresse", o.adresse], ["RC / ICE / IF", o.rc], ["E-mail", o.email]];
       const rows = info.filter(r => r[1]).map(r => '<div class="vl"><span>' + r[0] + '</span><b>' + esc(r[1]) + '</b></div>').join("");
       const docsImg = Object.keys(o.docs || {}).map(k => '<a href="' + esc(o.docs[k]) + '" target="_blank" rel="noopener" class="vdoc"><img src="' + esc(o.docs[k]) + '" alt=""><span>' + esc(k.replace(/_/g, " ")) + '</span></a>').join("");
+      let acts;
+      if (o.statut === "valide") acts = '<span class="vstate ok">✅ Validé</span><button class="btn" data-no="' + esc(o.id) + '">✖ Refuser</button>';
+      else if (o.statut === "refuse") acts = '<span class="vstate no">✖ Refusé' + (o.motif ? ' · ' + esc(o.motif) : '') + '</span><button class="btn primary" data-ok="' + esc(o.id) + '">✅ Valider</button>';
+      else acts = '<button class="btn primary" data-ok="' + esc(o.id) + '">✅ Valider</button><button class="btn" data-no="' + esc(o.id) + '">✖ Refuser</button>';
       return '<div class="paper vcard" data-id="' + esc(o.id) + '" style="padding:15px;margin-bottom:12px">' +
         '<div class="vhead"><b>' + titre + '</b><span class="vbadge">' + badge + '</span></div>' +
         '<div class="vgrid">' + rows + '</div>' +
         '<div class="vdocs">' + docsImg + '</div>' +
-        '<div class="vacts"><button class="btn primary" data-ok="' + esc(o.id) + '">✅ Valider</button><button class="btn" data-no="' + esc(o.id) + '">✖ Refuser</button></div></div>';
+        '<div class="vacts">' + acts + '</div></div>';
     }).join("");
-    c.querySelectorAll("[data-ok]").forEach(b => b.onclick = async () => {
+    box.querySelectorAll("[data-ok]").forEach(b => b.onclick = async () => {
       b.disabled = true; b.textContent = "…";
       try { await db.doc("verifications/" + b.dataset.ok).update({ statut: "valide", maj: new Date() }); toast("Compte validé ✅"); renderValidations(c); }
       catch (e) { b.disabled = false; b.textContent = "✅ Valider"; toast("Erreur : " + (e.message || e), true); }
     });
-    c.querySelectorAll("[data-no]").forEach(b => b.onclick = async () => {
+    box.querySelectorAll("[data-no]").forEach(b => b.onclick = async () => {
       const motif = window.prompt("Motif du refus (visible par la personne) :", "Documents illisibles, merci de renvoyer.");
       if (motif === null) return;
       b.disabled = true; b.textContent = "…";
