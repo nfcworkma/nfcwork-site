@@ -195,7 +195,7 @@
   }
   function carte(r) {
     const t = TYPES[r.type] || TYPES.resto, em = t[0], ty = t[1];
-    const liv = r.livraison && r.livraison.actif, op = ouvert(r.ouv, r.ferm);
+    const liv = r.livraison && r.livraison.actif && PF_SERVICES.livraison !== false, op = ouvert(r.ouv, r.ferm);
     let tags = "";
     if (op === true) tags += '<span class="tag open">● Ouvert</span>';
     else if (op === false) tags += '<span class="tag closed">● Fermé</span>';

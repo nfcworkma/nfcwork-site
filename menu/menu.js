@@ -46,6 +46,8 @@
   const TY = () => TYPES[M && M.type] || TYPES.resto;
   let M = null, panier = {};
   let liv = null;   // livraison activée par le commerce : { frais, min, zone }
+  let SERVICES = {};   // services globaux de la plateforme (settings/plateforme.services)
+  async function loadServices() { try { const f = await lireDoc("plateforme"); const pf = JSON.parse((f && f.json && f.json.stringValue) || "{}"); SERVICES = pf.services || {}; } catch (e) {} }
   // texte enregistré en chaîne ou en { fr: … } (anciens menus) → toujours la version française
   const tr = x => x == null ? "" : typeof x === "string" ? x : (x.fr || Object.values(x).find(Boolean) || "");
   const prixNum = p => { const n = parseFloat(String(p || "").replace(",", ".").replace(/[^\d.]/g, "")); return Number.isFinite(n) ? n : 0; };
@@ -121,6 +123,7 @@
 
   async function charger() {
     if (!slug) { etat(U.none, U.noneTx); return; }
+    if (!demo) await loadServices();
     lireDispo(); setInterval(() => { if (!document.hidden) lireDispo(); }, 60000);
     if (demo) {
       try {
@@ -266,10 +269,12 @@
 
     const inf = M.infos || {};
     const cats = (M.categories || []).filter(c => (c.items || []).length);   // une catégorie sans produit ne s’affiche pas
-    const waOk = prem && (waNum(inf.whatsapp) || caisseOn()) && M.commande !== false;
+    const cmdOn = SERVICES.commandes !== false;
+    const waOk = prem && (waNum(inf.whatsapp) || caisseOn()) && M.commande !== false && cmdOn;
     const L = M.livraison || {};
-    liv = waOk && L.actif ? { frais: prixNum(L.frais), min: prixNum(L.min), zone: String(L.zone || "").trim() } : null;
+    liv = waOk && L.actif && SERVICES.livraison !== false ? { frais: prixNum(L.frais), min: prixNum(L.min), zone: String(L.zone || "").trim() } : null;
     if (liv && !saisie.mode) saisie.mode = qs.has("livraison") ? "livraison" : "place";
+    const svcBan = (prem && !cmdOn && !apercu && !demo) ? `<div class="wrap"><div class="promoban" style="background:#C6472F;color:#fff"><b>⏸️ Commandes indisponibles pour le moment</b><span>Le menu reste consultable.</span></div></div>` : "";
     const promo = promosActives().map(p => `<div class="wrap"><div class="promoban"><b>🔥 ${esc(p.texte)}</b>${p.de && p.a ? `<span>${esc(p.de.replace(":", "h"))} – ${esc(p.a.replace(":", "h"))}${(p.jours || []).length && p.jours.length < 7 ? " · " + p.jours.map(j => JOURS[j]).join(", ") : ""}</span>` : ""}</div></div>`).join("");
     const resaOk = prem && waNum(inf.whatsapp) && (M.reservation || {}).actif && M.type !== "salon" && M.type !== "boutique";
     const resa = resaOk ? `<div class="wrap"><button class="resabtn" id="resa">📅 ${M.type === "hotel" ? "Réserver une chambre ou une table" : "Réserver une table"}</button></div>` : "";
@@ -295,7 +300,7 @@
       app.innerHTML = `${barreDemo()}
         ${cover ? `<div class="hero"><img class="cover" data-img="${esc(M.couverture)}" data-w="760" alt=""${posCouv()}></div>` : ""}
         <div class="head wrap">${logoTag()}<h1>${esc(M.nom || "Menu")}</h1>${tr(M.slogan) ? `<p class="slogan">${esc(tr(M.slogan))}</p>` : ""}${puces()}</div>
-        ${promo}
+        ${svcBan}${promo}
         ${nav}
         <div class="wrap">${cats.map(c => `<section class="cat" id="c-${esc(c.id)}"><h2>${esc(tr(c.nom))}</h2><div class="items">${(c.items || []).map(it => carte(it, false)).join("")}</div></section>`).join("")}</div>
         ${fin}`;
