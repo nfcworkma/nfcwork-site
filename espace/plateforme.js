@@ -13,7 +13,7 @@
   const fmt = n => (Math.round((+n || 0) * 100) / 100) + " DH";
   const rid = () => Math.random().toString(36).slice(2, 9);
 
-  let user = null, liste = [], det = {}, livreurs = [], charikat = [], tab = "restos", saving = false;
+  let user = null, liste = [], det = {}, livreurs = [], charikat = [], tab = "accueil", saving = false;
 
   function toast(msg, bad) {
     const t = document.getElementById("toast"); if (!t) return;
@@ -61,18 +61,130 @@
 
   /* ===== coquille + onglets ===== */
   function shell() {
-    const T = [["restos", "🍽 Restos"], ["charikat", "🏢 Sociétés"], ["commandes", "🧾 Commandes"], ["messages", "💬 Messages"], ["validations", "✅ Validations"]];
+    const T = [["accueil", "📊 Tableau de bord"], ["restos", "🍽 Restos"], ["charikat", "🏢 Sociétés"], ["comptes", "👥 Comptes"], ["commandes", "🧾 Commandes"], ["messages", "💬 Messages"], ["validations", "✅ Validations"], ["reglages", "⚙️ Réglages"]];
     app.innerHTML = '<div class="pf-tabs">' + T.map(t => '<button data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + '</button>').join("") + '</div><div id="tabc"></div>';
     app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { tab = b.dataset.tab; app.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", x.dataset.tab === tab)); renderTab(); });
     renderTab();
   }
   function renderTab() {
     const c = document.getElementById("tabc");
-    if (tab === "restos") renderRestos(c);
+    if (tab === "accueil") renderAccueil(c);
+    else if (tab === "restos") renderRestos(c);
     else if (tab === "charikat") renderCharikat(c);
+    else if (tab === "comptes") renderComptes(c);
     else if (tab === "messages") renderMsg(c);
     else if (tab === "validations") renderValidations(c);
+    else if (tab === "reglages") renderReglagesAdmin(c);
     else renderCommandes(c);
+  }
+
+  /* ===== helpers partagés ===== */
+  const numP = v => { const n = parseFloat(String(v == null ? "" : v).replace(",", ".")); return isNaN(n) ? 0 : n; };
+  const fmtP = n => Math.round(numP(n)).toLocaleString("fr-FR") + " DH";
+  const debutJour = () => { const d = new Date(); if (d.getHours() < 5) d.setDate(d.getDate() - 1); d.setHours(5, 0, 0, 0); return d; };
+
+  /* ===== onglet TABLEAU DE BORD ===== */
+  async function renderAccueil(c) {
+    c.innerHTML = '<div class="dash-wrap"><div class="muted" style="font-size:13px;padding:14px">Chargement des statistiques…</div></div>';
+    const dj = debutJour();
+    let cmd = 0, ca = 0, liv = 0, enc = 0;
+    await Promise.all(liste.map(async m => {
+      try {
+        const s = await db.collection("commandes").doc(m.slug).collection("liste").where("cree", ">=", dj).get();
+        s.forEach(d => { const o = d.data(); if (o.statut === "annulee") return; cmd++; if (o.statut === "payee" || o.statut === "livree") ca += numP(o.total); else enc++; if (o.mode === "livraison") liv++; });
+      } catch (e) {}
+    }));
+    let nClients = 0; try { const s = await db.collection("clients").limit(2000).get(); nClients = s.size; } catch (e) {}
+    let nPend = 0; try { const s = await db.collection("verifications").where("statut", "==", "en_attente").get(); nPend = s.size; } catch (e) {}
+    const kpi = (v, k, cls) => '<div class="kpi ' + (cls || "") + '"><div class="v">' + v + '</div><div class="k">' + k + '</div></div>';
+    c.innerHTML =
+      '<div class="dash-wrap">' +
+      '<div class="dash-h">Aujourd\'hui</div>' +
+      '<div class="kpis">' +
+      kpi(fmtP(ca), "💰 Chiffre d\'affaires", "big") +
+      kpi(cmd, "🧾 Commandes") +
+      kpi(enc, "⏳ En cours") +
+      kpi(liv, "🛵 Livraisons") +
+      '</div>' +
+      '<div class="dash-h">La plateforme</div>' +
+      '<div class="kpis">' +
+      kpi(liste.length, "🍽 Commerces") +
+      kpi(nClients, "👤 Clients inscrits") +
+      kpi(nPend, "📋 Dossiers à valider", nPend ? "warn" : "") +
+      kpi(charikat.length, "🏢 Sociétés livraison") +
+      '</div>' +
+      '<button class="btn" id="dash-ref" style="margin-top:4px">↻ Actualiser</button>' +
+      '</div>';
+    const r = document.getElementById("dash-ref"); if (r) r.onclick = () => renderAccueil(c);
+  }
+
+  /* ===== onglet COMPTES (clients / livreurs / commerçants) ===== */
+  let cfilter = "clients";
+  async function renderComptes(c) {
+    const segs = [["clients", "👤 Clients"], ["livreur", "🛵 Livreurs"], ["marchand", "🧾 Commerçants"]];
+    const seg = '<div class="vseg">' + segs.map(s => '<button data-cf="' + s[0] + '" class="' + (cfilter === s[0] ? "on" : "") + '">' + s[1] + '</button>').join("") + '</div>';
+    c.innerHTML = seg + '<div id="cbox"><div class="muted" style="font-size:13px;padding:14px">Chargement…</div></div>';
+    c.querySelectorAll("[data-cf]").forEach(b => b.onclick = () => { cfilter = b.dataset.cf; renderComptes(c); });
+    const box = document.getElementById("cbox");
+    let rows = [];
+    try {
+      if (cfilter === "clients") {
+        const s = await db.collection("clients").limit(2000).get();
+        s.forEach(d => { const o = d.data() || {}; rows.push({ nom: o.nom || "—", tel: o.tel || "", email: o.email || "", em: "👤" }); });
+      } else {
+        const s = await db.collection("verifications").where("role", "==", cfilter).where("statut", "==", "valide").get();
+        s.forEach(d => { const o = d.data() || {}; rows.push({ nom: (cfilter === "livreur" ? o.nom : o.commerce) || "—", tel: o.tel || "", email: o.email || "", em: cfilter === "livreur" ? "🛵" : "🧾" }); });
+      }
+    } catch (e) { box.innerHTML = '<div class="paper" style="padding:16px"><b style="color:#C6472F">Erreur</b><p class="muted" style="font-size:13px">' + esc((e && e.message) || "") + '</p></div>'; return; }
+    rows.sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
+    if (!rows.length) { box.innerHTML = '<div class="paper" style="padding:22px;text-align:center"><div style="font-size:40px">👥</div><h3 style="margin:8px 0 2px">Aucun compte</h3><p class="muted" style="font-size:13px;margin:0">' + (cfilter === "clients" ? "Les clients inscrits apparaîtront ici." : "Validez des comptes depuis l'onglet Validations.") + '</p></div>'; return; }
+    box.innerHTML = '<div class="muted" style="font-size:12px;font-weight:700;margin:0 2px 8px">' + rows.length + ' compte' + (rows.length > 1 ? "s" : "") + '</div><div class="pf-list">' +
+      rows.map(r => '<div class="pf-row"><div class="pf-logo">' + r.em + '</div><div class="pf-info"><div class="pf-nm">' + esc(r.nom) + '</div><div class="pf-meta">' + (r.tel ? '<span>' + esc(r.tel) + '</span>' : '') + (r.email ? '<span>' + esc(r.email) + '</span>' : '') + '</div></div></div>').join("") + '</div>';
+  }
+
+  /* ===== onglet RÉGLAGES (villes + couleur d'accent de la plateforme) ===== */
+  const VILLES_DEF = [{ id: "kenitra", nom: "Kénitra", actif: true }, { id: "rabat", nom: "Rabat", actif: false }, { id: "tanger", nom: "Tanger", actif: false }, { id: "casablanca", nom: "Casablanca", actif: false }, { id: "marrakech", nom: "Marrakech", actif: false }];
+  let PF = null;
+  async function chargerPF() {
+    if (PF) return PF;
+    try { const d = await db.doc("settings/plateforme").get(); PF = d.exists ? JSON.parse(d.data().json || "{}") : {}; } catch (e) { PF = {}; }
+    if (!PF.villes || !PF.villes.length) PF.villes = JSON.parse(JSON.stringify(VILLES_DEF));
+    if (!PF.accent) PF.accent = "#E07B0A";
+    return PF;
+  }
+  async function renderReglagesAdmin(c) {
+    await chargerPF();
+    const villes = PF.villes.map((v, i) =>
+      '<div class="pf-row"><div class="pf-info"><div class="pf-nm">' + esc(v.nom) + '</div><div class="pf-meta"><span>' + esc(v.id) + '</span>' + (v.actif ? '<span class="on">● Active</span>' : '<span class="no">🔒 Bientôt</span>') + '</div></div>' +
+      '<button class="sw" data-ville="' + i + '" aria-pressed="' + (!!v.actif) + '"></button>' +
+      '<button class="pf-del" data-vdel="' + i + '">✕</button></div>').join("");
+    c.innerHTML =
+      '<div class="paper" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 4px">🎨 Couleur de la plateforme</h3>' +
+      '<p class="muted" style="font-size:13px;margin:0 0 12px">La couleur principale des apps (client, livreur, commerçant).</p>' +
+      '<div style="display:flex;align-items:center;gap:12px"><input type="color" id="pf-accent" value="' + esc(PF.accent) + '" style="width:54px;height:40px;border:none;background:none;border-radius:10px">' +
+      '<input class="pf-sel" id="pf-accent-h" value="' + esc(PF.accent) + '" style="flex:1;max-width:140px" maxlength="7">' +
+      '<span class="pf-swatch" id="pf-sw" style="background:' + esc(PF.accent) + '"></span></div></div>' +
+      '<div class="paper" style="padding:16px"><h3 style="margin:0 0 4px">🏙️ Villes</h3>' +
+      '<p class="muted" style="font-size:13px;margin:0 0 12px">Active une ville pour l\'ouvrir aux clients.</p>' +
+      '<div class="pf-list">' + villes + '</div>' +
+      '<div class="pf-add" style="margin-top:12px"><input id="pf-vnom" placeholder="Nom de la ville"><button class="btn" id="pf-vadd">➕ Ajouter</button></div></div>' +
+      '<button class="btn primary" id="pf-save" style="margin-top:16px;width:100%">💾 Enregistrer les réglages</button>';
+    const ac = document.getElementById("pf-accent"), ah = document.getElementById("pf-accent-h"), sw = document.getElementById("pf-sw");
+    ac.oninput = () => { PF.accent = ac.value; ah.value = ac.value; sw.style.background = ac.value; };
+    ah.oninput = () => { if (/^#[0-9a-fA-F]{6}$/.test(ah.value)) { PF.accent = ah.value; ac.value = ah.value; sw.style.background = ah.value; } };
+    c.querySelectorAll("[data-ville]").forEach(b => b.onclick = () => { const i = +b.dataset.ville; PF.villes[i].actif = !PF.villes[i].actif; renderReglagesAdmin(c); });
+    c.querySelectorAll("[data-vdel]").forEach(b => b.onclick = () => { PF.villes.splice(+b.dataset.vdel, 1); renderReglagesAdmin(c); });
+    document.getElementById("pf-vadd").onclick = () => {
+      const nom = (document.getElementById("pf-vnom").value || "").trim(); if (!nom) return;
+      const id = nom.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      PF.villes.push({ id: id || ("ville" + PF.villes.length), nom: nom, actif: false }); renderReglagesAdmin(c);
+    };
+    document.getElementById("pf-save").onclick = async () => {
+      const b = document.getElementById("pf-save"); b.disabled = true; b.textContent = "Enregistrement…";
+      try { await db.doc("settings/plateforme").set({ json: JSON.stringify({ villes: PF.villes, accent: PF.accent }) }, { merge: true }); toast("Réglages enregistrés ✓"); }
+      catch (e) { toast("Erreur : " + (e.message || e), true); }
+      b.disabled = false; b.textContent = "💾 Enregistrer les réglages";
+    };
   }
 
   /* ===== onglet VALIDATIONS (dossiers livreurs / commerçants + archive des documents) ===== */

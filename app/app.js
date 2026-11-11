@@ -6,7 +6,7 @@
   const nav = document.getElementById("nav");
   const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const TYPES = { resto: ["🍽", "Restaurant · Café"], boutique: ["🛍", "Boutique"], salon: ["💈", "Salon · Beauté"], hotel: ["🏨", "Hôtel"], location: ["🚗", "Location"] };
-  const VILLES = [
+  let VILLES = [
     { id: "kenitra", nom: "Kénitra", actif: true }, { id: "rabat", nom: "Rabat", actif: false },
     { id: "tanger", nom: "Tanger", actif: false }, { id: "casablanca", nom: "Casablanca", actif: false },
     { id: "marrakech", nom: "Marrakech", actif: false }
@@ -52,6 +52,17 @@
   // ---------- firestore ----------
   async function lire(id) { try { const r = await fetch(DOC + id, { cache: "no-store" }); if (!r.ok) return null; return (await r.json()).fields || {}; } catch (e) { return null; } }
   function parse(f) { try { return JSON.parse((f && f.json && f.json.stringValue) || "{}"); } catch (e) { return {}; } }
+  // réglages de plateforme (villes + couleur) pilotés par l'admin
+  let pfLoaded = false;
+  function applyAccent(hex) { if (/^#[0-9a-fA-F]{6}$/.test(hex)) document.documentElement.style.setProperty("--accent", hex); }
+  async function applyPlateforme() {
+    if (pfLoaded) return; pfLoaded = true;
+    try {
+      const pf = parse(await lire("plateforme"));
+      if (pf.villes && pf.villes.length) VILLES = pf.villes.map(v => ({ id: v.id, nom: v.nom, actif: !!v.actif }));
+      if (pf.accent) applyAccent(pf.accent);
+    } catch (e) {}
+  }
   async function photo(id) {
     if (!id) return "";
     if (id.startsWith("u:")) return "https://images.unsplash.com/photo-" + id.slice(2) + "?auto=format&fit=crop&w=160&q=70";
@@ -402,6 +413,7 @@
 
   if (auth) {
     auth.onAuthStateChanged(async u => {
+      await applyPlateforme();
       if (!u) { ME = null; nav.hidden = true; renderAuth(); return; }
       ME = { uid: u.uid, email: u.email || "", nom: "", tel: "", photo: "" };
       if (fdb) { try { const d = await fdb.collection("clients").doc(u.uid).get(); if (d.exists) ME = Object.assign(ME, d.data()); } catch (e) {} }
