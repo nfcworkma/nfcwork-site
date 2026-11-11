@@ -52,8 +52,12 @@
   .spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite;margin:0 auto 14px}
   @keyframes sp{to{transform:rotate(360deg)}}
   /* auth */
-  .auth{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;text-align:center;gap:12px}
-  .auth .ic{width:80px;height:80px;border-radius:20px}
+  .auth{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px 20px;
+    background:radial-gradient(44% 52% at 80% 16%,#FFD98A,transparent 68%),radial-gradient(50% 58% at 16% 30%,#F2730E,transparent 70%),radial-gradient(56% 60% at 85% 85%,#C85A0A,transparent 74%),linear-gradient(150deg,#F7A61E,#C8630A)}
+  .auth::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:120px 120px;opacity:.5;mix-blend-mode:soft-light}
+  .ac{position:relative;z-index:1;width:100%;max-width:372px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;background:rgba(255,255,255,.92);-webkit-backdrop-filter:blur(16px) saturate(130%);backdrop-filter:blur(16px) saturate(130%);border:1px solid rgba(255,255,255,.75);border-radius:26px;box-shadow:0 34px 80px -26px rgba(110,55,0,.6),0 1px 0 rgba(255,255,255,.7) inset;padding:30px 22px 26px}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ac{background:rgba(32,26,18,.92);border-color:rgba(255,255,255,.14)}}
+  .auth .ic{width:80px;height:80px;border-radius:20px;box-shadow:0 0 0 5px rgba(224,123,10,.12),0 16px 36px -12px rgba(224,123,10,.5)}
   .auth h1{font-size:25px;font-weight:900;margin:0}
   .auth .sub{font-size:14px;color:var(--muted);max-width:30ch;margin:0 0 8px}
   .form{width:100%;max-width:330px;display:flex;flex-direction:column;gap:10px}

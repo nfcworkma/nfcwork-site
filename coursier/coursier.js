@@ -17,7 +17,7 @@
   function renderAuth() {
     const up = MODE === "up";
     app.innerHTML =
-      '<div class="auth"><img class="ic" src="/assets/img/ncommandiw-logo.svg" alt="">' +
+      '<div class="auth"><div class="ac"><img class="ic" src="/assets/img/ncommandiw-logo.svg" alt="">' +
       '<h1>Espace livreur 🛵</h1>' +
       '<p class="sub">' + (up ? "Crée ton compte avec l'e-mail donné par Ncommandiw." : "Connecte-toi pour voir tes livraisons.") + '</p>' +
       '<div class="form">' +
@@ -27,7 +27,7 @@
       '<button class="btn primary" id="go">' + (up ? "Créer mon compte" : "Se connecter") + '</button>' +
       (up ? "" : '<button class="btn g" id="forgot" style="margin-top:6px">Mot de passe oublié ?</button>') +
       '<div style="font-size:13.5px;color:var(--muted);margin-top:8px">' + (up ? "Déjà un compte ? " : "Pas encore de compte ? ") + '<a class="tog" id="tog">' + (up ? "Se connecter" : "Créer un compte") + '</a></div>' +
-      '</div></div>';
+      '</div></div></div>';
     const err = m => { const e = document.getElementById("er"); if (e) { e.textContent = m; e.hidden = false; } };
     document.getElementById("tog").onclick = () => { MODE = up ? "in" : "up"; renderAuth(); };
     const fg = document.getElementById("forgot"); if (fg) fg.onclick = async () => { const m = (document.getElementById("e").value || "").trim(); if (!m) return err("Écris ton e-mail d'abord."); try { await auth.sendPasswordResetEmail(m, { url: location.origin + "/coursier/" }); toast("E-mail de réinitialisation envoyé 📧"); } catch (e) { err(authMsg(e)); } };
