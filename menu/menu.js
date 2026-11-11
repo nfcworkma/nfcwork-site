@@ -47,7 +47,9 @@
   let M = null, panier = {};
   let liv = null;   // livraison activée par le commerce : { frais, min, zone }
   let SERVICES = {};   // services globaux de la plateforme (settings/plateforme.services)
-  async function loadServices() { try { const f = await lireDoc("plateforme"); const pf = JSON.parse((f && f.json && f.json.stringValue) || "{}"); SERVICES = pf.services || {}; } catch (e) {} }
+  let BLOCKLIST = [];  // numéros bloqués (anti commandes mzawra)
+  const normTel = t => String(t == null ? "" : t).replace(/\D/g, "").replace(/^212/, "").replace(/^0/, "");
+  async function loadServices() { try { const f = await lireDoc("plateforme"); const pf = JSON.parse((f && f.json && f.json.stringValue) || "{}"); SERVICES = pf.services || {}; BLOCKLIST = Array.isArray(pf.blocklist) ? pf.blocklist.map(normTel) : []; } catch (e) {} }
   // ouvert/fermé selon les horaires du commerce (infos.ouv / infos.ferm, "HH:MM")
   function ouvertNow(ouv, ferm) {
     if (!ouv || !ferm || !/^\d{1,2}:\d{2}$/.test(ouv) || !/^\d{1,2}:\d{2}$/.test(ferm)) return null;
@@ -527,6 +529,7 @@
       const err = d.querySelector("#c-err");
       if (liv.min && total < liv.min) { err.textContent = `Commande minimum : ${fmtPrix(arr(liv.min))}.`; return; }
       if (!saisie.tel.trim()) { err.textContent = "Indiquez votre numéro de téléphone pour le livreur."; d.querySelector("#c-tel").focus(); return; }
+      if (BLOCKLIST.length && BLOCKLIST.includes(normTel(saisie.tel))) { err.textContent = "Ce numéro ne peut pas commander en livraison. Contactez le support pour plus d'infos."; return; }
       if (!saisie.adresse.trim() && !saisie.pos.trim()) { err.textContent = "Indiquez votre adresse ou envoyez votre position."; d.querySelector("#c-adresse").focus(); return; }
       txt = ["Bonjour, je souhaite commander en LIVRAISON 🛵 :", "", ...liste, "",
         `Sous-total : ${fmtPrix(arr(total))}`, `Livraison : ${liv.frais ? fmtPrix(arr(liv.frais)) : "gratuite"}`, `${U.total} : ${fmtPrix(arr(total + liv.frais))}`, ""]

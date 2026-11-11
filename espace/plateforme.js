@@ -166,11 +166,13 @@
     if (!PF.services) PF.services = { commandes: true, livraison: true, maintenance: false };
     if (!PF.annonce) PF.annonce = { texte: "", date: 0, actif: false };
     if (!Array.isArray(PF.promos)) PF.promos = [];
+    if (!Array.isArray(PF.blocklist)) PF.blocklist = [];
     return PF;
   }
+  const normTel = t => String(t == null ? "" : t).replace(/\D/g, "").replace(/^212/, "").replace(/^0/, "");
   async function savePF(btn) {
     if (btn) { btn.disabled = true; btn.dataset.t = btn.textContent; btn.textContent = "Enregistrement…"; }
-    try { await db.doc("settings/plateforme").set({ json: JSON.stringify({ villes: PF.villes, accent: PF.accent, services: PF.services, annonce: PF.annonce, promos: PF.promos }) }, { merge: true }); toast("Enregistré ✓"); }
+    try { await db.doc("settings/plateforme").set({ json: JSON.stringify({ villes: PF.villes, accent: PF.accent, services: PF.services, annonce: PF.annonce, promos: PF.promos, blocklist: PF.blocklist }) }, { merge: true }); toast("Enregistré ✓"); }
     catch (e) { toast("Erreur : " + (e.message || e), true); }
     if (btn) { btn.disabled = false; btn.textContent = btn.dataset.t || "Enregistrer"; }
   }
@@ -197,6 +199,9 @@
       '<div class="paper" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 4px">🔔 Annonce à tous les clients</h3><p class="muted" style="font-size:13px;margin:0 0 10px">Apparaît en haut des Messages de tous les clients.</p>' +
       '<textarea class="pf-sel" id="pf-ann" rows="3" maxlength="200" style="width:100%;resize:vertical" placeholder="Ex : 🎉 Ncommandiw arrive bientôt à Rabat !">' + esc(PF.annonce.texte || "") + '</textarea>' +
       '<div class="pf-row" style="margin-top:8px"><div class="pf-info"><div class="pf-nm">Afficher l\'annonce</div></div><button class="sw" data-ann aria-pressed="' + (!!PF.annonce.actif) + '"></button></div></div>' +
+      '<div class="paper" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 4px">🚫 Numéros bloqués</h3><p class="muted" style="font-size:13px;margin:0 0 10px">Un numéro bloqué ne peut plus passer de commande en livraison (commandes mzawra / clients à problème).</p>' +
+      (PF.blocklist.length ? '<div class="pf-list">' + PF.blocklist.map((t, i) => '<div class="pf-row"><div class="pf-logo">🚫</div><div class="pf-info"><div class="pf-nm">' + esc(t) + '</div></div><button class="pf-del" data-bdel="' + i + '">✕</button></div>').join("") + '</div>' : '<p class="muted" style="font-size:13px;margin:0 0 8px">Aucun numéro bloqué.</p>') +
+      '<div class="pf-add" style="margin-top:10px"><input id="pf-bnum" inputmode="tel" placeholder="Numéro à bloquer (ex : 0612345678)"><button class="btn" id="pf-badd">🚫 Bloquer</button></div></div>' +
       '<button class="btn primary" id="pf-save" style="margin-top:16px;width:100%">💾 Enregistrer les réglages</button>';
     const ac = document.getElementById("pf-accent"), ah = document.getElementById("pf-accent-h"), sw = document.getElementById("pf-sw");
     ac.oninput = () => { PF.accent = ac.value; ah.value = ac.value; sw.style.background = ac.value; };
@@ -210,6 +215,15 @@
     };
     c.querySelectorAll("[data-svc]").forEach(b => b.onclick = () => { const k = b.dataset.svc; PF.services[k] = !PF.services[k]; b.setAttribute("aria-pressed", PF.services[k]); });
     const annTog = c.querySelector("[data-ann]"); if (annTog) annTog.onclick = () => { PF.annonce.actif = !PF.annonce.actif; annTog.setAttribute("aria-pressed", PF.annonce.actif); };
+    const badd = document.getElementById("pf-badd");
+    if (badd) badd.onclick = async () => {
+      const raw = (document.getElementById("pf-bnum").value || "").trim();
+      const n = normTel(raw);
+      if (n.length < 9) return toast("Numéro invalide", true);
+      if (PF.blocklist.some(x => normTel(x) === n)) return toast("Déjà bloqué", true);
+      PF.blocklist.unshift(raw); await savePF(); renderReglagesAdmin(c);
+    };
+    c.querySelectorAll("[data-bdel]").forEach(b => b.onclick = async () => { PF.blocklist.splice(+b.dataset.bdel, 1); await savePF(); renderReglagesAdmin(c); });
     document.getElementById("pf-save").onclick = async () => {
       const txt = (document.getElementById("pf-ann").value || "").trim();
       if (txt !== PF.annonce.texte) PF.annonce.date = Date.now();
