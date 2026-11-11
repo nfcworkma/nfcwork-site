@@ -346,7 +346,7 @@
     c.querySelectorAll("[data-toggle]").forEach(b => b.onclick = () => toggleResto(b.dataset.toggle));
     c.querySelectorAll("[data-up]").forEach(b => b.onclick = () => bouger(+b.dataset.up, -1));
     c.querySelectorAll("[data-down]").forEach(b => b.onclick = () => bouger(+b.dataset.down, 1));
-    liste.forEach(m => { const d = det[m.slug]; if (d && d.logo) poseLogo(m.slug, d.logo); else chargerDetail(m.slug); });
+    liste.forEach(m => { const d = det[m.slug]; if (d) { if (d.logo) poseLogo(m.slug, d.logo); } else chargerDetail(m.slug); });
   }
   async function chargerDetail(slug) {
     try {

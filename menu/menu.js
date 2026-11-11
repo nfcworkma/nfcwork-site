@@ -48,6 +48,15 @@
   let liv = null;   // livraison activée par le commerce : { frais, min, zone }
   let SERVICES = {};   // services globaux de la plateforme (settings/plateforme.services)
   async function loadServices() { try { const f = await lireDoc("plateforme"); const pf = JSON.parse((f && f.json && f.json.stringValue) || "{}"); SERVICES = pf.services || {}; } catch (e) {} }
+  // ouvert/fermé selon les horaires du commerce (infos.ouv / infos.ferm, "HH:MM")
+  function ouvertNow(ouv, ferm) {
+    if (!ouv || !ferm || !/^\d{1,2}:\d{2}$/.test(ouv) || !/^\d{1,2}:\d{2}$/.test(ferm)) return null;
+    const now = new Date(), cur = now.getHours() * 60 + now.getMinutes();
+    const [oh, om] = ouv.split(":").map(Number), [fh, fm] = ferm.split(":").map(Number);
+    const o = oh * 60 + om, f = fh * 60 + fm;
+    if (f === o) return true; if (f < o) return cur >= o || cur < f; return cur >= o && cur < f;
+  }
+  const hFmt = f => { if (!f) return ""; const [h, m] = f.split(":").map(Number); return m ? h + "h" + String(m).padStart(2, "0") : h + "h"; };
   // texte enregistré en chaîne ou en { fr: … } (anciens menus) → toujours la version française
   const tr = x => x == null ? "" : typeof x === "string" ? x : (x.fr || Object.values(x).find(Boolean) || "");
   const prixNum = p => { const n = parseFloat(String(p || "").replace(",", ".").replace(/[^\d.]/g, "")); return Number.isFinite(n) ? n : 0; };
@@ -270,11 +279,12 @@
     const inf = M.infos || {};
     const cats = (M.categories || []).filter(c => (c.items || []).length);   // une catégorie sans produit ne s’affiche pas
     const cmdOn = SERVICES.commandes !== false;
-    const waOk = prem && (waNum(inf.whatsapp) || caisseOn()) && M.commande !== false && cmdOn;
+    const ferme = ouvertNow(inf.ouv, inf.ferm) === false;
+    const waOk = prem && (waNum(inf.whatsapp) || caisseOn()) && M.commande !== false && cmdOn && !ferme;
     const L = M.livraison || {};
     liv = waOk && L.actif && SERVICES.livraison !== false ? { frais: prixNum(L.frais), min: prixNum(L.min), zone: String(L.zone || "").trim() } : null;
     if (liv && !saisie.mode) saisie.mode = qs.has("livraison") ? "livraison" : "place";
-    const svcBan = (prem && !cmdOn && !apercu && !demo) ? `<div class="wrap"><div class="promoban" style="background:#C6472F;color:#fff"><b>⏸️ Commandes indisponibles pour le moment</b><span>Le menu reste consultable.</span></div></div>` : "";
+    const svcBan = (prem && !apercu && !demo && (ferme || !cmdOn)) ? `<div class="wrap"><div class="promoban" style="background:#C6472F;color:#fff"><b>${ferme ? "🔒 Fermé pour le moment" : "⏸️ Commandes indisponibles"}</b><span>${ferme ? ("Réouvre à " + hFmt(inf.ouv)) : "Le menu reste consultable."}</span></div></div>` : "";
     const promo = promosActives().map(p => `<div class="wrap"><div class="promoban"><b>🔥 ${esc(p.texte)}</b>${p.de && p.a ? `<span>${esc(p.de.replace(":", "h"))} – ${esc(p.a.replace(":", "h"))}${(p.jours || []).length && p.jours.length < 7 ? " · " + p.jours.map(j => JOURS[j]).join(", ") : ""}</span>` : ""}</div></div>`).join("");
     const resaOk = prem && waNum(inf.whatsapp) && (M.reservation || {}).actif && M.type !== "salon" && M.type !== "boutique";
     const resa = resaOk ? `<div class="wrap"><button class="resabtn" id="resa">📅 ${M.type === "hotel" ? "Réserver une chambre ou une table" : "Réserver une table"}</button></div>` : "";
