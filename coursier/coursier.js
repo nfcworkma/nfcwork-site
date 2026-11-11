@@ -87,8 +87,78 @@
     const rf = document.getElementById("rf"); if (rf) rf.onclick = charger;
   }
 
+  // ---------- vérification du compte (KYC) ----------
+  const LIV_DOCS = [
+    { k: "cin_recto", emo: "🪪", t: "CIN — recto" },
+    { k: "cin_verso", emo: "🪪", t: "CIN — verso" },
+    { k: "permis", emo: "🚗", t: "Permis de conduire" },
+    { k: "selfie", emo: "🤳", t: "Selfie (photo de toi)" }
+  ];
+  const val = id => ((document.getElementById(id) || {}).value || "").trim();
+  function tile(d) { return '<label class="up"><span class="emo">' + d.emo + '</span><span class="t">' + d.t + '</span><input type="file" accept="image/*" data-f="' + d.k + '"></label>'; }
+  function wireUploads(store) {
+    app.querySelectorAll("input[data-f]").forEach(inp => {
+      inp.onchange = () => {
+        const f = inp.files && inp.files[0]; if (!f) return;
+        store[inp.dataset.f] = f;
+        const up = inp.closest(".up"), old = up.querySelector("img.pv"); if (old) old.remove();
+        const img = document.createElement("img"); img.className = "pv"; img.src = URL.createObjectURL(f); up.appendChild(img);
+        if (!up.querySelector(".chk")) { const c = document.createElement("span"); c.className = "chk"; c.textContent = "✓"; up.appendChild(c); }
+        up.classList.add("full");
+      };
+    });
+  }
+  function renderVerif(prev) {
+    const refus = prev && prev.statut === "refuse";
+    app.innerHTML =
+      '<div class="vf"><div class="top"><img src="/assets/img/ncommandiw-logo.svg" alt=""><div><h1>Vérifie ton compte 🛵</h1></div></div>' +
+      '<p class="sub">Pour livrer avec Ncommandiw, on vérifie ton identité. Tes documents restent confidentiels.</p>' +
+      (refus ? '<div style="background:rgba(198,71,47,.1);border-radius:12px;padding:12px 14px;margin-bottom:12px"><b style="color:var(--red)">Dossier à refaire</b><div style="font-size:13px;margin-top:3px">' + esc(prev.motif || "Merci de renvoyer des documents lisibles.") + '</div></div>' : "") +
+      '<div class="grp"><label>Nom complet</label><input class="in" id="v-nom" maxlength="60" value="' + esc((prev && prev.nom) || "") + '"></div>' +
+      '<div class="row2"><div class="grp"><label>Téléphone</label><input class="in" id="v-tel" type="tel" inputmode="tel" maxlength="20" value="' + esc((prev && prev.tel) || "") + '"></div>' +
+      '<div class="grp"><label>Ville</label><input class="in" id="v-ville" maxlength="40" value="' + esc((prev && prev.ville) || "") + '"></div></div>' +
+      '<div class="grp"><label>N° de CIN</label><input class="in" id="v-cin" maxlength="20" value="' + esc((prev && prev.cin) || "") + '"></div>' +
+      '<div class="row2"><div class="grp"><label>Véhicule</label><select class="in" id="v-veh"><option>Moto</option><option>Voiture</option><option>Vélo</option><option>À pied</option></select></div>' +
+      '<div class="grp"><label>Matricule</label><input class="in" id="v-mat" maxlength="20" placeholder="—" value="' + esc((prev && prev.matricule) || "") + '"></div></div>' +
+      '<div class="lbl">Documents (photos)</div><div class="ups">' + LIV_DOCS.map(tile).join("") + '</div>' +
+      '<p class="err" id="ver" hidden></p>' +
+      '<button class="btn primary submit" id="vgo">Envoyer pour validation</button>' +
+      '<button class="btn g" id="vout" style="margin-top:8px">Se déconnecter</button></div>';
+    if (prev && prev.vehicule) { const s = document.getElementById("v-veh"); if (s) s.value = prev.vehicule; }
+    const store = {}; wireUploads(store);
+    document.getElementById("vout").onclick = () => auth.signOut();
+    const err = m => { const e = document.getElementById("ver"); e.textContent = m; e.hidden = false; };
+    document.getElementById("vgo").onclick = async () => {
+      const nom = val("v-nom"), tel = val("v-tel"), ville = val("v-ville"), cin = val("v-cin"), veh = val("v-veh"), mat = val("v-mat");
+      if (!nom || !tel || !ville || !cin) return err("Remplis toutes les informations.");
+      if ((veh === "Moto" || veh === "Voiture") && !mat) return err("Le matricule du véhicule est requis.");
+      for (const d of LIV_DOCS) if (!store[d.k]) return err("Ajoute la photo : " + d.t + ".");
+      const b = document.getElementById("vgo"); b.disabled = true;
+      try {
+        const docs = {}; let i = 0;
+        for (const d of LIV_DOCS) { i++; b.textContent = "Envoi… (" + i + "/" + LIV_DOCS.length + ")"; docs[d.k] = await NCW.uploadImage(store[d.k], "verifications/" + ME.uid + "/" + d.k + ".jpg"); }
+        b.textContent = "Enregistrement…";
+        await db.doc("verifications/" + ME.uid).set({ role: "livreur", statut: "en_attente", email: ME.email, nom, tel, ville, cin, vehicule: veh, matricule: mat, docs, cree: new Date(), maj: new Date() });
+        renderAttente();
+      } catch (e) { b.disabled = false; b.textContent = "Envoyer pour validation"; err((e && e.message) || "Échec de l'envoi. Réessaie."); }
+    };
+  }
+  function renderAttente() {
+    app.innerHTML = '<div class="empty"><div><div class="em">⏳</div><h2>Compte en cours de validation</h2><p>On vérifie tes documents. Tu recevras l\'accès dès que ton compte est validé.</p><button class="btn primary" id="rr" style="max-width:240px;margin:16px auto 0">Actualiser</button><button class="btn g" id="out" style="max-width:240px;margin:8px auto 0">Se déconnecter</button></div></div>';
+    document.getElementById("rr").onclick = router;
+    document.getElementById("out").onclick = () => auth.signOut();
+  }
+  async function router() {
+    app.innerHTML = '<div class="state"><div><div class="spin"></div></div></div>';
+    let v = null;
+    try { const d = await db.doc("verifications/" + ME.uid).get(); v = d.exists ? d.data() : null; } catch (e) {}
+    if (!v || v.statut === "refuse") return renderVerif(v);
+    if (v.statut === "en_attente") return renderAttente();
+    charger();
+  }
+
   if (auth) {
-    auth.onAuthStateChanged(u => { if (!u) { ME = null; renderAuth(); return; } ME = { uid: u.uid, email: u.email || "" }; charger(); });
+    auth.onAuthStateChanged(u => { if (!u) { ME = null; renderAuth(); return; } ME = { uid: u.uid, email: u.email || "" }; router(); });
   } else {
     renderAuth();
   }

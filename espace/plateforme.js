@@ -61,7 +61,7 @@
 
   /* ===== coquille + onglets ===== */
   function shell() {
-    const T = [["restos", "🍽 Restos"], ["charikat", "🏢 Sociétés"], ["commandes", "🧾 Commandes"], ["messages", "💬 Messages"]];
+    const T = [["restos", "🍽 Restos"], ["charikat", "🏢 Sociétés"], ["commandes", "🧾 Commandes"], ["messages", "💬 Messages"], ["validations", "✅ Validations"]];
     app.innerHTML = '<div class="pf-tabs">' + T.map(t => '<button data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + '</button>').join("") + '</div><div id="tabc"></div>';
     app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { tab = b.dataset.tab; app.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", x.dataset.tab === tab)); renderTab(); });
     renderTab();
@@ -71,7 +71,49 @@
     if (tab === "restos") renderRestos(c);
     else if (tab === "charikat") renderCharikat(c);
     else if (tab === "messages") renderMsg(c);
+    else if (tab === "validations") renderValidations(c);
     else renderCommandes(c);
+  }
+
+  /* ===== onglet VALIDATIONS (comptes livreurs / commerçants à vérifier) ===== */
+  async function renderValidations(c) {
+    c.innerHTML = '<div class="muted" style="font-size:13px;padding:14px">Chargement…</div>';
+    let docs = [];
+    try {
+      const snap = await db.collection("verifications").where("statut", "==", "en_attente").get();
+      snap.forEach(d => { const o = d.data(); o.id = d.id; docs.push(o); });
+    } catch (e) {
+      c.innerHTML = '<div class="paper" style="padding:16px"><b style="color:#C6472F">Erreur</b><p class="muted" style="font-size:13px">' + esc((e && e.message) || "") + '</p></div>'; return;
+    }
+    docs.sort((a, b) => { const va = a.cree && a.cree.seconds ? a.cree.seconds : 0, vb = b.cree && b.cree.seconds ? b.cree.seconds : 0; return va - vb; });
+    if (!docs.length) { c.innerHTML = '<div class="paper" style="padding:22px;text-align:center"><div style="font-size:40px">✅</div><h3 style="margin:8px 0 2px">Aucune demande en attente</h3><p class="muted" style="font-size:13px;margin:0">Les nouveaux livreurs et commerçants apparaîtront ici.</p></div>'; return; }
+    c.innerHTML = docs.map(o => {
+      const liv = o.role === "livreur";
+      const titre = liv ? esc(o.nom || "Livreur") : esc(o.commerce || "Commerce");
+      const badge = liv ? '🛵 Livreur' : '🧾 Commerçant';
+      const info = liv
+        ? [["Tél", o.tel], ["Ville", o.ville], ["CIN", o.cin], ["Véhicule", (o.vehicule || "") + (o.matricule ? " · " + o.matricule : "")], ["E-mail", o.email]]
+        : [["Tél", o.tel], ["Ville", o.ville], ["Adresse", o.adresse], ["RC / ICE / IF", o.rc], ["E-mail", o.email]];
+      const rows = info.filter(r => r[1]).map(r => '<div class="vl"><span>' + r[0] + '</span><b>' + esc(r[1]) + '</b></div>').join("");
+      const docsImg = Object.keys(o.docs || {}).map(k => '<a href="' + esc(o.docs[k]) + '" target="_blank" rel="noopener" class="vdoc"><img src="' + esc(o.docs[k]) + '" alt=""><span>' + esc(k.replace(/_/g, " ")) + '</span></a>').join("");
+      return '<div class="paper vcard" data-id="' + esc(o.id) + '" style="padding:15px;margin-bottom:12px">' +
+        '<div class="vhead"><b>' + titre + '</b><span class="vbadge">' + badge + '</span></div>' +
+        '<div class="vgrid">' + rows + '</div>' +
+        '<div class="vdocs">' + docsImg + '</div>' +
+        '<div class="vacts"><button class="btn primary" data-ok="' + esc(o.id) + '">✅ Valider</button><button class="btn" data-no="' + esc(o.id) + '">✖ Refuser</button></div></div>';
+    }).join("");
+    c.querySelectorAll("[data-ok]").forEach(b => b.onclick = async () => {
+      b.disabled = true; b.textContent = "…";
+      try { await db.doc("verifications/" + b.dataset.ok).update({ statut: "valide", maj: new Date() }); toast("Compte validé ✅"); renderValidations(c); }
+      catch (e) { b.disabled = false; b.textContent = "✅ Valider"; toast("Erreur : " + (e.message || e), true); }
+    });
+    c.querySelectorAll("[data-no]").forEach(b => b.onclick = async () => {
+      const motif = window.prompt("Motif du refus (visible par la personne) :", "Documents illisibles, merci de renvoyer.");
+      if (motif === null) return;
+      b.disabled = true; b.textContent = "…";
+      try { await db.doc("verifications/" + b.dataset.no).update({ statut: "refuse", motif: motif, maj: new Date() }); toast("Dossier refusé"); renderValidations(c); }
+      catch (e) { b.disabled = false; b.textContent = "✖ Refuser"; toast("Erreur : " + (e.message || e), true); }
+    });
   }
 
   /* ===== onglet MESSAGES (annonces aux clients) ===== */
