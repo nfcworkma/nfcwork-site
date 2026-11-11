@@ -190,7 +190,7 @@
       const b = document.getElementById("vgo"); b.disabled = true;
       try {
         const docs = {}; let i = 0;
-        for (const d of MAR_DOCS) { i++; b.textContent = "Envoi… (" + i + "/" + MAR_DOCS.length + ")"; docs[d.k] = await NCW.uploadImage(store[d.k], "verifications/" + ME.uid + "/" + d.k + ".jpg"); }
+        for (const d of MAR_DOCS) { i++; b.textContent = "Envoi… (" + i + "/" + MAR_DOCS.length + ")"; docs[d.k] = await NCW.toDataURL(store[d.k]); }
         b.textContent = "Enregistrement…";
         await db.doc("verifications/" + ME.uid).set({ role: "marchand", statut: "en_attente", email: ME.email, commerce, tel, ville, adresse, rc, docs, cree: new Date(), maj: new Date() });
         renderAttente();

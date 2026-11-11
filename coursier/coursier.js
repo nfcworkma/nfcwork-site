@@ -136,7 +136,7 @@
       const b = document.getElementById("vgo"); b.disabled = true;
       try {
         const docs = {}; let i = 0;
-        for (const d of LIV_DOCS) { i++; b.textContent = "Envoi… (" + i + "/" + LIV_DOCS.length + ")"; docs[d.k] = await NCW.uploadImage(store[d.k], "verifications/" + ME.uid + "/" + d.k + ".jpg"); }
+        for (const d of LIV_DOCS) { i++; b.textContent = "Envoi… (" + i + "/" + LIV_DOCS.length + ")"; docs[d.k] = await NCW.toDataURL(store[d.k]); }
         b.textContent = "Enregistrement…";
         await db.doc("verifications/" + ME.uid).set({ role: "livreur", statut: "en_attente", email: ME.email, nom, tel, ville, cin, vehicule: veh, matricule: mat, docs, cree: new Date(), maj: new Date() });
         renderAttente();
