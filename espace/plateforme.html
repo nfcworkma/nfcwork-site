@@ -91,8 +91,20 @@
   .kpi.big .v{font-size:30px;color:var(--accent,#E07B0A)}
   .kpi.warn{border-color:#E07B0A}
   .kpi.warn .v{color:#F2A20C}
+  .bars{display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
+  .bar-row{display:flex;align-items:center;gap:10px}
+  .bar-lab{flex:0 0 32%;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-track{flex:1;height:14px;background:var(--sunk,#1f232d);border-radius:999px;overflow:hidden}
+  .bar-fill{height:100%;background:linear-gradient(90deg,#E07B0A,#F2A20C);border-radius:999px;min-width:4px}
+  .bar-val{flex:0 0 auto;font-size:12.5px;font-weight:800}
   .pf-swatch{width:34px;height:34px;border-radius:9px;border:1px solid var(--line,#2a2f3b);flex:0 0 auto}
   input[type=color]{cursor:pointer}
+  .hract{border:1px solid var(--line,#2a2f3b);background:var(--sunk,#1f232d);color:inherit;border-radius:9px;padding:7px 9px;cursor:pointer;font-size:13px}
+  .pf-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px}
+  .pf-dialog{background:var(--surface,#171a22);border:1px solid var(--line,#2a2f3b);border-radius:16px;padding:18px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .pf-dialog h3{color:var(--fg,#fff)}
+  .pf-dialog .f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted,#8a93a6);font-weight:600}
+  .pf-dialog .f input{padding:11px;border:1px solid var(--line,#2a2f3b);border-radius:10px;background:var(--sunk,#1f232d);color:var(--fg,#fff);font:inherit}
 </style>
 </head>
 <body>

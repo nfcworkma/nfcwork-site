@@ -53,7 +53,7 @@
   async function lire(id) { try { const r = await fetch(DOC + id, { cache: "no-store" }); if (!r.ok) return null; return (await r.json()).fields || {}; } catch (e) { return null; } }
   function parse(f) { try { return JSON.parse((f && f.json && f.json.stringValue) || "{}"); } catch (e) { return {}; } }
   // réglages de plateforme (villes + couleur) pilotés par l'admin
-  let pfLoaded = false;
+  let pfLoaded = false, PF_SERVICES = {}, PF_ANNONCE = null;
   function applyAccent(hex) { if (/^#[0-9a-fA-F]{6}$/.test(hex)) document.documentElement.style.setProperty("--accent", hex); }
   async function applyPlateforme() {
     if (pfLoaded) return; pfLoaded = true;
@@ -61,7 +61,13 @@
       const pf = parse(await lire("plateforme"));
       if (pf.villes && pf.villes.length) VILLES = pf.villes.map(v => ({ id: v.id, nom: v.nom, actif: !!v.actif }));
       if (pf.accent) applyAccent(pf.accent);
+      PF_SERVICES = pf.services || {};
+      PF_ANNONCE = (pf.annonce && pf.annonce.actif && pf.annonce.texte) ? pf.annonce : null;
     } catch (e) {}
+  }
+  function maintenanceEcran() {
+    nav.hidden = true;
+    app.innerHTML = '<div class="empty" style="min-height:85vh"><div><img src="/assets/img/ncommandiw-logo.svg" alt="" style="width:76px;height:76px;border-radius:19px;margin:0 auto 14px;display:block"><div class="em" style="font-size:44px">🚧</div><h2>Bientôt de retour</h2><p>Ncommandiw est en maintenance.<br>Reviens dans quelques instants.</p></div></div>';
   }
   async function photo(id) {
     if (!id) return "";
@@ -303,6 +309,7 @@
       } catch (e) {}
     }));
     out.sort((a, b) => (b.date || 0) - (a.date || 0));
+    if (PF_ANNONCE) out.unshift({ slug: "__ncw", nom: "Ncommandiw 🔔", texte: PF_ANNONCE.texte, date: PF_ANNONCE.date || Date.now() });
     return out;
   }
   async function msgUnread() {
@@ -414,6 +421,7 @@
   if (auth) {
     auth.onAuthStateChanged(async u => {
       await applyPlateforme();
+      if (PF_SERVICES.maintenance) return maintenanceEcran();
       if (!u) { ME = null; nav.hidden = true; renderAuth(); return; }
       ME = { uid: u.uid, email: u.email || "", nom: "", tel: "", photo: "" };
       if (fdb) { try { const d = await fdb.collection("clients").doc(u.uid).get(); if (d.exists) ME = Object.assign(ME, d.data()); } catch (e) {} }

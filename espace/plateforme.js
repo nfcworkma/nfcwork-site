@@ -88,12 +88,19 @@
     c.innerHTML = '<div class="dash-wrap"><div class="muted" style="font-size:13px;padding:14px">Chargement des statistiques…</div></div>';
     const dj = debutJour();
     let cmd = 0, ca = 0, liv = 0, enc = 0;
+    const perShop = [];
     await Promise.all(liste.map(async m => {
+      let c0 = 0, ca0 = 0;
       try {
         const s = await db.collection("commandes").doc(m.slug).collection("liste").where("cree", ">=", dj).get();
-        s.forEach(d => { const o = d.data(); if (o.statut === "annulee") return; cmd++; if (o.statut === "payee" || o.statut === "livree") ca += numP(o.total); else enc++; if (o.mode === "livraison") liv++; });
+        s.forEach(d => { const o = d.data(); if (o.statut === "annulee") return; cmd++; c0++; if (o.statut === "payee" || o.statut === "livree") { ca += numP(o.total); ca0 += numP(o.total); } else enc++; if (o.mode === "livraison") liv++; });
       } catch (e) {}
+      perShop.push({ nom: m.nom || m.slug, ca: ca0, cmd: c0 });
     }));
+    const actifs = perShop.filter(s => s.cmd > 0).sort((a, b) => b.ca - a.ca);
+    const mx = Math.max(1, ...actifs.map(s => s.ca));
+    const chart = actifs.length ? '<div class="dash-h">CA par commerce (aujourd\'hui)</div><div class="bars">' + actifs.map(s =>
+      '<div class="bar-row"><div class="bar-lab">' + esc(s.nom) + '</div><div class="bar-track"><div class="bar-fill" style="width:' + Math.round(s.ca / mx * 100) + '%"></div></div><div class="bar-val">' + fmtP(s.ca) + '</div></div>').join("") + '</div>' : "";
     let nClients = 0; try { const s = await db.collection("clients").limit(2000).get(); nClients = s.size; } catch (e) {}
     let nPend = 0; try { const s = await db.collection("verifications").where("statut", "==", "en_attente").get(); nPend = s.size; } catch (e) {}
     const kpi = (v, k, cls) => '<div class="kpi ' + (cls || "") + '"><div class="v">' + v + '</div><div class="k">' + k + '</div></div>';
@@ -106,6 +113,7 @@
       kpi(enc, "⏳ En cours") +
       kpi(liv, "🛵 Livraisons") +
       '</div>' +
+      chart +
       '<div class="dash-h">La plateforme</div>' +
       '<div class="kpis">' +
       kpi(liste.length, "🍽 Commerces") +
@@ -130,16 +138,20 @@
     try {
       if (cfilter === "clients") {
         const s = await db.collection("clients").limit(2000).get();
-        s.forEach(d => { const o = d.data() || {}; rows.push({ nom: o.nom || "—", tel: o.tel || "", email: o.email || "", em: "👤" }); });
+        s.forEach(d => { const o = d.data() || {}; rows.push({ id: d.id, col: "clients", nom: o.nom || "—", tel: o.tel || "", email: o.email || "", em: "👤" }); });
       } else {
         const s = await db.collection("verifications").where("role", "==", cfilter).where("statut", "==", "valide").get();
-        s.forEach(d => { const o = d.data() || {}; rows.push({ nom: (cfilter === "livreur" ? o.nom : o.commerce) || "—", tel: o.tel || "", email: o.email || "", em: cfilter === "livreur" ? "🛵" : "🧾" }); });
+        s.forEach(d => { const o = d.data() || {}; rows.push({ id: d.id, col: "verifications", nom: (cfilter === "livreur" ? o.nom : o.commerce) || "—", tel: o.tel || "", email: o.email || "", em: cfilter === "livreur" ? "🛵" : "🧾" }); });
       }
     } catch (e) { box.innerHTML = '<div class="paper" style="padding:16px"><b style="color:#C6472F">Erreur</b><p class="muted" style="font-size:13px">' + esc((e && e.message) || "") + '</p></div>'; return; }
     rows.sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
     if (!rows.length) { box.innerHTML = '<div class="paper" style="padding:22px;text-align:center"><div style="font-size:40px">👥</div><h3 style="margin:8px 0 2px">Aucun compte</h3><p class="muted" style="font-size:13px;margin:0">' + (cfilter === "clients" ? "Les clients inscrits apparaîtront ici." : "Validez des comptes depuis l'onglet Validations.") + '</p></div>'; return; }
     box.innerHTML = '<div class="muted" style="font-size:12px;font-weight:700;margin:0 2px 8px">' + rows.length + ' compte' + (rows.length > 1 ? "s" : "") + '</div><div class="pf-list">' +
-      rows.map(r => '<div class="pf-row"><div class="pf-logo">' + r.em + '</div><div class="pf-info"><div class="pf-nm">' + esc(r.nom) + '</div><div class="pf-meta">' + (r.tel ? '<span>' + esc(r.tel) + '</span>' : '') + (r.email ? '<span>' + esc(r.email) + '</span>' : '') + '</div></div></div>').join("") + '</div>';
+      rows.map(r => '<div class="pf-row"><div class="pf-logo">' + r.em + '</div><div class="pf-info"><div class="pf-nm">' + esc(r.nom) + '</div><div class="pf-meta">' + (r.tel ? '<span>' + esc(r.tel) + '</span>' : '') + (r.email ? '<span>' + esc(r.email) + '</span>' : '') + '</div></div><button class="pf-del" data-del="' + esc(r.col) + '/' + esc(r.id) + '">🗑</button></div>').join("") + '</div>';
+    box.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+      if (!window.confirm("Supprimer définitivement ce compte ?")) return;
+      try { await db.doc(b.dataset.del).delete(); toast("Supprimé"); renderComptes(c); } catch (e) { toast("Erreur : " + (e.message || e), true); }
+    });
   }
 
   /* ===== onglet RÉGLAGES (villes + couleur d'accent de la plateforme) ===== */
@@ -150,7 +162,15 @@
     try { const d = await db.doc("settings/plateforme").get(); PF = d.exists ? JSON.parse(d.data().json || "{}") : {}; } catch (e) { PF = {}; }
     if (!PF.villes || !PF.villes.length) PF.villes = JSON.parse(JSON.stringify(VILLES_DEF));
     if (!PF.accent) PF.accent = "#E07B0A";
+    if (!PF.services) PF.services = { commandes: true, livraison: true, maintenance: false };
+    if (!PF.annonce) PF.annonce = { texte: "", date: 0, actif: false };
     return PF;
+  }
+  async function savePF(btn) {
+    if (btn) { btn.disabled = true; btn.dataset.t = btn.textContent; btn.textContent = "Enregistrement…"; }
+    try { await db.doc("settings/plateforme").set({ json: JSON.stringify({ villes: PF.villes, accent: PF.accent, services: PF.services, annonce: PF.annonce }) }, { merge: true }); toast("Enregistré ✓"); }
+    catch (e) { toast("Erreur : " + (e.message || e), true); }
+    if (btn) { btn.disabled = false; btn.textContent = btn.dataset.t || "Enregistrer"; }
   }
   async function renderReglagesAdmin(c) {
     await chargerPF();
@@ -168,6 +188,13 @@
       '<p class="muted" style="font-size:13px;margin:0 0 12px">Active une ville pour l\'ouvrir aux clients.</p>' +
       '<div class="pf-list">' + villes + '</div>' +
       '<div class="pf-add" style="margin-top:12px"><input id="pf-vnom" placeholder="Nom de la ville"><button class="btn" id="pf-vadd">➕ Ajouter</button></div></div>' +
+      '<div class="paper" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 4px">🎛️ Services</h3><p class="muted" style="font-size:13px;margin:0 0 10px">Active ou coupe des services sur toute la plateforme.</p>' +
+      '<div class="pf-row"><div class="pf-info"><div class="pf-nm">🧾 Commandes activées</div></div><button class="sw" data-svc="commandes" aria-pressed="' + (!!PF.services.commandes) + '"></button></div>' +
+      '<div class="pf-row"><div class="pf-info"><div class="pf-nm">🛵 Livraison activée</div></div><button class="sw" data-svc="livraison" aria-pressed="' + (!!PF.services.livraison) + '"></button></div>' +
+      '<div class="pf-row"><div class="pf-info"><div class="pf-nm">🚧 Mode maintenance</div><div class="pf-meta"><span>Ferme temporairement l\'app client</span></div></div><button class="sw" data-svc="maintenance" aria-pressed="' + (!!PF.services.maintenance) + '"></button></div></div>' +
+      '<div class="paper" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 4px">🔔 Annonce à tous les clients</h3><p class="muted" style="font-size:13px;margin:0 0 10px">Apparaît en haut des Messages de tous les clients.</p>' +
+      '<textarea class="pf-sel" id="pf-ann" rows="3" maxlength="200" style="width:100%;resize:vertical" placeholder="Ex : 🎉 Ncommandiw arrive bientôt à Rabat !">' + esc(PF.annonce.texte || "") + '</textarea>' +
+      '<div class="pf-row" style="margin-top:8px"><div class="pf-info"><div class="pf-nm">Afficher l\'annonce</div></div><button class="sw" data-ann aria-pressed="' + (!!PF.annonce.actif) + '"></button></div></div>' +
       '<button class="btn primary" id="pf-save" style="margin-top:16px;width:100%">💾 Enregistrer les réglages</button>';
     const ac = document.getElementById("pf-accent"), ah = document.getElementById("pf-accent-h"), sw = document.getElementById("pf-sw");
     ac.oninput = () => { PF.accent = ac.value; ah.value = ac.value; sw.style.background = ac.value; };
@@ -179,11 +206,13 @@
       const id = nom.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
       PF.villes.push({ id: id || ("ville" + PF.villes.length), nom: nom, actif: false }); renderReglagesAdmin(c);
     };
+    c.querySelectorAll("[data-svc]").forEach(b => b.onclick = () => { const k = b.dataset.svc; PF.services[k] = !PF.services[k]; b.setAttribute("aria-pressed", PF.services[k]); });
+    const annTog = c.querySelector("[data-ann]"); if (annTog) annTog.onclick = () => { PF.annonce.actif = !PF.annonce.actif; annTog.setAttribute("aria-pressed", PF.annonce.actif); };
     document.getElementById("pf-save").onclick = async () => {
-      const b = document.getElementById("pf-save"); b.disabled = true; b.textContent = "Enregistrement…";
-      try { await db.doc("settings/plateforme").set({ json: JSON.stringify({ villes: PF.villes, accent: PF.accent }) }, { merge: true }); toast("Réglages enregistrés ✓"); }
-      catch (e) { toast("Erreur : " + (e.message || e), true); }
-      b.disabled = false; b.textContent = "💾 Enregistrer les réglages";
+      const txt = (document.getElementById("pf-ann").value || "").trim();
+      if (txt !== PF.annonce.texte) PF.annonce.date = Date.now();
+      PF.annonce.texte = txt;
+      await savePF(document.getElementById("pf-save"));
     };
   }
 
@@ -224,8 +253,12 @@
         '<div class="vhead"><b>' + titre + '</b><span class="vbadge">' + badge + '</span></div>' +
         '<div class="vgrid">' + rows + '</div>' +
         '<div class="vdocs">' + docsImg + '</div>' +
-        '<div class="vacts">' + acts + '</div></div>';
+        '<div class="vacts">' + acts + '<button class="pf-del" data-vdel="' + esc(o.id) + '">🗑</button></div></div>';
     }).join("");
+    box.querySelectorAll("[data-vdel]").forEach(b => b.onclick = async () => {
+      if (!window.confirm("Supprimer définitivement ce dossier et ses documents ?")) return;
+      try { await db.doc("verifications/" + b.dataset.vdel).delete(); toast("Dossier supprimé"); renderValidations(c); } catch (e) { toast("Erreur : " + (e.message || e), true); }
+    });
     box.querySelectorAll("[data-ok]").forEach(b => b.onclick = async () => {
       b.disabled = true; b.textContent = "…";
       try { await db.doc("verifications/" + b.dataset.ok).update({ statut: "valide", maj: new Date() }); toast("Compte validé ✅"); renderValidations(c); }
@@ -282,13 +315,34 @@
       '<div class="pf-info"><div class="pf-nm">' + esc(d.nom || m.nom || m.slug) + '</div>' +
       '<div class="pf-meta"><span>' + esc(m.slug) + '</span>' + (liv ? '<span class="on">🛵 Livraison</span>' : '<span>🍽 Sur place</span>') + (vis ? '<span class="on">● Visible</span>' : '<span class="no">● Masqué</span>') + '</div></div>' +
       '<button class="sw" data-toggle="' + esc(m.slug) + '" aria-pressed="' + vis + '"></button>' +
-      '<div class="pf-acts"><a href="menus.html#m=' + encodeURIComponent(m.slug) + '">✏️</a><a href="/menu/' + encodeURIComponent(m.slug) + '" target="_blank" rel="noopener">👁</a></div></div>';
+      '<div class="pf-acts"><button class="hract" data-hr="' + esc(m.slug) + '" title="Horaires">🕒</button><a href="menus.html#m=' + encodeURIComponent(m.slug) + '">✏️</a><a href="/menu/' + encodeURIComponent(m.slug) + '" target="_blank" rel="noopener">👁</a></div></div>';
+  }
+  async function dialogHoraires(slug) {
+    let m = {};
+    try { const d = await db.doc("settings/menu-" + slug).get(); m = d.exists ? JSON.parse(d.data().json || "{}") : {}; } catch (e) { toast("Lecture impossible", true); return; }
+    m.infos = m.infos || {};
+    const ov = document.createElement("div"); ov.className = "pf-modal";
+    ov.innerHTML = '<div class="pf-dialog"><h3 style="margin:0 0 10px">🕒 Horaires · ' + esc(m.nom || slug) + '</h3>' +
+      '<label class="f">Ouvre à<input type="time" id="h-ouv" value="' + esc(m.infos.ouv || "") + '"></label>' +
+      '<label class="f" style="margin-top:8px">Ferme à<input type="time" id="h-ferm" value="' + esc(m.infos.ferm || "") + '"></label>' +
+      '<p class="muted" style="font-size:12px;margin:8px 0 0">Une fois renseignés, le badge <b>● Ouvert / ● Fermé</b> apparaît sur le site. Laisse vide pour le masquer.</p>' +
+      '<div style="display:flex;gap:8px;margin-top:14px"><button class="btn" id="h-cancel" style="flex:1">Annuler</button><button class="btn primary" id="h-save" style="flex:1">Enregistrer</button></div></div>';
+    document.body.appendChild(ov);
+    ov.onclick = e => { if (e.target === ov) ov.remove(); };
+    ov.querySelector("#h-cancel").onclick = () => ov.remove();
+    ov.querySelector("#h-save").onclick = async () => {
+      m.infos.ouv = document.getElementById("h-ouv").value || ""; m.infos.ferm = document.getElementById("h-ferm").value || "";
+      const b = document.getElementById("h-save"); b.disabled = true; b.textContent = "…";
+      try { await db.doc("settings/menu-" + slug).set({ json: JSON.stringify(m), v: String(Date.now()), maj: new Date() }, { merge: true }); toast("Horaires enregistrés ✓"); ov.remove(); }
+      catch (e) { b.disabled = false; b.textContent = "Enregistrer"; toast("Erreur : " + (e.message || e), true); }
+    };
   }
   function renderRestos(c) {
     if (!liste.length) { c.innerHTML = '<div class="empty paper"><h3>Aucun restaurant</h3><a class="btn primary" href="menus.html">➕ Ajouter</a></div>'; return; }
     const nbVis = liste.filter(estVisible).length;
     c.innerHTML = '<div class="pf-head"><div class="pf-count">' + nbVis + ' / ' + liste.length + ' visibles sur <b>/commander</b></div><a class="btn primary" href="menus.html">➕ Ajouter</a></div>' +
       '<div class="pf-list">' + liste.map(ligneResto).join("") + '</div>';
+    c.querySelectorAll("[data-hr]").forEach(b => b.onclick = () => dialogHoraires(b.dataset.hr));
     c.querySelectorAll("[data-toggle]").forEach(b => b.onclick = () => toggleResto(b.dataset.toggle));
     c.querySelectorAll("[data-up]").forEach(b => b.onclick = () => bouger(+b.dataset.up, -1));
     c.querySelectorAll("[data-down]").forEach(b => b.onclick = () => bouger(+b.dataset.down, 1));
