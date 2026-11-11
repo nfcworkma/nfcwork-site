@@ -53,7 +53,9 @@
   async function lire(id) { try { const r = await fetch(DOC + id, { cache: "no-store" }); if (!r.ok) return null; return (await r.json()).fields || {}; } catch (e) { return null; } }
   function parse(f) { try { return JSON.parse((f && f.json && f.json.stringValue) || "{}"); } catch (e) { return {}; } }
   // réglages de plateforme (villes + couleur) pilotés par l'admin
-  let pfLoaded = false, PF_SERVICES = {}, PF_ANNONCE = null, PF_PROMOS = [];
+  let pfLoaded = false, PF_SERVICES = {}, PF_ANNONCE = null, PF_PROMOS = [], PF_SUPPORT = {};
+  const waNum = t => { const n = String(t == null ? "" : t).replace(/\D/g, ""); return n ? (n.startsWith("212") ? n : n.replace(/^0/, "212")) : ""; };
+  function supportWa(msg) { const n = waNum(PF_SUPPORT.wa); return n ? "https://wa.me/" + n + "?text=" + encodeURIComponent(msg || "Bonjour, j'ai besoin d'aide sur Ncommandiw.") : ""; }
   function applyAccent(hex) { if (/^#[0-9a-fA-F]{6}$/.test(hex)) document.documentElement.style.setProperty("--accent", hex); }
   async function applyPlateforme() {
     if (pfLoaded) return; pfLoaded = true;
@@ -64,6 +66,7 @@
       PF_SERVICES = pf.services || {};
       PF_ANNONCE = (pf.annonce && pf.annonce.actif && pf.annonce.texte) ? pf.annonce : null;
       PF_PROMOS = Array.isArray(pf.promos) ? pf.promos : [];
+      PF_SUPPORT = pf.support || {};
     } catch (e) {}
   }
   // ---------- géolocalisation (demandée une fois à l'ouverture, partagée avec la page menu) ----------
@@ -281,7 +284,9 @@
           '<div class="oit">' + esc(items || "Commande") + '</div>' +
           '<div class="ob">' + (o.date ? '<span class="ost">' + esc(dateLisible(o.date)) + '</span>' : "") +
           '<a class="obtn p" href="/menu/' + encodeURIComponent(o.slug) + '">Recommander</a>' +
-          (suivi ? '<a class="obtn g" href="' + suivi + '">Suivre</a>' : "") + '</div></div></div>';
+          (suivi ? '<a class="obtn g" href="' + suivi + '">Suivre</a>' : "") +
+          (PF_SUPPORT.wa ? '<a class="obtn g" target="_blank" rel="noopener" href="' + supportWa("Bonjour, j'ai un problème avec ma commande " + (o.nom || "") + (o.date ? " du " + dateLisible(o.date) : "") + " (" + fmt(o.total, o.devise) + ").") + '">⚠️ Problème</a>' : "") +
+          '</div></div></div>';
       }).join("") + pied() + '</div>';
     }
     app.innerHTML = '<div class="bar"><h1 class="wm">Commandes</h1></div>' + body;
@@ -310,7 +315,7 @@
     app.querySelectorAll("[data-go]").forEach(a => a.addEventListener("click", () => {
       const g = a.dataset.go;
       if (g === "@fidelite") return toast("Carte de fidélité — bientôt 🎁");
-      if (g === "@aide") return toast("Aide — contacte-nous sur WhatsApp");
+      if (g === "@aide") { const l = supportWa("Bonjour, j'ai besoin d'aide sur Ncommandiw 🙏"); if (l) window.open(l, "_blank"); else toast("Aide — bientôt disponible"); return; }
       if (g === "@partage") { if (navigator.share) navigator.share({ title: "Ncommandiw", text: "Commande direct, 0 commission 🛵", url: location.origin }).catch(() => {}); else toast("Partage ce lien : " + location.origin); return; }
       location.hash = g;
     }));
