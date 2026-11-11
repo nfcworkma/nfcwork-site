@@ -362,7 +362,7 @@
     nav.hidden = true;
     const up = AUTHMODE === "up";
     app.innerHTML =
-      '<div class="onb">' +
+      '<div class="onb"><div class="onb-card">' +
       '<img class="onb-ico" src="/assets/img/ncommandiw-logo.svg" alt="" width="80" height="80">' +
       '<h1>' + (up ? "Bienvenue \u{1F44B}" : "Content de te revoir") + '</h1>' +
       '<p class="sub">' + (up ? "Crée ton compte Ncommandiw en 1 minute." : "Connecte-toi pour commander.") + '</p>' +
@@ -375,7 +375,7 @@
       '<button class="obtn p" id="au-go" style="width:100%;padding:14px;font-size:16px;margin-top:2px">' + (up ? "Créer mon compte \u{1F680}" : "Se connecter") + '</button>' +
       (up ? "" : '<button class="onb-skip" id="au-forgot">Mot de passe oublié ?</button>') +
       '<div style="text-align:center;font-size:13.5px;color:var(--muted);margin-top:8px">' + (up ? "Déjà un compte ? " : "Pas encore de compte ? ") + '<a id="au-tog" style="color:var(--accent);font-weight:700;cursor:pointer">' + (up ? "Se connecter" : "Créer un compte") + '</a></div>' +
-      '</div></div>';
+      '</div></div></div>';
     const err = m => { const e = document.getElementById("au-err"); if (e) { e.textContent = m; e.hidden = false; } };
     document.getElementById("au-tog").onclick = () => { AUTHMODE = up ? "in" : "up"; renderAuth(); };
     const fg = document.getElementById("au-forgot");

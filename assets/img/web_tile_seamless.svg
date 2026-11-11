@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" width="360" height="360">
+<defs>
+  <g id="t-scooter"><circle cx="-11" cy="8" r="5"/><circle cx="12" cy="8" r="5"/><path d="M-11 8 L-5 -4 H4 M-5 -4 L5 4 H12 M2 -6 H9"/></g>
+  <g id="t-pizza"><path d="M-12 10 L0 -12 L12 10 Z"/><circle cx="-3" cy="2" r="1.4"/><circle cx="4" cy="0" r="1.4"/><circle cx="0" cy="6" r="1.4"/></g>
+  <g id="t-cup"><path d="M-8 -7 H8 L6 10 H-6 Z"/><path d="M8 -3 Q14 -1 10 5"/><path d="M-3 -11 q3 -3 0 -6 M3 -11 q3 -3 0 -6"/></g>
+  <g id="t-bag"><path d="M-9 -3 H9 L8 12 H-8 Z"/><path d="M-5 -3 Q-5 -11 0 -11 Q5 -11 5 -3"/></g>
+  <g id="t-burger"><path d="M-11 -3 Q0 -13 11 -3 Z"/><path d="M-11 2 H11"/><path d="M-10 6 Q0 13 10 6"/></g>
+  <g id="t-pin"><path d="M0 12 C-8 2 -8 -5 0 -11 C8 -5 8 2 0 12 Z"/><circle cx="0" cy="-3" r="3"/></g>
+  <g id="t-star"><path d="M0 -11 L2.5 -2.5 L11 0 L2.5 2.5 L0 11 L-2.5 2.5 L-11 0 L-2.5 -2.5 Z"/></g>
+  <g id="t-fork"><path d="M-9 -12 V12 M-12 -12 V-5 M-6 -12 V-5"/><path d="M7 -12 Q12 -8 9 1 V12 M9 1 V-12"/></g>
+  <g id="t-bowl"><path d="M-12 -2 Q0 14 12 -2 Z"/><path d="M-5 -4 L11 -14 M-1 -2 L15 -12"/></g>
+  <g id="t-bottle"><path d="M-4 -14 H4 V-8 Q6 -6 6 -2 V12 H-6 V-2 Q-6 -6 -4 -8 Z"/><path d="M-6 3 H6"/></g>
+</defs>
+<g stroke="#ffffff" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.16">
+  <use href="#t-scooter" x="55" y="55"/>
+  <use href="#t-pizza" x="145" y="55"/>
+  <use href="#t-cup" x="235" y="55"/>
+  <use href="#t-bag" x="325" y="55"/>
+  <use href="#t-star" x="55" y="145"/>
+  <use href="#t-burger" x="145" y="145"/>
+  <use href="#t-pin" x="235" y="145"/>
+  <use href="#t-fork" x="325" y="145"/>
+  <use href="#t-bottle" x="55" y="235"/>
+  <use href="#t-bowl" x="145" y="235"/>
+  <use href="#t-scooter" x="235" y="235"/>
+  <use href="#t-pizza" x="325" y="235"/>
+  <use href="#t-cup" x="55" y="325"/>
+  <use href="#t-bag" x="145" y="325"/>
+  <use href="#t-star" x="235" y="325"/>
+  <use href="#t-burger" x="325" y="325"/>
+</g>
+</svg>
