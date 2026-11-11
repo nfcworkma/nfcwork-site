@@ -415,6 +415,8 @@
   // ce que le client a écrit reste gardé, même si la fenêtre se redessine (quand il change une quantité)
   const joursLoc = () => { if (!saisie.date || !saisie.fin) return 0; const n = Math.round((new Date(saisie.fin + "T12:00:00") - new Date(saisie.date + "T12:00:00")) / 864e5); return n > 0 ? n : 0; };
   const saisie = { pay: "cash", fin: "", hfin: "", table: tableQR ? "Table " + tableQR : "", note: "", mode: "", nom: "", tel: "", adresse: "", pos: "", gps: "", date: "", heure: "", pers: "" };
+  // position déjà captée par l'app Ncommandiw (à l'ouverture) → préremplie ici pour la livraison
+  try { const g = JSON.parse(localStorage.getItem("ncw-geo") || "null"); if (g && g.gps && (Date.now() - (g.ts || 0) < 864e5)) { saisie.gps = g.gps; saisie.pos = "https://maps.google.com/?q=" + g.gps; } } catch (e) {}
   function feuille() {
     const its = tousItems();
     const lignes = Object.entries(panier).map(([id, q]) => ({ it: its.find(x => x.id === id), q })).filter(x => x.it && x.q);

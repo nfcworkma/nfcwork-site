@@ -53,7 +53,7 @@
   async function lire(id) { try { const r = await fetch(DOC + id, { cache: "no-store" }); if (!r.ok) return null; return (await r.json()).fields || {}; } catch (e) { return null; } }
   function parse(f) { try { return JSON.parse((f && f.json && f.json.stringValue) || "{}"); } catch (e) { return {}; } }
   // réglages de plateforme (villes + couleur) pilotés par l'admin
-  let pfLoaded = false, PF_SERVICES = {}, PF_ANNONCE = null;
+  let pfLoaded = false, PF_SERVICES = {}, PF_ANNONCE = null, PF_PROMOS = [];
   function applyAccent(hex) { if (/^#[0-9a-fA-F]{6}$/.test(hex)) document.documentElement.style.setProperty("--accent", hex); }
   async function applyPlateforme() {
     if (pfLoaded) return; pfLoaded = true;
@@ -63,6 +63,23 @@
       if (pf.accent) applyAccent(pf.accent);
       PF_SERVICES = pf.services || {};
       PF_ANNONCE = (pf.annonce && pf.annonce.actif && pf.annonce.texte) ? pf.annonce : null;
+      PF_PROMOS = Array.isArray(pf.promos) ? pf.promos : [];
+    } catch (e) {}
+  }
+  // ---------- géolocalisation (demandée une fois à l'ouverture, partagée avec la page menu) ----------
+  let geoAsked = false;
+  function askGeo() {
+    if (geoAsked) return; geoAsked = true;
+    try {
+      const cur = LS.get("ncw-geo", null);
+      if (cur && cur.gps && (Date.now() - (cur.ts || 0) < 864e5)) return; // position fraîche (<24h) : on ne redemande pas
+      if (!navigator.geolocation) return;
+      const go = () => navigator.geolocation.getCurrentPosition(
+        p => { LS.set("ncw-geo", { gps: p.coords.latitude.toFixed(6) + "," + p.coords.longitude.toFixed(6), ts: Date.now() }); },
+        () => {}, { enableHighAccuracy: true, timeout: 15000, maximumAge: 600000 });
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: "geolocation" }).then(s => { if (s.state !== "denied") go(); }).catch(go);
+      } else go();
     } catch (e) {}
   }
   function maintenanceEcran() {
@@ -148,6 +165,7 @@
       '<div class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>' +
       '<input id="q" type="search" autocomplete="off" placeholder="Rechercher un restaurant, un plat…" value="' + esc(Q) + '"></div></div>' +
       '<div class="cities">' + VILLES.map(v => '<button class="citychip' + (v.id === VILLE ? " on" : "") + (v.actif ? "" : " lock") + '" data-ville="' + v.id + '" data-actif="' + (v.actif ? 1 : 0) + '">' + (v.actif ? "" : "🔒 ") + esc(v.nom) + '</button>').join("") + '</div>' +
+      (focus ? "" : '<div id="promos" class="promos-slot"></div>') +
       '<div class="pad" id="results"><div class="state"><div><div class="spin"></div></div></div></div>';
 
     const bt = document.getElementById("brandtap");
@@ -159,9 +177,48 @@
     document.querySelectorAll("[data-ville]").forEach(b => b.addEventListener("click", () => {
       if (b.dataset.actif === "0") { toast("Bientôt à " + b.textContent.replace("🔒", "").trim() + " 🔒"); return; }
       VILLE = b.dataset.ville; const on = document.querySelector(".citychip.on"); if (on) on.classList.remove("on"); b.classList.add("on");
-      const c = document.getElementById("citytop"); if (c) c.textContent = "📍 " + villeNom(VILLE) + " ▾"; paint();
+      const c = document.getElementById("citytop"); if (c) c.textContent = "📍 " + villeNom(VILLE) + " ▾"; paint(); paintPromos();
     }));
-    await charger(); paint();
+    await charger(); paint(); if (!focus) paintPromos(); askGeo();
+  }
+
+  // ---------- carrousel promos (haut de l'accueil) ----------
+  let promoTimer = null;
+  function paintPromos() {
+    const box = document.getElementById("promos"); if (!box) return;
+    if (promoTimer) { clearInterval(promoTimer); promoTimer = null; }
+    if (!ALL || !PF_PROMOS.length) { box.innerHTML = ""; return; }
+    const today = new Date().toISOString().slice(0, 10);
+    const list = PF_PROMOS.map(p => {
+      const sh = ALL.find(r => r.slug === p.slug);
+      if (!sh || p.actif === false) return null;
+      if (p.fin && p.fin < today) return null;
+      if (sh.ville !== VILLE) return null;
+      return { p: p, sh: sh };
+    }).filter(Boolean);
+    if (!list.length) { box.innerHTML = ""; return; }
+    const card = o => {
+      const p = o.p, sh = o.sh;
+      const av = parseFloat(String(p.av).replace(",", ".")), ap = parseFloat(String(p.ap).replace(",", "."));
+      const disc = (av && ap && av > ap) ? Math.round((1 - ap / av) * 100) : 0;
+      const price = (av && ap) ? '<span class="pz"><s>' + esc(p.av) + ' DH</s> <b>' + esc(p.ap) + ' DH</b></span>' : (ap ? '<span class="pz"><b>' + esc(p.ap) + ' DH</b></span>' : '');
+      return '<a class="promo-card" href="/menu/' + encodeURIComponent(sh.slug) + '">' +
+        '<span class="promo-logo" data-slug="' + esc(sh.slug) + '">🍽</span>' +
+        '<span class="promo-body"><span class="promo-shop">' + esc(sh.nom) + '</span>' +
+        '<span class="promo-title">' + esc(p.titre || "Promo") + '</span>' + price + '</span>' +
+        (disc ? '<span class="promo-badge">-' + disc + '%</span>' : '<span class="promo-badge hot">🔥</span>') + '</a>';
+    };
+    box.innerHTML = '<div class="sec hot">🔥 Promos de la semaine</div>' +
+      '<div class="promo-track" id="ptrack">' + list.map(card).join("") + '</div>' +
+      (list.length > 1 ? '<div class="promo-dots">' + list.map((_, i) => '<span' + (i === 0 ? ' class="on"' : '') + '></span>').join("") + '</div>' : '');
+    list.forEach(async o => { const el = box.querySelector('.promo-logo[data-slug="' + (window.CSS && CSS.escape ? CSS.escape(o.sh.slug) : o.sh.slug) + '"]'); if (!el || !o.sh.logo) return; const d = await photo(o.sh.logo); if (d) { el.style.backgroundImage = "url(" + d + ")"; el.textContent = ""; el.classList.add("img"); } });
+    if (list.length > 1) {
+      const track = document.getElementById("ptrack"), dots = box.querySelectorAll(".promo-dots span");
+      let idx = 0;
+      const go = i => { const cards = track.children; if (!cards.length) return; idx = (i + cards.length) % cards.length; const c = cards[idx]; track.scrollTo({ left: c.offsetLeft - track.offsetLeft, behavior: "smooth" }); dots.forEach((d, j) => d.classList.toggle("on", j === idx)); };
+      promoTimer = setInterval(() => { if (!document.getElementById("ptrack")) { clearInterval(promoTimer); promoTimer = null; return; } go(idx + 1); }, 3500);
+      track.addEventListener("scroll", () => { const cards = [].slice.call(track.children), mid = track.scrollLeft + track.offsetWidth / 2; let best = 0, bd = 1e9; cards.forEach((c, j) => { const cc = c.offsetLeft - track.offsetLeft + c.offsetWidth / 2, dd = Math.abs(cc - mid); if (dd < bd) { bd = dd; best = j; } }); idx = best; dots.forEach((d, j) => d.classList.toggle("on", j === best)); }, { passive: true });
+    }
   }
 
   function villePicker() {

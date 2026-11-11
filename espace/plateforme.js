@@ -61,7 +61,7 @@
 
   /* ===== coquille + onglets ===== */
   function shell() {
-    const T = [["accueil", "📊 Tableau de bord"], ["restos", "🍽 Restos"], ["charikat", "🏢 Sociétés"], ["comptes", "👥 Comptes"], ["commandes", "🧾 Commandes"], ["messages", "💬 Messages"], ["validations", "✅ Validations"], ["reglages", "⚙️ Réglages"]];
+    const T = [["accueil", "📊 Tableau de bord"], ["restos", "🍽 Restos"], ["promos", "🔥 Promos"], ["charikat", "🏢 Sociétés"], ["comptes", "👥 Comptes"], ["commandes", "🧾 Commandes"], ["messages", "💬 Messages"], ["validations", "✅ Validations"], ["reglages", "⚙️ Réglages"]];
     app.innerHTML = '<div class="pf-tabs">' + T.map(t => '<button data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + '</button>').join("") + '</div><div id="tabc"></div>';
     app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { tab = b.dataset.tab; app.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", x.dataset.tab === tab)); renderTab(); });
     renderTab();
@@ -70,6 +70,7 @@
     const c = document.getElementById("tabc");
     if (tab === "accueil") renderAccueil(c);
     else if (tab === "restos") renderRestos(c);
+    else if (tab === "promos") renderPromos(c);
     else if (tab === "charikat") renderCharikat(c);
     else if (tab === "comptes") renderComptes(c);
     else if (tab === "messages") renderMsg(c);
@@ -164,11 +165,12 @@
     if (!PF.accent) PF.accent = "#E07B0A";
     if (!PF.services) PF.services = { commandes: true, livraison: true, maintenance: false };
     if (!PF.annonce) PF.annonce = { texte: "", date: 0, actif: false };
+    if (!Array.isArray(PF.promos)) PF.promos = [];
     return PF;
   }
   async function savePF(btn) {
     if (btn) { btn.disabled = true; btn.dataset.t = btn.textContent; btn.textContent = "Enregistrement…"; }
-    try { await db.doc("settings/plateforme").set({ json: JSON.stringify({ villes: PF.villes, accent: PF.accent, services: PF.services, annonce: PF.annonce }) }, { merge: true }); toast("Enregistré ✓"); }
+    try { await db.doc("settings/plateforme").set({ json: JSON.stringify({ villes: PF.villes, accent: PF.accent, services: PF.services, annonce: PF.annonce, promos: PF.promos }) }, { merge: true }); toast("Enregistré ✓"); }
     catch (e) { toast("Erreur : " + (e.message || e), true); }
     if (btn) { btn.disabled = false; btn.textContent = btn.dataset.t || "Enregistrer"; }
   }
@@ -214,6 +216,53 @@
       PF.annonce.texte = txt;
       await savePF(document.getElementById("pf-save"));
     };
+  }
+
+  /* ===== onglet PROMOS (carrousel payant de l'accueil client) ===== */
+  async function renderPromos(c) {
+    await chargerPF();
+    const shops = liste.filter(m => m && m.slug);
+    const nomDe = slug => { const m = shops.find(x => x.slug === slug); return (m && m.nom) || slug; };
+    const today = new Date().toISOString().slice(0, 10);
+    const rows = PF.promos.map((p, i) => {
+      const exp = p.fin && p.fin < today;
+      const badges = [];
+      badges.push(p.actif === false ? '<span class="no">⏸ En pause</span>' : (exp ? '<span class="no">⌛ Expirée</span>' : '<span class="on">● En ligne</span>'));
+      badges.push(p.paye ? '<span class="on">💰 Payé' + (p.montant ? ' ' + esc(String(p.montant)) + ' DH' : '') + '</span>' : '<span class="no">⚠ Non payé</span>');
+      if (p.fin) badges.push('<span>⌛ ' + esc(p.fin) + '</span>');
+      const prix = (p.av && p.ap) ? esc(p.av) + ' → ' + esc(p.ap) + ' DH' : (p.ap ? esc(p.ap) + ' DH' : '');
+      return '<div class="pf-row"><div class="pf-logo">🔥</div><div class="pf-info"><div class="pf-nm">' + esc(nomDe(p.slug)) + (prix ? ' · <span class="muted" style="font-weight:600">' + prix + '</span>' : '') + '</div>' +
+        (p.titre ? '<div style="font-size:13px;margin:1px 0 3px">' + esc(p.titre) + '</div>' : '') +
+        '<div class="pf-meta">' + badges.join('') + '</div></div>' +
+        '<button class="sw" data-ptog="' + i + '" aria-pressed="' + (p.actif !== false) + '"></button>' +
+        '<button class="pf-del" data-pdel="' + i + '">🗑</button></div>';
+    }).join('');
+    const opts = '<option value="">— Choisir un commerce —</option>' + shops.map(m => '<option value="' + esc(m.slug) + '">' + esc(m.nom || m.slug) + '</option>').join('');
+    c.innerHTML =
+      '<div class="paper" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 4px">🔥 Promos de la semaine</h3>' +
+      '<p class="muted" style="font-size:13px;margin:0">Affichées dans le carrousel en haut de l\'app client. Un commerce paie pour y apparaître — marque « Payé » quand il a réglé.</p></div>' +
+      '<div class="paper" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 10px;font-size:15px">➕ Nouvelle promo</h3>' +
+      '<select class="pf-sel" id="pr-shop" style="width:100%;margin-bottom:8px">' + opts + '</select>' +
+      '<input class="pf-sel" id="pr-titre" placeholder="Titre (ex : -30% sur les pizzas 🍕)" maxlength="60" style="width:100%;margin-bottom:8px">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><input class="pf-sel" id="pr-av" inputmode="decimal" placeholder="Prix avant (DH)"><input class="pf-sel" id="pr-ap" inputmode="decimal" placeholder="Prix après (DH)"></div>' +
+      '<label class="muted" style="font-size:12.5px;display:block;margin:0 0 4px">Fin de la promo (facultatif)</label><input class="pf-sel" id="pr-fin" type="date" min="' + today + '" style="width:100%;margin-bottom:8px">' +
+      '<div class="pf-row" style="padding:8px 0"><div class="pf-info"><div class="pf-nm" style="font-size:14px">💰 Le commerce a payé</div></div><button class="sw" id="pr-paye" aria-pressed="false"></button></div>' +
+      '<input class="pf-sel" id="pr-montant" inputmode="decimal" placeholder="Montant payé (DH, facultatif)" style="width:100%;margin-bottom:10px">' +
+      '<button class="btn primary" id="pr-add" style="width:100%">➕ Ajouter la promo</button></div>' +
+      '<div class="paper" style="padding:16px"><h3 style="margin:0 0 10px;font-size:15px">Promos (' + PF.promos.length + ')</h3>' +
+      (PF.promos.length ? '<div class="pf-list">' + rows + '</div>' : '<p class="muted" style="font-size:13px;margin:0">Aucune promo pour le moment.</p>') + '</div>';
+    let paye = false;
+    const pb = document.getElementById("pr-paye"); pb.onclick = () => { paye = !paye; pb.setAttribute("aria-pressed", paye); };
+    document.getElementById("pr-add").onclick = async () => {
+      const slug = document.getElementById("pr-shop").value;
+      const titre = (document.getElementById("pr-titre").value || "").trim();
+      if (!slug) return toast("Choisis un commerce", true);
+      if (!titre) return toast("Écris un titre", true);
+      PF.promos.unshift({ slug: slug, titre: titre, av: (document.getElementById("pr-av").value || "").trim(), ap: (document.getElementById("pr-ap").value || "").trim(), fin: document.getElementById("pr-fin").value || "", actif: true, paye: paye, montant: (document.getElementById("pr-montant").value || "").trim() });
+      await savePF(); renderPromos(c);
+    };
+    c.querySelectorAll("[data-ptog]").forEach(b => b.onclick = async () => { const i = +b.dataset.ptog; PF.promos[i].actif = !(PF.promos[i].actif !== false); await savePF(); renderPromos(c); });
+    c.querySelectorAll("[data-pdel]").forEach(b => b.onclick = async () => { if (!window.confirm("Supprimer cette promo ?")) return; PF.promos.splice(+b.dataset.pdel, 1); await savePF(); renderPromos(c); });
   }
 
   /* ===== onglet VALIDATIONS (dossiers livreurs / commerçants + archive des documents) ===== */
