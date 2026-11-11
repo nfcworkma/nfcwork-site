@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mon compte · Ncommandiw</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#E07B0A">
+<link rel="apple-touch-icon" href="/assets/img/app-icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/img/icons/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+<style>
+  :root{--bg:#FBF6EC;--fg:#201A12;--muted:#6E6555;--line:#ECE3D4;--accent:#E07B0A;--accent-soft:#FBEAD0;--ok:#2E8B6A;--red:#C6472F;--card:#fff;--shadow:0 10px 30px rgba(20,16,8,.10);--font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15110B;--fg:#F3ECDF;--muted:#A99C86;--line:#352C20;--accent:#F2A20C;--accent-soft:#2A2113;--ok:#56C79A;--red:#E58266;--card:#201A12;color-scheme:dark}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 20px;padding-top:max(28px,env(safe-area-inset-top,0px));padding-bottom:max(28px,env(safe-area-inset-bottom,0px))}
+  .box{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:30px 24px;text-align:center}
+  .ic{width:74px;height:74px;border-radius:19px;margin:0 auto 14px;display:block}
+  h1{font-size:22px;font-weight:900;margin:0 0 4px;letter-spacing:-.01em}
+  .sub{font-size:14px;color:var(--muted);margin:0 0 18px}
+  .sub b{color:var(--fg)}
+  .form{display:flex;flex-direction:column;gap:11px;text-align:left}
+  .f{display:flex;align-items:center;gap:11px;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+  .f span{font-size:17px}
+  .f input{flex:1;border:none;background:none;outline:none;font:inherit;font-size:15px;color:var(--fg)}
+  .btn{display:block;width:100%;text-align:center;text-decoration:none;font-weight:800;font-size:15px;border-radius:13px;padding:14px;border:none;cursor:pointer;font-family:inherit}
+  .btn.primary{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(224,123,10,.30)}
+  .btn.primary:disabled{opacity:.6}
+  .btn.g{background:var(--bg);color:var(--fg);border:1px solid var(--line)}
+  .err{color:var(--red);font-size:13px;font-weight:600;margin:2px 2px 0;min-height:1px}
+  .hint{font-size:12px;color:var(--muted);margin:0 2px}
+  .big{font-size:50px;margin:0 0 6px}
+  .brand{margin-top:20px;font-size:11.5px;color:var(--muted);letter-spacing:.04em}
+  .brand b{color:var(--accent);font-weight:800}
+  .spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp 1s linear infinite;margin:10px auto}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="box" id="box"><div class="spin"></div><p class="hint">Chargement…</p></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="/espace/config.js"></script>
+<script>
+(function () {
+  "use strict";
+  var box = document.getElementById("box");
+  var FB = window.firebase;
+  if (FB && !FB.apps.length && window.FIREBASE_CONFIG) FB.initializeApp(window.FIREBASE_CONFIG);
+  var auth = FB ? FB.auth() : null;
+  var LOGO = '<img class="ic" src="/assets/img/ncommandiw-logo.svg" alt="Ncommandiw">';
+  var BRAND = '<div class="brand"><b>N\'commandiw</b> · by NFCWORK</div>';
+
+  function q(k) { return new URLSearchParams(location.search).get(k) || ""; }
+  var mode = q("mode"), code = q("oobCode"), cont = q("continueUrl") || "/app/";
+  // sécurité : n'autoriser qu'un retour interne au site
+  try { var cu = new URL(cont, location.origin); cont = (cu.origin === location.origin) ? cu.pathname + cu.search + cu.hash : "/app/"; } catch (e) { cont = "/app/"; }
+
+  function render(h) { box.innerHTML = h + BRAND; }
+  function errMsg(e) {
+    var c = (e && e.code) || "";
+    if (c.indexOf("expired-action-code") >= 0) return "Ce lien a expiré. Redemande un nouveau lien.";
+    if (c.indexOf("invalid-action-code") >= 0) return "Ce lien n'est plus valable (déjà utilisé ?). Redemande un nouveau lien.";
+    if (c.indexOf("weak-password") >= 0) return "Mot de passe : 6 caractères minimum.";
+    if (c.indexOf("user-disabled") >= 0) return "Ce compte est désactivé.";
+    return "Une erreur est survenue. Réessaie.";
+  }
+  function fail(msg) { render(LOGO + '<div class="big">⚠️</div><h1>Lien invalide</h1><p class="sub">' + msg + '</p><a class="btn g" href="' + cont + '">Retour</a>'); }
+  function done(title, txt) { render(LOGO + '<div class="big">✅</div><h1>' + title + '</h1><p class="sub">' + txt + '</p><a class="btn primary" href="' + cont + '">Continuer</a>'); }
+
+  if (!auth || !mode || !code) { fail("Le lien est incomplet ou le service est indisponible."); return; }
+
+  // ---------- réinitialisation du mot de passe ----------
+  function resetPassword() {
+    auth.verifyPasswordResetCode(code).then(function (email) {
+      render(LOGO + '<h1>Nouveau mot de passe</h1><p class="sub">Pour <b>' + (email || "ton compte") + '</b></p>' +
+        '<div class="form"><label class="f"><span>🔒</span><input id="p1" type="password" placeholder="Nouveau mot de passe" autocomplete="new-password"></label>' +
+        '<label class="f"><span>🔒</span><input id="p2" type="password" placeholder="Confirme le mot de passe" autocomplete="new-password"></label>' +
+        '<p class="err" id="er"></p><button class="btn primary" id="go">Enregistrer</button></div>');
+      var er = document.getElementById("er");
+      document.getElementById("go").onclick = function () {
+        var p1 = document.getElementById("p1").value || "", p2 = document.getElementById("p2").value || "";
+        if (p1.length < 6) { er.textContent = "Mot de passe : 6 caractères minimum."; return; }
+        if (p1 !== p2) { er.textContent = "Les deux mots de passe ne sont pas identiques."; return; }
+        var b = document.getElementById("go"); b.disabled = true; b.textContent = "…";
+        auth.confirmPasswordReset(code, p1).then(function () {
+          done("Mot de passe changé", "Tu peux maintenant te connecter avec ton nouveau mot de passe.");
+        }).catch(function (e) { b.disabled = false; b.textContent = "Enregistrer"; er.textContent = errMsg(e); });
+      };
+    }).catch(function (e) { fail(errMsg(e)); });
+  }
+
+  // ---------- vérification de l'e-mail ----------
+  function verifyEmail() {
+    auth.applyActionCode(code).then(function () {
+      done("E-mail vérifié", "Ton adresse e-mail est confirmée. Bienvenue sur Ncommandiw !");
+    }).catch(function (e) { fail(errMsg(e)); });
+  }
+
+  if (mode === "resetPassword") resetPassword();
+  else if (mode === "verifyEmail") verifyEmail();
+  else if (mode === "recoverEmail") verifyEmail();
+  else fail("Action non reconnue.");
+})();
+</script>
+</body>
+</html>

@@ -30,7 +30,7 @@
       '</div></div>';
     const err = m => { const e = document.getElementById("er"); if (e) { e.textContent = m; e.hidden = false; } };
     document.getElementById("tog").onclick = () => { MODE = up ? "in" : "up"; renderAuth(); };
-    const fg = document.getElementById("forgot"); if (fg) fg.onclick = async () => { const m = (document.getElementById("e").value || "").trim(); if (!m) return err("Écris ton e-mail d'abord."); try { await auth.sendPasswordResetEmail(m); toast("E-mail de réinitialisation envoyé 📧"); } catch (e) { err(authMsg(e)); } };
+    const fg = document.getElementById("forgot"); if (fg) fg.onclick = async () => { const m = (document.getElementById("e").value || "").trim(); if (!m) return err("Écris ton e-mail d'abord."); try { await auth.sendPasswordResetEmail(m, { url: location.origin + "/coursier/" }); toast("E-mail de réinitialisation envoyé 📧"); } catch (e) { err(authMsg(e)); } };
     document.getElementById("go").onclick = async () => {
       if (!auth) return err("Service indisponible.");
       const m = (document.getElementById("e").value || "").trim(), p = document.getElementById("p").value || "";

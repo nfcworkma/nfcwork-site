@@ -262,7 +262,7 @@
       '</div>';
     bindBack();
     const vb = document.getElementById("c-verif");
-    if (vb) vb.onclick = async () => { try { await auth.currentUser.sendEmailVerification(); toast("E-mail de vérification envoyé 📧"); } catch (e) { toast("Réessaie dans un moment"); } };
+    if (vb) vb.onclick = async () => { try { await auth.currentUser.sendEmailVerification({ url: location.origin + "/app/" }); toast("E-mail de vérification envoyé 📧"); } catch (e) { toast("Réessaie dans un moment"); } };
     const save = async (patch, msg, stay) => {
       const base = { nom: document.getElementById("c-nom") ? document.getElementById("c-nom").value.trim() : p.nom, tel: document.getElementById("c-tel") ? document.getElementById("c-tel").value.trim() : p.tel };
       await saveClient(Object.assign(base, patch || {}));
@@ -357,7 +357,7 @@
     const err = m => { const e = document.getElementById("au-err"); if (e) { e.textContent = m; e.hidden = false; } };
     document.getElementById("au-tog").onclick = () => { AUTHMODE = up ? "in" : "up"; renderAuth(); };
     const fg = document.getElementById("au-forgot");
-    if (fg) fg.onclick = async () => { const m = (document.getElementById("au-mail").value || "").trim(); if (!m) return err("Écris ton e-mail d'abord."); try { await auth.sendPasswordResetEmail(m); toast("E-mail de réinitialisation envoyé 📧"); } catch (e) { err(authMsg(e)); } };
+    if (fg) fg.onclick = async () => { const m = (document.getElementById("au-mail").value || "").trim(); if (!m) return err("Écris ton e-mail d'abord."); try { await auth.sendPasswordResetEmail(m, { url: location.origin + "/app/" }); toast("E-mail de réinitialisation envoyé 📧"); } catch (e) { err(authMsg(e)); } };
     document.getElementById("au-go").onclick = async () => {
       if (!auth) return err("Service indisponible, réessaie.");
       const mail = (document.getElementById("au-mail").value || "").trim(), pass = document.getElementById("au-pass").value || "";
@@ -369,7 +369,7 @@
           if (pass.length < 6) { b.disabled = false; return err("Mot de passe : 6 caractères minimum."); }
           const cred = await auth.createUserWithEmailAndPassword(mail, pass);
           if (fdb) await fdb.collection("clients").doc(cred.user.uid).set({ nom: nom, tel: tel, email: mail, photo: "", cree: Date.now() });
-          try { if (cred.user && cred.user.sendEmailVerification) await cred.user.sendEmailVerification(); } catch (e) {}
+          try { if (cred.user && cred.user.sendEmailVerification) await cred.user.sendEmailVerification({ url: location.origin + "/app/" }); } catch (e) {}
           toast("Compte créé 📧 Vérifie ton e-mail");
         } else {
           await auth.signInWithEmailAndPassword(mail, pass);
