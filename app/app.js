@@ -139,10 +139,13 @@
     profil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>'
   };
   const NAV = [["home", "Accueil"], ["recherche", "Recherche"], ["commandes", "Commandes"], ["profil", "Profil"]];
+  let navActive = "home", unreadMsg = 0;
   function renderNav(active) {
+    navActive = active;
     nav.hidden = false;
-    nav.innerHTML = NAV.map(([id, lab]) => '<a href="#' + id + '" class="' + (id === active ? "on" : "") + '">' + ICONS[id] + '<span>' + lab + '</span></a>').join("");
+    nav.innerHTML = NAV.map(([id, lab]) => '<a href="#' + id + '" class="' + (id === active ? "on" : "") + '">' + ICONS[id] + (id === "profil" && unreadMsg > 0 ? '<i class="navdot"></i>' : "") + '<span>' + lab + '</span></a>').join("");
   }
+  async function refreshUnread() { try { unreadMsg = await msgUnread(); if (!nav.hidden) renderNav(navActive); } catch (e) {} }
 
   // ---------- routeur ----------
   const TABS = ["home", "recherche", "commandes", "profil"];
@@ -302,14 +305,14 @@
   function renderProfile() {
     const p = profil();
     const rows = [
+      ["👤", "Mon profil", "#compte", ""],
+      ["⚙️", "Réglages", "#reglages", ""],
       ["📬", "Messages", "#messages", '<span id="msg-badge"></span>'],
       ["🧾", "Historique des commandes", "#commandes", ""],
-      ["👤", "Mon compte", "#compte", ""],
-      ["🎁", "Carte de fidélité", "@fidelite", "Bientôt"],
       ["📣", "Partager & gagner", "@partage", ""],
-      ["⚙️", "Réglages", "#reglages", ""],
+      ["🎁", "Carte de fidélité", "@fidelite", "Bientôt"],
       ["❓", "Aide", "@aide", ""],
-      ["📄", "Informations légales", "@legal", ""]
+      ["📄", "Infos & confidentialité", "@legal", ""]
     ];
     app.innerHTML =
       '<div class="phead">' + (p.photo ? '<img class="av" src="' + esc(p.photo) + '" alt="" style="object-fit:cover">' : '<div class="av">' + esc(initiales(p.nom)) + '</div>') + '<div><div class="pn">' + esc(p.nom || "Invité") + '</div><div class="ps">' + (p.tel ? esc(p.tel) : "Ajoute tes infos pour suivre tes commandes") + '</div></div></div>' +
@@ -392,6 +395,7 @@
     const box = document.getElementById("msgs");
     const all = await chargerMessages();
     LS.set("ncw-msg-seen", Date.now());
+    unreadMsg = 0; if (!nav.hidden) renderNav(navActive);
     const badge = document.getElementById("msg-badge"); if (badge) badge.remove();
     if (!all.length) { box.innerHTML = '<div class="empty"><div><div class="em">📬</div><h2>Aucun message</h2><p>Les restos chez qui tu commandes<br>t’écriront ici (promos, infos…).</p></div></div>'; return; }
     box.innerHTML = all.map(m =>
@@ -525,6 +529,7 @@
       nav.hidden = false;
       if (!location.hash || location.hash === "#") location.hash = "#home";
       route();
+      refreshUnread();
     });
   } else {
     // Firebase indisponible : écran de connexion informatif
