@@ -292,10 +292,37 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 @media(max-width:560px){#editSiteBtn .ed-lbl,#menusBtn .ed-lbl,#standsBtn .ed-lbl{display:none}#settingsBtn,#logoutBtn{padding-inline:10px}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 .creer{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.creer .cr{font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 6px;border-radius:16px;border:1px solid var(--line);background:var(--surface);text-decoration:none;color:var(--fg);text-align:center}.creer .cr span{font-size:30px;line-height:1}.creer .cr b{font-size:13.5px}
+/* ===== hamburger + sidebar premium ===== */
+.navtoggle{flex:none;width:40px;height:40px;border-radius:12px;border:1px solid var(--glass-line);background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;padding:0;transition:border-color .2s}
+.navtoggle:hover{border-color:var(--accent)}
+.navtoggle span{display:block;width:18px;height:2px;border-radius:2px;background:var(--accent-2);transition:transform .25s,opacity .2s}
+.navtoggle.on span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.navtoggle.on span:nth-child(2){opacity:0}
+.navtoggle.on span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.navscrim{position:fixed;inset:0;z-index:40;background:rgba(2,4,9,.6);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;transition:opacity .25s}
+.navscrim.on{opacity:1}
+.sidebar{position:fixed;top:0;bottom:0;left:0;z-index:41;width:min(84vw,310px);background:color-mix(in srgb,#0d1a3a 94%,transparent);-webkit-backdrop-filter:blur(20px) saturate(140%);backdrop-filter:blur(20px) saturate(140%);border-inline-end:1px solid var(--glass-line);box-shadow:30px 0 80px -40px #000;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.sidebar.on{transform:none}
+.sb-head{padding:20px 18px 16px;border-bottom:1px solid var(--glass-line);background:linear-gradient(135deg,color-mix(in srgb,#1f5eff 22%,transparent),transparent)}
+.sb-head .sb-logo{height:24px;width:auto;display:block}
+.sb-head .sb-sub{font-size:12.5px;color:var(--accent-2);font-weight:600;margin-top:8px;letter-spacing:.02em}
+.sb-nav{flex:1;overflow-y:auto;padding:12px 12px calc(20px + env(safe-area-inset-bottom,0px));scrollbar-width:thin}
+.sb-group{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:16px 10px 7px}
+.sb-group:first-child{margin-top:4px}
+.sb-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-radius:13px;padding:11px 12px;cursor:pointer;color:var(--fg);font:inherit;text-decoration:none;transition:background .15s}
+.sb-item:hover{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.sb-item .sb-i{flex:none;width:34px;height:34px;border-radius:10px;background:var(--sunk);display:grid;place-items:center;font-size:18px}
+.sb-item .sb-t{min-width:0;display:flex;flex-direction:column;line-height:1.2}
+.sb-item .sb-t b{font-size:14.5px;font-weight:600}
+.sb-item .sb-t small{font-size:11.5px;color:var(--muted)}
+.sb-item.danger .sb-t b{color:var(--bad)}
+.sb-item.danger .sb-i{color:var(--bad)}
+body.has-sidebar .quick{display:none!important}
 </style>
 </head>
 <body>
 <header class="top"><div class="top-in">
+  <button class="navtoggle" id="navToggle" aria-label="Menu" hidden><span></span><span></span><span></span></button>
   <div class="brand">
     <a href="../index.html" class="brand-link" aria-label="nfcwork.ma"><img class="brand-logo" src="../assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"><img class="brand-sym" src="../assets/img/logo-symbole.png" alt="" width="32" height="32"></a>
     <div class="brand-txt"><h1 id="bizName" class="sr">nfcwork.ma</h1><small id="modeLabel">Espace client</small></div>
@@ -307,6 +334,34 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
   <button class="btn sm ghost" id="profileBtn" hidden>Mon profil</button>
   <button class="btn sm ghost" id="logoutBtn" hidden>Déconnexion</button>
 </div></header>
+
+<div class="navscrim" id="navScrim" hidden></div>
+<aside class="sidebar" id="sidebar" hidden aria-label="Navigation">
+  <div class="sb-head"><img class="sb-logo" src="../assets/img/logo-nfcwork.png" alt="NFCWORK"><div class="sb-sub">Espace gestion</div></div>
+  <nav class="sb-nav" id="sbNav">
+    <div class="sb-group">Outils</div>
+    <a class="sb-item" href="menus.html"><span class="sb-i">🍽️</span><span class="sb-t"><b>Menus digitaux</b><small>Créer &amp; modifier</small></span></a>
+    <a class="sb-item" href="stands.html"><span class="sb-i">🔗</span><span class="sb-t"><b>Stands QR</b><small>Imprimer &amp; lier</small></span></a>
+    <a class="sb-item" href="tv.html"><span class="sb-i">📺</span><span class="sb-t"><b>Menus TV</b><small>PDF → écran TV</small></span></a>
+    <a class="sb-item" href="pages.html"><span class="sb-i">🪪</span><span class="sb-t"><b>Cartes, avis, Wi-Fi</b><small>Créer sans Mac</small></span></a>
+    <a class="sb-item" href="fidelite.html"><span class="sb-i">⭐</span><span class="sb-t"><b>Fidélité</b><small>Cartes &amp; employés</small></span></a>
+    <a class="sb-item" href="reservations.html"><span class="sb-i">📅</span><span class="sb-t"><b>Réservations</b><small>Agenda des commerces</small></span></a>
+    <a class="sb-item" href="pos.html"><span class="sb-i">🧾</span><span class="sb-t"><b>Caisse web</b><small>Commandes en direct</small></span></a>
+    <a class="sb-item" href="apporteurs.html"><span class="sb-i">🤝</span><span class="sb-t"><b>Apporteurs</b><small>Parrainage &amp; commissions</small></span></a>
+    <div class="sb-group">Livraison · Ncommandiw</div>
+    <a class="sb-item" href="plateforme.html"><span class="sb-i">🛵</span><span class="sb-t"><b>Plateforme</b><small>Centre de contrôle</small></span></a>
+    <a class="sb-item" href="livraison.html"><span class="sb-i">📦</span><span class="sb-t"><b>Créer livraison</b><small>Lien livreur + suivi</small></span></a>
+    <div class="sb-group">Gestion</div>
+    <button class="sb-item" data-nav-tab="home"><span class="sb-i">🏠</span><span class="sb-t"><b>Accueil</b><small>Tableau de bord</small></span></button>
+    <button class="sb-item" data-nav-tab="orders"><span class="sb-i">🛒</span><span class="sb-t"><b>Commandes</b><small>Suivi des commandes</small></span></button>
+    <button class="sb-item" data-nav-tab="invoices"><span class="sb-i">📄</span><span class="sb-t"><b>Factures</b><small>Devis &amp; factures</small></span></button>
+    <button class="sb-item" data-nav-tab="clients"><span class="sb-i">👥</span><span class="sb-t"><b>Clients</b><small>Carnet de clients</small></span></button>
+    <div class="sb-group">Compte</div>
+    <a class="sb-item" href="abonnements.html"><span class="sb-i">💳</span><span class="sb-t"><b>Abonnements</b><small>Paiements &amp; activation</small></span></a>
+    <button class="sb-item" data-nav-act="settings"><span class="sb-i">⚙️</span><span class="sb-t"><b>Paramètres</b><small>Réglages du compte</small></span></button>
+    <button class="sb-item danger" data-nav-act="logout"><span class="sb-i">🚪</span><span class="sb-t"><b>Déconnexion</b><small>Quitter l'espace</small></span></button>
+  </nav>
+</aside>
 
 <main id="app"><div class="empty"><h3>Chargement…</h3></div></main>
 
@@ -343,5 +398,29 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 <script src="ventes.js"></script>
 <script src="monsite.js"></script>
 <script src="langue.js"></script>
+<script>
+(function () {
+  var tgl = document.getElementById("navToggle"), sb = document.getElementById("sidebar"),
+      sc = document.getElementById("navScrim"), tabs = document.getElementById("tabs");
+  if (!tgl || !sb || !sc) return;
+  function open() { sb.hidden = false; sc.hidden = false; requestAnimationFrame(function () { sb.classList.add("on"); sc.classList.add("on"); tgl.classList.add("on"); }); document.body.style.overflow = "hidden"; }
+  function close() { sb.classList.remove("on"); sc.classList.remove("on"); tgl.classList.remove("on"); document.body.style.overflow = ""; setTimeout(function () { if (!sb.classList.contains("on")) { sb.hidden = true; sc.hidden = true; } }, 300); }
+  tgl.addEventListener("click", function () { sb.classList.contains("on") ? close() : open(); });
+  sc.addEventListener("click", close);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && sb.classList.contains("on")) close(); });
+  sb.addEventListener("click", function (e) {
+    var it = e.target.closest(".sb-item"); if (!it) return;
+    var t = it.getAttribute("data-nav-tab"), a = it.getAttribute("data-nav-act");
+    if (t) { e.preventDefault(); var b = document.querySelector('nav.tabs [data-tab="' + t + '"]'); close(); if (b) b.click(); }
+    else if (a === "settings") { e.preventDefault(); close(); var s = document.getElementById("settingsBtn"); if (s) s.click(); }
+    else if (a === "logout") { e.preventDefault(); close(); var l = document.getElementById("logoutBtn"); if (l) l.click(); }
+    else { close(); } // lien de page : on laisse naviguer
+  });
+  // le hamburger + la mise en page sidebar n'apparaissent qu'une fois connecté (quand la barre d'onglets est visible)
+  function sync() { var on = tabs && !tabs.hidden; tgl.hidden = !on; document.body.classList.toggle("has-sidebar", !!on); if (!on && sb.classList.contains("on")) close(); }
+  sync();
+  if (tabs) new MutationObserver(sync).observe(tabs, { attributes: true, attributeFilter: ["hidden"] });
+})();
+</script>
 </body>
 </html>
