@@ -165,8 +165,10 @@
       '<div class="searchbar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>' +
       '<input id="q" type="search" autocomplete="off" placeholder="Rechercher un restaurant, un plat…" value="' + esc(Q) + '"></div></div>' +
       '<div class="cities">' + VILLES.map(v => '<button class="citychip' + (v.id === VILLE ? " on" : "") + (v.actif ? "" : " lock") + '" data-ville="' + v.id + '" data-actif="' + (v.actif ? 1 : 0) + '">' + (v.actif ? "" : "🔒 ") + esc(v.nom) + '</button>').join("") + '</div>' +
+      '<div class="csheet">' +
       (focus ? "" : '<div id="promos" class="promos-slot"></div>') +
-      '<div class="pad" id="results"><div class="state"><div><div class="spin"></div></div></div></div>';
+      '<div class="pad" id="results"><div class="state"><div><div class="spin"></div></div></div></div>' +
+      '</div>';
 
     const bt = document.getElementById("brandtap");
     if (bt) bt.addEventListener("click", () => location.reload());

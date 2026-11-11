@@ -36,19 +36,25 @@
     --accent:#F2A20C; --accent-soft:#2A2113; --ok:#56C79A; --red:#E58266; --card:#201A12; color-scheme:dark;
   }
   *{box-sizing:border-box}
-  body{margin:0;background-color:var(--bg);background-image:url(/assets/img/pattern-food.svg);background-repeat:repeat;background-size:248px;color:var(--fg);font-family:var(--font);line-height:1.5}
+  body{margin:0;background-color:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.5;
+    background-image:
+      radial-gradient(48% 34% at 84% 3%, #FFD98A, transparent 60%),
+      radial-gradient(54% 38% at 8% 7%, #F2730E, transparent 62%),
+      linear-gradient(176deg, #F7A61E 0%, #E8820C 20%, var(--bg) 50%);
+    background-repeat:no-repeat;background-attachment:fixed;background-size:cover}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:46vh;pointer-events:none;z-index:-1;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:120px 120px;opacity:.38;mix-blend-mode:soft-light}
   #app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:calc(var(--navh) + env(safe-area-inset-bottom,0px));
     padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
 
   /* ---- Header ---- */
-  .bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--card) 88%,transparent);
-    backdrop-filter:saturate(1.6) blur(10px);-webkit-backdrop-filter:saturate(1.6) blur(10px);
-    border-bottom:1px solid var(--line);padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top,0px));
+  .bar{position:sticky;top:0;z-index:20;background:linear-gradient(150deg,#F7A61E,#D9700A);
+    padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top,0px));
     display:flex;align-items:center;gap:10px}
-  .bar .wm{font-size:18px;margin:0;font-weight:800;letter-spacing:-.02em;color:var(--fg)}
-  .bar .wm .ap{color:var(--accent)}
-  .citybtn{margin-left:auto;display:inline-flex;align-items:center;gap:5px;background:var(--accent-soft);
-    color:var(--accent);font-weight:800;font-size:12.5px;border:none;border-radius:999px;padding:7px 12px;cursor:pointer}
+  .bar .wm{font-size:18px;margin:0;font-weight:800;letter-spacing:-.02em;color:#fff}
+  .bar .wm .ap{color:rgba(255,255,255,.85)}
+  .citybtn{margin-left:auto;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.22);
+    color:#fff;font-weight:800;font-size:12.5px;border:none;border-radius:999px;padding:7px 12px;cursor:pointer}
   /* subpage header */
   .sub-bar{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
     padding:12px 12px;padding-top:max(12px,env(safe-area-inset-top,0px));display:flex;align-items:center;gap:8px}
@@ -58,7 +64,7 @@
 
   /* ---- Hero / search ---- */
   .hero{padding:18px 16px 2px}
-  .hero h2{font-size:21px;font-weight:900;letter-spacing:-.02em;margin:0 0 12px;text-wrap:balance}
+  .hero h2{font-size:21px;font-weight:900;letter-spacing:-.02em;margin:0 0 12px;text-wrap:balance;color:#fff;text-shadow:0 2px 12px rgba(120,60,0,.3)}
   .searchbar{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);
     border-radius:15px;padding:13px 15px;box-shadow:var(--shadow)}
   .searchbar svg{flex:0 0 auto;color:var(--muted)}
@@ -68,12 +74,14 @@
   /* ---- City chips ---- */
   .cities{display:flex;gap:8px;overflow-x:auto;padding:14px 16px 4px;scrollbar-width:none;-ms-overflow-style:none}
   .cities::-webkit-scrollbar{display:none}
-  .citychip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--fg);font-weight:700;
+  .citychip{flex:0 0 auto;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.24);color:#fff;font-weight:700;
     font-size:13px;border-radius:999px;padding:8px 15px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-  .citychip.on{background:var(--accent);border-color:var(--accent);color:#fff}
-  .citychip.lock{color:var(--muted)}
+  .citychip.on{background:#fff;border-color:#fff;color:var(--accent)}
+  .citychip.lock{color:rgba(255,255,255,.82)}
 
-  /* ---- Results ---- */
+  /* ---- Results (feuille claire posée sur l'aurora) ---- */
+  .csheet{position:relative;z-index:1;background:var(--bg);border-radius:26px 26px 0 0;margin-top:14px;min-height:56vh;
+    padding:14px 0 6px;box-shadow:0 -10px 34px -16px rgba(120,60,0,.4)}
   .pad{padding:8px 16px 0}
   .sec{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:8px 2px 12px}
   .rcard{display:flex;align-items:center;gap:13px;background:var(--card);border:1px solid var(--line);
