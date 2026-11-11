@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ncommandiw — Mentions légales</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/img/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/img/app-icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+<style>
+  :root{--bg:#FBF6EC;--fg:#201A12;--muted:#6E6555;--line:#ECE3D4;--accent:#E07B0A;--card:#fff;--font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15110B;--fg:#F3ECDF;--muted:#A99C86;--line:#352C20;--accent:#F2A20C;--card:#201A12;color-scheme:dark}}
+  *{box-sizing:border-box}
+  body{margin:0;background-color:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.62;
+    background-image:radial-gradient(48% 30% at 84% 2%,#FFD98A,transparent 60%),radial-gradient(54% 34% at 8% 6%,#F2730E,transparent 62%),linear-gradient(176deg,#F7A61E 0%,#E8820C 16%,var(--bg) 38%);
+    background-repeat:no-repeat;background-attachment:fixed;background-size:cover}
+  .bar{position:sticky;top:0;z-index:20;background:linear-gradient(150deg,#F7A61E,#D9700A);padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top,0px));display:flex;align-items:center;gap:10px}
+  .bar img{border-radius:8px}
+  .bar b{color:#fff;font-size:17px;font-weight:800;letter-spacing:-.02em}
+  .bar a{margin-left:auto;color:#fff;background:rgba(255,255,255,.2);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:800;text-decoration:none}
+  .wrap{max-width:760px;margin:0 auto;padding:0 16px}
+  .hero{padding:18px 16px 4px;max-width:760px;margin:0 auto}
+  .hero h1{color:#fff;font-size:26px;font-weight:900;letter-spacing:-.02em;margin:0 0 4px;text-shadow:0 2px 12px rgba(120,60,0,.3)}
+  .hero p{color:rgba(255,255,255,.92);margin:0 0 4px;font-size:14px}
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding:14px 16px 2px;max-width:760px;margin:0 auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:0 0 auto;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.22);color:#fff;font-weight:700;font-size:13.5px;border-radius:999px;padding:9px 16px;cursor:pointer;white-space:nowrap}
+  .tabs button[aria-selected="true"]{background:#fff;border-color:#fff;color:var(--accent)}
+  .sheet{position:relative;z-index:1;background:var(--bg);border-radius:26px 26px 0 0;margin-top:14px;min-height:70vh;box-shadow:0 -10px 34px -16px rgba(120,60,0,.4);padding:4px 0 40px}
+  .doc{max-width:760px;margin:0 auto;padding:22px 20px 0}
+  .doc section{display:none}
+  .doc section.on{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .doc h2{font-size:21px;font-weight:900;letter-spacing:-.01em;margin:4px 0 4px}
+  .doc h3{font-size:15.5px;font-weight:800;margin:22px 0 4px;color:var(--accent)}
+  .doc p,.doc li{font-size:14.5px;color:var(--fg)}
+  .doc p{margin:8px 0}
+  .doc ul{margin:8px 0;padding-left:20px}
+  .doc li{margin:4px 0}
+  .maj{font-size:12.5px;color:var(--muted);margin:0 0 6px}
+  .fill{background:rgba(224,123,10,.14);color:var(--accent);font-weight:700;border-radius:6px;padding:1px 6px;font-size:13px}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:12px 14px;margin:14px 0;font-size:13.5px;color:var(--muted)}
+  .note b{color:var(--fg)}
+  footer{max-width:760px;margin:0 auto;padding:26px 20px 0;color:var(--muted);font-size:12.5px;text-align:center}
+  footer a{color:var(--accent);font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="bar"><img src="/assets/img/ncommandiw-logo.svg" alt="" width="28" height="28"><b>Ncommandiw</b><a href="/app/">← L'app</a></div>
+<div class="hero"><h1>Informations légales</h1><p>Ncommandiw — plateforme de commande &amp; livraison, éditée par NFCWORK (Kénitra, Maroc).</p></div>
+<div class="tabs" id="tabs">
+  <button data-t="cgu" aria-selected="true">📄 Conditions d'utilisation</button>
+  <button data-t="confid" aria-selected="false">🔒 Confidentialité</button>
+  <button data-t="mentions" aria-selected="false">🏢 Mentions légales</button>
+</div>
+<div class="sheet"><div class="doc">
+
+  <section id="cgu" class="on">
+    <p class="maj">Dernière mise à jour : <span class="fill">[date]</span></p>
+    <h2>Conditions générales d'utilisation</h2>
+    <p>Ncommandiw (« la plateforme ») est un service édité par NFCWORK, permettant aux clients de consulter les menus et catalogues de commerces partenaires, de passer commande et, lorsque le service est disponible, de se faire livrer. En utilisant la plateforme, vous acceptez les présentes conditions.</p>
+
+    <h3>1. Le service</h3>
+    <p>Ncommandiw met en relation des clients et des commerces partenaires. La plateforme ne prélève aucune commission sur les ventes des commerces. Les commandes sont transmises au commerce et, le cas échéant, à un livreur. Le paiement s'effectue en espèces à la livraison ou par virement, selon ce que propose le commerce.</p>
+
+    <h3>2. Commandes et prix</h3>
+    <ul>
+      <li>Les prix, la disponibilité des produits et les horaires sont fournis par chaque commerce et peuvent changer à tout moment.</li>
+      <li>Une commande passée vaut engagement du client à la régler au moment de la livraison ou du retrait.</li>
+      <li>Les frais de livraison, lorsqu'ils s'appliquent, sont affichés avant la validation de la commande.</li>
+    </ul>
+
+    <h3>3. Responsabilités</h3>
+    <ul>
+      <li>La préparation des produits, leur qualité et leur conformité relèvent de la responsabilité du commerce.</li>
+      <li>Le client s'engage à fournir des informations exactes (nom, téléphone, adresse) et à être joignable pour la livraison.</li>
+      <li>Toute commande passée avec de fausses informations ou de façon abusive peut entraîner le blocage du numéro de téléphone.</li>
+    </ul>
+
+    <h3>4. Annulation</h3>
+    <p>Une commande peut être annulée tant qu'elle n'a pas été préparée. Au-delà, l'annulation reste à l'appréciation du commerce. Pour tout problème, contactez le support.</p>
+
+    <h3>5. Comptes professionnels (commerçants &amp; livreurs)</h3>
+    <p>L'accès aux espaces commerçant et livreur nécessite une vérification d'identité et de documents. NFCWORK se réserve le droit de refuser ou suspendre un accès en cas de documents non conformes ou d'usage abusif.</p>
+
+    <h3>6. Modification</h3>
+    <p>NFCWORK peut faire évoluer ces conditions. La version applicable est celle publiée sur cette page.</p>
+  </section>
+
+  <section id="confid">
+    <p class="maj">Dernière mise à jour : <span class="fill">[date]</span></p>
+    <h2>Politique de confidentialité</h2>
+    <p>NFCWORK accorde de l'importance à la protection de vos données personnelles, conformément à la loi n° 09-08 relative à la protection des personnes physiques à l'égard du traitement des données à caractère personnel (CNDP, Maroc).</p>
+
+    <h3>1. Données que nous collectons</h3>
+    <ul>
+      <li><b>Clients :</b> nom, numéro de téléphone, adresse e-mail, adresse de livraison et, si vous l'autorisez, votre position (GPS) pour faciliter la livraison.</li>
+      <li><b>Commerçants :</b> nom du commerce, documents d'activité (RC, ICE, IF, patente), pièce d'identité du gérant, photo du local.</li>
+      <li><b>Livreurs :</b> pièce d'identité (CIN recto/verso), permis, selfie, informations sur le véhicule.</li>
+      <li>Données techniques liées à l'utilisation de l'application (commandes passées, appareil).</li>
+    </ul>
+
+    <h3>2. Pourquoi nous les utilisons</h3>
+    <ul>
+      <li>Traiter et livrer vos commandes.</li>
+      <li>Vérifier l'identité des commerçants et livreurs (sécurité de la plateforme).</li>
+      <li>Vous contacter en cas de besoin concernant une commande et assurer le support.</li>
+      <li>Améliorer le service.</li>
+    </ul>
+
+    <h3>3. Partage des données</h3>
+    <p>Vos informations de commande (nom, téléphone, adresse, position) sont transmises au commerce concerné et, le cas échéant, au livreur chargé de votre commande, uniquement pour l'exécuter. Nous ne vendons pas vos données à des tiers.</p>
+
+    <h3>4. Conservation</h3>
+    <p>Les données sont conservées le temps nécessaire au service et aux obligations légales, puis supprimées ou anonymisées.</p>
+
+    <h3>5. Vos droits</h3>
+    <p>Conformément à la loi 09-08, vous disposez d'un droit d'accès, de rectification et d'opposition sur vos données. Pour l'exercer, contactez-nous (voir Mentions légales). Vous pouvez aussi, à tout moment, refuser le partage de votre position dans les réglages de votre téléphone.</p>
+
+    <div class="note"><b>Déclaration CNDP :</b> le traitement des données est <span class="fill">[déclaré / en cours de déclaration]</span> auprès de la CNDP sous le numéro <span class="fill">[n° récépissé]</span>.</div>
+  </section>
+
+  <section id="mentions">
+    <h2>Mentions légales</h2>
+    <h3>Éditeur</h3>
+    <ul>
+      <li><b>Dénomination :</b> NFCWORK</li>
+      <li><b>Activité :</b> services numériques — édition de la plateforme Ncommandiw</li>
+      <li><b>Siège / ville :</b> Kénitra, Maroc <span class="fill">[adresse complète]</span></li>
+      <li><b>Statut :</b> <span class="fill">[auto-entrepreneur — en cours]</span></li>
+      <li><b>Identifiants :</b> RC <span class="fill">[—]</span> · ICE <span class="fill">[—]</span> · IF <span class="fill">[—]</span></li>
+      <li><b>Contact :</b> <span class="fill">[e-mail]</span> · WhatsApp <span class="fill">[numéro de support]</span></li>
+    </ul>
+
+    <h3>Hébergement</h3>
+    <p>Le site est hébergé sur GitHub Pages (GitHub, Inc.) et utilise les services Google Firebase pour l'authentification et le stockage des données.</p>
+
+    <h3>Propriété intellectuelle</h3>
+    <p>La marque Ncommandiw, le logo et le contenu de la plateforme appartiennent à NFCWORK. Toute reproduction sans autorisation est interdite. Les menus, photos et marques des commerces partenaires restent la propriété de leurs titulaires respectifs.</p>
+
+    <div class="note"><b>À compléter avant le lancement public :</b> remplacez les champs surlignés (<span class="fill">[…]</span>) par vos informations réelles. Il est recommandé de faire relire ces textes par un juriste. Ce modèle est fourni à titre indicatif et ne constitue pas un conseil juridique.</div>
+  </section>
+
+</div>
+<footer>© <span id="yr"></span> NFCWORK · Ncommandiw — Kénitra, Maroc · <a href="/app/">Retour à l'app</a></footer>
+</div>
+<script>
+  (function(){
+    var tabs=document.getElementById("tabs");
+    tabs.addEventListener("click",function(e){
+      var b=e.target.closest("[data-t]"); if(!b) return;
+      [].forEach.call(tabs.children,function(x){x.setAttribute("aria-selected", x===b);});
+      [].forEach.call(document.querySelectorAll(".doc section"),function(s){s.classList.toggle("on", s.id===b.dataset.t);});
+      window.scrollTo(0,0);
+    });
+    document.getElementById("yr").textContent=new Date().getFullYear();
+  })();
+</script>
+</body>
+</html>

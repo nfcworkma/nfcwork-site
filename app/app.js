@@ -267,7 +267,7 @@
       '<span class="logo" data-slug="' + esc(r.slug) + '">' + em + '</span>' +
       '<span class="info"><span class="nm">' + esc(r.nom) + '</span><span class="ty">' + esc(r.slogan || ty) + '</span><span class="meta">' + tags + '</span></span><span class="chev">›</span></a>';
   }
-  const pied = () => '<footer>Propulsé par <b>Ncommandiw</b> · une plateforme <a href="https://nfcwork.ma" target="_blank" rel="noopener">NFCWORK</a></footer>';
+  const pied = () => '<footer>Propulsé par <b>Ncommandiw</b> · une plateforme <a href="https://nfcwork.ma" target="_blank" rel="noopener">NFCWORK</a><br><a href="/legal/" style="color:var(--muted)">Mentions légales &amp; confidentialité</a></footer>';
 
   // ---------- COMMANDES ----------
   function renderOrders() {
@@ -305,7 +305,8 @@
       ["🎁", "Carte de fidélité", "@fidelite", "Bientôt"],
       ["📣", "Partager & gagner", "@partage", ""],
       ["⚙️", "Réglages", "#reglages", ""],
-      ["❓", "Aide", "@aide", ""]
+      ["❓", "Aide", "@aide", ""],
+      ["📄", "Informations légales", "@legal", ""]
     ];
     app.innerHTML =
       '<div class="phead">' + (p.photo ? '<img class="av" src="' + esc(p.photo) + '" alt="" style="object-fit:cover">' : '<div class="av">' + esc(initiales(p.nom)) + '</div>') + '<div><div class="pn">' + esc(p.nom || "Invité") + '</div><div class="ps">' + (p.tel ? esc(p.tel) : "Ajoute tes infos pour suivre tes commandes") + '</div></div></div>' +
@@ -316,6 +317,7 @@
       const g = a.dataset.go;
       if (g === "@fidelite") return toast("Carte de fidélité — bientôt 🎁");
       if (g === "@aide") { const l = supportWa("Bonjour, j'ai besoin d'aide sur Ncommandiw 🙏"); if (l) window.open(l, "_blank"); else toast("Aide — bientôt disponible"); return; }
+      if (g === "@legal") { location.href = "/legal/"; return; }
       if (g === "@partage") { if (navigator.share) navigator.share({ title: "Ncommandiw", text: "Commande direct, 0 commission 🛵", url: location.origin }).catch(() => {}); else toast("Partage ce lien : " + location.origin); return; }
       location.hash = g;
     }));
