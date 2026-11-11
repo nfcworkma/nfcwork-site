@@ -48,6 +48,8 @@
     else document.documentElement.removeAttribute("data-theme");
   }
   applyTheme();
+  // code de parrainage présent dans le lien (?parrain=…) → mémorisé pour l'inscription
+  try { const pc = new URLSearchParams(location.search).get("parrain"); if (pc) LS.set("ncw-parrain", String(pc).slice(0, 80)); } catch (e) {}
 
   // ---------- firestore ----------
   async function lire(id) { try { const r = await fetch(DOC + id, { cache: "no-store" }); if (!r.ok) return null; return (await r.json()).fields || {}; } catch (e) { return null; } }
@@ -154,6 +156,7 @@
     else if (r === "compte") { renderNav("profil"); renderCompte(); }
     else if (r === "reglages") { renderNav("profil"); renderReglages(); }
     else if (r === "messages") { renderNav("profil"); renderMessages(); }
+    else if (r === "parrain") { renderNav("profil"); renderParrainage(); }
     else { location.hash = "#home"; return; }
     window.scrollTo(0, 0);
   }
@@ -318,7 +321,7 @@
       if (g === "@fidelite") return toast("Carte de fidélité — bientôt 🎁");
       if (g === "@aide") { const l = supportWa("Bonjour, j'ai besoin d'aide sur Ncommandiw 🙏"); if (l) window.open(l, "_blank"); else toast("Aide — bientôt disponible"); return; }
       if (g === "@legal") { location.href = "/legal/"; return; }
-      if (g === "@partage") { if (navigator.share) navigator.share({ title: "Ncommandiw", text: "Commande direct, 0 commission 🛵", url: location.origin }).catch(() => {}); else toast("Partage ce lien : " + location.origin); return; }
+      if (g === "@partage") { location.hash = "#parrain"; return; }
       location.hash = g;
     }));
     msgUnread().then(n => { const b = document.getElementById("msg-badge"); if (b && n > 0) { b.textContent = n; b.className = "badge"; } }).catch(() => {});
@@ -409,6 +412,32 @@
     document.querySelectorAll("[data-th]").forEach(b => b.onclick = () => { LS.set("ncw-theme", b.dataset.th); applyTheme(); renderReglages(); });
   }
 
+  // ---------- PARRAINAGE ----------
+  function renderParrainage() {
+    const uid = (ME && ME.uid) || "";
+    const link = location.origin + "/app/?parrain=" + encodeURIComponent(uid);
+    const msg = "Salut 👋 Commande tes restos préférés sur Ncommandiw (0 commission, cash ou virement 🛵). Inscris-toi avec mon lien : " + link;
+    app.innerHTML = subHead("Parraine tes amis") +
+      '<div class="pad">' +
+      '<div class="onb-card" style="max-width:none;margin-top:6px;align-items:stretch;text-align:left;gap:12px;padding:22px 20px">' +
+      '<div style="font-size:40px;text-align:center">🎁</div>' +
+      '<h2 style="margin:0;text-align:center;font-size:20px;font-weight:900">Invite, et gagnez tous les deux</h2>' +
+      '<p style="margin:0;text-align:center;color:var(--muted);font-size:14px">Partage Ncommandiw à tes amis. Pour chaque ami qui s\'inscrit avec ton lien et commande, l\'équipe vous récompense tous les deux 🎉</p>' +
+      (uid ? '<div id="flbox"></div>' : "") +
+      '<div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">' +
+      '<button class="obtn p" id="pr-wa" style="padding:14px;font-size:15px">📲 Partager sur WhatsApp</button>' +
+      '<button class="obtn g" id="pr-share" style="padding:13px">🔗 Autres applis</button>' +
+      '<button class="obtn g" id="pr-copy" style="padding:13px">📋 Copier mon lien</button>' +
+      '</div>' +
+      '<div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12.5px;color:var(--muted);word-break:break-all">' + esc(link) + '</div>' +
+      '</div></div>' + pied();
+    bindBack();
+    const wa = document.getElementById("pr-wa"); if (wa) wa.onclick = () => window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
+    const sh = document.getElementById("pr-share"); if (sh) sh.onclick = () => { if (navigator.share) navigator.share({ title: "Ncommandiw", text: msg }).catch(() => {}); else toast("Partage non disponible sur cet appareil"); };
+    const cp = document.getElementById("pr-copy"); if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(link); toast("Lien copié 📋"); } catch (e) { toast("Ton lien : " + link); } };
+    if (uid && fdb) fdb.collection("clients").where("parrainPar", "==", uid).get().then(s => { const b = document.getElementById("flbox"); if (b) b.innerHTML = '<div style="text-align:center;background:var(--accent-soft);border-radius:14px;padding:12px"><div style="font-size:26px;font-weight:900;color:var(--accent)">' + s.size + '</div><div style="font-size:12.5px;color:var(--muted);font-weight:700">ami' + (s.size > 1 ? "s" : "") + ' parrainé' + (s.size > 1 ? "s" : "") + '</div></div>'; }).catch(() => {});
+  }
+
   function bindBack() { const b = app.querySelector("[data-back]"); if (b) b.onclick = () => { location.hash = "#profil"; }; }
 
   // ---------- connexion / inscription (Firebase Auth) ----------
@@ -456,7 +485,9 @@
           if (!nom) { b.disabled = false; return err("Ton prénom ?"); }
           if (pass.length < 6) { b.disabled = false; return err("Mot de passe : 6 caractères minimum."); }
           const cred = await auth.createUserWithEmailAndPassword(mail, pass);
-          if (fdb) await fdb.collection("clients").doc(cred.user.uid).set({ nom: nom, tel: tel, email: mail, photo: "", cree: Date.now() });
+          const pr = LS.get("ncw-parrain", "");
+          if (fdb) await fdb.collection("clients").doc(cred.user.uid).set({ nom: nom, tel: tel, email: mail, photo: "", cree: Date.now(), parrainPar: (pr && pr !== cred.user.uid) ? pr : "" });
+          if (pr) LS.set("ncw-parrain", "");
           try { if (cred.user && cred.user.sendEmailVerification) await cred.user.sendEmailVerification({ url: location.origin + "/app/" }); } catch (e) {}
           toast("Compte créé 📧 Vérifie ton e-mail");
         } else {

@@ -139,7 +139,8 @@
     try {
       if (cfilter === "clients") {
         const s = await db.collection("clients").limit(2000).get();
-        s.forEach(d => { const o = d.data() || {}; rows.push({ id: d.id, col: "clients", nom: o.nom || "—", tel: o.tel || "", email: o.email || "", em: "👤" }); });
+        const fil = {}; s.forEach(d => { const p = (d.data() || {}).parrainPar; if (p) fil[p] = (fil[p] || 0) + 1; });
+        s.forEach(d => { const o = d.data() || {}; rows.push({ id: d.id, col: "clients", nom: o.nom || "—", tel: o.tel || "", email: o.email || "", em: "👤", fil: fil[d.id] || 0, par: !!o.parrainPar }); });
       } else {
         const s = await db.collection("verifications").where("role", "==", cfilter).where("statut", "==", "valide").get();
         s.forEach(d => { const o = d.data() || {}; rows.push({ id: d.id, col: "verifications", nom: (cfilter === "livreur" ? o.nom : o.commerce) || "—", tel: o.tel || "", email: o.email || "", em: cfilter === "livreur" ? "🛵" : "🧾" }); });
@@ -148,7 +149,7 @@
     rows.sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
     if (!rows.length) { box.innerHTML = '<div class="paper" style="padding:22px;text-align:center"><div style="font-size:40px">👥</div><h3 style="margin:8px 0 2px">Aucun compte</h3><p class="muted" style="font-size:13px;margin:0">' + (cfilter === "clients" ? "Les clients inscrits apparaîtront ici." : "Validez des comptes depuis l'onglet Validations.") + '</p></div>'; return; }
     box.innerHTML = '<div class="muted" style="font-size:12px;font-weight:700;margin:0 2px 8px">' + rows.length + ' compte' + (rows.length > 1 ? "s" : "") + '</div><div class="pf-list">' +
-      rows.map(r => '<div class="pf-row"><div class="pf-logo">' + r.em + '</div><div class="pf-info"><div class="pf-nm">' + esc(r.nom) + '</div><div class="pf-meta">' + (r.tel ? '<span>' + esc(r.tel) + '</span>' : '') + (r.email ? '<span>' + esc(r.email) + '</span>' : '') + '</div></div><button class="pf-del" data-del="' + esc(r.col) + '/' + esc(r.id) + '">🗑</button></div>').join("") + '</div>';
+      rows.map(r => '<div class="pf-row"><div class="pf-logo">' + r.em + '</div><div class="pf-info"><div class="pf-nm">' + esc(r.nom) + '</div><div class="pf-meta">' + (r.tel ? '<span>' + esc(r.tel) + '</span>' : '') + (r.email ? '<span>' + esc(r.email) + '</span>' : '') + (r.fil ? '<span class="on">🎁 ' + r.fil + ' parrainé' + (r.fil > 1 ? "s" : "") + '</span>' : '') + (r.par ? '<span>👥 parrainé</span>' : '') + '</div></div><button class="pf-del" data-del="' + esc(r.col) + '/' + esc(r.id) + '">🗑</button></div>').join("") + '</div>';
     box.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
       if (!window.confirm("Supprimer définitivement ce compte ?")) return;
       try { await db.doc(b.dataset.del).delete(); toast("Supprimé"); renderComptes(c); } catch (e) { toast("Erreur : " + (e.message || e), true); }
