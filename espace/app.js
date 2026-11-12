@@ -137,7 +137,7 @@ function renderAuth(){
     try{
       if(authMode==="login")await auth.signInWithEmailAndPassword(email,pass);
       else if(authMode==="signup"){const c=await auth.createUserWithEmailAndPassword(email,pass);await c.user.sendEmailVerification();}
-      else{await auth.sendPasswordResetEmail(email);authMode="login";renderAuth();toast("Lien envoyé : vérifiez votre boîte mail.");return}
+      else{await auth.sendPasswordResetEmail(email,{url:location.origin+"/espace/"});authMode="login";renderAuth();toast("Lien envoyé : vérifiez votre boîte mail.");return}
     }catch(err){$("#a-err").textContent=authMsg(err);btn.disabled=false}
   };
 }

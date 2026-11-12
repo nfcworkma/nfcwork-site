@@ -61,6 +61,16 @@
   // sécurité : n'autoriser qu'un retour interne au site
   try { var cu = new URL(cont, location.origin); cont = (cu.origin === location.origin) ? cu.pathname + cu.search + cu.hash : "/app/"; } catch (e) { cont = "/app/"; }
 
+  // Détection de l'univers d'après la destination : espace NFC Work ou app Ncommandiw.
+  // Un seul lien d'action Firebase sert les deux ; on affiche la bonne marque pour éviter toute confusion.
+  var isEspace = /\/espace(\/|$)|pos\.html|caisse/i.test(cont);
+  var APPNAME = isEspace ? "NFC Work" : "Ncommandiw";
+  if (isEspace) {
+    LOGO = '<img class="ic" src="/assets/img/logo-nfcwork.png" alt="NFC Work" style="background:#fff;padding:6px">';
+    BRAND = '<div class="brand"><b>NFC Work</b></div>';
+    try { document.title = "Mon compte · NFC Work"; } catch (e) {}
+  }
+
   function render(h) { box.innerHTML = h + BRAND; }
   function errMsg(e) {
     var c = (e && e.code) || "";
@@ -98,7 +108,7 @@
   // ---------- vérification de l'e-mail ----------
   function verifyEmail() {
     auth.applyActionCode(code).then(function () {
-      done("E-mail vérifié", "Ton adresse e-mail est confirmée. Bienvenue sur Ncommandiw !");
+      done("E-mail vérifié", "Ton adresse e-mail est confirmée. Bienvenue sur " + APPNAME + " !");
     }).catch(function (e) { fail(errMsg(e)); });
   }
 
