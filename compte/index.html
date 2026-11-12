@@ -72,7 +72,7 @@
   var isEspace = /\/espace(\/|$)|pos\.html|caisse/i.test(cont);
   var APPNAME = isEspace ? "NFC Work" : "Ncommandiw";
   if (isEspace) {
-    LOGO = '<img class="ic" src="/assets/img/logo-nfcwork.png" alt="NFC Work" style="background:#fff;padding:7px">';
+    LOGO = '<span style="display:inline-flex;align-items:center;background:#fff;border-radius:16px;padding:12px 20px;margin:2px 0 18px;box-shadow:0 12px 28px rgba(0,0,0,.32)"><img src="/assets/img/logo-nfcwork-full.png" alt="NFC Work" style="height:30px;width:auto;max-width:200px;display:block"></span>';
     BRAND = '<div class="brand"><b>NFC Work</b></div>';
     document.documentElement.setAttribute("data-brand", "nfc");
     try { document.title = "Mon compte · NFC Work"; var tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.setAttribute("content", "#040a1d"); } catch (e) {}
