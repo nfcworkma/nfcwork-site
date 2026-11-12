@@ -383,7 +383,7 @@
       '<div class="pf-info"><div class="pf-nm">' + esc(d.nom || m.nom || m.slug) + '</div>' +
       '<div class="pf-meta"><span>' + esc(m.slug) + '</span>' + (liv ? '<span class="on">🛵 Livraison</span>' : '<span>🍽 Sur place</span>') + (vis ? '<span class="on">✅ En ligne</span>' : '<span class="no">⏳ En attente</span>') + '</div></div>' +
       '<button class="sw" data-toggle="' + esc(m.slug) + '" aria-pressed="' + vis + '"></button>' +
-      '<div class="pf-acts"><button class="hract" data-hr="' + esc(m.slug) + '" title="Horaires">🕒</button><a href="menus.html#m=' + encodeURIComponent(m.slug) + '">✏️</a><a href="/menu/' + encodeURIComponent(m.slug) + '" target="_blank" rel="noopener">👁</a></div></div>';
+      '<div class="pf-acts"><button class="hract" data-acc="' + esc(m.slug) + '" title="Accès gérant">✉️</button><button class="hract" data-hr="' + esc(m.slug) + '" title="Horaires">🕒</button><a href="menus.html#m=' + encodeURIComponent(m.slug) + '">✏️</a><a href="/menu/' + encodeURIComponent(m.slug) + '" target="_blank" rel="noopener">👁</a></div></div>';
   }
   async function dialogHoraires(slug) {
     let m = {};
@@ -405,6 +405,31 @@
       catch (e) { b.disabled = false; b.textContent = "Enregistrer"; toast("Erreur : " + (e.message || e), true); }
     };
   }
+  async function dialogAcces(slug) {
+    let cj = {};
+    try { const d = await db.doc("caisses/" + slug).get(); cj = d.exists ? (d.data() || {}) : {}; } catch (e) { toast("Lecture impossible", true); return; }
+    cj.emails = Array.isArray(cj.emails) ? cj.emails : [];
+    const ov = document.createElement("div"); ov.className = "pf-modal";
+    document.body.appendChild(ov);
+    ov.onclick = e => { if (e.target === ov) ov.remove(); };
+    const save = async () => { try { await db.doc("caisses/" + slug).set({ emails: cj.emails }, { merge: true }); } catch (e) { toast("Erreur : " + (e.message || e), true); } };
+    const render = () => {
+      ov.innerHTML = '<div class="pf-dialog"><h3 style="margin:0 0 4px">✉️ Accès gérant · ' + esc(slug) + '</h3>' +
+        '<p class="muted" style="font-size:12.5px;margin:0 0 10px">Les e-mails autorisés à se connecter (espace commerçant + caisse) pour gérer ce commerce et son menu.</p>' +
+        (cj.emails.length ? '<div class="pf-list" style="margin-bottom:10px">' + cj.emails.map((e, i) => '<div class="pf-row"><div class="pf-logo">👤</div><div class="pf-info"><div class="pf-nm" style="font-size:14px;word-break:break-all">' + esc(e) + '</div></div><button class="pf-del" data-rm="' + i + '">✕</button></div>').join("") + '</div>' : '<p class="muted" style="font-size:13px;margin:0 0 10px">Aucun e-mail pour le moment.</p>') +
+        '<label class="f">E-mail du gérant<input type="email" id="ac-mail" placeholder="gerant@email.com" autocapitalize="none" autocorrect="off" style="text-transform:none"></label>' +
+        '<div style="display:flex;gap:8px;margin-top:14px"><button class="btn" id="ac-close" style="flex:1">Fermer</button><button class="btn primary" id="ac-add" style="flex:1">➕ Ajouter</button></div></div>';
+      ov.querySelector("#ac-close").onclick = () => ov.remove();
+      ov.querySelector("#ac-add").onclick = async () => {
+        const v = (document.getElementById("ac-mail").value || "").trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return toast("E-mail invalide", true);
+        if (cj.emails.some(e => String(e).toLowerCase() === v)) return toast("Déjà ajouté", true);
+        cj.emails.push(v); await save(); render(); toast("✅ Accès accordé");
+      };
+      ov.querySelectorAll("[data-rm]").forEach(b => b.onclick = async () => { cj.emails.splice(+b.dataset.rm, 1); await save(); render(); toast("Accès retiré"); });
+    };
+    render();
+  }
   function renderRestos(c) {
     if (!liste.length) { c.innerHTML = '<div class="empty paper"><h3>Aucun restaurant</h3><a class="btn primary" href="menus.html">➕ Ajouter</a></div>'; return; }
     const nbVis = liste.filter(estVisible).length;
@@ -412,6 +437,7 @@
       (nbVis < liste.length ? '<p class="muted" style="font-size:12.5px;margin:0 0 10px">⏳ Les commerces « En attente » ne s\'affichent pas dans l\'app. Active le bouton pour les valider officiellement.</p>' : '') +
       '<div class="pf-list">' + liste.map(ligneResto).join("") + '</div>';
     c.querySelectorAll("[data-hr]").forEach(b => b.onclick = () => dialogHoraires(b.dataset.hr));
+    c.querySelectorAll("[data-acc]").forEach(b => b.onclick = () => dialogAcces(b.dataset.acc));
     c.querySelectorAll("[data-toggle]").forEach(b => b.onclick = () => toggleResto(b.dataset.toggle));
     c.querySelectorAll("[data-up]").forEach(b => b.onclick = () => bouger(+b.dataset.up, -1));
     c.querySelectorAll("[data-down]").forEach(b => b.onclick = () => bouger(+b.dataset.down, 1));
