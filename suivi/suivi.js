@@ -30,8 +30,12 @@
     return '<div class="codebox"><small>Code à donner au livreur</small><b>' + esc(code) + '</b>' + qr + '</div>';
   }
 
-  let last = "";
+  let last = "", prevSt = null, askedNotif = false;
+  const NOTIF = { cuisine: ["👨‍🍳 En préparation", "Ta commande est en préparation."], prete: ["📦 Commande prête", "Ta commande est prête."], enroute: ["🛵 En route !", "Ton livreur est en route vers toi."], livree: ["✅ Livrée", "Commande livrée. Bon appétit ! 🍽"] };
+  function notifPerm() { try { if (!askedNotif && "Notification" in window && Notification.permission === "default") { askedNotif = true; Notification.requestPermission().catch(function () {}); } } catch (e) {} }
+  function notify(st) { try { if ("Notification" in window && Notification.permission === "granted" && NOTIF[st]) new Notification(NOTIF[st][0] + " · " + (resto.nom || "Ncommandiw"), { body: NOTIF[st][1], icon: "/assets/img/ncommandiw-logo.svg", tag: "ncw-" + oid, renotify: true }); } catch (e) {} }
   function rendre(f) {
+    notifPerm();
     const st = S(f.statut) || "nouvelle", mode = S(f.mode) || "place", num = S(f.num), code = S(f.code), livNom = S(f.livreurNom), livTel = S(f.livreurTel), pay = S(f.pay);
     const ET = etapes(mode), i = IDX[st] == null ? 0 : IDX[st];
     if (st === "annulee") { etat('<div><div style="font-size:50px">✖</div><h2>Commande annulée</h2><p>Contactez le restaurant.</p></div>'); return; }
@@ -51,7 +55,7 @@
     try {
       const r = await fetch(DOC + "commandes/" + encodeURIComponent(slug) + "/liste/" + encodeURIComponent(oid), { cache: "no-store" });
       if (r.status === 404) { etat('<div><div style="font-size:50px">🔍</div><h2>Commande introuvable</h2><p>Vérifiez le lien.</p></div>'); return; }
-      if (r.ok) { const f = (await r.json()).fields || {}; const sig = JSON.stringify(f.statut) + JSON.stringify(f.livreurNom); if (sig !== last) { last = sig; rendre(f); } }
+      if (r.ok) { const f = (await r.json()).fields || {}; const sig = JSON.stringify(f.statut) + JSON.stringify(f.livreurNom); if (sig !== last) { last = sig; const st = (f.statut && f.statut.stringValue) || ""; if (prevSt !== null && st && st !== prevSt) notify(st); prevSt = st; rendre(f); } }
     } catch (e) {}
     setTimeout(tick, document.hidden ? 20000 : 8000);
   }
