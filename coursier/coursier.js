@@ -170,6 +170,9 @@
       '<div class="grp"><label>Matricule</label><input class="in" id="v-mat" maxlength="20" placeholder="—" value="' + esc((prev && prev.matricule) || "") + '"></div></div>' +
       '<div class="lbl">Documents (photos)</div><div class="ups">' + LIV_DOCS.map(tile).join("") + '</div>' +
       '<p class="err" id="ver" hidden></p>' +
+      '<label class="clause" style="display:flex;gap:10px;align-items:flex-start;margin:14px 0 4px;font-size:12.5px;color:var(--muted);line-height:1.55">' +
+      '<input type="checkbox" id="v-ok" style="margin-top:2px;width:18px;height:18px;flex:0 0 auto;accent-color:var(--accent)">' +
+      '<span>Je certifie que mes informations sont exactes. Je reconnais exercer comme <b style="color:var(--fg)">livreur indépendant</b> et être responsable de mon assurance, de mon véhicule et du respect du code de la route. Ncommandiw met en relation et n\'est pas mon employeur.</span></label>' +
       '<button class="btn primary submit" id="vgo">Envoyer pour validation</button>' +
       '<button class="btn g" id="vout" style="margin-top:8px">Se déconnecter</button></div>';
     if (prev && prev.vehicule) { const s = document.getElementById("v-veh"); if (s) s.value = prev.vehicule; }
@@ -180,13 +183,14 @@
       const nom = val("v-nom"), tel = val("v-tel"), ville = val("v-ville"), cin = val("v-cin"), veh = val("v-veh"), mat = val("v-mat");
       if (!nom || !tel || !ville || !cin) return err("Remplis toutes les informations.");
       if ((veh === "Moto" || veh === "Voiture") && !mat) return err("Le matricule du véhicule est requis.");
+      if (!document.getElementById("v-ok").checked) return err("Merci d'accepter les conditions du livreur indépendant.");
       for (const d of LIV_DOCS) if (!store[d.k]) return err("Ajoute la photo : " + d.t + ".");
       const b = document.getElementById("vgo"); b.disabled = true;
       try {
         const docs = {}; let i = 0;
         for (const d of LIV_DOCS) { i++; b.textContent = "Envoi… (" + i + "/" + LIV_DOCS.length + ")"; docs[d.k] = (typeof store[d.k] === "string") ? store[d.k] : await NCW.toDataURL(store[d.k]); }
         b.textContent = "Enregistrement…";
-        await db.doc("verifications/" + ME.uid).set({ role: "livreur", statut: "en_attente", email: ME.email, nom, tel, ville, cin, vehicule: veh, matricule: mat, docs, cree: new Date(), maj: new Date() });
+        await db.doc("verifications/" + ME.uid).set({ role: "livreur", statut: "en_attente", email: ME.email, nom, tel, ville, cin, vehicule: veh, matricule: mat, docs, clauseOk: true, clauseDate: new Date(), cree: new Date(), maj: new Date() });
         renderAttente();
       } catch (e) { b.disabled = false; b.textContent = "Envoyer pour validation"; err((e && e.message) || "Échec de l'envoi. Réessaie."); }
     };
