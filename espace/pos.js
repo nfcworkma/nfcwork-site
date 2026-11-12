@@ -64,6 +64,23 @@
   try { db.enablePersistence && db.enablePersistence({ synchronizeTabs: true }).catch(() => {}); } catch (e) {}
   let user = null, admin = false, slug = (location.hash.match(/m=([a-z0-9-]+)/) || [])[1] || LS.get("slug", "");
   let C = {}, MENU = {}, DEV = "DH", ORD = [], vu = new Set(), premier = true, unsub = null, employe = null, vue = { k: "home" }, panier = {}, catSel = null;
+  const SCOREC = {}; // fidélité client (clé = tel tel que saisi) : { ok, ko } depuis l'historique du commerce
+  function chargerScores() {
+    const tels = [];
+    ORD.forEach(o => { if (o.mode === "livraison" && o.tel && SCOREC[o.tel] === undefined) { SCOREC[o.tel] = null; tels.push(o.tel); } });
+    if (!tels.length) return;
+    Promise.all(tels.map(tl => db.collection("commandes").doc(slug).collection("liste").where("tel", "==", tl).limit(60).get()
+      .then(s => { let ok = 0, ko = 0; s.forEach(d => { const st = (d.data() || {}).statut; if (st === "livree" || st === "payee") ok++; else if (st === "annulee") ko++; }); SCOREC[tl] = { ok: ok, ko: ko }; })
+      .catch(() => { SCOREC[tl] = { ok: 0, ko: 0 }; })
+    )).then(() => { try { rendre(); } catch (e) {} });
+  }
+  function badgeClient(tel) {
+    const s = SCOREC[tel];
+    if (!s) return "";
+    if (s.ko >= 2 && s.ok === 0) return `<span class="scb bad">⚠️ ${s.ko} annulées</span>`;
+    if (s.ok >= 1) return `<span class="scb ok">⭐ Client · ${s.ok} cmd</span>` + (s.ko ? `<span class="scb bad">⚠️ ${s.ko}</span>` : "");
+    return `<span class="scb new">🆕 Nouveau client</span>`;
+  }
 
   /* ---------- sons ---------- */
   let AC = null, sonOn = LS.get("son", true), bipT = null;
@@ -302,7 +319,7 @@
       const nouv = ORD.filter(o => o.statut === "nouvelle" && !vu.has(o.id));
       if (!premier && nouv.length && LS.get("auto", false)) nouv.forEach(o => imprimer(bonCuisine(o)));
       ORD.forEach(o => vu.add(o.id)); premier = false;
-      alarme(); rendre();
+      alarme(); rendre(); chargerScores();
     }, e => { console.error(e); setEtat(false); });
   }
   const ouvertes = () => ORD.filter(o => o.statut !== "payee" && o.statut !== "annulee" && o.statut !== "livree");
@@ -382,7 +399,7 @@
       ${num(o.frais) ? `<div class="ln"><span>🛵 ${t("livr")}</span><b>${fmt(num(o.frais))}</b></div>` : ""}
       <div class="ln tot2"><span>${t("total")}</span><b>${fmt(num(o.total))}</b></div>
       ${o.note ? `<div class="note">📝 ${esc(o.note)}</div>` : ""}
-      ${o.nom || o.tel || o.adresse ? `<div class="cli">${o.nom ? "👤 " + esc(o.nom) + " " : ""}${o.tel ? `📞 <a href="tel:${esc(o.tel)}">${esc(o.tel)}</a>` : ""}${o.adresse ? "<br>📍 " + esc(o.adresse) : ""}${o.pos ? ` · <a href="${esc(o.pos)}" target="_blank" rel="noopener">🗺 Maps</a>` : ""}</div>` : ""}
+      ${o.nom || o.tel || o.adresse ? `<div class="cli">${o.nom ? "👤 " + esc(o.nom) + " " : ""}${o.tel ? `📞 <a href="tel:${esc(o.tel)}">${esc(o.tel)}</a>` : ""}${o.adresse ? "<br>📍 " + esc(o.adresse) : ""}${o.pos ? ` · <a href="${esc(o.pos)}" target="_blank" rel="noopener">🗺 Maps</a>` : ""}${estLiv && o.tel ? `<div class="scrow">${badgeClient(o.tel)}</div>` : ""}</div>` : ""}
       ${o.statut !== "payee" && o.statut !== "annulee" ? `<div class="acts">${gros}<span class="sp2"></span><button class="btn icon" data-a="bon" data-o="${o.id}" title="${t("bon")}">🖨</button><button class="btn icon" data-a="ticket" data-o="${o.id}" title="${t("ticket")}">🧾</button>${o.statut !== "prete" ? `<button class="btn icon" data-a="encaisser" data-o="${o.id}" title="${t("encaisser")}">💰</button>` : ""}<button class="btn icon bad" data-a="annuler" data-o="${o.id}" title="${t("annuler")}">✖</button></div>` : ""}</div>`;
   }
   function brancher(root) {
