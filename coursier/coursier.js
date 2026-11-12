@@ -76,10 +76,31 @@
       const part = o => { const f = num(o.frais), p = num(o.part); return (f && p) ? Math.round(f * p / 100) : 0; };
       const tms = o => { const c = o.cree; return c && c.seconds ? c.seconds * 1000 : (c && c.toDate ? c.toDate().getTime() : 0); };
       let gj = 0, nj = 0, gs = 0, gm = 0;
-      sl.forEach(d => { const o = d.data(), t = tms(o), g = part(o); if (t >= moi) gm += g; if (t >= sem) gs += g; if (t >= dj) { gj += g; nj++; } });
+      const remit = {}; // slug -> {n, cash, remit, nom} : cash du jour à reverser aux restos
+      sl.forEach(d => {
+        const o = d.data(), t = tms(o), g = part(o);
+        if (t >= moi) gm += g; if (t >= sem) gs += g;
+        if (t >= dj) {
+          gj += g; nj++;
+          if (o.pay !== "virement") {
+            const slug = d.ref.parent.parent.id, tot = num(o.total), r = tot - g;
+            if (!remit[slug]) remit[slug] = { n: 0, cash: 0, remit: 0, nom: noms[slug] || slug };
+            remit[slug].n++; remit[slug].cash += tot; remit[slug].remit += r;
+          }
+        }
+      });
       stats = '<div class="stats"><div class="stile big"><div><div class="v">' + fmt(gj) + '</div></div><div class="k">💰 Gains aujourd\'hui<br>' + nj + ' livraison' + (nj > 1 ? "s" : "") + '</div></div>' +
         '<div class="stile"><div class="v">' + fmt(gs) + '</div><div class="k">📅 Cette semaine</div></div>' +
         '<div class="stile"><div class="v">' + fmt(gm) + '</div><div class="k">🗓️ Ce mois-ci</div></div></div>';
+      const rk = Object.keys(remit);
+      if (rk.length) {
+        let totCash = 0, totRemit = 0;
+        const rows = rk.map(s => { const x = remit[s]; totCash += x.cash; totRemit += x.remit; return '<div class="l"><span>' + esc(x.nom) + ' (' + x.n + ')</span><span>' + fmt(x.remit) + '</span></div>'; }).join("");
+        stats += '<div class="card" style="margin-top:12px"><div style="font-weight:800;margin-bottom:7px">🧾 Ma journée — à remettre aux restos (cash)</div>' + rows +
+          '<div class="l b" style="margin-top:7px;border-top:1px solid var(--line);padding-top:7px"><span>Total à remettre</span><span>' + fmt(totRemit) + '</span></div>' +
+          '<div class="l"><span>Cash encaissé</span><span>' + fmt(totCash) + '</span></div>' +
+          '<div class="l"><span>Ma part gardée</span><span>' + fmt(totCash - totRemit) + '</span></div></div>';
+      }
     } catch (e) {}
     if (!docs.length) {
       shell(stats + '<div class="sec">Livraisons en cours <button class="refresh" id="rf">↻</button></div><div class="empty" style="min-height:28vh"><div><div class="em">✅</div><h2>Aucune livraison en cours</h2><p>Tes nouvelles livraisons<br>apparaîtront ici.</p></div></div>');
