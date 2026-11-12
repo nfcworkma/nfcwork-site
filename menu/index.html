@@ -24,6 +24,17 @@
 :root[data-theme="creme"]{--bg:#f6f0e6;--surface:#fffaf2;--sunk:#efe6d8;--fg:#2a211a;--muted:#7b6d60;--line:#e3d7c5;--accent:#b5552b;--on-accent:#fff;color-scheme:light}
 :root[data-theme="cafe"]{--bg:#1d1410;--surface:#2a1e18;--sunk:#352720;--fg:#f4e9dc;--muted:#c0a996;--line:#45342a;--accent:#d99a4e;--on-accent:#1d1410;color-scheme:dark}
 :root[data-theme="lagon"]{--bg:#f2f7f6;--surface:#ffffff;--sunk:#e4efed;--fg:#10302c;--muted:#5b7470;--line:#d3e3e0;--accent:#0f8a7e;--on-accent:#fff;color-scheme:light}
+/* Thème Ncommandiw unifié (toutes les commandes se présentent pareil ; seuls plats et prix changent) */
+:root[data-theme="ncw"]{--bg:#FBF6EC;--surface:#ffffff;--sunk:#FBEAD0;--fg:#201A12;--muted:#6E6555;--line:#ECE3D4;--accent:#E07B0A;--on-accent:#ffffff;
+  --display:"Fraunces","IBM Plex Sans Arabic",Georgia,serif;--body:"Readex Pro","IBM Plex Sans Arabic",system-ui,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root[data-theme="ncw"]{--bg:#15110B;--surface:#201A12;--sunk:#2A2113;--fg:#F3ECDF;--muted:#A99C86;--line:#352C20;--accent:#F2A20C;--on-accent:#15110B;color-scheme:dark}}
+:root[data-theme="ncw"] .hero{background:radial-gradient(58% 70% at 85% 0%,#FFD98A,transparent 60%),radial-gradient(58% 70% at 8% 8%,#F2730E,transparent 62%),linear-gradient(160deg,#F7A61E,#D9700A)}
+:root[data-theme="ncw"] .head h1{color:#fff;text-shadow:0 2px 14px rgba(120,60,0,.38)}
+:root[data-theme="ncw"] .has-cover .head h1{text-shadow:0 2px 16px rgba(0,0,0,.5)}
+:root[data-theme="ncw"] .slogan{color:rgba(255,255,255,.92);text-shadow:0 1px 8px rgba(120,60,0,.3)}
+:root[data-theme="ncw"] .chip{background:rgba(255,255,255,.92);color:#201A12;border-color:rgba(255,255,255,.7)}
+:root[data-theme="ncw"] .chip svg{color:var(--accent)}
+:root[data-theme="ncw"] .logo{border-color:#fff}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}

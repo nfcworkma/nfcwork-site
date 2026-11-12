@@ -166,11 +166,8 @@
     M = data || {};
     const root = document.documentElement;
     root.lang = "fr"; root.dir = "ltr";
-    root.dataset.theme = ["nuit", "creme", "cafe", "lagon"].includes(M.theme) ? M.theme : "nuit";
-    if (/^#[0-9a-f]{6}$/i.test(M.couleur || "")) {
-      root.style.setProperty("--accent", M.couleur);
-      root.style.setProperty("--on-accent", clair(M.couleur) ? "#16130d" : "#ffffff");
-    } else { root.style.removeProperty("--accent"); root.style.removeProperty("--on-accent"); }
+    // Thème Ncommandiw unifié pour toutes les commandes (le thème/couleur par commerce est ignoré)
+    root.dataset.theme = "ncw";
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = getComputedStyle(root).getPropertyValue("--bg").trim() || "#0d0f14";
     if (mp === null && !apercu && history.replaceState) { try { history.replaceState(null, "", "/menu/" + slug + location.search.replace(/[?&]m=[^&]*/, "").replace(/^&/, "?")); } catch (e) {} }
