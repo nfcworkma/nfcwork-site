@@ -121,7 +121,7 @@
     const lf = await lire("menus");
     let liste = [];
     try { liste = JSON.parse((lf && lf.json && lf.json.stringValue) || "[]"); } catch (e) {}
-    liste = liste.filter(m => m && m.slug && m.actif !== false && !m.arch && !m.corb && m.plateforme !== false);
+    liste = liste.filter(m => m && m.slug && m.actif !== false && !m.arch && !m.corb && m.plateforme === true);
     const restos = [];
     for (const e of liste) {
       const f = await lire("menu-" + e.slug); if (!f) continue; const m = parse(f);

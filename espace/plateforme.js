@@ -374,14 +374,14 @@
   }
 
   /* ===== onglet RESTOS ===== */
-  const estVisible = m => m.plateforme !== false;
+  const estVisible = m => m.plateforme === true;
   function ligneResto(m, i) {
     const d = det[m.slug] || {}, vis = estVisible(m), em = TYPES[d.type] || "🍽", liv = d.livraison && d.livraison.actif;
     return '<div class="pf-row' + (vis ? "" : " off") + '" data-row="' + esc(m.slug) + '">' +
       '<div class="pf-ord"><button data-up="' + i + '"' + (i === 0 ? " disabled" : "") + '>▲</button><button data-down="' + i + '"' + (i === liste.length - 1 ? " disabled" : "") + '>▼</button></div>' +
       '<div class="pf-logo" data-slug="' + esc(m.slug) + '">' + em + '</div>' +
       '<div class="pf-info"><div class="pf-nm">' + esc(d.nom || m.nom || m.slug) + '</div>' +
-      '<div class="pf-meta"><span>' + esc(m.slug) + '</span>' + (liv ? '<span class="on">🛵 Livraison</span>' : '<span>🍽 Sur place</span>') + (vis ? '<span class="on">● Visible</span>' : '<span class="no">● Masqué</span>') + '</div></div>' +
+      '<div class="pf-meta"><span>' + esc(m.slug) + '</span>' + (liv ? '<span class="on">🛵 Livraison</span>' : '<span>🍽 Sur place</span>') + (vis ? '<span class="on">✅ En ligne</span>' : '<span class="no">⏳ En attente</span>') + '</div></div>' +
       '<button class="sw" data-toggle="' + esc(m.slug) + '" aria-pressed="' + vis + '"></button>' +
       '<div class="pf-acts"><button class="hract" data-hr="' + esc(m.slug) + '" title="Horaires">🕒</button><a href="menus.html#m=' + encodeURIComponent(m.slug) + '">✏️</a><a href="/menu/' + encodeURIComponent(m.slug) + '" target="_blank" rel="noopener">👁</a></div></div>';
   }
@@ -408,7 +408,8 @@
   function renderRestos(c) {
     if (!liste.length) { c.innerHTML = '<div class="empty paper"><h3>Aucun restaurant</h3><a class="btn primary" href="menus.html">➕ Ajouter</a></div>'; return; }
     const nbVis = liste.filter(estVisible).length;
-    c.innerHTML = '<div class="pf-head"><div class="pf-count">' + nbVis + ' / ' + liste.length + ' visibles sur <b>/commander</b></div><a class="btn primary" href="menus.html">➕ Ajouter</a></div>' +
+    c.innerHTML = '<div class="pf-head"><div class="pf-count">' + nbVis + ' / ' + liste.length + ' validés sur l\'app</div><a class="btn primary" href="menus.html">➕ Ajouter</a></div>' +
+      (nbVis < liste.length ? '<p class="muted" style="font-size:12.5px;margin:0 0 10px">⏳ Les commerces « En attente » ne s\'affichent pas dans l\'app. Active le bouton pour les valider officiellement.</p>' : '') +
       '<div class="pf-list">' + liste.map(ligneResto).join("") + '</div>';
     c.querySelectorAll("[data-hr]").forEach(b => b.onclick = () => dialogHoraires(b.dataset.hr));
     c.querySelectorAll("[data-toggle]").forEach(b => b.onclick = () => toggleResto(b.dataset.toggle));
@@ -441,9 +442,9 @@
   }
   function toggleResto(slug) {
     const m = liste.find(x => x.slug === slug); if (!m) return;
-    m.plateforme = m.plateforme === false ? true : false;
+    m.plateforme = m.plateforme === true ? false : true;
     renderRestos(document.getElementById("tabc")); sauverMenus();
-    toast(m.plateforme === false ? "Masqué de la plateforme" : "Visible sur la plateforme");
+    toast(m.plateforme === true ? "✅ Validé — en ligne sur l'app" : "⏳ Retiré de l'app");
   }
   function bouger(i, dir) { const j = i + dir; if (j < 0 || j >= liste.length) return; const t = liste[i]; liste[i] = liste[j]; liste[j] = t; renderRestos(document.getElementById("tabc")); sauverMenus(); }
 
