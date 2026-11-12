@@ -136,7 +136,7 @@ function renderAuth(){
     const email=$("#a-email").value.trim(),pass=authMode!=="reset"?$("#a-pass").value:"";const btn=e.target.querySelector("button");btn.disabled=true;$("#a-err").textContent="";
     try{
       if(authMode==="login")await auth.signInWithEmailAndPassword(email,pass);
-      else if(authMode==="signup"){const c=await auth.createUserWithEmailAndPassword(email,pass);await c.user.sendEmailVerification();}
+      else if(authMode==="signup"){const c=await auth.createUserWithEmailAndPassword(email,pass);await c.user.sendEmailVerification({url:location.origin+"/espace/"});}
       else{await auth.sendPasswordResetEmail(email,{url:location.origin+"/espace/"});authMode="login";renderAuth();toast("Lien envoyé : vérifiez votre boîte mail.");return}
     }catch(err){$("#a-err").textContent=authMsg(err);btn.disabled=false}
   };
@@ -1014,7 +1014,7 @@ document.addEventListener("click",async e=>{
   if(el.id==="logoutBtn"){auth.signOut();return}
   if(d.amode){authMode=d.amode;renderAuth();return}
   if(d.verified!=null){await user.reload();if(auth.currentUser.emailVerified){await auth.currentUser.getIdToken(true);location.reload()}else toast("E-mail pas encore vérifié.");return}
-  if(d.resend!=null){try{await user.sendEmailVerification();toast("E-mail renvoyé.")}catch(err){toast(authMsg(err))}return}
+  if(d.resend!=null){try{await user.sendEmailVerification({url:location.origin+"/espace/"});toast("E-mail renvoyé.")}catch(err){toast(authMsg(err))}return}
   if(d.creer!=null){creer();return}
   if(d.ptab){ptab=d.ptab;if(d.close!=null)closeModal();window.scrollTo(0,0);render();return}
   if(role==="client"&&(d.cartInc||d.cartDec)){const id=d.cartInc||d.cartDec;cart[id]=Math.max(0,(cart[id]||0)+(d.cartInc?1:-1));if(!cart[id])delete cart[id];
