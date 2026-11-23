@@ -444,6 +444,7 @@
 
   /* ================= Tableau de bord d'un commerce ================= */
   const WALLET = String(window.NFCW_WALLET || "").replace(/\/+$/, "");
+  const APPLE_WS = String(window.NFCW_APPLE_WS || "").replace(/\/+$/, "");
   const walletSync = cid => fetch(WALLET + "/google/sync?c=" + encodeURIComponent(cid), { mode: "no-cors" }).catch(() => {});
   // 📣 message à tous les clients qui ont la carte dans Google Wallet (notification sur leur téléphone)
   function walletMessage() {
@@ -460,10 +461,12 @@
       b.disabled = true; b.textContent = "Envoi…"; e.textContent = "";
       try {
         const tok = await firebase.auth().currentUser.getIdToken();
+        // Apple Wallet en parallèle (service Firebase) : ne bloque jamais l'envoi Google
+        const apple = APPLE_WS ? fetch(APPLE_WS + "/annonce", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify({ pid: P.id, titre: t, texte: x }) }).then(r => r.ok).catch(() => false) : Promise.resolve(false);
         const r = await fetch(WALLET + "/google/message", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify({ pid: P.id, titre: t, texte: x, fin: $("#wm-fin", d).value || "" }) });
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok || !j.ok) throw new Error(j.erreur || "erreur " + r.status);
-        d.remove(); toast("✅ Message envoyé à tous les clients Google Wallet", true);
+        const j = await r.json().catch(() => ({})), aOk = await apple;
+        if ((!r.ok || !j.ok) && !aOk) throw new Error(j.erreur || "erreur " + r.status);
+        d.remove(); toast("✅ Message envoyé aux clients " + [r.ok && j.ok ? "Google Wallet" : "", aOk ? "Apple Wallet" : ""].filter(Boolean).join(" et "), true);
       } catch (x2) { b.disabled = false; b.textContent = "Envoyer à tous"; e.textContent = "❌ " + (x2.message || "Échec, réessayez."); }
     };
   }

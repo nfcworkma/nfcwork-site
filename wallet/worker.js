@@ -14,6 +14,8 @@
      APPLE_CERT      (secret)  le certificat Pass Type ID en PEM (-----BEGIN CERTIFICATE-----)
      APPLE_KEY       (secret)  sa clé privée en PEM PKCS#8 (-----BEGIN PRIVATE KEY-----)
      APPLE_WWDR      (secret)  le certificat Apple WWDR G4 en PEM
+     APPLE_AUTH      (secret)  un mot de passe long au hasard — le même dans Firebase (mises à jour auto)
+     APPLE_WS        (texte)   l'adresse du service web Firebase, ex. https://europe-west1-nfcwork-espace.cloudfunctions.net/apple
 
    Adresses :
      GET  /apple/pass?c=<carte>      → la carte en fichier .pkpass (s'ouvre dans Apple Wallet)
@@ -396,6 +398,11 @@ async function pngIcone() {
 }
 
 /* --- la carte --- */
+// jeton propre à la carte : l'iPhone le renvoie au service web (Firebase) qui calcule le même
+async function jetonApple(env, serie) {
+  const k = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.APPLE_AUTH), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return [...new Uint8Array(await crypto.subtle.sign("HMAC", k, new TextEncoder().encode(serie)))].map(hex).join("").slice(0, 40);
+}
 function passJson(env, c, p) {
   const obj = Math.max(1, p.objectif || 10), pts = c.points || 0, u = unite(p), fond = rgb(couleur(p)), txt = clair(fond) ? [20, 20, 20] : [255, 255, 255];
   const lien = SITE + "/f/?c=" + c.id;
@@ -405,12 +412,13 @@ function passJson(env, c, p) {
     description: "Carte fidélité " + String(p.nom || "").slice(0, 60), logoText: String(p.nom || "").slice(0, 30),
     backgroundColor: rgbTxt(fond), foregroundColor: rgbTxt(txt), labelColor: rgbTxt(txt),
     storeCard: {
-      primaryFields: [{ key: "points", label: u.toUpperCase(), value: pts }],
+      primaryFields: [{ key: "points", label: u.toUpperCase(), value: pts, changeMessage: `Votre carte ${String(p.nom || "").slice(0, 30)} : %@ ${u}` }],
       secondaryFields: [
         { key: "objectif", label: "OBJECTIF", value: pts >= obj ? "🎁 Récompense prête !" : `${pts} / ${obj}` },
         { key: "client", label: "CLIENT", value: String(c.nom || "Client").slice(0, 40) }
       ],
       backFields: [
+        ...(p.annonce && p.annonce.texte ? [{ key: "annonce", label: "📣 " + String(p.nom || "Message").slice(0, 40), value: String(p.annonce.texte).slice(0, 160), changeMessage: "%@" }] : []),
         { key: "recompense", label: "Récompense", value: `${obj} ${u} = ${p.recompense || "une récompense"}` },
         { key: "carte", label: "Ma carte", value: lien, attributedValue: `<a href="${lien}">Ouvrir ma carte</a>` },
         { key: "nfcwork", label: "Carte fidélité digitale", value: "NFCWORK — nfcwork.ma" }
@@ -425,7 +433,9 @@ const lieux = p => (Array.isArray(p.lieux) ? p.lieux : []).filter(l => l && Numb
 async function construirePkpass(env, c, p) {
   const enc = o => new TextEncoder().encode(typeof o === "string" ? o : JSON.stringify(o));
   const icone = await pngIcone(), logoP = await pngLogo(p);
-  const fichiers = [["pass.json", enc(passJson(env, c, p))], ["icon.png", icone], ["icon@2x.png", icone]];
+  const pj = passJson(env, c, p);
+  if (env.APPLE_WS && env.APPLE_AUTH) { pj.webServiceURL = String(env.APPLE_WS).replace(/\/+$/, ""); pj.authenticationToken = await jetonApple(env, pj.serialNumber); }   // mises à jour automatiques
+  const fichiers = [["pass.json", enc(pj)], ["icon.png", icone], ["icon@2x.png", icone]];
   if (logoP) fichiers.push(["logo.png", logoP], ["logo@2x.png", logoP]);
   const man = {};
   for (const [n, d] of fichiers) man[n] = [...new Uint8Array(await crypto.subtle.digest("SHA-1", d))].map(hex).join("");
