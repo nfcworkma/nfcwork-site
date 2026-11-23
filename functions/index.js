@@ -10,6 +10,7 @@
    ========================================================= */
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret, defineString } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const http2 = require("node:http2");
@@ -33,6 +34,8 @@ const nettoyer = s => String(s || "").replace(/[^\w.-]/g, "").slice(0, 120);
 exports.apple = onRequest({ region: REGION, secrets: [APPLE_CERT, APPLE_KEY, APPLE_AUTH], cors: false, maxInstances: 5 }, async (req, res) => {
   try {
     const p = req.path.replace(/\/+$/, "").split("/").filter(Boolean);   // ex. v1/devices/<dev>/registrations/<type>/<serie>
+    if (p[0] === "notifier" && req.method === "OPTIONS") p[0] = "annonce";   // même réponse CORS
+    if (p[0] === "notifier" && req.method === "POST") return notifier(req, res);
     if (p[0] === "annonce" && req.method === "OPTIONS") return res.set({ "Access-Control-Allow-Origin": "https://nfcwork.ma", "Access-Control-Allow-Methods": "POST", "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Max-Age": "86400" }).status(204).end();
     if (p[0] === "annonce" && req.method === "POST") return annonce(req, res);
     if (p[0] !== "v1") return res.status(404).end();
@@ -108,7 +111,7 @@ async function pousser(regs) {
 exports.appleCarte = onDocumentWritten({ document: "fidCartes/{cid}", region: REGION, secrets: [APPLE_CERT, APPLE_KEY] }, async ev => {
   const a = ev.data.before.exists ? ev.data.before.data() : null, n = ev.data.after.exists ? ev.data.after.data() : null;
   if (!a || !n) return;
-  const cle = x => JSON.stringify([x.points || 0, x.nom || "", x.recompenses || 0]);
+  const cle = x => JSON.stringify([x.points || 0, x.nom || "", x.recompenses || 0, x.msgWallet || null]);
   if (cle(a) === cle(n)) return;
   const s = await db.collection("appleRegs").where("cid", "==", ev.params.cid).get();
   await pousser(s.docs);
@@ -130,17 +133,65 @@ exports.appleProgramme = onDocumentWritten({ document: "fidProgrammes/{pid}", re
 });
 
 /* ---------- 3) message du commerçant (« Aujourd'hui -20 % ») ---------- */
-async function annonce(req, res) {
+// vérifie que la personne connectée est le commerçant de ce programme (ou l'admin)
+async function patron(req, res, pid) {
   res.set("Access-Control-Allow-Origin", "https://nfcwork.ma");
   const tok = String(req.get("Authorization") || "").replace(/^Bearer\s+/, "");
-  let u; try { u = await admin.auth().verifyIdToken(tok); } catch (e) { return res.status(401).json({ ok: false, erreur: "connexion" }); }
-  const { pid, titre, texte } = req.body || {};
+  let u; try { u = await admin.auth().verifyIdToken(tok); } catch (e) { res.status(401).json({ ok: false, erreur: "connexion" }); return null; }
   const ref = db.doc("fidProgrammes/" + nettoyer(pid)), p = await ref.get();
-  if (!p.exists) return res.status(404).json({ ok: false });
+  if (!p.exists) { res.status(404).json({ ok: false }); return null; }
   const mail = String(u.email || "").toLowerCase();
-  if (mail !== ADMIN && mail !== String(p.data().ownerEmail || "").toLowerCase()) return res.status(403).json({ ok: false });
-  const t = [titre, texte].map(x => String(x || "").trim()).filter(Boolean).join(" — ").slice(0, 160);
+  if (mail !== ADMIN && !(u.email_verified && mail === String(p.data().ownerEmail || "").toLowerCase())) { res.status(403).json({ ok: false }); return null; }
+  return { ref, p: p.data() };
+}
+const texteMsg = (titre, texte) => [titre, texte].map(x => String(x || "").trim()).filter(Boolean).join(" — ").slice(0, 160);
+// la date devant le message : il change toujours, donc l'iPhone notifie toujours
+const datee = t => new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", timeZone: "Africa/Casablanca" }) + " · " + t;
+
+async function annonce(req, res) {
+  const { pid, titre, texte } = req.body || {};
+  const x = await patron(req, res, pid); if (!x) return;
+  const ref = x.ref;
+  const t = texteMsg(titre, texte);
   if (!t) return res.status(400).json({ ok: false });
-  await ref.update({ annonce: { texte: t, date: Date.now() } });   // → appleProgramme envoie à tous les iPhones
+  await ref.update({ annonce: { texte: datee(t), date: Date.now() } });   // → appleProgramme envoie à tous les iPhones
   return res.json({ ok: true });
 }
+
+/* ---------- 4) message à quelques clients (relance des absents, anniversaire…) ---------- */
+async function notifier(req, res) {
+  const { pid, cartes, titre, texte } = req.body || {};
+  const x = await patron(req, res, pid); if (!x) return;
+  const t = texteMsg(titre, texte); if (!t) return res.status(400).json({ ok: false });
+  const ids = [...new Set((Array.isArray(cartes) ? cartes : []).map(nettoyer).filter(Boolean))].slice(0, 200);
+  let iphones = 0;
+  for (const cid of ids) {
+    const c = await db.doc("fidCartes/" + cid).get();
+    if (!c.exists || c.data().pid !== x.ref.id) continue;                  // seulement les cartes de CE commerce
+    const regs = await db.collection("appleRegs").where("cid", "==", cid).limit(1).get();
+    if (regs.empty) continue;                                              // pas dans Apple Wallet : rien à faire
+    await c.ref.update({ msgWallet: { texte: datee(t), date: Date.now() } });   // → appleCarte met à jour l'iPhone
+    iphones++;
+  }
+  return res.json({ ok: true, iphones });
+}
+
+/* ---------- 5) 🎂 anniversaires automatiques, chaque matin ---------- */
+exports.appleAnniversaires = onSchedule({ schedule: "0 9 * * *", timeZone: "Africa/Casablanca", region: REGION }, async () => {
+  const j = new Date().toLocaleDateString("fr-CA", { timeZone: "Africa/Casablanca" }).slice(5);   // « MM-JJ »
+  const cartes = await db.collection("fidCartes").where("anniv", "==", j).get();
+  const progs = {}; let n = 0;
+  for (const c of cartes.docs) {
+    const regs = await db.collection("appleRegs").where("cid", "==", c.id).limit(1).get();
+    if (regs.empty) continue;
+    const pid = c.data().pid;
+    if (!(pid in progs)) { const p = await db.doc("fidProgrammes/" + nettoyer(pid)).get(); progs[pid] = p.exists ? p.data() : null; }
+    const p = progs[pid];
+    if (!p || p.actif === false || p.annivAuto === false) continue;
+    const cadeau = String(p.cadeauAnniv || "").trim();
+    const t = `🎂 ${p.nom || "Nous"} vous souhaite un joyeux anniversaire ! ` + (cadeau ? `Votre cadeau : ${cadeau} 🎁` : "Une surprise vous attend 🎁");
+    await c.ref.update({ msgWallet: { texte: datee(t).slice(0, 160), date: Date.now() } });
+    n++;
+  }
+  console.log("anniversaires Apple :", n);
+});

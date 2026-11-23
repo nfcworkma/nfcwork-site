@@ -485,7 +485,7 @@
       <label class="f">Titre<input id="rl-t" maxlength="60" value="${esc(t0)}"></label>
       <label class="f">Message<textarea id="rl-x" rows="4" maxlength="400">${esc(x0)}</textarea></label>
       <p class="err" id="rl-e"></p>
-      ${WALLET ? `<button class="btn primary block" id="rl-go">📲 Notifier dans Google Wallet (automatique)</button>` : ""}
+      ${WALLET ? `<button class="btn primary block" id="rl-go">📲 Notifier dans le Wallet (automatique)</button>` : ""}
       <div class="eyebrow" style="margin:12px 0 6px">${WALLET ? "Ou un par un sur WhatsApp" : "Envoyer sur WhatsApp (un par un)"}</div>
       <div class="wal" style="display:grid;gap:6px;max-height:40vh;overflow:auto">${L.map(c => { const w = waNum(c.tel); const msg = ($("#rl-x") ? "" : "") + x0; return `<div class="row between" style="gap:8px;align-items:center"><span>${esc(c.nom || "Client")}${c.tel ? ` · <small class="muted">${esc(c.tel)}</small>` : ""}</span>${w ? `<a class="btn sm primary" target="_blank" rel="noopener" data-wtmpl="${esc(c.tel)}" href="https://wa.me/${w}">💬 WhatsApp</a>` : `<small class="muted">pas de n°</small>`}</div>`; }).join("")}</div>
       <div class="row" style="gap:8px;margin-top:12px"><button class="btn ghost" data-fermer style="flex:1">Fermer</button></div>`);
@@ -495,10 +495,15 @@
       const b = $("#rl-go", d); b.disabled = true; b.textContent = "Envoi…";
       try {
         const tok = await firebase.auth().currentUser.getIdToken();
-        const r = await fetch(WALLET + "/google/notify", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify({ pid: P.id, cartes: L.map(c => c.id), titre: $("#rl-t", d).value.trim(), texte: $("#rl-x", d).value.trim() }) });
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok || !j.ok) throw new Error(j.erreur || "erreur " + r.status);
-        d.remove(); toast(`✅ Envoyé à ${j.envoyes} client(s)${j.sansWallet ? ` · ${j.sansWallet} sans Google Wallet` : ""}`, true);
+        const corps = JSON.stringify({ pid: P.id, cartes: L.map(c => c.id), titre: $("#rl-t", d).value.trim(), texte: $("#rl-x", d).value.trim() });
+        const h = { "Content-Type": "application/json", Authorization: "Bearer " + tok };
+        // Apple Wallet en parallèle (service Firebase) : ne bloque jamais l'envoi Google
+        const apple = APPLE_WS ? fetch(APPLE_WS + "/notifier", { method: "POST", headers: h, body: corps }).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null);
+        const r = await fetch(WALLET + "/google/notify", { method: "POST", headers: h, body: corps });
+        const j = await r.json().catch(() => ({})), ja = await apple, ip = (ja && ja.iphones) || 0;
+        if ((!r.ok || !j.ok) && !ip) throw new Error(j.erreur || "erreur " + r.status);
+        const g = r.ok && j.ok ? j.envoyes || 0 : 0;
+        d.remove(); toast(`✅ Envoyé : ${g} Google Wallet${ip ? ` · ${ip} iPhone` : ""}${L.length - g - ip > 0 ? ` · ${L.length - g - ip} sans Wallet (WhatsApp)` : ""}`, true);
       } catch (x) { b.disabled = false; b.textContent = "Envoyer"; $("#rl-e", d).textContent = "❌ " + (x.message || "Échec, réessayez."); }
     };
   }

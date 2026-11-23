@@ -418,6 +418,7 @@ function passJson(env, c, p) {
         { key: "client", label: "CLIENT", value: String(c.nom || "Client").slice(0, 40) }
       ],
       backFields: [
+        ...(c.msgWallet && c.msgWallet.texte && Date.now() - (c.msgWallet.date || 0) < 14 * 86400e3 ? [{ key: "perso", label: "✉️ Pour vous", value: String(c.msgWallet.texte).slice(0, 160), changeMessage: "%@" }] : []),
         ...(p.annonce && p.annonce.texte ? [{ key: "annonce", label: "📣 " + String(p.nom || "Message").slice(0, 40), value: String(p.annonce.texte).slice(0, 160), changeMessage: "%@" }] : []),
         { key: "recompense", label: "Récompense", value: `${obj} ${u} = ${p.recompense || "une récompense"}` },
         { key: "carte", label: "Ma carte", value: lien, attributedValue: `<a href="${lien}">Ouvrir ma carte</a>` },
