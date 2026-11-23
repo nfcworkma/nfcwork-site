@@ -382,7 +382,7 @@ function zip(fichiers) {
 
 /* --- images : Apple Wallet n'accepte que le PNG --- */
 async function pngLogo(p) {
-  const m = String(p.logoData || "").match(/^data:image\/png;base64,(.+)$/);
+  const m = String(p.logoPng || "").match(/^data:image\/png;base64,(.+)$/) || String(p.logoData || "").match(/^data:image\/png;base64,(.+)$/);
   if (m) return Uint8Array.from(atob(m[1]), ch => ch.charCodeAt(0));
   if (/^https:\/\/.+\.png(\?|$)/i.test(p.logo || "")) { const r = await fetch(p.logo); if (r.ok) return new Uint8Array(await r.arrayBuffer()); }
   return null;
@@ -416,9 +416,12 @@ function passJson(env, c, p) {
         { key: "nfcwork", label: "Carte fidélité digitale", value: "NFCWORK — nfcwork.ma" }
       ]
     },
-    barcodes: [{ format: "PKBarcodeFormatQR", message: lien, messageEncoding: "iso-8859-1" }]
+    barcodes: [{ format: "PKBarcodeFormatQR", message: lien, messageEncoding: "iso-8859-1" }],
+    // 📍 près du commerce, la carte s'affiche toute seule sur l'écran verrouillé (10 adresses max)
+    ...(lieux(p).length ? { locations: lieux(p).map(l => ({ latitude: l.lat, longitude: l.lng, relevantText: String(p.lieuTexte || `Vous êtes près de ${p.nom || "chez nous"} : montrez votre carte 🎁`).slice(0, 80) })) } : {})
   };
 }
+const lieux = p => (Array.isArray(p.lieux) ? p.lieux : []).filter(l => l && Number.isFinite(+l.lat) && Number.isFinite(+l.lng)).slice(0, 10).map(l => ({ lat: +l.lat, lng: +l.lng }));
 async function construirePkpass(env, c, p) {
   const enc = o => new TextEncoder().encode(typeof o === "string" ? o : JSON.stringify(o));
   const icone = await pngIcone(), logoP = await pngLogo(p);

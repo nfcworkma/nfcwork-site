@@ -188,7 +188,9 @@
         }
         const hex = t ? "#" + [r, gg, b].map(v => Math.round(v / t).toString(16).padStart(2, "0")).join("") : "";
         let data = c.toDataURL("image/webp", 0.85); if (!data.startsWith("data:image/webp")) data = c.toDataURL("image/jpeg", 0.85);
-        URL.revokeObjectURL(url); ok({ data, couleur: hex });
+        // Apple Wallet : PNG seulement, petit (affiché en haut de la carte)
+        const cp = document.createElement("canvas"); cp.width = cp.height = 160; cp.getContext("2d").drawImage(c, 0, 0, 160, 160);
+        URL.revokeObjectURL(url); ok({ data, png: cp.toDataURL("image/png"), couleur: hex });
       };
       img.onerror = () => { URL.revokeObjectURL(url); ko(new Error("illisible")); };
       img.src = url;
@@ -231,6 +233,13 @@
           <div class="grid2"><label class="f">Prix de l’abonnement (DH)<input id="p-prix" type="number" min="0" inputmode="numeric" value="${esc(p.prix || "")}"></label>
             <label class="f">Période<select id="p-per">${Object.entries(PERIODES).map(([k, v]) => `<option value="${k}" ${(p.periode || "an") === k ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>
           <label class="f">⭐ Lien avis Google du commerce (le client qui laisse un avis gagne +1 point)<input id="p-avis" type="url" maxlength="300" value="${esc(p.lienAvis || "")}" placeholder="https://g.page/r/…/review" autocapitalize="off"></label>
+          <div class="paper" style="padding:12px 14px;border-radius:14px">
+            <div class="eyebrow" style="margin-bottom:4px">📍 Adresse du commerce (Apple Wallet)</div>
+            <div class="muted" style="font-size:13px;margin-bottom:8px">Quand le client passe à côté, sa carte s’affiche toute seule sur l’écran de son iPhone.</div>
+            <div id="p-lieux" class="stack" style="gap:6px"></div>
+            <div class="grid2" style="margin-top:8px"><button type="button" class="btn sm" id="p-ici">📍 Je suis au commerce</button><button type="button" class="btn sm" id="p-lieu-plus">🔗 Coller un lien Maps</button></div>
+            <label class="f" style="margin-top:8px">Message affiché près du commerce<input id="p-lieu-txt" maxlength="80" value="${esc(p.lieuTexte || "")}" placeholder="Vous êtes près de chez nous : montrez votre carte 🎁"></label>
+          </div>
           <label class="f">🎂 Cadeau d’anniversaire (envoyé au client le jour J)<input id="p-anniv" maxlength="80" value="${esc(p.cadeauAnniv || "")}" placeholder="1 boisson offerte · -20 % · 1 partie offerte"></label>
           <label class="check"><input type="checkbox" id="p-anniv-auto" ${p.annivAuto !== false ? "checked" : ""}> 🎁 Envoyer automatiquement le jour de l’anniversaire (Google Wallet)</label>
           <label class="f">Comment ça marche (affiché au client, une étape par ligne)<textarea id="p-guide" maxlength="400" rows="3">${esc(p.guide || "")}</textarea></label>
@@ -247,7 +256,8 @@
     const majEssai = () => { $("#w-essai", d).hidden = !$("#p-essai", d).checked; };
     $("#p-essai", d).onchange = majEssai; majEssai();
     d.addEventListener("click", e => { const b = e.target.closest("[data-essai]"); if (b) $("#p-essai-fin", d).value = jourPlus(+b.dataset.essai); });
-    const val = { type: p.type, modeEmploye: p.modeEmploye, modeClient: MODES_C[p.modeClient] ? p.modeClient : "commercant" }; let logoData = p.logoData || "", metier = p.metier;
+    const val = { type: p.type, modeEmploye: p.modeEmploye, modeClient: MODES_C[p.modeClient] ? p.modeClient : "commercant" }; let logoData = p.logoData || "", logoPng = p.logoPng || "", metier = p.metier;
+    let lieux = Array.isArray(p.lieux) ? p.lieux.filter(l => l && isFinite(l.lat) && isFinite(l.lng)).slice(0, 10) : [];
     const maj = () => { $("#w-dh", d).hidden = val.type !== "montant"; $("#w-emp", d).hidden = !$("#p-emp", d).checked; $("#w-delai", d).hidden = val.modeClient !== "caisse"; };
     const dessinerIdees = () => {
       const l = [...((METIERS[metier] || {}).idees || []), ...IDEES_TOUS];
@@ -282,14 +292,44 @@
     if (src) src.onclick = async () => {
       const D = await window.NFCW_SOURCES.choisir(db, "🎁 Nouvelle carte fidélité"); if (!D || D.vide) return;
       $("#p-nom", d).value = D.nom; if (D.ownerEmail || D.email) $("#p-mail", d).value = (D.ownerEmail || D.email).toLowerCase();
-      if (D.logo) { try { const b = await (await fetch(D.logo)).blob(), r = await lireLogo(new File([b], "logo", { type: b.type || "image/png" })); logoData = r.data; $("#p-logo-prev", d).innerHTML = `<img class="prev" src="${r.data}" alt="">`; if (r.couleur) $("#p-coul", d).value = r.couleur; } catch (x) {} }
+      if (D.logo) { try { const b = await (await fetch(D.logo)).blob(), r = await lireLogo(new File([b], "logo", { type: b.type || "image/png" })); logoData = r.data; logoPng = r.png; $("#p-logo-prev", d).innerHTML = `<img class="prev" src="${r.data}" alt="">`; if (r.couleur) $("#p-coul", d).value = r.couleur; } catch (x) {} }
       if (D.couleur) $("#p-coul", d).value = D.couleur;
       src.textContent = "✅ Rempli avec : " + D.trouve.join(", ");
     };
     $("#p-logo", d).onchange = async e => {
       const f = e.target.files[0]; if (!f) return;
-      try { const r = await lireLogo(f); logoData = r.data; $("#p-logo-prev", d).innerHTML = `<img class="prev" src="${r.data}" alt="">`; if (r.couleur) $("#p-coul", d).value = r.couleur; }
+      try { const r = await lireLogo(f); logoData = r.data; logoPng = r.png; $("#p-logo-prev", d).innerHTML = `<img class="prev" src="${r.data}" alt="">`; if (r.couleur) $("#p-coul", d).value = r.couleur; }
       catch (x) { $("#perr", d).textContent = "Image illisible : choisissez une photo JPG ou PNG."; }
+    };
+    // 📍 adresses : position GPS du téléphone, ou lien Google Maps / « lat, lng » collé
+    const dessinerLieux = () => {
+      $("#p-lieux", d).innerHTML = lieux.length ? lieux.map((l, i) => `<div style="display:flex;align-items:center;gap:8px;font-size:13.5px"><span style="flex:1">📍 ${l.lat.toFixed(5)}, ${l.lng.toFixed(5)} · <a href="https://maps.google.com/?q=${l.lat},${l.lng}" target="_blank" rel="noopener">voir</a></span><button type="button" class="btn sm" data-sup="${i}" aria-label="Supprimer">✕</button></div>`).join("")
+        : `<div class="muted" style="font-size:13px">Aucune adresse.</div>`;
+      $("#p-lieux", d).querySelectorAll("[data-sup]").forEach(b => b.onclick = () => { lieux.splice(+b.dataset.sup, 1); dessinerLieux(); });
+    };
+    const ajouterLieu = (lat, lng) => {
+      if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180)) { $("#perr", d).textContent = "Position introuvable."; return; }
+      if (lieux.length >= 10) { $("#perr", d).textContent = "10 adresses au maximum."; return; }
+      lieux.push({ lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 }); $("#perr", d).textContent = ""; dessinerLieux();
+    };
+    const lireCoord = t => {
+      t = decodeURIComponent(String(t || ""));
+      const m = t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || t.match(/[?&](?:q|query|ll|destination)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/) || t.match(/^\s*(-?\d+\.\d+)\s*[, ]\s*(-?\d+\.\d+)\s*$/);
+      return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
+    };
+    dessinerLieux();
+    $("#p-ici", d).onclick = () => {
+      if (!navigator.geolocation) { $("#perr", d).textContent = "Ce téléphone ne donne pas sa position."; return; }
+      const b = $("#p-ici", d); b.disabled = true; b.textContent = "📍 Recherche…";
+      navigator.geolocation.getCurrentPosition(pos => { b.disabled = false; b.textContent = "📍 Je suis au commerce"; ajouterLieu(pos.coords.latitude, pos.coords.longitude); },
+        () => { b.disabled = false; b.textContent = "📍 Je suis au commerce"; $("#perr", d).textContent = "Position refusée : autorisez la localisation pour ce site, ou collez un lien Maps."; },
+        { enableHighAccuracy: true, timeout: 15000 });
+    };
+    $("#p-lieu-plus", d).onclick = () => {
+      const zone = document.createElement("div"); zone.className = "stack"; zone.style.gap = "6px";
+      zone.innerHTML = `<input type="text" placeholder="Lien Google Maps (ordinateur) ou 34.26101, -6.58022" autocapitalize="off"><button type="button" class="btn sm primary">Ajouter</button><div class="muted" style="font-size:12px">Les liens courts « maps.app.goo.gl » ne contiennent pas la position : ouvrez-le, puis copiez le lien long, ou touchez « Je suis au commerce » sur place.</div>`;
+      $("#p-lieu-plus", d).closest(".grid2").after(zone); $("#p-lieu-plus", d).disabled = true;
+      zone.querySelector("button").onclick = () => { const c = lireCoord(zone.querySelector("input").value); if (!c) { $("#perr", d).textContent = "Aucune position dans ce lien."; return; } ajouterLieu(c[0], c[1]); zone.remove(); $("#p-lieu-plus", d).disabled = false; };
     };
     $("#pf", d).onsubmit = async e => {
       e.preventDefault();
@@ -301,8 +341,12 @@
         primeEmploye: $("#p-prime", d).value.trim(), actif: $("#p-actif", d).checked, maj: NOW(),
         prix: parseInt($("#p-prix", d).value, 10) || 0, periode: $("#p-per", d).value, guide: $("#p-guide", d).value.trim().slice(0, 400),
         lienAvis: /^https:\/\//.test($("#p-avis", d).value.trim()) ? $("#p-avis", d).value.trim() : "",
-        cadeauAnniv: $("#p-anniv", d).value.trim().slice(0, 80), annivAuto: $("#p-anniv-auto", d).checked
+        cadeauAnniv: $("#p-anniv", d).value.trim().slice(0, 80), annivAuto: $("#p-anniv-auto", d).checked,
+        lieux, lieuTexte: $("#p-lieu-txt", d).value.trim().slice(0, 80), logoPng
       };
+      // ancien logo sans version PNG : on la fabrique maintenant (Apple Wallet)
+      if (logoData && !logoPng) { try { const b = await (await fetch(logoData)).blob(); data.logoPng = (await lireLogo(new File([b], "logo", { type: b.type }))).png; } catch (x) {} }
+      if (!logoData) data.logoPng = "";
       if (!data.ownerEmail) { $("#perr", d).textContent = "Indiquez l’e-mail du compte du commerçant."; return; }
       if ($("#p-essai", d).checked) {
         const fin = $("#p-essai-fin", d).value || jourPlus(7);
