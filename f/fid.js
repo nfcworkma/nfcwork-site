@@ -58,6 +58,9 @@
   // Google Wallet (serveur nfcwork-wallet) : bouton « Ajouter » + mise à jour des points
   const WALLET = String(window.NFCW_WALLET || "").replace(/\/+$/, "");
   const IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  // Apple Wallet : le bouton n'apparaît que quand le serveur est configuré (certificat Apple en place)
+  let APPLE = false;
+  if (WALLET && IOS) fetch(WALLET + "/apple/etat").then(r => r.json()).then(j => { if (j && j.pret) { APPLE = true; if (carte && prog && app.querySelector(".qrbox") && !app.querySelector(".awallet")) rendreCarte(); } }).catch(() => {});
   const walletSync = cid => { if (WALLET && cid) fetch(WALLET + "/google/sync?c=" + encodeURIComponent(cid), { mode: "no-cors", keepalive: true }).catch(() => {}); };
   const moisCle = d => String((d || new Date()).getUTCFullYear() * 100 + (d || new Date()).getUTCMonth() + 1);
 
@@ -136,7 +139,8 @@
       <div class="qrbox">${window.QRGEN.svg(SITE + "/f/?c=" + c.id, { marge: 1 })}<small>${p.modeClient === "caisse" ? "Code de votre carte (pour la récompense)" : "Montrez ce code à la caisse"}</small></div>
       <p class="tip">${esc(regle(p))}${p.guide ? "<br>" + p.guide.split(/\n+/).filter(Boolean).map(esc).join(" · ") : ""}</p>
       ${WALLET && !IOS ? `<a class="gwallet" href="${WALLET}/google/save?c=${encodeURIComponent(c.id)}" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="15" rx="3" fill="#fff" opacity=".18"/><path d="M4 9h16M4 13h16" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M4 17h9" stroke="#4285f4" stroke-width="2.4" stroke-linecap="round"/></svg><span>Ajouter à <b>Google Wallet</b></span></a>` : ""}
-      <p class="tip">📲 Gardez votre carte : ${IOS ? "<b>Partager</b> → <b>Sur l’écran d’accueil</b>" : WALLET ? "touchez <b>Ajouter à Google Wallet</b> : elle reste dans votre téléphone avec le logo" : "<b>⋮</b> → <b>Ajouter à l’écran d’accueil</b>"}.</p>
+      ${WALLET && IOS && APPLE ? `<a class="gwallet awallet" href="${WALLET}/apple/pass?c=${encodeURIComponent(c.id)}" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="3.5" fill="#fff" opacity=".2"/><rect x="2" y="8" width="20" height="3" fill="#ff9f0a"/><rect x="2" y="11" width="20" height="3" fill="#30d158"/><rect x="2" y="14" width="20" height="3" fill="#0a84ff"/></svg><span>Ajouter à <b>Apple Wallet</b></span></a>` : ""}
+      <p class="tip">📲 Gardez votre carte : ${IOS && APPLE ? "touchez <b>Ajouter à Apple Wallet</b> : elle reste dans votre iPhone avec le logo" : IOS ? "<b>Partager</b> → <b>Sur l’écran d’accueil</b>" : WALLET ? "touchez <b>Ajouter à Google Wallet</b> : elle reste dans votre téléphone avec le logo" : "<b>⋮</b> → <b>Ajouter à l’écran d’accueil</b>"}.</p>
       ${pro ? `<div class="pro"><b>Espace commerçant</b><a class="btn primary" href="/espace/fidelite.html#c=${esc(c.id)}">Ouvrir cette carte (ajouter des points)</a></div>` : ""}
       ${pied}`;
   }

@@ -8,7 +8,16 @@
      GOOGLE_SA   (secret)  TOUT le contenu du fichier .json du compte de service
    Aucun secret dans ce fichier : il peut être public.
 
+   Apple Wallet (compte Apple Developer) — Settings → Variables and Secrets :
+     APPLE_PASS_TYPE (texte)   ex. pass.ma.nfcwork.fidelite   (le Pass Type ID créé chez Apple)
+     APPLE_TEAM_ID   (texte)   le Team ID (10 caractères, page Membership)
+     APPLE_CERT      (secret)  le certificat Pass Type ID en PEM (-----BEGIN CERTIFICATE-----)
+     APPLE_KEY       (secret)  sa clé privée en PEM PKCS#8 (-----BEGIN PRIVATE KEY-----)
+     APPLE_WWDR      (secret)  le certificat Apple WWDR G4 en PEM
+
    Adresses :
+     GET  /apple/pass?c=<carte>      → la carte en fichier .pkpass (s'ouvre dans Apple Wallet)
+     GET  /apple/etat                → { pret: true } quand Apple Wallet est configuré
      GET  /google/save?c=<carte>     → ajoute la carte dans Google Wallet (redirige vers Google)
      GET  /google/sync?c=<carte>     → met à jour les points dans Wallet (lit la vraie carte dans Firebase)
      POST /google/message            → notification à tous les clients du programme (commerçant connecté), offre datée possible (fin)
@@ -32,10 +41,12 @@ export default {
       if (url.pathname === "/google/message" && req.method === "POST") return json(await message(req, env));
       if (url.pathname === "/google/notify" && req.method === "POST") return json(await notifier(req, env));
       if (url.pathname.startsWith("/logo/")) return await logo(url.pathname.slice(6));
+      if (url.pathname === "/apple/pass") return await applePass(url, env);
+      if (url.pathname === "/apple/etat") return json({ ok: true, pret: appleConfig(env, true) });
       return json({ ok: true, service: "nfcwork-wallet" });
     } catch (e) {
       const m = String(e && e.message || e);
-      if (url.pathname === "/google/save") return page("Impossible d’ajouter la carte", "Réessayez dans un instant. (" + m.slice(0, 120) + ")");
+      if (url.pathname === "/google/save" || url.pathname === "/apple/pass") return page("Impossible d’ajouter la carte", "Réessayez dans un instant. (" + m.slice(0, 120) + ")");
       return json({ ok: false, erreur: m }, e.status || 500);
     }
   },
@@ -278,4 +289,151 @@ async function logo(pid) {
   if (m) return new Response(Uint8Array.from(atob(m[2]), ch => ch.charCodeAt(0)), { headers: { "Content-Type": m[1], "Cache-Control": "public, max-age=3600" } });
   if (p && /^https:\/\//.test(p.logo || "")) return Response.redirect(p.logo, 302);
   return Response.redirect(SITE + "/assets/img/icons/icon-512.png", 302);
+}
+
+/* =========================================================
+   🍎 APPLE WALLET — la carte en .pkpass
+   Un .pkpass = un zip : pass.json + images + manifest.json (SHA-1 de chaque fichier)
+   + signature (PKCS#7 détachée du manifest, signée par le certificat Pass Type ID).
+   Tout est fait ici à la main (DER + zip) : aucune librairie, le Worker reste un seul fichier.
+   ========================================================= */
+function appleConfig(env, juste) {
+  const ok = !!(env.APPLE_PASS_TYPE && env.APPLE_TEAM_ID && env.APPLE_CERT && env.APPLE_KEY && env.APPLE_WWDR);
+  if (juste) return ok;
+  if (!ok) throw err("Apple Wallet pas encore configuré (APPLE_PASS_TYPE, APPLE_TEAM_ID, APPLE_CERT, APPLE_KEY, APPLE_WWDR)", 503);
+}
+const pemDer = pem => {
+  const b = String(pem || "").replace(/-----[^-]+-----/g, "").replace(/\\n/g, "").replace(/\s+/g, "");
+  return Uint8Array.from(atob(b), ch => ch.charCodeAt(0));
+};
+const hex = n => n.toString(16).padStart(2, "0");
+const rgb = h => { const x = /^#([0-9a-f]{6})$/i.exec(h) ? h.slice(1) : "1e90ff"; return [0, 2, 4].map(i => parseInt(x.slice(i, i + 2), 16)); };
+const rgbTxt = a => `rgb(${a[0]},${a[1]},${a[2]})`;
+const clair = a => (0.299 * a[0] + 0.587 * a[1] + 0.114 * a[2]) > 170;
+
+/* --- DER (ASN.1) minimal --- */
+const cat = (...l) => { const n = l.reduce((s, x) => s + x.length, 0), o = new Uint8Array(n); let i = 0; for (const x of l) { o.set(x, i); i += x.length; } return o; };
+function derLen(n) { if (n < 128) return Uint8Array.of(n); const b = []; while (n > 0) { b.unshift(n & 255); n >>= 8; } return Uint8Array.of(0x80 | b.length, ...b); }
+const tlv = (tag, ...c) => { const v = cat(...c); return cat(Uint8Array.of(tag), derLen(v.length), v); };
+const SEQ = (...c) => tlv(0x30, ...c), SET = (...c) => tlv(0x31, ...c);
+const INT = n => tlv(0x02, Uint8Array.of(n));
+const NUL = Uint8Array.of(0x05, 0x00);
+function OID(s) {
+  const p = s.split(".").map(Number), o = [40 * p[0] + p[1]];
+  for (const v of p.slice(2)) { const b = [v & 127]; let x = v >> 7; while (x > 0) { b.unshift(0x80 | (x & 127)); x >>= 7; } o.push(...b); }
+  return tlv(0x06, Uint8Array.from(o));
+}
+// lit un élément DER : { tag, debut du contenu, fin, octets bruts }
+function derLire(b, i) {
+  const tag = b[i]; let l = b[i + 1], j = i + 2;
+  if (l & 0x80) { const k = l & 127; l = 0; for (let t = 0; t < k; t++) l = (l << 8) | b[j + t]; j += k; }
+  return { tag, c: j, f: j + l, brut: b.slice(i, j + l) };
+}
+// émetteur + numéro de série du certificat (pour dire « qui signe »)
+function certId(der) {
+  const cert = derLire(der, 0), tbs = derLire(der, cert.c);
+  let x = derLire(der, tbs.c);
+  if (x.tag === 0xa0) x = derLire(der, x.f);          // version (optionnelle)
+  const serie = x.brut; x = derLire(der, x.f);        // serialNumber
+  x = derLire(der, x.f);                              // signature (algo) → l'émetteur suit
+  return { serie, emetteur: x.brut };
+}
+function utcTime(d) {
+  const p = n => String(n).padStart(2, "0");
+  return tlv(0x17, new TextEncoder().encode(p(d.getUTCFullYear() % 100) + p(d.getUTCMonth() + 1) + p(d.getUTCDate()) + p(d.getUTCHours()) + p(d.getUTCMinutes()) + p(d.getUTCSeconds()) + "Z"));
+}
+const cmpBytes = (a, b) => { for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i] - b[i]; return a.length - b.length; };
+
+let APPLE_CLE = null;
+async function signerManifest(env, manifest) {
+  const cert = pemDer(env.APPLE_CERT), wwdr = pemDer(env.APPLE_WWDR);
+  if (!APPLE_CLE) APPLE_CLE = await crypto.subtle.importKey("pkcs8", pemDer(env.APPLE_KEY), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+  const sha256 = SEQ(OID("2.16.840.1.101.3.4.2.1"), NUL);
+  const empreinte = new Uint8Array(await crypto.subtle.digest("SHA-256", manifest));
+  const attrs = [
+    SEQ(OID("1.2.840.113549.1.9.3"), SET(OID("1.2.840.113549.1.7.1"))),      // contentType = data
+    SEQ(OID("1.2.840.113549.1.9.5"), SET(utcTime(new Date()))),               // signingTime
+    SEQ(OID("1.2.840.113549.1.9.4"), SET(tlv(0x04, empreinte)))               // messageDigest
+  ].sort(cmpBytes);                                                           // SET OF en DER : trié
+  const aSigner = SET(...attrs);
+  const sig = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", APPLE_CLE, aSigner));
+  const { serie, emetteur } = certId(cert);
+  const signerInfo = SEQ(INT(1), SEQ(emetteur, serie), sha256, tlv(0xa0, ...attrs), SEQ(OID("1.2.840.113549.1.1.1"), NUL), tlv(0x04, sig));
+  const signedData = SEQ(INT(1), SET(sha256), SEQ(OID("1.2.840.113549.1.7.1")), tlv(0xa0, cert, wwdr), SET(signerInfo));
+  return SEQ(OID("1.2.840.113549.1.7.2"), tlv(0xa0, signedData));
+}
+
+/* --- zip (sans compression) --- */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = d => { let c = 0xffffffff; for (let i = 0; i < d.length; i++) c = CRC[(c ^ d[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+function zip(fichiers) {
+  const u16 = n => Uint8Array.of(n & 255, (n >> 8) & 255), u32 = n => Uint8Array.of(n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255);
+  const locaux = [], centraux = []; let pos = 0;
+  for (const [nom, data] of fichiers) {
+    const n = new TextEncoder().encode(nom), c = crc32(data);
+    const commun = cat(u16(20), u16(0), u16(0), u16(0), u16(0x21), u32(c), u32(data.length), u32(data.length), u16(n.length), u16(0));
+    const local = cat(u32(0x04034b50), commun, n, data);
+    centraux.push(cat(u32(0x02014b50), u16(20), commun, u16(0), u16(0), u16(0), u32(0), u32(pos), n));
+    locaux.push(local); pos += local.length;
+  }
+  const cd = cat(...centraux);
+  return cat(...locaux, cd, u32(0x06054b50), u16(0), u16(0), u16(fichiers.length), u16(fichiers.length), u32(cd.length), u32(pos), u16(0));
+}
+
+/* --- images : Apple Wallet n'accepte que le PNG --- */
+async function pngLogo(p) {
+  const m = String(p.logoData || "").match(/^data:image\/png;base64,(.+)$/);
+  if (m) return Uint8Array.from(atob(m[1]), ch => ch.charCodeAt(0));
+  if (/^https:\/\/.+\.png(\?|$)/i.test(p.logo || "")) { const r = await fetch(p.logo); if (r.ok) return new Uint8Array(await r.arrayBuffer()); }
+  return null;
+}
+let ICONE = null;
+async function pngIcone() {
+  if (ICONE) return ICONE;
+  const r = await fetch(SITE + "/assets/img/icons/icon-512.png");
+  if (!r.ok) throw err("icône NFCWORK introuvable", 502);
+  return (ICONE = new Uint8Array(await r.arrayBuffer()));
+}
+
+/* --- la carte --- */
+function passJson(env, c, p) {
+  const obj = Math.max(1, p.objectif || 10), pts = c.points || 0, u = unite(p), fond = rgb(couleur(p)), txt = clair(fond) ? [20, 20, 20] : [255, 255, 255];
+  const lien = SITE + "/f/?c=" + c.id;
+  return {
+    formatVersion: 1, passTypeIdentifier: env.APPLE_PASS_TYPE, teamIdentifier: env.APPLE_TEAM_ID,
+    serialNumber: "c-" + propre(c.id), organizationName: String(p.nom || "Commerce").slice(0, 60),
+    description: "Carte fidélité " + String(p.nom || "").slice(0, 60), logoText: String(p.nom || "").slice(0, 30),
+    backgroundColor: rgbTxt(fond), foregroundColor: rgbTxt(txt), labelColor: rgbTxt(txt),
+    storeCard: {
+      primaryFields: [{ key: "points", label: u.toUpperCase(), value: pts }],
+      secondaryFields: [
+        { key: "objectif", label: "OBJECTIF", value: pts >= obj ? "🎁 Récompense prête !" : `${pts} / ${obj}` },
+        { key: "client", label: "CLIENT", value: String(c.nom || "Client").slice(0, 40) }
+      ],
+      backFields: [
+        { key: "recompense", label: "Récompense", value: `${obj} ${u} = ${p.recompense || "une récompense"}` },
+        { key: "carte", label: "Ma carte", value: lien, attributedValue: `<a href="${lien}">Ouvrir ma carte</a>` },
+        { key: "nfcwork", label: "Carte fidélité digitale", value: "NFCWORK — nfcwork.ma" }
+      ]
+    },
+    barcodes: [{ format: "PKBarcodeFormatQR", message: lien, messageEncoding: "iso-8859-1" }]
+  };
+}
+async function construirePkpass(env, c, p) {
+  const enc = o => new TextEncoder().encode(typeof o === "string" ? o : JSON.stringify(o));
+  const icone = await pngIcone(), logoP = await pngLogo(p);
+  const fichiers = [["pass.json", enc(passJson(env, c, p))], ["icon.png", icone], ["icon@2x.png", icone]];
+  if (logoP) fichiers.push(["logo.png", logoP], ["logo@2x.png", logoP]);
+  const man = {};
+  for (const [n, d] of fichiers) man[n] = [...new Uint8Array(await crypto.subtle.digest("SHA-1", d))].map(hex).join("");
+  const manifest = enc(man);
+  fichiers.push(["manifest.json", manifest], ["signature", await signerManifest(env, manifest)]);
+  return zip(fichiers);
+}
+async function applePass(url, env) {
+  appleConfig(env);
+  const { c, p } = await carteEtProg(url.searchParams.get("c"));
+  if (p.actif === false) throw err("programme en pause", 403);
+  const f = await construirePkpass(env, c, p);
+  return new Response(f, { headers: { "Content-Type": "application/vnd.apple.pkpass", "Content-Disposition": `attachment; filename="carte-${propre(c.id, 12)}.pkpass"`, "Cache-Control": "no-store", ...cors() } });
 }
