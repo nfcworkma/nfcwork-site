@@ -320,14 +320,22 @@ exports.kiffySupprimerCompte = onCall({ region: REGION, maxInstances: 3 }, async
   return { ok: true, commerces: progs.size };
 });
 
-async function pushA(email, titre, texte) {
+// logo du commerce pour l'image de la notification (même adresse versionnée que Google Wallet)
+const vLogo = p => { const t = String(p.logoPng || p.logoData || p.logo || ""); let h = 5381; for (let i = 0; i < t.length; i += 7) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36); };
+const lienLogo = p => (p.logoPng || p.logoData) ? `${WORKER.value()}/logo/${nettoyer(p.id)}?v=${vLogo(p)}` : "";
+// titre = nom du commerce ; Android : message « data » (l'app met le logo en grande icône) ; iOS : logo joint par l'extension
+async function pushA(email, p, sujet, texte) {
   const s = await db.collection("kiffyAppareils").where("email", "==", String(email || "").toLowerCase()).get();
   if (s.empty) return 0;
-  const r = await admin.messaging().sendEachForMulticast({ tokens: s.docs.map(d => d.data().token), notification: { title: titre, body: texte },
-    apns: { payload: { aps: { sound: "default" } } }, android: { priority: "high", notification: { sound: "default", color: "#16C172" } } });
+  const titre = String(p.nom || "Kiffy").slice(0, 60), corps = `${sujet} · ${texte}`, logo = lienLogo(p);
+  const messages = s.docs.map(d => { const { token, plateforme } = d.data(); return plateforme === "ios"
+    ? { token, notification: { title: titre, body: corps }, apns: { payload: { aps: { sound: "default", mutableContent: true } }, ...(logo ? { fcmOptions: { imageUrl: logo } } : {}) } }
+    : { token, data: { kiffy_titre: titre, kiffy_texte: corps, kiffy_logo: logo }, android: { priority: "high" } }; });
+  const r = await admin.messaging().sendEach(messages);
   r.responses.forEach((x, i) => { if (!x.success && /not-registered|invalid-registration|invalid-argument/.test((x.error && x.error.code) || "")) s.docs[i].ref.delete().catch(() => {}); });
   return r.successCount;
 }
+const programme = async pid => { const d = await db.doc("fidProgrammes/" + nettoyer(pid)).get(); return d.exists ? { id: d.id, ...d.data() } : null; };
 // début de la journée au Maroc (pour les bilans)
 const debutJour = () => { const n = Date.now(), [h, m, s] = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Casablanca", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(n).split(":").map(Number); return n - ((h * 60 + m) * 60 + s) * 1000; };
 const prenomDe = nom => String(nom || "Un client").trim().split(/\s+/)[0];
@@ -335,27 +343,34 @@ const prenomDe = nom => String(nom || "Un client").trim().split(/\s+/)[0];
 // 🆕 un client vient de créer sa carte
 exports.kiffyPushInscription = onDocumentCreated({ document: "fidCartes/{cid}", region: REGION }, async ev => {
   const c = ev.data && ev.data.data(); if (!c || !c.ownerEmail) return;
-  const p = await db.doc("fidProgrammes/" + nettoyer(c.pid)).get();
-  await pushA(c.ownerEmail, "Nouveau client", `${prenomDe(c.nom)} vient de créer sa carte${p.exists ? " chez " + p.data().nom : ""}.`).catch(e => console.log("push inscription", e.message));
+  const p = await programme(c.pid); if (!p) return;
+  await pushA(c.ownerEmail, p, "Nouveau client", `${prenomDe(c.nom)} vient de créer sa carte.`).catch(e => console.log("push inscription", e.message));
 });
 
 // 🎂 le matin : les anniversaires du jour
 exports.kiffyPushMatin = onSchedule({ schedule: "5 9 * * *", timeZone: "Africa/Casablanca", region: REGION }, async () => {
   const j = new Date().toLocaleDateString("fr-CA", { timeZone: "Africa/Casablanca" }).slice(5);
   const s = await db.collection("fidCartes").where("anniv", "==", j).get(), par = {};
-  s.docs.forEach(d => { const c = d.data(); if (c.ownerEmail) (par[c.ownerEmail] = par[c.ownerEmail] || []).push(prenomDe(c.nom)); });
-  for (const [email, L] of Object.entries(par)) await pushA(email, `${L.length} anniversaire${L.length > 1 ? "s" : ""} aujourd’hui`, L.slice(0, 4).join(", ") + (L.length > 4 ? "…" : "") + " · le message part tout seul dans leur Wallet.").catch(e => console.log("push matin", e.message));
+  s.docs.forEach(d => { const c = d.data(); if (c.pid) (par[c.pid] = par[c.pid] || []).push(prenomDe(c.nom)); });
+  for (const [pid, L] of Object.entries(par)) {
+    const p = await programme(pid); if (!p || p.actif === false || !p.ownerEmail) continue;
+    await pushA(p.ownerEmail, p, `${L.length} anniversaire${L.length > 1 ? "s" : ""} aujourd’hui`, L.slice(0, 4).join(", ") + (L.length > 4 ? "…" : "") + (p.annivAuto !== false ? " · le message part tout seul dans leur Wallet." : "")).catch(e => console.log("push matin", e.message));
+  }
 });
 
 // 🌙 le soir : bilan de la journée (seulement s'il s'est passé quelque chose)
 exports.kiffyPushSoir = onSchedule({ schedule: "0 20 * * *", timeZone: "Africa/Casablanca", region: REGION }, async () => {
   const t0 = debutJour(), emails = new Set((await db.collection("kiffyAppareils").get()).docs.map(d => d.data().email).filter(Boolean));
   for (const email of emails) {
+    const progs = await db.collection("fidProgrammes").where("ownerEmail", "==", email).get();
     const s = await db.collection("fidCartes").where("ownerEmail", "==", email).get();
-    let visites = 0, nouveaux = 0, cadeaux = 0;
-    s.docs.forEach(d => { const c = d.data(); if (c.createdAt && c.createdAt.toMillis() >= t0) nouveaux++; (c.hist || []).forEach(h => { if (h.t >= t0) { if (h.a === "visite") visites++; else if (h.a === "cadeau") cadeaux++; } }); });
-    if (!visites && !nouveaux) continue;
-    const bouts = [`${visites} visite${visites > 1 ? "s" : ""}`, nouveaux ? `${nouveaux} nouveau${nouveaux > 1 ? "x" : ""} client${nouveaux > 1 ? "s" : ""}` : "", cadeaux ? `${cadeaux} cadeau${cadeaux > 1 ? "x" : ""} offert${cadeaux > 1 ? "s" : ""}` : ""].filter(Boolean);
-    await pushA(email, "Bilan du jour", bouts.join(" · ")).catch(e => console.log("push soir", e.message));
+    for (const pd of progs.docs) {
+      const p = { id: pd.id, ...pd.data() }; if (p.actif === false) continue;
+      let visites = 0, nouveaux = 0, cadeaux = 0;
+      s.docs.forEach(d => { const c = d.data(); if (c.pid !== p.id) return; if (c.createdAt && c.createdAt.toMillis() >= t0) nouveaux++; (c.hist || []).forEach(h => { if (h.t >= t0) { if (h.a === "visite") visites++; else if (h.a === "cadeau") cadeaux++; } }); });
+      if (!visites && !nouveaux) continue;
+      const bouts = [`${visites} visite${visites > 1 ? "s" : ""}`, nouveaux ? `${nouveaux} nouveau${nouveaux > 1 ? "x" : ""} client${nouveaux > 1 ? "s" : ""}` : "", cadeaux ? `${cadeaux} cadeau${cadeaux > 1 ? "x" : ""} offert${cadeaux > 1 ? "s" : ""}` : ""].filter(Boolean);
+      await pushA(email, p, "Bilan du jour", bouts.join(" · ")).catch(e => console.log("push soir", e.message));
+    }
   }
 });
