@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Kiffy Pro · Scanner</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0A0A0A; display: flex; flex-direction: column; overflow: hidden; position: relative">
+<div style="padding: 54px 20px 0; display: flex; align-items: center; justify-content: space-between">
+<a href="Accueil.dc.html" aria-label="Retour" style="width: 42px; height: 42px; border-radius: 21px; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></a>
+<span style="font-size: 16px; font-weight: 700; color: #FFFFFF">Ajouter une visite</span>
+<span style="width: 42px"></span>
+</div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 0 24px">
+<div style="width: 264px; height: 264px; position: relative; border-radius: 28px; background: radial-gradient(circle at 50% 45%, #2A2F2C, #121413)">
+<svg width="264" height="264" viewBox="0 0 264 264" aria-hidden="true" style="position: absolute; inset: 0"><g fill="none" stroke="#16C172" stroke-width="6" stroke-linecap="round"><path d="M4 50V24A20 20 0 0 1 24 4h26"/><path d="M214 4h26a20 20 0 0 1 20 20v26"/><path d="M260 214v26a20 20 0 0 1-20 20h-26"/><path d="M50 260H24A20 20 0 0 1 4 240v-26"/></g><path d="M30 132h204" stroke="#16C172" stroke-width="3" stroke-opacity="0.8"/></svg>
+</div>
+<div style="text-align: center"><div style="font-size: 19px; font-weight: 800; color: #FFFFFF">Scannez la carte du client</div><div style="font-size: 14px; color: #A9B3AD; margin-top: 6px">Le QR de sa carte Kiffy, dans son Wallet</div></div>
+<div style="display: flex; align-items: center; gap: 12px; width: 100%; color: #6C7570; font-size: 12px"><span style="flex: 1; height: 1px; background: #2A2F2C"></span>OU<span style="flex: 1; height: 1px; background: #2A2F2C"></span></div>
+<a href="Client.dc.html" style="text-decoration: none; box-sizing: border-box; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: #16C172; border: 0; border-radius: 18px; padding: 16px; font-size: 16px; font-weight: 800; color: #0A0A0A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8.5q2 3.5 0 7"/><path d="M10 6q4 6 0 12"/><path d="M14 3.5q6 8.5 0 17"/></svg>Lire la carte en NFC</a>
+<button style="width: 100%; background: transparent; border: 1px solid #2E3431; border-radius: 18px; padding: 14px; font-size: 15px; font-weight: 600; color: #FFFFFF">Chercher par nom ou téléphone</button>
+</div>
+<div style="height: 40px"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{{"$preview":{{"width":390,"height":844}}}}'>
+class Component extends DCLogic {{
+renderVals() {{ return {{}}; }}
+}}
+</script>
+</body>
+</html>

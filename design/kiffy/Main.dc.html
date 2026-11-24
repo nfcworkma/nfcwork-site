@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Kiffy logos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif}
+</style>
+</helmet>
+<div style="width: 1240px; height: 720px; box-sizing: border-box; padding: 56px; background: #F4F7F5; display: flex; flex-direction: column; gap: 32px">
+<div style="display: flex; justify-content: space-between; align-items: flex-end">
+<div>
+<div style="font-size: 13px; letter-spacing: 2px; font-weight: 600; color: #4B6358">KIFFY · BY NFC WORK</div>
+<h1 style="margin: 6px 0 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 40px; font-weight: 800; color: #0A0A0A">Trois pistes de logo : blanc, vert, écriture noire</h1>
+</div>
+<div style="font-size: 15px; color: #4B6358">Kiffe ton spot, il te le rend.</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; flex-grow: 1">
+
+<div style="background: #FFFFFF; border-radius: 24px; display: flex; flex-direction: column; overflow: hidden">
+<div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; gap: 10px">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 96px; letter-spacing: -4px; color: #0A0A0A">kiffy</span>
+<svg width="44" height="56" viewBox="0 0 44 56" aria-hidden="true" style="margin-top: -40px"><path d="M6 14a24 24 0 0 1 0 28" fill="none" stroke="{{green}}" stroke-width="5" stroke-linecap="round"/><path d="M18 6a36 36 0 0 1 0 44" fill="none" stroke="{{green}}" stroke-width="5" stroke-linecap="round"/><path d="M30 0a46 46 0 0 1 0 56" fill="none" stroke="{{green}}" stroke-width="5" stroke-linecap="round" opacity="0.45"/></svg>
+</div>
+<div style="padding: 20px 24px; border-top: 1px solid #E3EAE6">
+<div style="font-weight: 600; color: #0A0A0A">A · Wordmark + ondes NFC</div>
+<div style="font-size: 14px; color: #4B6358; margin-top: 4px">Le nom seul, les ondes disent « approchez le téléphone ».</div>
+</div>
+</div>
+
+<div style="background: #FFFFFF; border-radius: 24px; display: flex; flex-direction: column; overflow: hidden">
+<div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px">
+<div style="width: 150px; height: 150px; border-radius: 40px; background: {{green}}; display: flex; align-items: center; justify-content: center; position: relative">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 108px; line-height: 1; color: #FFFFFF; margin-top: -10px">k</span>
+<svg width="30" height="40" viewBox="0 0 30 40" aria-hidden="true" style="position: absolute; right: 20px; top: 18px"><path d="M4 10a14 14 0 0 1 0 20" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/><path d="M14 4a24 24 0 0 1 0 32" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.6"/></svg>
+</div>
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 44px; letter-spacing: -1.5px; color: #0A0A0A">kiffy</span>
+</div>
+<div style="padding: 20px 24px; border-top: 1px solid #E3EAE6">
+<div style="font-weight: 600; color: #0A0A0A">B · Icône « k » + nom</div>
+<div style="font-size: 14px; color: #4B6358; margin-top: 4px">L’icône marche seule : app, Wallet, Instagram, autocollant.</div>
+</div>
+</div>
+
+<div style="background: {{green}}; border-radius: 24px; display: flex; flex-direction: column; overflow: hidden">
+<div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center">
+<span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 96px; letter-spacing: -4px; line-height: 1; color: #0A0A0A">kiffy</span>
+<svg width="150" height="34" viewBox="0 0 150 34" aria-hidden="true" style="margin-top: 4px; margin-left: 70px"><path d="M6 6c30 28 108 28 138 0" fill="none" stroke="#0A0A0A" stroke-width="7" stroke-linecap="round"/></svg>
+</div>
+<div style="padding: 20px 24px; border-top: 1px solid rgba(0,0,0,0.15)">
+<div style="font-weight: 600; color: #0A0A0A">C · Noir sur vert + sourire</div>
+<div style="font-size: 14px; color: #0A2A1A; margin-top: 4px">Le sourire sous « ffy » : le client qui kiffe. Fort sur la plaque.</div>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"green":{"editor":"color","default":"#16C172","options":["#16C172","#12B76A","#0E9F5B","#1DB954"]},"$preview":{"width":1240,"height":720}}'>
+class Component extends DCLogic {
+renderVals() {
+return { green: this.props.green ?? '#16C172' };
+}
+}
+</script>
+</body>
+</html>

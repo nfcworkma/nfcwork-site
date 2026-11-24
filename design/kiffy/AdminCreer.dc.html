@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Kiffy Admin · Nouveau commerce</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 2900px; box-sizing: border-box; background: #F4F7F5; display: flex; flex-direction: column">
+<div style="position: sticky; top: 0; z-index: 2; background: #F4F7F5; padding: 54px 16px 12px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 12px"><a href="AdminAccueil.dc.html" aria-label="Retour" style="width: 42px; height: 42px; border-radius: 21px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a><span style="font-size: 16px; font-weight: 700; color: #0A0A0A">Nouveau commerce</span><span style="margin-left: auto; font-size: 12px; font-weight: 700; color: #0E8A51">Aperçu en direct</span></div>
+<div style="border-radius: 18px; overflow: hidden; box-shadow: 0 10px 26px rgba(10,10,10,0.18); background: {{col}}">
+<div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px">
+<span style="width: 34px; height: 34px; border-radius: 9px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: #0A0A0A">{{initiale}}</span>
+<b style="flex: 1; font-size: 15px; color: {{ink}}">{{nom}}</b>
+<span style="text-align: right; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; color: {{ink}}">{{uniteMaj}}<span style="display: block; font-size: 16px; font-weight: 600">7 / {{obj}}</span></span>
+</div>
+<div style="height: 110px; position: relative; background: {{col}}">
+<sc-if value="{{hasPhoto}}" hint-placeholder-val="{{ true }}"><img src="{{photo}}" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover"></sc-if>
+<div style="position: absolute; inset: 0; background: {{col}}; opacity: {{voile}}"></div>
+<div style="position: absolute; inset: 0; padding: 12px 14px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; align-content: center">
+<sc-for list="{{stamps}}" as="s" hint-placeholder-count="10"><span style="aspect-ratio: 1; border-radius: 50%; background: {{s.bg}}; border: {{s.bd}}; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: {{s.fg}}">{{s.t}}</span></sc-for>
+</div>
+</div>
+<div style="display: flex; justify-content: space-between; padding: 10px 14px 12px; font-size: 12px; color: {{ink}}"><span><span style="display: block; font-size: 9.5px; font-weight: 700; opacity: 0.8">RÉCOMPENSE</span><b>{{rec}}</b></span><span style="text-align: right"><span style="display: block; font-size: 9.5px; font-weight: 700; opacity: 0.8">IL VOUS MANQUE</span><b>3 {{unite}}</b></span></div>
+</div>
+</div>
+
+<div style="padding: 4px 16px 40px; display: flex; flex-direction: column; gap: 12px">
+
+<section style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<b style="font-size: 15px; color: #0A0A0A">1 · Le commerce</b>
+<div style="display: flex; gap: 12px; align-items: center"><button style="width: 64px; height: 64px; border-radius: 16px; border: 2px dashed #8A938E; background: #F4F7F5; font-size: 11px; font-weight: 700; color: #5B665F">+ Logo</button><label style="flex: 1; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: #0A0A0A">Nom<input value="Café des Amis" style="border: 1px solid #D5DED9; border-radius: 12px; padding: 11px; font-size: 15px; font-family: inherit; color: #0A0A0A"></label></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: #0A0A0A">Ville<input value="Kénitra" style="border: 1px solid #D5DED9; border-radius: 12px; padding: 11px; font-size: 15px; font-family: inherit; color: #0A0A0A"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: #0A0A0A">Téléphone<input placeholder="06…" style="border: 1px solid #D5DED9; border-radius: 12px; padding: 11px; font-size: 15px; font-family: inherit; color: #0A0A0A"></label>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: #0A0A0A">E-mail du gérant<input placeholder="gerant@commerce.ma" style="border: 1px solid #D5DED9; border-radius: 12px; padding: 11px; font-size: 15px; font-family: inherit; color: #0A0A0A"></label>
+</section>
+
+<section style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<b style="font-size: 15px; color: #0A0A0A">2 · Métier <span style="font-weight: 500; color: #5B665F">(photo et récompense proposées)</span></b>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{metiers}}" as="m" hint-placeholder-count="22"><button onClick="{{m.pick}}" style="border: {{m.bd}}; background: {{m.bg}}; border-radius: 14px; padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; color: {{m.fg}}"><span style="font-size: 20px">{{m.ico}}</span>{{m.nom}}</button></sc-for>
+</div>
+</section>
+
+<section style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<b style="font-size: 15px; color: #0A0A0A">3 · Couleur de la carte</b>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{colors}}" as="c" hint-placeholder-count="18"><button onClick="{{c.pick}}" aria-label="Couleur {{c.hex}}" style="aspect-ratio: 1; border-radius: 50%; border: 0; background: {{c.hex}}; box-shadow: {{c.ring}}"></button></sc-for>
+</div>
+<div style="display: flex; gap: 8px"><button style="flex: 1; border: 1px solid #D5DED9; background: #FFFFFF; border-radius: 12px; padding: 10px; font-size: 13px; font-weight: 700; color: #0A0A0A">🎨 Couleur du logo</button><button style="flex: 1; border: 1px solid #D5DED9; background: #FFFFFF; border-radius: 12px; padding: 10px; font-size: 13px; font-weight: 700; color: #0A0A0A">＃ Code couleur</button></div>
+</section>
+
+<section style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<b style="font-size: 15px; color: #0A0A0A">4 · Photo derrière les tampons</b>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{photos}}" as="p" hint-placeholder-count="6"><button onClick="{{p.pick}}" style="height: 62px; border-radius: 12px; border: 0; padding: 0; overflow: hidden; position: relative; background: #E6ECE8; box-shadow: {{p.ring}}"><sc-if value="{{p.has}}" hint-placeholder-val="{{ true }}"><img src="{{p.src}}" alt="" style="width: 100%; height: 100%; object-fit: cover; display: block"></sc-if><span style="position: absolute; left: 6px; bottom: 5px; font-size: 10.5px; font-weight: 800; color: #FFFFFF; text-shadow: 0 1px 3px rgba(0,0,0,0.6)">{{p.label}}</span></button></sc-for>
+</div>
+<button style="border: 2px dashed #8A938E; background: #F4F7F5; border-radius: 12px; padding: 12px; font-size: 13px; font-weight: 700; color: #0A0A0A">📷 Photo du commerce (la meilleure option)</button>
+</section>
+
+<section style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<b style="font-size: 15px; color: #0A0A0A">5 · Le programme</b>
+<div style="display: flex; background: #F4F7F5; border-radius: 12px; padding: 4px"><button onClick="{{setTampons}}" style="flex: 1; border: 0; border-radius: 9px; padding: 9px; font-size: 13px; font-weight: 700; background: {{tamponsBg}}; color: #0A0A0A">Tampons (visites)</button><button onClick="{{setPoints}}" style="flex: 1; border: 0; border-radius: 9px; padding: 9px; font-size: 13px; font-weight: 700; background: {{pointsBg}}; color: #0A0A0A">Points (montant)</button></div>
+<div style="font-size: 13px; font-weight: 700; color: #0A0A0A">Objectif</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{objs}}" as="o" hint-placeholder-count="6"><button onClick="{{o.pick}}" style="border: 0; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 700; background: {{o.bg}}; color: {{o.fg}}">{{o.n}}</button></sc-for></div>
+<div style="font-size: 13px; font-weight: 700; color: #0A0A0A">Récompense</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{recs}}" as="r" hint-placeholder-count="4"><button onClick="{{r.pick}}" style="border: 0; border-radius: 999px; padding: 8px 12px; font-size: 12.5px; font-weight: 700; background: {{r.bg}}; color: {{r.fg}}">{{r.t}}</button></sc-for></div>
+</section>
+
+<section style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 2px">
+<b style="font-size: 15px; color: #0A0A0A; margin-bottom: 8px">6 · Fonctions à activer</b>
+<sc-for list="{{opts}}" as="o" hint-placeholder-count="8"><button onClick="{{o.pick}}" style="display: flex; align-items: center; gap: 12px; border: 0; border-bottom: 1px solid #EEF2EF; background: #FFFFFF; padding: 11px 0; text-align: left"><span style="font-size: 20px; width: 26px">{{o.ico}}</span><span style="flex: 1"><b style="display: block; font-size: 14px; color: #0A0A0A">{{o.t}}</b><span style="font-size: 12px; color: #5B665F">{{o.d}}</span></span><span style="width: 44px; height: 26px; border-radius: 13px; background: {{o.track}}; position: relative; flex: none"><span style="position: absolute; top: 3px; left: {{o.knob}}; width: 20px; height: 20px; border-radius: 10px; background: #FFFFFF"></span></span></button></sc-for>
+</section>
+
+<section style="background: #FFFFFF; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<b style="font-size: 15px; color: #0A0A0A">7 · Abonnement et plaque</b>
+<div style="display: flex; justify-content: space-between; font-size: 14px; color: #0A0A0A"><span>Installation</span><b>299 DH</b></div>
+<div style="display: flex; justify-content: space-between; font-size: 14px; color: #0A0A0A"><span>Abonnement</span><b>149 DH / mois</b></div>
+<div style="display: flex; justify-content: space-between; font-size: 14px; color: #0A0A0A"><span>Offre fin d’année (3 mois inclus)</span><b>599 DH</b></div>
+<div style="display: flex; align-items: center; gap: 10px; background: #E6F8EE; border-radius: 14px; padding: 12px; margin-top: 4px"><span style="font-size: 20px">🪧</span><span style="flex: 1; font-size: 13.5px; color: #0A0A0A"><b>Plaque Kiffy</b> · scannez la plaque à installer</span><span style="font-size: 13px; font-weight: 800; color: #0E8A51">Scanner</span></div>
+</section>
+
+<button style="border: 0; border-radius: 20px; background: #0A0A0A; padding: 18px; font-size: 17px; font-weight: 800; color: #FFFFFF">Créer et envoyer l’accès au gérant</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2900}}'>
+const D = {"metiers": [{"ico": "✂️", "nom": "Barber", "rec": "La 9e coupe offerte", "u": "coupes", "ph": "/_blob/7f143552b61ed1cd8e340fb005a8b778"}, {"ico": "💅", "nom": "Beauté", "rec": "1 brushing offert", "u": "visites", "ph": ""}, {"ico": "☕", "nom": "Café", "rec": "1 café offert", "u": "visites", "ph": "/_blob/58263ae741fadc5bb9590757cb55e16f"}, {"ico": "🌯", "nom": "Snack", "rec": "1 sandwich offert", "u": "visites", "ph": "/_blob/f8ee6f0ea18797ab71fe2729fd635248"}, {"ico": "🍽️", "nom": "Restaurant", "rec": "-50 DH sur l’addition", "u": "repas", "ph": "/_blob/f8ee6f0ea18797ab71fe2729fd635248"}, {"ico": "🍕", "nom": "Pizzeria", "rec": "La 9e pizza offerte", "u": "pizzas", "ph": "/_blob/f8ee6f0ea18797ab71fe2729fd635248"}, {"ico": "🥐", "nom": "Pâtisserie", "rec": "1 gâteau offert", "u": "visites", "ph": ""}, {"ico": "🍦", "nom": "Glacier / Jus", "rec": "1 glace offerte", "u": "visites", "ph": ""}, {"ico": "👕", "nom": "Vêtements", "rec": "-20 % sur le prochain achat", "u": "achats", "ph": "/_blob/39ab3597569b6e45cddeb9db2d5894b9"}, {"ico": "🧺", "nom": "Pressing", "rec": "5 pièces nettoyées offertes", "u": "visites", "ph": ""}, {"ico": "🧖", "nom": "Hammam / Spa", "rec": "La 7e séance offerte", "u": "séances", "ph": ""}, {"ico": "🏋️", "nom": "Salle de sport", "rec": "Le 4e mois à -50 %", "u": "mois", "ph": ""}, {"ico": "💊", "nom": "Parapharmacie", "rec": "Bon d’achat de 30 DH", "u": "achats", "ph": ""}, {"ico": "🛒", "nom": "Épicerie", "rec": "Bon d’achat de 25 DH", "u": "achats", "ph": ""}, {"ico": "📱", "nom": "Téléphonie", "rec": "1 protection d’écran offerte", "u": "achats", "ph": ""}, {"ico": "🎮", "nom": "Gaming", "rec": "2 heures offertes", "u": "heures", "ph": "/_blob/658303fdd835f42e2f62bcb8f888e08e"}, {"ico": "🎱", "nom": "Billard", "rec": "1 partie offerte", "u": "parties", "ph": ""}, {"ico": "⚽", "nom": "Terrain / Padel", "rec": "Le 11e match offert", "u": "matchs", "ph": "/_blob/325b8e6672f276428e9864c48ef523a1"}, {"ico": "🏠", "nom": "Location", "rec": "La 6e location à -50 %", "u": "locations", "ph": ""}, {"ico": "🚗", "nom": "Lavage auto", "rec": "Le 6e lavage offert", "u": "lavages", "ph": ""}, {"ico": "🔧", "nom": "Garage", "rec": "La 5e vidange à -50 %", "u": "vidanges", "ph": ""}, {"ico": "✨", "nom": "Autre", "rec": "Une surprise offerte", "u": "visites", "ph": ""}], "colors": ["#16C172", "#0A0A0A", "#1C5FD4", "#0EA5E9", "#7C3AED", "#C026D3", "#DB2777", "#E11D48", "#C8453D", "#EA580C", "#F59E0B", "#EAB308", "#84CC16", "#0F766E", "#14532D", "#7A2048", "#78350F", "#64748B"], "photos": {"cafe": "/_blob/58263ae741fadc5bb9590757cb55e16f", "gaming": "/_blob/658303fdd835f42e2f62bcb8f888e08e", "terrain": "/_blob/325b8e6672f276428e9864c48ef523a1", "resto": "/_blob/f8ee6f0ea18797ab71fe2729fd635248", "barber": "/_blob/7f143552b61ed1cd8e340fb005a8b778", "vetement": "/_blob/39ab3597569b6e45cddeb9db2d5894b9"}};
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { m: 2, c: 0, ph: 0, obj: 10, type: 'tampons', rec: null, on: { wallet: true, anniv: true, relance: true, avis: false, employes: true, proche: true, promo: true, essai: false } }; }
+  renderVals() {
+    const s = this.state, m = D.metiers[s.m], col = D.colors[s.c];
+    const hex = col.replace('#', ''), r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+    const clair = 0.299 * r + 0.587 * g + 0.114 * b > 170, ink = clair ? '#0A0A0A' : '#FFFFFF';
+    const photoList = [{ label: 'Photo du métier', src: m.ph }, { label: 'Café', src: D.photos.cafe }, { label: 'Gaming', src: D.photos.gaming }, { label: 'Terrain', src: D.photos.terrain }, { label: 'Restaurant', src: D.photos.resto }, { label: 'Couleur unie', src: '' }];
+    const ph = photoList[s.ph] || photoList[0];
+    const recList = [m.rec, '1 boisson offerte', '-20 % sur la visite', 'Une surprise offerte'];
+    const rec = s.rec != null ? recList[s.rec] : m.rec;
+    const optDefs = [['wallet', '📲', 'Apple Wallet et Google Wallet', 'La carte dans le téléphone du client'], ['anniv', '🎂', 'Anniversaires automatiques', 'Message + cadeau le jour J'], ['relance', '😴', 'Relance des absents', 'Après 30 jours sans visite'], ['avis', '⭐', 'Avis Google = +1 point', 'Plus d’avis pour le commerce'], ['employes', '👥', 'Mode employé (codes PIN)', 'Les employés scannent, c’est tout'], ['proche', '📍', 'Carte à l’approche (iPhone)', 'S’affiche près du commerce'], ['promo', '📣', 'Messages promo', 'Offres envoyées à tous les clients'], ['essai', '🎁', 'Essai gratuit 7 jours', 'Avant le premier paiement']];
+    const stamps = Array.from({ length: Math.min(s.obj, 10) }, (_, i) => { const full = i < 7, last = i === Math.min(s.obj, 10) - 1; return { bg: full ? '#FFFFFF' : 'transparent', bd: full ? '0' : '2px dashed ' + (clair ? 'rgba(10,10,10,0.45)' : 'rgba(255,255,255,0.75)'), fg: clair && !full ? '#0A0A0A' : col, t: last ? '🎁' : (full ? '✓' : '') }; });
+    return {
+      col, ink, initiale: 'C', nom: 'Café des Amis', obj: s.obj, unite: m.u, uniteMaj: m.u.toUpperCase(), rec,
+      hasPhoto: !!ph.src, photo: ph.src, voile: ph.src ? 0.55 : 0, stamps,
+      metiers: D.metiers.map((x, i) => ({ ico: x.ico, nom: x.nom, bg: i === s.m ? '#0A0A0A' : '#F4F7F5', fg: i === s.m ? '#FFFFFF' : '#0A0A0A', bd: '0', pick: () => this.setState({ m: i, ph: 0, rec: null }) })),
+      colors: D.colors.map((x, i) => ({ hex: x, ring: i === s.c ? '0 0 0 3px #FFFFFF, 0 0 0 5px #0A0A0A' : 'none', pick: () => this.setState({ c: i }) })),
+      photos: photoList.map((x, i) => ({ label: x.label, src: x.src, has: !!x.src, ring: i === s.ph ? '0 0 0 3px #0A0A0A' : 'none', pick: () => this.setState({ ph: i }) })),
+      tamponsBg: s.type === 'tampons' ? '#FFFFFF' : 'transparent', pointsBg: s.type === 'points' ? '#FFFFFF' : 'transparent',
+      setTampons: () => this.setState({ type: 'tampons' }), setPoints: () => this.setState({ type: 'points' }),
+      objs: [5, 6, 8, 10, 12, 15].map(n => ({ n, bg: n === s.obj ? '#0A0A0A' : '#F4F7F5', fg: n === s.obj ? '#FFFFFF' : '#0A0A0A', pick: () => this.setState({ obj: n }) })),
+      recs: recList.map((t, i) => ({ t, bg: t === rec ? '#16C172' : '#F4F7F5', fg: '#0A0A0A', pick: () => this.setState({ rec: i }) })),
+      opts: optDefs.map(([k, ico, t, d]) => ({ ico, t, d, track: s.on[k] ? '#16C172' : '#D5DED9', knob: s.on[k] ? '21px' : '3px', pick: () => this.setState({ on: Object.assign({}, s.on, { [k]: !s.on[k] }) }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>
