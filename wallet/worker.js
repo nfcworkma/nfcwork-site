@@ -437,7 +437,7 @@ async function pngDecode(u8) {
   return out;
 }
 // le fond derrière les tampons : la photo du commerce, sinon celle de son métier
-const FONDS = { cafe: "cafe", location: "location", gaming: "billard", billard: "billard", terrain: "terrain", resto: "resto", pizzeria: "resto", snack: "resto", barber: "barber" };
+const FONDS = { gaming: "billard", cafe: "cafe", billard: "billard", terrain: "terrain", resto: "resto", snack: "snack", pizzeria: "pizzeria", barber: "barber", beaute: "beaute", hammam: "hammam", sport: "sport", lavage: "lavage", patisserie: "patisserie", glacier: "glacier", vetement: "vetement", location: "location", telephone: "telephone", garage: "garage" };   // vraies photos Unsplash (assets/wallet/CREDITS.md)
 async function photoFond(p) {
   try {
     const f = await lire("fidFonds/" + propre(p.id, 60)).catch(() => null);
@@ -520,7 +520,7 @@ function dessiner(fond, obj, pts, tampons, photo) {
 async function bandeau(p, c) {
   const obj = Math.max(1, p.objectif || 10), pts = Math.min(obj, c.points || 0), tampons = p.type !== "montant" && obj <= 20;
   const f = await photoFond(p);
-  const cle = `https://cache.nfcwork.ma/strip/v3/${couleur(p).slice(1)}/${obj}/${pts}/${tampons ? 1 : 0}/${f ? f.id : "0"}${f && f.id[0] === "p" ? "/" + propre(p.id, 40) : ""}`;
+  const cle = `https://cache.nfcwork.ma/strip/v4/${couleur(p).slice(1)}/${obj}/${pts}/${tampons ? 1 : 0}/${f ? f.id : "0"}${f && f.id[0] === "p" ? "/" + propre(p.id, 40) : ""}`;
   const cache = typeof caches !== "undefined" ? caches.default : null;
   if (cache) { const r = await cache.match(cle); if (r) return new Uint8Array(await r.arrayBuffer()); }
   const { W, H, b } = dessiner(rgb(couleur(p)), obj, pts, tampons, f && f.px);
