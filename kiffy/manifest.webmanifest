@@ -1,0 +1,17 @@
+{
+  "name": "Kiffy · NFC Work",
+  "short_name": "Kiffy",
+  "description": "La carte de fidélité de votre commerce, dans Apple Wallet et Google Wallet.",
+  "lang": "fr",
+  "start_url": "/kiffy/",
+  "scope": "/kiffy/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#16C172",
+  "theme_color": "#16C172",
+  "icons": [
+    { "src": "icones/kiffy-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icones/kiffy-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icones/kiffy-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

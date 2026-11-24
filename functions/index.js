@@ -8,7 +8,7 @@
    Secrets (firebase functions:secrets:set …) : APPLE_CERT, APPLE_KEY (PEM), APPLE_AUTH (même valeur que le Worker)
    Paramètres : APPLE_PASS_TYPE, WORKER (fichier .env de ce dossier)
    ========================================================= */
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret, defineString } = require("firebase-functions/params");
@@ -121,7 +121,7 @@ exports.appleCarte = onDocumentWritten({ document: "fidCartes/{cid}", region: RE
 exports.appleProgramme = onDocumentWritten({ document: "fidProgrammes/{pid}", region: REGION, secrets: [APPLE_CERT, APPLE_KEY] }, async ev => {
   const a = ev.data.before.exists ? ev.data.before.data() : null, n = ev.data.after.exists ? ev.data.after.data() : null;
   if (!a || !n) return;
-  const cle = x => JSON.stringify([x.nom, x.couleur, x.objectif, x.unite, x.recompense, x.logoPng, x.lieux, x.lieuTexte, x.annonce, x.actif]);
+  const cle = x => JSON.stringify([x.nom, x.couleur, x.objectif, x.unite, x.recompense, x.logoPng, x.lieux, x.lieuTexte, x.annonce, x.actif, x.fondMetier || ""]);
   if (cle(a) === cle(n)) return;
   const cartes = await db.collection("fidCartes").where("pid", "==", ev.params.pid).select().get();
   const ids = cartes.docs.map(d => d.id), regs = [];
@@ -200,4 +200,90 @@ exports.appleAnniversaires = onSchedule({ schedule: "0 9 * * *", timeZone: "Afri
     n++;
   }
   console.log("anniversaires Apple :", n);
+});
+
+/* ---------- 6) 📱 Kiffy (app du commerçant, /kiffy/) ---------- */
+const { FieldValue, Timestamp } = require("firebase-admin/firestore");
+// La personne connectée doit être le gérant du commerce (e-mail vérifié = ownerEmail) ou l'admin NFC Work.
+async function kiffyCommerce(auth, pid) {
+  if (!auth || !auth.token) throw new HttpsError("unauthenticated", "Connectez-vous d’abord.");
+  const mail = String(auth.token.email || "").toLowerCase(), verifie = auth.token.email_verified === true;
+  const ref = db.doc("fidProgrammes/" + nettoyer(pid)), snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "Commerce introuvable.");
+  const p = snap.data(), estAdmin = verifie && mail === ADMIN;
+  if (!estAdmin && !(verifie && mail === String(p.ownerEmail || "").toLowerCase())) throw new HttpsError("permission-denied", "Ce compte n’est pas celui du commerce.");
+  return { ref, p, estAdmin };
+}
+// même clé de mois que l'Espace et les règles Firestore (« 202611 »)
+const kiffyMois = () => { const d = new Date(); return String(d.getUTCFullYear() * 100 + d.getUTCMonth() + 1); };
+
+// +1 visite / cadeau offert / -1 point : seul chemin d'écriture de l'app Kiffy sur une carte
+exports.kiffyVisite = onCall({ region: REGION, maxInstances: 10 }, async req => {
+  if (!req.auth) throw new HttpsError("unauthenticated", "Connectez-vous d’abord.");
+  const { cid, eid, action = "visite", montant } = req.data || {};
+  if (!["visite", "cadeau", "retirer"].includes(action)) throw new HttpsError("invalid-argument", "Action inconnue.");
+  const cref = db.doc("fidCartes/" + nettoyer(cid)), c0 = await cref.get();
+  if (!c0.exists) throw new HttpsError("not-found", "Carte introuvable.");
+  const { ref: pref, p } = await kiffyCommerce(req.auth, c0.data().pid);
+  if (p.actif === false) throw new HttpsError("failed-precondition", "Ce commerce est en pause.");
+  let emp = null;
+  if (eid) {
+    const e = await db.doc("fidEmployes/" + nettoyer(eid)).get();
+    if (!e.exists || e.data().pid !== pref.id || e.data().actif === false) throw new HttpsError("invalid-argument", "Employé inconnu.");
+    emp = { id: e.id, nom: String(e.data().nom || "").slice(0, 40) };
+  }
+  const obj = Math.max(1, parseInt(p.objectif, 10) || 10), mois = kiffyMois();
+  return db.runTransaction(async t => {
+    const c = (await t.get(cref)).data(), maintenant = Date.now(), pts = c.points || 0;
+    const derniere = c.lastAt && c.lastAt.toMillis ? c.lastAt.toMillis() : 0;
+    let n, maj;
+    if (action === "visite") {
+      if (maintenant - derniere < 60000) throw new HttpsError("already-exists", "Déjà ajouté il y a moins d’une minute.");
+      n = p.type === "montant" ? Math.floor(Math.max(0, Number(montant) || 0) / Math.max(1, parseInt(p.dhParPoint, 10) || 10)) : 1;
+      if (n < 1 || n > 1000) throw new HttpsError("invalid-argument", "Montant trop petit pour un point.");
+      maj = { points: FieldValue.increment(n), total: FieldValue.increment(n), lastAt: Timestamp.now(), ["vm." + mois]: FieldValue.increment(n) };
+    } else if (action === "cadeau") {
+      if (pts < obj) throw new HttpsError("failed-precondition", "Pas encore assez de points pour le cadeau.");
+      n = -obj; maj = { points: FieldValue.increment(-obj), recompenses: FieldValue.increment(1) };
+    } else {
+      if (pts < 1) throw new HttpsError("failed-precondition", "La carte n’a pas de point.");
+      n = -1; maj = { points: FieldValue.increment(-1), total: FieldValue.increment(-1) };
+    }
+    maj.hist = [{ a: action, n, t: maintenant, e: emp ? emp.nom : "", eid: emp ? emp.id : "" }, ...(Array.isArray(c.hist) ? c.hist : [])].slice(0, 15);
+    t.update(cref, maj);   // → appleCarte met à jour l'iPhone ; l'app appelle /google/sync pour Google Wallet
+    if (emp && action === "visite") t.update(db.doc("fidEmployes/" + emp.id), { ["m." + mois]: FieldValue.increment(1), lastAt: Timestamp.now() });
+    return { ok: true, points: pts + n, objectif: obj, nom: c.nom || "", n };
+  });
+});
+
+// admin : crée (ou retrouve) le compte du gérant ; l'app envoie ensuite l'e-mail « choisir le mot de passe »
+exports.kiffyAcces = onCall({ region: REGION, maxInstances: 3 }, async req => {
+  const { p, estAdmin } = await kiffyCommerce(req.auth, (req.data || {}).pid);
+  if (!estAdmin) throw new HttpsError("permission-denied", "Réservé à NFC Work.");
+  const email = String(p.ownerEmail || "").trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpsError("invalid-argument", "E-mail du gérant invalide.");
+  let u = null, cree = false;
+  try { u = await admin.auth().getUserByEmail(email); } catch (e) { if (e.code !== "auth/user-not-found") throw e; }
+  if (!u) { u = await admin.auth().createUser({ email, emailVerified: true, password: crypto.randomBytes(24).toString("base64url"), displayName: String(p.nom || "").slice(0, 60) }); cree = true; }
+  else if (!u.emailVerified) await admin.auth().updateUser(u.uid, { emailVerified: true });   // NFC Work a vérifié l'e-mail avec le commerçant
+  return { ok: true, email, cree };
+});
+
+// réglages que le gérant peut changer lui-même (le reste du programme reste réservé à l'admin)
+const KIFFY_METIERS = /^(unie|barber|beaute|cafe|snack|resto|pizzeria|patisserie|glacier|vetement|pressing|hammam|sport|pharmacie|epicerie|telephone|gaming|billard|terrain|location|lavage|garage|autre)?$/;
+exports.kiffyReglages = onCall({ region: REGION, maxInstances: 5 }, async req => {
+  const { pid, champs } = req.data || {};
+  const { ref } = await kiffyCommerce(req.auth, pid);
+  const c = champs && typeof champs === "object" ? champs : {}, maj = {};
+  const txt = (k, n) => { if (k in c) maj[k] = String(c[k] || "").trim().slice(0, n); };
+  txt("recompense", 80); txt("unite", 30); txt("cadeauAnniv", 80); txt("annivMessage", 300); txt("lieuTexte", 80);
+  if ("objectif" in c) { const o = parseInt(c.objectif, 10); if (!(o >= 1 && o <= 1000)) throw new HttpsError("invalid-argument", "Objectif invalide."); maj.objectif = o; }
+  if ("couleur" in c) { if (!/^#[0-9a-fA-F]{6}$/.test(String(c.couleur))) throw new HttpsError("invalid-argument", "Couleur invalide."); maj.couleur = String(c.couleur).toLowerCase(); }
+  if ("annivAuto" in c) maj.annivAuto = c.annivAuto === true;
+  if ("fondMetier" in c) { if (!KIFFY_METIERS.test(String(c.fondMetier || ""))) throw new HttpsError("invalid-argument", "Photo inconnue."); maj.fondMetier = String(c.fondMetier || ""); }
+  if ("lienAvis" in c) maj.lienAvis = /^https:\/\/\S{8,300}$/.test(String(c.lienAvis || "").trim()) ? String(c.lienAvis).trim() : "";
+  if (!Object.keys(maj).length) throw new HttpsError("invalid-argument", "Rien à enregistrer.");
+  maj.maj = FieldValue.serverTimestamp();
+  await ref.update(maj);
+  return { ok: true };
 });

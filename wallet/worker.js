@@ -450,7 +450,8 @@ async function photoFond(p) {
     const m = f && String(f.png || "").match(/^data:image\/png;base64,(.+)$/);
     if (m) return { id: "p" + (f.maj || 0), px: await pngDecode(Uint8Array.from(atob(m[1]), ch => ch.charCodeAt(0))) };
   } catch (e) {}
-  const n = FONDS[p.metier]; if (!n) return null;
+  if (p.fondMetier === "unie") return null;   // Kiffy : couleur unie choisie
+  const n = FONDS[p.fondMetier || p.metier]; if (!n) return null;   // Kiffy : photo d'un autre métier possible
   try {   // pixels déjà prêts (750×246 RGB brut) : aucun décodage, très rapide
     const r = await fetch(`${SITE}/assets/wallet/fond-${n}.rgb`);
     if (r.ok) { const px = new Uint8Array(await r.arrayBuffer()); if (px.length === 750 * 246 * 3) return { id: "m" + n, px }; }
