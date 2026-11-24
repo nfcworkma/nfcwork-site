@@ -94,6 +94,10 @@
   const prixTxt = m => m && m.prix ? `${m.prix} DH ${PERIODES[m.periode] || ""}`.trim() : "";
 
   let user = null, email = "", admin = false, progs = [], P = null, cartes = [], employes = [], secret = "", vue = "clients", recherche = "", voirArch = false, subs = [];
+  // 🔒 mode employé (téléphone de la caisse) : verrou = pid verrouillé ; empCourant = employé qui a tapé son PIN
+  let verrou = "", empCourant = "", empMinuteur = null, pins = {}, pinsPid = "";
+  try { verrou = localStorage.getItem("nfcw-emp-lock") || ""; } catch (e) {}
+  const hachePin = async (pid, eid, pin) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`nfcw:${pid}:${eid}:${pin}`)))].map(x => x.toString(16).padStart(2, "0")).join("");
   const unsub = () => { subs.forEach(f => f()); subs = []; };
   const moisCle = (d, decal) => { d = new Date(d || Date.now()); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + (decal || 0)); return String(d.getUTCFullYear() * 100 + d.getUTCMonth() + 1); };
   const nomMois = k => new Date(Date.UTC(+k.slice(0, 4), +k.slice(4) - 1, 1)).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
@@ -143,6 +147,7 @@
     if (c) { history.replaceState(null, "", "#"); await ouvrirParCarte(c); return; }
     if (e) { history.replaceState(null, "", "#"); await ouvrirParEmploye(e); return; }
     if (h === "#nouveau" && admin) { history.replaceState(null, "", "#"); renderListe(); reglages(null); return; }
+    if (verrou && progs.some(x => x.id === verrou)) { ouvrirProgramme(verrou); return; }
     if (p && progs.some(x => x.id === p)) { ouvrirProgramme(p); return; }
     if (!admin && progs.length === 1) { ouvrirProgramme(progs[0].id); return; }
     renderListe();
@@ -362,7 +367,7 @@
         }
         // téléphone caisse : un secret qui sert à fabriquer le QR qui change toutes les 30 s (le client ne le voit jamais)
         if (data.modeClient === "caisse") { const s = await db.doc("fidSecrets/" + id).get().catch(() => null); if (!(s && s.exists && s.data().caisse)) await db.doc("fidSecrets/" + id).set({ caisse: rid(16) + rid(16) }); }
-        else db.doc("fidSecrets/" + id).delete().catch(() => {});
+        else db.doc("fidSecrets/" + id).update({ caisse: firebase.firestore.FieldValue.delete() }).catch(() => {});   // garde les PIN employés
         const local = { id, ...data, maj: Date.now() };
         const i = progs.findIndex(x => x.id === id); if (i >= 0) progs[i] = { ...progs[i], ...local }; else progs.push(local);
         d.remove(); toast("Programme enregistré ✓");
@@ -524,6 +529,7 @@
   }
   function renderDash() {
     if (!P) return;
+    if (verrou === P.id) return void renderVerrou();
     const obj = P.objectif || 10, prets = cartes.filter(c => (c.points || 0) >= obj).length, offerts = cartes.reduce((a, c) => a + (c.recompenses || 0), 0);
     const k = moisCle(), kp = moisCle(null, -1);
     const q = recherche.toLowerCase().replace(/\s/g, "");
@@ -543,10 +549,10 @@
       ${P.employes ? `<div class="tabs2"><button data-vue="clients" aria-pressed="${vue === "clients"}">Clients</button><button data-vue="employes" aria-pressed="${vue === "employes"}">Employés</button></div>` : ""}
       ${vue === "employes" && P.employes ? `
         ${prec && ((prec.m || {})[kp] || 0) > 0 ? `<div class="winner">🏆 Gagnant de ${nomMois(kp)} : ${esc(prec.nom)} (${(prec.m || {})[kp]} pts)${P.primeEmploye ? `<br><small>${esc(P.primeEmploye)}</small>` : ""}</div>` : ""}
-        <div class="row between" style="margin-bottom:8px"><b>Classement · ${nomMois(k)}</b><button class="btn sm" data-act="emp-add">＋ Employé</button></div>
+        <div class="row between" style="margin-bottom:8px"><b>Classement · ${nomMois(k)}</b><div class="row"><button class="btn sm" data-act="emp-lock">🔒 Mode employé</button><button class="btn sm" data-act="emp-add">＋ Employé</button></div></div>
         <div class="flist">${classes.map((e, i) => `<div class="frow${i === 0 && ((e.m || {})[k] || 0) > 0 ? " first" : ""}"><span class="rank">${i === 0 && ((e.m || {})[k] || 0) > 0 ? "🏆" : i + 1}</span>
           <div class="tx" data-emp="${esc(e.id)}"><b>${esc(e.nom)}</b><small>${(e.m || {})[kp] ? `${nomMois(kp)} : ${(e.m || {})[kp]} pts` : "Touchez pour le QR"}</small></div>
-          <span class="pts">${(e.m || {})[k] || 0} pts</span><button class="btn sm primary plus" data-empplus="${esc(e.id)}">+1</button></div>`).join("")
+          <span class="pts">${(e.m || {})[k] || 0} pts</span><button class="btn sm" data-emppin="${esc(e.id)}" title="Code PIN">🔑</button><button class="btn sm primary plus" data-empplus="${esc(e.id)}">+1</button></div>`).join("")
           || `<div class="empty"><p>Ajoutez vos employés : chacun aura son code QR.</p></div>`}</div>`
       : `<label class="f" style="margin-bottom:10px"><input id="rech" placeholder="Rechercher : prénom ou téléphone…" value="${esc(recherche)}" autocomplete="off"></label>
         <div class="flist">${liste.map(c => { const pr = (c.points || 0) >= obj; return `<div class="frow${pr ? " ready" : ""}"><span class="av">${esc((c.nom || "?")[0].toUpperCase())}</span>
@@ -574,6 +580,7 @@
   }
   // après le montant / les articles : qui a servi ? (si les employés sont activés)
   function quiAServi(d, cid, n) {
+    if (verrou === (P && P.id) && empCourant) return ajouter(cid, n, empCourant).then(ok => { if (ok) { d.remove(); finEmploye(true); } });   // c'est lui qui a servi
     const actifs = employes.filter(e => e.actif !== false), m = modeEmp(P);
     if (!P.employes || !actifs.length || m === "confirme") return ajouter(cid, n, m === "confirme" ? "" : null).then(ok => { if (ok) d.remove(); });
     const box = d.querySelector(".box");
@@ -591,7 +598,7 @@
     const c = cartes.find(x => x.id === cid); if (!c) { toast("Carte introuvable dans ce commerce."); return; }
     const obj = P.objectif || 10, pts = c.points || 0, pr = pts >= obj, lien = SITE + "/f/?c=" + c.id, wa = waNum(c.tel);
     const d = fenetre(`<div class="row between"><h2>${esc(c.nom)}</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
-      <div class="muted">${esc(c.tel || "")}${c.recompenses ? ` · ${c.recompenses} récompense${c.recompenses > 1 ? "s" : ""} déjà offerte${c.recompenses > 1 ? "s" : ""}` : ""}</div>
+      <div class="muted">${esc(verrou === P.id ? (c.tel || "").replace(/\d(?=\d{3})/g, "•") : c.tel || "")}${c.recompenses ? ` · ${c.recompenses} récompense${c.recompenses > 1 ? "s" : ""} déjà offerte${c.recompenses > 1 ? "s" : ""}` : ""}</div>
       <div class="cardview" style="--accent:${esc(P.couleur || "#1e90ff")}"><div class="n">${esc(P.nom)}</div><div class="p">${pts} <small>/ ${obj} ${unite(P)}</small></div><div class="bar"><i style="width:${Math.min(100, pts / obj * 100)}%"></i></div></div>
       ${pr ? `<button class="btn primary addbtn" style="width:100%;background:var(--warn);border-color:var(--warn);color:#2a1300" id="cv-rec">🎁 Offrir : ${esc(P.recompense)}</button>` : ""}
       <div class="stack" style="margin-top:12px">
@@ -599,8 +606,8 @@
           : P.type === "articles" ? `<div class="stepper"><button type="button" data-st="-1">−</button><input id="cv-n" type="number" min="1" max="99" value="1" inputmode="numeric"><button type="button" data-st="1">+</button></div><button class="btn primary addbtn" id="cv-add">Ajouter les articles</button>`
           : `<label class="f">Montant de l’achat (DH)<input id="cv-dh" type="number" min="1" inputmode="decimal" placeholder="120" style="font-size:22px;text-align:center"></label><div class="muted" id="cv-calc" style="text-align:center">= 0 point</div><button class="btn primary addbtn" id="cv-add">Ajouter les points</button>`}
         ${P.lienAvis && !c.avisOk ? `<button class="btn" id="cv-avis" style="width:100%">⭐ Il a laissé un avis Google : +1 point</button>` : c.avisOk ? `<div class="muted" style="text-align:center;font-size:13px">⭐ Avis Google déjà récompensé</div>` : ""}
-        <div class="row">${wa ? `<a class="btn sm" style="flex:1" href="https://wa.me/${wa}?text=${encodeURIComponent("Votre carte fidélité " + P.nom + " : " + lien)}" target="_blank" rel="noopener">Envoyer sa carte (WhatsApp)</a>` : ""}<button class="btn sm ghost" id="cv-moins">Retirer 1</button></div>
-        <button class="btn sm danger" id="cv-del">Supprimer cette carte</button>
+        ${verrou === P.id ? "" : `<div class="row">${wa ? `<a class="btn sm" style="flex:1" href="https://wa.me/${wa}?text=${encodeURIComponent("Votre carte fidélité " + P.nom + " : " + lien)}" target="_blank" rel="noopener">Envoyer sa carte (WhatsApp)</a>` : ""}<button class="btn sm ghost" id="cv-moins">Retirer 1</button></div>
+        <button class="btn sm danger" id="cv-del">Supprimer cette carte</button>`}
       </div>`);
     const nb = () => Math.max(1, Math.min(99, parseInt(($("#cv-n", d) || {}).value, 10) || 1));
     d.addEventListener("click", e => { const s = e.target.closest("[data-st]"); if (s) $("#cv-n", d).value = Math.max(1, Math.min(99, nb() + +s.dataset.st)); });
@@ -620,6 +627,7 @@
     };
     const rec = $("#cv-rec", d);
     if (rec) rec.onclick = async () => { rec.disabled = true; try { await db.doc("fidCartes/" + c.id).update({ points: inc(-obj), recompenses: inc(1), lastAt: NOW() }); toast("🎁 Récompense offerte"); d.remove(); } catch (e) { erreur(e); rec.disabled = false; } };
+    if (verrou === P.id) { if (rec) rec.addEventListener("click", () => finEmploye(true)); return; }   // employé : pas de retrait ni de suppression
     $("#cv-moins", d).onclick = async () => { if (pts < 1) return; try { await db.doc("fidCartes/" + c.id).update({ points: inc(-1), total: inc(-1) }); toast("1 point retiré"); d.remove(); } catch (e) { erreur(e); } };
     const del = $("#cv-del", d); let conf = false;
     del.onclick = async () => { if (!conf) { conf = true; del.textContent = "Confirmer la suppression"; return; } try { await db.doc("fidCartes/" + c.id).delete(); toast("Carte supprimée"); d.remove(); } catch (e) { erreur(e); } };
@@ -660,6 +668,96 @@
     let conf = false; const del = $("#ev-del", d);
     del.onclick = async () => { if (!conf) { conf = true; del.textContent = "Confirmer : retirer " + e.nom; return; } try { await db.doc("fidEmployes/" + e.id).delete(); d.remove(); toast("Employé retiré"); } catch (x) { erreur(x); } };
   }
+  /* ================= 🔒 Mode employé : PIN ================= */
+  async function chargerPins(pid) {
+    try { const s = await db.doc("fidSecrets/" + pid).get(); pins = (s.exists && s.data().pins) || {}; } catch (e) { pins = {}; }
+    pinsPid = pid; return pins;
+  }
+  function empPin(eid) {
+    const e = employes.find(x => x.id === eid); if (!e) return;
+    const d = fenetre(`<h2>🔑 Code PIN de ${esc(e.nom)}</h2><p class="muted">4 chiffres. Il le tape sur le téléphone de la caisse pour ajouter des points à son nom.</p>
+      <form class="stack" id="pf2"><label class="f">Nouveau code<input id="pn" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required autocomplete="off" style="font-size:28px;letter-spacing:12px;text-align:center"></label>
+      <p class="err" id="perr2"></p><div class="row"><button class="btn primary" style="flex:1">Enregistrer</button><button type="button" class="btn ghost" data-fermer>Annuler</button></div></form>`);
+    $("#pn", d).focus();
+    $("#pf2", d).onsubmit = async ev => {
+      ev.preventDefault(); const pin = $("#pn", d).value.trim();
+      if (!/^\d{4}$/.test(pin)) { $("#perr2", d).textContent = "4 chiffres, par exemple 2580."; return; }
+      const b = ev.target.querySelector("button"); b.disabled = true;
+      try {
+        await db.doc("fidSecrets/" + P.id).set({ pins: { [eid]: await hachePin(P.id, eid, pin) } }, { merge: true });
+        pins[eid] = await hachePin(P.id, eid, pin); d.remove(); toast(`🔑 PIN enregistré pour ${e.nom}. Donnez-lui son code.`);
+      } catch (x) { erreur(x); b.disabled = false; }
+    };
+  }
+  async function verrouiller() {
+    await chargerPins(P.id);
+    const avec = employes.filter(e => e.actif !== false && pins[e.id]);
+    if (!avec.length) { toast("Donnez d’abord un code PIN à vos employés (bouton 🔑).", true); return; }
+    try { localStorage.setItem("nfcw-emp-lock", P.id); } catch (e) {}
+    verrou = P.id; empCourant = ""; renderDash();
+  }
+  function renderVerrou() {
+    entete(P.nom, "Mode employé", "#");
+    const e = empCourant && employes.find(x => x.id === empCourant);
+    if (!e) {
+      if (pinsPid !== P.id) { pinsPid = P.id; chargerPins(P.id).then(() => renderDash()); }   // une seule fois
+      const avec = employes.filter(x => x.actif !== false && typeof pins[x.id] === "string");
+      app.innerHTML = `<div class="paper" style="text-align:center;padding:22px 16px">
+          ${logoSrc(P) ? `<img src="${esc(logoSrc(P))}" alt="" style="width:64px;height:64px;border-radius:16px;object-fit:cover;background:#fff">` : ""}
+          <h2 style="margin:10px 0 2px">${esc(P.nom)}</h2><div class="muted">Qui êtes-vous ? Touchez votre prénom.</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">${avec.map(x => `<button class="btn addbtn" data-qui-emp="${esc(x.id)}" style="padding:18px 8px;font-size:17px">👤 ${esc(x.nom)}</button>`).join("") || `<div class="empty" style="grid-column:1/-1"><p>Aucun employé avec un code PIN.</p></div>`}</div>
+        <button class="btn sm ghost block" data-act="emp-sortir" style="margin-top:22px">🔓 Quitter le mode employé (patron)</button>`;
+      return;
+    }
+    const obj = P.objectif || 10, q = recherche.toLowerCase().replace(/\s/g, "");
+    const liste = q ? cartes.filter(c => (c.nom || "").toLowerCase().replace(/\s/g, "").includes(q) || (c.tel || "").replace(/\s/g, "").includes(q)).slice(0, 20) : [];
+    const actif = document.activeElement && document.activeElement.id === "rech" ? document.activeElement.selectionStart : null;
+    app.innerHTML = `<div class="row between"><div><h2>👤 ${esc(e.nom)}</h2><div class="muted">${esc(obj)} ${unite(P)} = ${esc(P.recompense)}</div></div><button class="btn sm" data-act="emp-fin">Terminer</button></div>
+      <div class="big2" style="grid-template-columns:1fr"><button class="btn primary" data-act="scan" style="padding:22px;font-size:19px">📷 Scanner la carte du client</button></div>
+      <label class="f" style="margin:6px 0 10px"><input id="rech" placeholder="Ou cherchez : prénom ou téléphone…" value="${esc(recherche)}" autocomplete="off"></label>
+      <div class="flist">${liste.map(c => `<div class="frow${(c.points || 0) >= obj ? " ready" : ""}"><span class="av">${esc((c.nom || "?")[0].toUpperCase())}</span>
+        <div class="tx" data-carte="${esc(c.id)}"><b>${esc(c.nom)}</b><small>${esc((c.tel || "").replace(/\d(?=\d{3})/g, "•"))}</small></div>
+        <span class="pts">${c.points || 0}/${obj}</span><button class="btn sm primary plus" data-carte="${esc(c.id)}">＋</button></div>`).join("")}</div>`;
+    const r = $("#rech"); if (r) { r.oninput = ev => { recherche = ev.target.value; touche(); renderDash(); }; if (actif != null) { r.focus(); r.setSelectionRange(actif, actif); } }
+  }
+  function saisirPin(eid) {
+    const e = employes.find(x => x.id === eid); if (!e) return;
+    let code = "";
+    const d = fenetre(`<h2 style="text-align:center">${esc(e.nom)}</h2><p class="muted" style="text-align:center">Tapez votre code PIN</p>
+      <div id="pdots" style="display:flex;justify-content:center;gap:14px;margin:14px 0 18px">${"<i></i>".repeat(4)}</div><p class="err" id="perr3" style="text-align:center"></p>
+      <div id="pclav" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">${[1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "⌫"].map(k => k === "" ? "<span></span>" : `<button type="button" class="btn" data-k="${k}" style="padding:18px 0;font-size:24px">${k}</button>`).join("")}</div>
+      <button class="btn ghost block" data-fermer style="margin-top:12px">Annuler</button>
+      <style>#pdots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--line,#888);display:block}#pdots i.on{background:var(--accent,#1e90ff);border-color:var(--accent,#1e90ff)}</style>`);
+    const dots = () => $("#pdots", d).querySelectorAll("i").forEach((x, i) => x.classList.toggle("on", i < code.length));
+    $("#pclav", d).onclick = async ev => {
+      const k = ev.target.closest("[data-k]"); if (!k) return;
+      if (k.dataset.k === "⌫") code = code.slice(0, -1); else if (code.length < 4) code += k.dataset.k;
+      dots(); if (code.length < 4) return;
+      const ok = typeof pins[eid] === "string" && pins[eid] === await hachePin(P.id, eid, code);
+      if (!ok) { $("#perr3", d).textContent = "Code incorrect."; code = ""; dots(); return; }
+      d.remove(); empCourant = eid; recherche = ""; touche(); renderDash();
+    };
+  }
+  // l'employé est déconnecté tout seul après 90 s sans rien faire (le téléphone reste à la caisse)
+  function touche() { clearTimeout(empMinuteur); empMinuteur = setTimeout(() => finEmploye(false), 90000); }
+  function finEmploye(apresPoint) {
+    clearTimeout(empMinuteur);
+    if (apresPoint) { touche(); return; }   // il peut enchaîner un autre client
+    empCourant = ""; recherche = ""; document.querySelectorAll(".modal").forEach(m => m.remove()); if (P) renderDash();
+  }
+  function sortirVerrou() {
+    const d = fenetre(`<h2>🔓 Quitter le mode employé</h2><p class="muted">Mot de passe du compte du commerce (${esc(email)}).</p>
+      <form class="stack" id="sf"><label class="f">Mot de passe<input id="sp" type="password" required autocomplete="current-password"></label><p class="err" id="serr"></p>
+      <div class="row"><button class="btn primary" style="flex:1">Quitter</button><button type="button" class="btn ghost" data-fermer>Annuler</button></div></form>`);
+    $("#sp", d).focus();
+    $("#sf", d).onsubmit = async ev => {
+      ev.preventDefault(); const b = ev.target.querySelector("button"); b.disabled = true;
+      try { await user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(email, $("#sp", d).value)); }
+      catch (x) { $("#serr", d).textContent = "Mot de passe incorrect."; b.disabled = false; return; }
+      try { localStorage.removeItem("nfcw-emp-lock"); } catch (e) {}
+      verrou = ""; empCourant = ""; d.remove(); entete(P.nom, "Carte fidélité", admin || progs.length > 1 ? "#" : "./"); renderDash(); toast("Mode patron ✓");
+    };
+  }
   async function ouvrirParEmploye(eid) {
     let e = null; try { const s = await db.doc("fidEmployes/" + eid).get(); e = s.exists ? { id: s.id, ...s.data() } : null; } catch (x) {}
     if (!e || !progs.some(x => x.id === e.pid)) { renderListe(); toast("Cet employé n’appartient pas à vos commerces.", true); return; }
@@ -698,7 +796,8 @@
     const trouve = txt => {
       const c = (txt.match(/[?&]c=([A-Za-z0-9_-]+)/) || [])[1], e = (txt.match(/[?&]e=([A-Za-z0-9_-]+)/) || [])[1];
       if (!c && !e) { $("#sm", d).textContent = "Ce QR n’est pas une carte fidélité NFCWORK."; return false; }
-      stop(); d.remove();
+      if (!c && verrou) { $("#sm", d).textContent = "Scannez la carte du client."; return false; }
+      stop(); d.remove(); if (verrou) touche();
       if (c) { if (cartes.some(x => x.id === c)) carteVue(c); else ouvrirParCarte(c); }
       else ouvrirParEmploye(e);
       return true;
@@ -864,6 +963,8 @@
     if ((b = t("[data-vue]"))) { vue = b.dataset.vue; return void renderDash(); }
     if ((b = t("[data-plus]"))) { const d = fenetre(""); return void quiAServi(d, b.dataset.plus, 1); }
     if ((b = t("[data-carte]"))) return void carteVue(b.dataset.carte);
+    if ((b = t("[data-emppin]"))) return void empPin(b.dataset.emppin);
+    if ((b = t("[data-qui-emp]"))) return void saisirPin(b.dataset.quiEmp);
     if ((b = t("[data-empplus]"))) { b.disabled = true; return void empPlus(b.dataset.empplus); }
     if ((b = t("[data-emp]"))) return void empVue(b.dataset.emp);
     if ((b = t("[data-act]"))) {
@@ -878,6 +979,9 @@
       if (a === "rl-anniv") relance("anniv");
       if (a === "rl-abs") relance("abs");
       if (a === "emp-add") empAjout();
+      if (a === "emp-lock") verrouiller();
+      if (a === "emp-fin") finEmploye(false);
+      if (a === "emp-sortir") sortirVerrou();
     }
   });
   function fenetre(html) {
