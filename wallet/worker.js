@@ -572,7 +572,9 @@ async function construirePkpass(env, c, p) {
   const icone = await pngIcone(), logoP = await pngLogo(p);
   const pj = passJson(env, c, p);
   if (env.APPLE_WS && env.APPLE_AUTH) { pj.webServiceURL = String(env.APPLE_WS).replace(/\/+$/, ""); pj.authenticationToken = await jetonApple(env, pj.serialNumber); }   // mises à jour automatiques
-  const fichiers = [["pass.json", enc(pj)], ["icon.png", icone], ["icon@2x.png", icone]];
+  // icône = celle des notifications sur l'iPhone : le logo du commerce (sinon NFCWORK)
+  const ico = logoP || icone;
+  const fichiers = [["pass.json", enc(pj)], ["icon.png", ico], ["icon@2x.png", ico], ["icon@3x.png", ico]];
   if (logoP) fichiers.push(["logo.png", logoP], ["logo@2x.png", logoP]);
   const bande = await bandeau(p, c);
   fichiers.push(["strip.png", bande], ["strip@2x.png", bande]);
