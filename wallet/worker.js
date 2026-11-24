@@ -520,7 +520,7 @@ function dessiner(fond, obj, pts, tampons, photo) {
 async function bandeau(p, c) {
   const obj = Math.max(1, p.objectif || 10), pts = Math.min(obj, c.points || 0), tampons = p.type !== "montant" && obj <= 20;
   const f = await photoFond(p);
-  const cle = `https://cache.nfcwork.ma/strip/v4/${couleur(p).slice(1)}/${obj}/${pts}/${tampons ? 1 : 0}/${f ? f.id : "0"}${f && f.id[0] === "p" ? "/" + propre(p.id, 40) : ""}`;
+  const cle = `https://cache.nfcwork.ma/strip/v5/${couleur(p).slice(1)}/${obj}/${pts}/${tampons ? 1 : 0}/${f ? f.id : "0"}${f && f.id[0] === "p" ? "/" + propre(p.id, 40) : ""}`;
   const cache = typeof caches !== "undefined" ? caches.default : null;
   if (cache) { const r = await cache.match(cle); if (r) return new Uint8Array(await r.arrayBuffer()); }
   const { W, H, b } = dessiner(rgb(couleur(p)), obj, pts, tampons, f && f.px);

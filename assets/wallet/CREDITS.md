@@ -19,7 +19,7 @@ Recadrées en 750×246 : `fond-<métier>.png` (aperçu) et `fond-<métier>.rgb` 
 | lavage | https://unsplash.com/photos/jVm9stv6UpE | Sem Ramon (@ramonsem) |
 | patisserie | https://unsplash.com/photos/RPu-Fdq6V9k | Jason Leung (@ninjason) |
 | glacier | https://unsplash.com/photos/66IZaW9LIpI | Courtney Cook (@courtneymcook) |
-| vetement | https://unsplash.com/photos/hWdzH8YY8kk | Greg Rosenke (@greg_rosenke) |
+| vetement | https://unsplash.com/photos/uNnx31GSPxk | Jie Yeu Teoh (@jieyeu) |
 | location | https://unsplash.com/photos/Y1wL87Fc4D4 | Franco Debartolo (@francotheshooter) |
 | telephone | https://unsplash.com/photos/8M0bVuFI7MY | Jason Leung (@ninjason) |
 | garage | https://unsplash.com/photos/UDzZBqE2BYE | Max Tcvetkov (@your_scorpion) |
