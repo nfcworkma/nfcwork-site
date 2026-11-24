@@ -397,6 +397,88 @@ async function pngIcone() {
   return (ICONE = new Uint8Array(await r.arrayBuffer()));
 }
 
+/* --- 🎨 le bandeau de tampons (strip.png), dessiné ici pixel par pixel, à la couleur du commerce --- */
+async function pngEncode(W, H, rgbBuf) {
+  const raw = new Uint8Array((W * 3 + 1) * H);
+  for (let y = 0; y < H; y++) raw.set(rgbBuf.subarray(y * W * 3, (y + 1) * W * 3), y * (W * 3 + 1) + 1);   // filtre 0 par ligne
+  const z = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate"))).arrayBuffer());
+  const u32 = n => Uint8Array.of((n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255);
+  const bloc = (type, data) => { const t = new TextEncoder().encode(type), td = cat(t, data); return cat(u32(data.length), td, u32(crc32(td))); };
+  return cat(Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10), bloc("IHDR", cat(u32(W), u32(H), Uint8Array.of(8, 2, 0, 0, 0))), bloc("IDAT", z), bloc("IEND", new Uint8Array(0)));
+}
+function dessiner(fond, obj, pts, tampons) {
+  const W = 750, H = 246, b = new Uint8Array(W * H * 3);
+  const mix = (a, c, t) => a.map((v, i) => Math.round(v * (1 - t) + c[i] * t));
+  const haut = mix(fond, [255, 255, 255], 0.06), bas = mix(fond, [0, 0, 0], 0.32);
+  for (let y = 0; y < H; y++) {                                           // dégradé + lumière douce en haut à gauche
+    const t = y / H, r0 = haut[0] * (1 - t) + bas[0] * t, g0 = haut[1] * (1 - t) + bas[1] * t, b0 = haut[2] * (1 - t) + bas[2] * t, dy2 = (y + 60) * (y + 60);
+    let o = y * W * 3;
+    for (let x = 0; x < W; x++, o += 3) {
+      const dx = x - 120, d = Math.sqrt(dx * dx + dy2), g = d < 520 ? (1 - d / 520) * 45.9 : 0;
+      b[o] = r0 + g > 255 ? 255 : r0 + g; b[o + 1] = g0 + g > 255 ? 255 : g0 + g; b[o + 2] = b0 + g > 255 ? 255 : b0 + g;
+    }
+  }
+  const px = (x, y, c, a) => { if (a <= 0 || x < 0 || y < 0 || x >= W || y >= H) return; const o = (y * W + x) * 3; for (let k = 0; k < 3; k++) b[o + k] = Math.round(b[o + k] * (1 - a) + c[k] * a); };
+  const cov = v => Math.max(0, Math.min(1, v));
+  const zone = (cx, cy, R, f) => { for (let y = Math.floor(cy - R - 2); y <= cy + R + 2; y++) for (let x = Math.floor(cx - R - 2); x <= cx + R + 2; x++) f(x, y, x + 0.5 - cx, y + 0.5 - cy); };
+  const disque = (cx, cy, R, c, a = 1) => zone(cx, cy, R, (x, y, dx, dy) => { const q = dx * dx + dy * dy; if (q > (R + 1) * (R + 1)) return; px(x, y, c, a * cov(R - Math.sqrt(q) + 0.5)); });
+  const segD = (dx, dy, x1, y1, x2, y2) => { const vx = x2 - x1, vy = y2 - y1, t = cov(((dx - x1) * vx + (dy - y1) * vy) / (vx * vx + vy * vy)), ex = dx - x1 - t * vx, ey = dy - y1 - t * vy; return Math.sqrt(ex * ex + ey * ey); };
+  const trait = (cx, cy, R, pts2, ep, c) => {                           // seulement la boîte autour du trait
+    const xs = pts2.map(q => q[0]), ys = pts2.map(q => q[1]), m = ep / 2 + 2;
+    for (let y = Math.floor(cy + Math.min(...ys) - m); y <= cy + Math.max(...ys) + m; y++) for (let x = Math.floor(cx + Math.min(...xs) - m); x <= cx + Math.max(...xs) + m; x++) {
+      const dx = x + 0.5 - cx, dy = y + 0.5 - cy; let d = 1e9;
+      for (let i = 0; i < pts2.length - 1; i++) { const v = segD(dx, dy, pts2[i][0], pts2[i][1], pts2[i + 1][0], pts2[i + 1][1]); if (v < d) d = v; }
+      if (d < ep / 2 + 1) px(x, y, c, cov(ep / 2 - d + 0.5));
+    }
+  };
+  const anneau = (cx, cy, R, ep, c, a) => zone(cx, cy, R, (x, y, dx, dy) => {
+    const d = Math.sqrt(dx * dx + dy * dy); if (Math.abs(d - R) > ep / 2 + 1) return;
+    const ang = (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI);
+    if ((ang * 18) % 1 < 0.55) px(x, y, c, a * cov(ep / 2 - Math.abs(d - R) + 0.5));
+  });
+  const boite = (cx, cy, x0, y0, x1, y1, c, a = 1) => { for (let y = Math.floor(cy + y0); y < cy + y1; y++) for (let x = Math.floor(cx + x0); x < cx + x1; x++) px(x, y, c, a); };
+  const cadeau = (cx, cy, r, c, ruban) => {                               // 🎁 boîte + couvercle + ruban
+    boite(cx, cy, -0.42 * r, -0.08 * r, 0.42 * r, 0.42 * r, c); boite(cx, cy, -0.5 * r, -0.3 * r, 0.5 * r, -0.06 * r, c);
+    boite(cx, cy, -0.07 * r, -0.3 * r, 0.07 * r, 0.42 * r, ruban); boite(cx, cy, -0.5 * r, -0.21 * r, 0.5 * r, -0.13 * r, ruban);
+    trait(cx, cy, r, [[0, -0.3 * r], [-0.28 * r, -0.52 * r], [-0.3 * r, -0.36 * r], [0, -0.3 * r]], 0.09 * r, c);
+    trait(cx, cy, r, [[0, -0.3 * r], [0.28 * r, -0.52 * r], [0.3 * r, -0.36 * r], [0, -0.3 * r]], 0.09 * r, c);
+  };
+  const blanc = [255, 255, 255], pale = clair(fond);
+  const encre = pale ? mix(fond, [0, 0, 0], 0.6) : blanc;                  // traits sur le fond (clair → foncé)
+  const coche = pale ? mix(fond, [0, 0, 0], 0.45) : fond;                  // couleur dans les pastilles blanches
+  if (tampons) {
+    const rangs = obj <= 5 ? 1 : 2, cols = Math.ceil(obj / rangs);
+    const cw = (W - 70) / cols, ch = (H - 26) / rangs, r = Math.min(cw, ch) * 0.39;
+    for (let i = 0; i < obj; i++) {
+      const cx = 35 + cw * (i % cols + 0.5), cy = 13 + ch * (Math.floor(i / cols) + 0.5), plein = i < pts, dernier = i === obj - 1;
+      if (plein) {
+        disque(cx, cy + 2, r, [0, 0, 0], 0.18); disque(cx, cy, r, blanc);
+        if (dernier) cadeau(cx, cy, r, coche, blanc);
+        else trait(cx, cy, r, [[-0.36 * r, 0.02 * r], [-0.1 * r, 0.28 * r], [0.4 * r, -0.26 * r]], 0.17 * r, coche);
+      } else {
+        disque(cx, cy, r, encre, 0.08); anneau(cx, cy, r - 1.5, 3, encre, 0.8);
+        if (dernier) cadeau(cx, cy, r, encre, mix(fond, [0, 0, 0], 0.1));
+      }
+    }
+  } else {                                                                // points au montant : grande jauge + cadeau au bout
+    const x0 = 60, x1 = W - 150, yc = H / 2, h = 34, t = Math.min(1, pts / obj), rr = h / 2;
+    const barre = (xa, xb, c, a) => { for (let y = Math.floor(yc - rr - 1); y <= yc + rr + 1; y++) for (let x = Math.floor(xa - rr); x <= xb + rr; x++) { const dx = x + 0.5 < xa ? x + 0.5 - xa : x + 0.5 > xb ? x + 0.5 - xb : 0; px(x, y, c, a * cov(rr - Math.hypot(dx, y + 0.5 - yc) + 0.5)); } };
+    barre(x0 + rr, x1 - rr, encre, 0.22); if (t > 0) barre(x0 + rr, x0 + rr + (x1 - x0 - 2 * rr) * t, pale ? encre : blanc, 1);
+    const cx = W - 85, r = 52; if (t >= 1) { disque(cx, yc, r, blanc); cadeau(cx, yc, r, coche, blanc); } else { anneau(cx, yc, r - 1.5, 3, encre, 0.8); cadeau(cx, yc, r, encre, mix(fond, [0, 0, 0], 0.1)); }
+  }
+  return { W, H, b };
+}
+async function bandeau(p, c) {
+  const obj = Math.max(1, p.objectif || 10), pts = Math.min(obj, c.points || 0), tampons = p.type !== "montant" && obj <= 20;
+  const cle = `https://cache.nfcwork.ma/strip/v2/${couleur(p).slice(1)}/${obj}/${pts}/${tampons ? 1 : 0}`;
+  const cache = typeof caches !== "undefined" ? caches.default : null;
+  if (cache) { const r = await cache.match(cle); if (r) return new Uint8Array(await r.arrayBuffer()); }
+  const { W, H, b } = dessiner(rgb(couleur(p)), tampons ? obj : obj, pts, tampons);
+  const png = await pngEncode(W, H, b);
+  if (cache) await cache.put(cle, new Response(png, { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=31536000" } })).catch(() => {});
+  return png;
+}
+
 /* --- la carte --- */
 // jeton propre à la carte : l'iPhone le renvoie au service web (Firebase) qui calcule le même
 async function jetonApple(env, serie) {
@@ -410,17 +492,21 @@ function passJson(env, c, p) {
     formatVersion: 1, passTypeIdentifier: env.APPLE_PASS_TYPE, teamIdentifier: env.APPLE_TEAM_ID,
     serialNumber: "c-" + propre(c.id), organizationName: String(p.nom || "Commerce").slice(0, 60),
     description: "Carte fidélité " + String(p.nom || "").slice(0, 60), logoText: String(p.nom || "").slice(0, 30),
-    backgroundColor: rgbTxt(fond), foregroundColor: rgbTxt(txt), labelColor: rgbTxt(txt),
+    backgroundColor: rgbTxt(fond), foregroundColor: rgbTxt(txt), labelColor: rgbTxt(clair(fond) ? [70, 70, 70] : [255, 255, 255].map((v, i) => Math.round(v * 0.72 + fond[i] * 0.28))),
     storeCard: {
-      primaryFields: [{ key: "points", label: u.toUpperCase(), value: pts, changeMessage: `Votre carte ${String(p.nom || "").slice(0, 30)} : %@ ${u}` }],
+      // le bandeau (strip.png) montre les tampons ; le compteur est en haut à droite, à côté du logo
+      headerFields: [{ key: "points", label: u.toUpperCase(), value: `${pts} / ${obj}`, changeMessage: `${String(p.nom || "Votre carte").slice(0, 30)} : %@ ${u}` }],
       secondaryFields: [
-        { key: "objectif", label: "OBJECTIF", value: pts >= obj ? "🎁 Récompense prête !" : `${pts} / ${obj}` },
-        { key: "client", label: "CLIENT", value: String(c.nom || "Client").slice(0, 40) }
+        { key: "recompense", label: "RÉCOMPENSE", value: String(p.recompense || "Cadeau").slice(0, 40) },
+        { key: "client", label: "CLIENT", value: String(c.nom || "Client").slice(0, 24) }
+      ],
+      auxiliaryFields: [
+        { key: "reste", label: pts >= obj ? "BRAVO" : "IL VOUS MANQUE", value: pts >= obj ? "🎁 Récompense prête !" : `${obj - pts} ${u}` }
       ],
       backFields: [
         ...(c.msgWallet && c.msgWallet.texte && Date.now() - (c.msgWallet.date || 0) < 14 * 86400e3 ? [{ key: "perso", label: "✉️ Pour vous", value: String(c.msgWallet.texte).slice(0, 160), changeMessage: "%@" }] : []),
         ...(p.annonce && p.annonce.texte ? [{ key: "annonce", label: "📣 " + String(p.nom || "Message").slice(0, 40), value: String(p.annonce.texte).slice(0, 160), changeMessage: "%@" }] : []),
-        { key: "recompense", label: "Récompense", value: `${obj} ${u} = ${p.recompense || "une récompense"}` },
+        { key: "regle", label: "Récompense", value: `${obj} ${u} = ${p.recompense || "une récompense"}` },
         { key: "carte", label: "Ma carte", value: lien, attributedValue: `<a href="${lien}">Ouvrir ma carte</a>` },
         { key: "nfcwork", label: "Carte fidélité digitale", value: "NFCWORK — nfcwork.ma" }
       ]
@@ -438,6 +524,8 @@ async function construirePkpass(env, c, p) {
   if (env.APPLE_WS && env.APPLE_AUTH) { pj.webServiceURL = String(env.APPLE_WS).replace(/\/+$/, ""); pj.authenticationToken = await jetonApple(env, pj.serialNumber); }   // mises à jour automatiques
   const fichiers = [["pass.json", enc(pj)], ["icon.png", icone], ["icon@2x.png", icone]];
   if (logoP) fichiers.push(["logo.png", logoP], ["logo@2x.png", logoP]);
+  const bande = await bandeau(p, c);
+  fichiers.push(["strip.png", bande], ["strip@2x.png", bande]);
   const man = {};
   for (const [n, d] of fichiers) man[n] = [...new Uint8Array(await crypto.subtle.digest("SHA-1", d))].map(hex).join("");
   const manifest = enc(man);
