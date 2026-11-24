@@ -202,6 +202,7 @@
       if (r === "admin" && a === "modifier") return adminCreer(h.split("/")[2]);
       if (r === "admin" && a === "c") return adminCommerce(h.split("/")[2]);
       if (r === "admin" && a === "paiements") return adminPaiements();
+      if (r === "admin" && a === "plaques") return adminPlaques();
       return adminAccueil();
     }
     if (!P) return vueAdmin ? null : ecranAucun("Ce commerce n’existe plus.");
@@ -439,9 +440,15 @@
     try { const u = new URL(t); const c = u.searchParams.get("c"); if (c && /\/f\/?$/.test(u.pathname) && /^[\w-]{6,60}$/.test(c)) return c; } catch (e) {}
     return /^[A-Za-z0-9_-]{10,60}$/.test(t) ? t : "";
   }
-  async function demarrerCamera(cadre, surCode) {
+  // plaque Kiffy : « https://nfcwork.ma/w/?c=KF-A7K2 » ou « KF-A7K2 »
+  function lirePlaque(txt) {
+    let t = String(txt || "").trim();
+    try { const u = new URL(t); const c = u.searchParams.get("c"); if (c && /\/w\/?$/.test(u.pathname)) t = c; } catch (e) {}
+    t = t.toUpperCase(); return /^KF-[A-Z0-9]{4,8}$/.test(t) ? t : "";
+  }
+  async function demarrerCamera(cadre, surCode, lecteur = lireCode) {
     const msg = $(".msg-cam", cadre);
-    if (window.KiffyNatif && window.KiffyNatif.scanner) { msg.textContent = "Touchez pour scanner"; cadre.onclick = () => window.KiffyNatif.scanner().then(t => t && surCode(t)); return () => {}; }
+    if (window.KiffyNatif && window.KiffyNatif.scanner) { msg.textContent = "Touchez pour scanner"; cadre.onclick = () => window.KiffyNatif.scanner().then(t => { const c = lecteur(t); if (c) surCode(c); }); return () => {}; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { msg.textContent = "Caméra non disponible sur ce navigateur."; return () => {}; }
     let flux, arret = false, t = 0;
     try { flux = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false }); }
@@ -459,7 +466,7 @@
           let txt = "";
           if (det) { const r = await det.detect(v); txt = r[0] && r[0].rawValue; }
           else if (window.jsQR) { const w = 360, h = Math.round(w * v.videoHeight / v.videoWidth) || 360; cv.width = w; cv.height = h; g.drawImage(v, 0, 0, w, h); const r = jsQR(g.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: "dontInvert" }); txt = r && r.data; }
-          if (txt) { const c = lireCode(txt); if (c) { if (navigator.vibrate) navigator.vibrate(60); arreter(); return surCode(c); } }
+          if (txt) { const c = lecteur(txt); if (c) { if (navigator.vibrate) navigator.vibrate(60); arreter(); return surCode(c); } }
         }
       } catch (e) {}
       t = setTimeout(tour, 180);
@@ -853,10 +860,9 @@
     <a href="#/admin" class="${actif === "accueil" ? "on" : ""}">${S.boutique(actif === "accueil" ? "#0A0A0A" : "#8A938E")}Commerces</a>
     <a href="#/admin/paiements" class="${actif === "paiements" ? "on" : ""}">${S.billet(actif === "paiements" ? "#0A0A0A" : "#8A938E")}Paiements</a>
     <a href="#/admin/creer" class="centre" aria-label="Nouveau commerce"><span>${S.plus(30, "#0A0A0A")}</span></a>
-    <a href="#/admin" id="na-pl" class="">${S.plaques("#8A938E")}Plaques</a>
+    <a href="#/admin/plaques" class="${actif === "plaques" ? "on" : ""}">${S.plaques(actif === "plaques" ? "#0A0A0A" : "#8A938E")}Plaques</a>
     <a href="#" id="na-cpt">${S.perso("#8A938E")}Compte</a></nav>`;
   function brancherNavAdmin() {
-    $("#na-pl").onclick = e => { e.preventDefault(); toast("Plaques à code unique : prochaine étape (phase 2)."); };
     $("#na-cpt").onclick = e => { e.preventDefault(); const f = feuille(`<h2>Compte NFC Work</h2><p class="muted" style="margin:0">${esc(user.email)}</p><a class="btn-clair" href="../espace/" style="padding:12px;text-decoration:none">Ouvrir l’Espace client</a><button class="btn-clair danger" id="dx" style="padding:12px">Se déconnecter</button><button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`); $("#dx", f).onclick = () => auth.signOut(); };
   }
   async function chargerAdmin(force) {
@@ -944,7 +950,7 @@
     brancherNavAdmin();
     $("#a-mod").onclick = () => aller("#/admin/modifier/" + encodeURIComponent(pid));
     $("#a-voir").onclick = () => { if (!p.ownerEmail) { toast("Ajoutez d’abord l’e-mail du gérant."); return; } location.hash = "#/voir/" + encodeURIComponent(pid); };
-    $("#a-pl").onclick = () => toast("Lier une plaque en la scannant : prochaine étape (phase 2).");
+    $("#a-pl").onclick = () => feuillePlaqueCommerce(p, () => adminCommerce(pid));
     $("#a-acc").onclick = () => envoyerAcces(p);
     $("#a-pause").onclick = async () => {
       const pause = p.actif !== false;
@@ -963,6 +969,87 @@
       await auth.sendPasswordResetEmail(r.email, { url: SITE + "/kiffy/" });
       toast(`Accès envoyé à ${r.email} (e-mail « choisir le mot de passe »)`, true); return true;
     } catch (e) { erreur(e); return false; }
+  }
+
+  /* ---------- 🪧 plaques à code unique (fidPlaques/{code} : { pid | null, creeLe }) ---------- */
+  const ALPHA_PL = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // sans O/0/I/1 : lisible sur la plaque
+  const codePlaque = () => "KF-" + [...crypto.getRandomValues(new Uint8Array(4))].map(x => ALPHA_PL[x % 32]).join("");
+  const lienPlaque = c => SITE + "/w/?c=" + c;
+  async function genererPlaques(n) {
+    const codes = [];
+    while (codes.length < n) { const c = codePlaque(); if (codes.includes(c)) continue; if ((await db.doc("fidPlaques/" + c).get()).exists) continue; codes.push(c); }
+    const lot = Date.now();
+    for (let i = 0; i < codes.length; i += 400) { const b = db.batch(); codes.slice(i, i + 400).forEach(c => b.set(db.doc("fidPlaques/" + c), { pid: null, creeLe: FV.serverTimestamp(), lot })); await b.commit(); }
+    return codes;
+  }
+  function telechargerCSV(codes, nom) {
+    const csv = "code,url\n" + codes.map(c => `${c},${lienPlaque(c)}`).join("\n") + "\n";
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = nom; document.body.appendChild(a); a.click(); a.remove();
+  }
+  async function lierPlaque(code, pid, nom) {
+    const ref = db.doc("fidPlaques/" + code), d = await ref.get();
+    if (!d.exists) { toast(`Plaque ${code} inconnue : générez-la d’abord (onglet Plaques).`, true); return false; }
+    const ex = d.data().pid;
+    if (ex === pid) { toast(`${code} est déjà liée à ${nom}.`); return true; }
+    if (ex) { const autre = (progsAdmin.find(x => x.id === ex) || { nom: ex }).nom; if (!(await confirmer("Plaque déjà liée", `${code} est liée à ${autre}. La déplacer vers ${nom} ?`, "Déplacer"))) return false; }
+    await ref.update({ pid, lieLe: FV.serverTimestamp() }); toast(`${code} liée à ${nom}`); return true;
+  }
+  const delierPlaque = code => db.doc("fidPlaques/" + code).update({ pid: null, lieLe: null });
+  // caméra (QR de la plaque) ou code tapé à la main → code « KF-XXXX »
+  function scannerPlaque() {
+    return new Promise(ok => {
+      let fini = false, stop = () => {};
+      const f = feuille(`<h2>Scanner la plaque</h2><div class="cadre" style="margin:0 auto">${S.coins}<div class="ligne-scan"></div><div class="msg-cam">Ouverture de la caméra…</div></div>
+        <label class="champ" style="color:#fff">Ou tapez le code<input id="pl-c" placeholder="KF-A7K2" autocapitalize="characters" style="text-transform:uppercase;color:#0A0A0A"></label>
+        <button class="btn-vert" id="pl-ok">Valider</button><button class="btn-ligne" data-fermer>Annuler</button>`, { noir: true, surFermer: () => { stop(); if (!fini) { fini = true; ok(""); } } });
+      const fin = c => { if (fini) return; fini = true; stop(); f.remove(); ok(c); };
+      demarrerCamera($(".cadre", f), fin, lirePlaque).then(s0 => { stop = s0; if (fini) s0(); });
+      $("#pl-ok", f).onclick = () => { const c = lirePlaque($("#pl-c", f).value); c ? fin(c) : toast("Code invalide (ex. KF-A7K2)"); };
+    });
+  }
+  // fiche commerce : la plaque liée (scanner, délier)
+  async function feuillePlaqueCommerce(p, apres) {
+    const liees = (await db.collection("fidPlaques").where("pid", "==", p.id).get()).docs.map(d => d.id);
+    const f = feuille(`<h2>Plaque Kiffy · ${esc(p.nom)}</h2>
+      ${liees.length ? `<div class="carte liste">${liees.map(c => `<div class="ligne"><span class="txt"><b>${esc(c)}</b><span>${esc(lienPlaque(c))}</span></span><button class="lien danger" data-d="${esc(c)}">Délier</button></div>`).join("")}</div>` : `<p class="muted" style="margin:0;font-size:14px">Aucune plaque liée. Scannez le QR de la plaque à installer.</p>`}
+      <button class="btn-noir moyen" id="pl-scan">${ic("qrcode", 20)} Scanner une plaque</button><button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+    $$("[data-d]", f).forEach(b => (b.onclick = async () => { if (!(await confirmer(`Délier ${b.dataset.d} ?`, "La plaque affichera « pas encore activée » jusqu’à une nouvelle liaison.", "Délier", true))) return; try { await delierPlaque(b.dataset.d); toast("Plaque déliée"); f.remove(); apres && apres(); } catch (e) { erreur(e); } }));
+    $("#pl-scan", f).onclick = async () => { f.remove(); const c = await scannerPlaque(); if (c) { try { await lierPlaque(c, p.id, p.nom); } catch (e) { erreur(e); } } apres && apres(); };
+  }
+  let filtrePl = "tous";
+  async function adminPlaques() {
+    document.body.classList.remove("sombre");
+    let L = [];
+    try { await chargerAdmin(); L = (await db.collection("fidPlaques").get()).docs.map(d => ({ code: d.id, ...d.data() })); } catch (e) { erreur(e); }
+    L.sort((a, b) => (b.lot || 0) - (a.lot || 0) || a.code.localeCompare(b.code));
+    const nom = pid => (progsAdmin.find(p => p.id === pid) || { nom: pid }).nom;
+    const nL = L.filter(x => x.pid).length, V = L.filter(x => filtrePl === "tous" || (filtrePl === "libres" ? !x.pid : !!x.pid));
+    app.innerHTML = `<div class="ecran nav"><div class="titre-page"><h1>Plaques</h1><p>${L.length} plaque${L.length > 1 ? "s" : ""} · ${nL} liée${nL > 1 ? "s" : ""} · ${L.length - nL} libre${L.length - nL > 1 ? "s" : ""}</p></div>
+      <div class="page" style="gap:12px">
+        <div class="actions-g"><button class="btn-noir moyen" id="pl-gen">${S.plus(20, "#16C172")} Générer des plaques</button></div>
+        <div class="puces">${[["tous", "Toutes"], ["libres", "Libres"], ["liees", "Liées"]].map(([k, t]) => `<button class="puce${filtrePl === k ? " on" : ""}" data-f="${k}">${t}</button>`).join("")}<button class="puce" id="pl-csv">${ic("qrcode", 16)} CSV (NFC)</button></div>
+        <div class="carte liste">${V.length ? V.slice(0, 300).map(x => `<button class="ligne" data-c="${esc(x.code)}"><span class="tuile" style="background:${x.pid ? "#16C172" : "#D5DED9"};color:#0A0A0A">${ic("qrcode", 20)}</span><span class="txt"><b>${esc(x.code)}</b><span>${x.pid ? esc(nom(x.pid)) : "libre"}</span></span>${x.pid ? `<span class="tag menthe">Liée</span>` : `<span class="tag" style="background:#EEF2EF;color:#5B665F">Libre</span>`}</button>`).join("") : `<div class="vide">Aucune plaque. Touchez « Générer des plaques ».</div>`}</div>
+        <div class="petit">PDF à imprimer (10 × 10 cm, un QR par plaque) : outil NFC Work sur le Mac.</div>
+      </div>${navAdmin("plaques")}</div>`;
+    brancherNavAdmin();
+    $$("[data-f]").forEach(b => (b.onclick = () => { filtrePl = b.dataset.f; adminPlaques(); }));
+    $("#pl-csv").onclick = () => { const c = V.map(x => x.code); if (!c.length) return toast("Aucune plaque."); telechargerCSV(c, `Kiffy-Plaques-${c.length}.csv`); };
+    $("#pl-gen").onclick = () => {
+      const f = feuille(`<h2>Générer des plaques</h2><label class="champ">Combien ?<input id="pn" type="number" inputmode="numeric" min="1" max="200" value="20"></label><p class="muted" style="margin:0;font-size:13px">Chaque plaque reçoit un code unique (ex. KF-A7K2) et son lien nfcwork.ma/w/?c=…</p><button class="btn-noir moyen" id="pn-ok">Générer</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
+      $("#pn-ok", f).onclick = async () => {
+        const n = Math.max(1, Math.min(200, parseInt($("#pn", f).value, 10) || 0)), b = $("#pn-ok", f); b.disabled = true; b.textContent = "Génération…";
+        try { const codes = await genererPlaques(n); f.remove(); telechargerCSV(codes, `Kiffy-Plaques-${n}.csv`); toast(`${n} plaques créées (CSV téléchargé)`, true); adminPlaques(); } catch (e) { erreur(e); b.disabled = false; b.textContent = "Générer"; }
+      };
+    };
+    $$("[data-c]").forEach(b => (b.onclick = () => {
+      const x = L.find(y => y.code === b.dataset.c);
+      const f = feuille(`<h2>${esc(x.code)}</h2><div class="modele" style="word-break:break-all">${esc(lienPlaque(x.code))}</div>
+        <p class="muted" style="margin:0;font-size:14px">${x.pid ? `Liée à <b>${esc(nom(x.pid))}</b>.` : "Libre : pas encore liée."}</p>
+        <label class="champ">Lier à un commerce<select id="pc">${`<option value="">— choisir —</option>` + progsAdmin.slice().sort((a, c) => String(a.nom).localeCompare(String(c.nom))).map(p => `<option value="${esc(p.id)}"${p.id === x.pid ? " selected" : ""}>${esc(p.nom)}</option>`).join("")}</select></label>
+        <button class="btn-noir moyen" id="pc-ok">Lier</button>${x.pid ? `<button class="btn-clair danger" id="pc-d" style="padding:12px">Délier</button>` : ""}<button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+      $("#pc-ok", f).onclick = async () => { const pid = $("#pc", f).value; if (!pid) return toast("Choisissez un commerce."); try { if (await lierPlaque(x.code, pid, nom(pid))) { f.remove(); adminPlaques(); } } catch (e) { erreur(e); } };
+      if ($("#pc-d", f)) $("#pc-d", f).onclick = async () => { try { await delierPlaque(x.code); toast("Plaque déliée"); f.remove(); adminPlaques(); } catch (e) { erreur(e); } };
+    }));
   }
 
   /* ---------- créer / modifier un commerce ---------- */
@@ -1009,7 +1096,7 @@
           <div class="kv" style="font-size:14px"><span>Installation</span><b>${TARIF.installation} DH</b></div>
           <div class="kv" style="font-size:14px"><span>Abonnement</span><b>${TARIF.mensuel} DH / mois</b></div>
           <div class="kv" style="font-size:14px"><span>Offre fin d’année (3 mois inclus)</span><b>${TARIF.offre} DH</b></div>
-          <div class="plaque-ligne">${ic("qrcode", 20)}<span style="flex:1"><b>Plaque Kiffy</b> · scannez la plaque à installer</span><button class="lien" id="pl-scan">Scanner</button></div></section>
+          <div class="plaque-ligne">${ic("qrcode", 20)}<span style="flex:1" id="pl-txt"><b>Plaque Kiffy</b> · scannez la plaque à installer</span><button class="lien" id="pl-scan">Scanner</button></div></section>
         <p class="err" id="c-err"></p>
         <button class="btn-noir" id="c-ok">${ex ? "Enregistrer" : "Créer et envoyer l’accès au gérant"}</button>
       </div></div>`;
@@ -1060,7 +1147,7 @@
     $("#ph-f").onchange = async e => { const fi = e.target.files[0]; if (!fi) return; try { s.fondPerso = await lireFond(fi); dessine(); } catch (x) { toast("Photo illisible ou trop lourde."); } e.target.value = ""; };
     $$(".seg [data-t]").forEach(b => (b.onclick = () => { s.type = b.dataset.t; s.objectif = s.type === "montant" ? 200 : 10; s.unite = s.type === "montant" ? "points" : METIERS[s.metier].u; dessine(); }));
     $$(".seg [data-f]").forEach(b => (b.onclick = () => { s.formule = b.dataset.f; dessine(); }));
-    $("#pl-scan").onclick = () => toast("Lier une plaque en la scannant : prochaine étape (phase 2).");
+    $("#pl-scan").onclick = async () => { const c = await scannerPlaque(); if (!c) return; s.plaque = c; $("#pl-txt").innerHTML = `<b>Plaque ${esc(c)}</b> · sera liée à la création`; $("#pl-scan").textContent = "Changer"; };
     dessine();
 
     $("#c-ok").onclick = async () => {
@@ -1094,6 +1181,7 @@
         if (ex && String(ex.ownerEmail || "").toLowerCase() !== email) {   // nouvel e-mail : cartes et employés suivent (comme l'Espace)
           for (const col of ["fidCartes", "fidEmployes"]) { const q = await db.collection(col).where("pid", "==", id).get(); for (const d of q.docs) await d.ref.update({ ownerEmail: email }); }
         }
+        if (s.plaque) { try { await lierPlaque(s.plaque, id, data.nom); } catch (e) { erreur(e); } }
         if (!ex) {
           await db.doc(`kiffyPaiements/${id}-installation`).set({ pid: id, mois: "installation", libelle: s.formule === "offre" ? "Offre fin d’année (3 mois)" : "Installation", montant: data.kiffy.installation, paye: false, cree: FV.serverTimestamp() });
           b.textContent = "Envoi de l’accès…";
