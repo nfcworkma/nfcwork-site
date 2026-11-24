@@ -23,6 +23,11 @@
   firebase.initializeApp(EMU ? Object.assign({}, window.FIREBASE_CONFIG, { projectId: "demo-kiffy" }) : window.FIREBASE_CONFIG);
   const auth = firebase.auth(), db = firebase.firestore(), fns = firebase.app().functions("europe-west1");
   if (EMU) { auth.useEmulator("http://127.0.0.1:9099", { disableWarnings: true }); db.useEmulator("127.0.0.1", 8080); fns.useEmulator("127.0.0.1", 5001); }
+  if (NATIF) db.enablePersistence({ synchronizeTabs: false }).catch(() => {});   // app : clients et cartes lisibles sans réseau
+  // Apple / Google : pas de prix ni de paiement dans l'app (le commerçant paie NFC Work directement)
+  const PRIX = !NATIF;
+  window.addEventListener("offline", () => toast("Hors ligne : les visites seront possibles dès le retour du réseau.", true));
+  window.addEventListener("online", () => toast("De nouveau en ligne"));
   const FV = firebase.firestore.FieldValue, TS = firebase.firestore.Timestamp;
   const appel = (nom, data) => fns.httpsCallable(nom)(data).then(r => r.data);
 
@@ -92,7 +97,7 @@
 
   /* ---------------- outils ---------------- */
   const toast = (m, long) => { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), long ? 5000 : 2600); };
-  const erreur = e => { console.error(e); const m = e && (e.message || e.code) || ""; toast(/permission|insufficient/i.test(m) ? "Action refusée pour ce compte." : /network|unavailable|offline/i.test(m) ? "Pas de connexion. Réessayez." : m.length < 120 && m ? m : "Échec. Réessayez.", true); };
+  const erreur = e => { console.error(e); const m = e && (e.message || e.code) || ""; toast(/permission|insufficient/i.test(m) ? "Action refusée pour ce compte." : !navigator.onLine || /network|unavailable|offline|internal/i.test(m) ? "Pas de connexion internet. Réessayez dans un instant." : m.length < 120 && m ? m : "Échec. Réessayez.", true); };
   const ms = v => v && v.toMillis ? v.toMillis() : v && v.seconds ? v.seconds * 1000 : typeof v === "number" ? v : 0;
   const moisCle = d => { d = new Date(d || Date.now()); return String(d.getUTCFullYear() * 100 + d.getUTCMonth() + 1); };
   const moisPlus = (k, n) => { const d = new Date(Date.UTC(+k.slice(0, 4), +k.slice(4) - 1 + n, 1)); return moisCle(d); };
@@ -279,13 +284,22 @@
     for (const [k, h] of Object.entries(pins)) if (k !== sauf && typeof h === "string" && h === await hachePin(P.id, k, code)) return false;
     return true;
   }
+  // Face ID / empreinte (app) : le gérant l'active une fois, sur son téléphone, après son code
+  const faceOk = () => NATIF && !!(window.KiffyNatif && window.KiffyNatif.faceId) && P && lsGet("kiffy-face-" + P.id) === "1";
+  async function proposerFaceId() {
+    if (!NATIF || !window.KiffyNatif || !window.KiffyNatif.faceIdDispo || faceOk() || lsGet("kiffy-face-non-" + P.id)) return;
+    if (!(await window.KiffyNatif.faceIdDispo().catch(() => false))) return;
+    if (await confirmer("Activer Face ID ?", "Ouvrez l’espace du gérant avec votre visage (ou votre empreinte), sans taper le code.", "Activer")) {
+      if (await window.KiffyNatif.faceId().catch(() => false)) { lsSet("kiffy-face-" + P.id, "1"); toast("Face ID activé"); }
+    } else lsSet("kiffy-face-non-" + P.id, "1");
+  }
   // clavier réutilisable : écran de démarrage et confirmation du gérant
   function clavier(zone, { titre, aide, note, surCode, annuler }) {
     let code = "", bloqueJusqua = 0, essais = 0;
     zone.innerHTML = `<div class="pin">
       <div class="logo-c">${logoHTML(P)}</div><div class="nom">${esc(titre)}</div><div class="aide" data-aide>${esc(aide)}</div>
       <div class="points" data-pts>${"<span></span>".repeat(4)}</div>
-      <div class="clavier">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-n="${n}">${n}</button>`).join("")}<button type="button" class="vide" ${NATIF ? 'data-face' : "disabled"} aria-label="${NATIF ? "Face ID" : ""}">${NATIF ? S.faceid : ""}</button><button type="button" data-n="0">0</button><button type="button" class="vide" data-x aria-label="Effacer">${ic("backspace", 24)}</button></div>
+      <div class="clavier">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-n="${n}">${n}</button>`).join("")}<button type="button" class="vide" ${faceOk() ? 'data-face' : "disabled"} aria-label="${faceOk() ? "Face ID" : ""}">${faceOk() ? S.faceid : ""}</button><button type="button" data-n="0">0</button><button type="button" class="vide" data-x aria-label="Effacer">${ic("backspace", 24)}</button></div>
       ${note ? `<div class="note">${esc(note)}</div>` : ""}
       ${annuler ? `<button class="sortir" data-ann>${esc(annuler)}</button>` : ""}</div>`;
     const pts = $("[data-pts]", zone), aideEl = $("[data-aide]", zone);
@@ -340,6 +354,18 @@
     session = s; if (s.mode === "gerant") dernierPinGerant = Date.now();
     if (!vueAdmin) ssSet(cleSession(P.id), s);
     location.hash = s.mode === "employe" ? "#/emp" : "#/accueil"; route();
+    if (s.mode === "gerant" && !vueAdmin) setTimeout(proposerFaceId, 600);
+    if (!vueAdmin) enregistrerAppareil();
+  }
+  let jetonPush = "";
+  async function enregistrerAppareil() {
+    if (!NATIF || !window.KiffyNatif || !window.KiffyNatif.push || jetonPush) return;
+    try { const r = await window.KiffyNatif.push(); if (r && r.token) { jetonPush = r.token; await appel("kiffyAppareil", { token: r.token, plateforme: r.plateforme }); } } catch (e) { console.warn("notifications", e); }
+  }
+  async function deconnexion() {
+    if (jetonPush) { await appel("kiffyAppareil", { token: jetonPush, retirer: true }).catch(() => {}); jetonPush = ""; }
+    if (P) ssSet(cleSession(P.id), null);
+    return auth.signOut();
   }
   function verrouiller() { if (!vueAdmin) ssSet(cleSession(P.id), null); session = null; dernierResultat = null; location.hash = "#/"; route(); }
   function choisirCommerce() {
@@ -448,7 +474,11 @@
   }
   async function demarrerCamera(cadre, surCode, lecteur = lireCode) {
     const msg = $(".msg-cam", cadre);
-    if (window.KiffyNatif && window.KiffyNatif.scanner) { msg.textContent = "Touchez pour scanner"; cadre.onclick = () => window.KiffyNatif.scanner().then(t => { const c = lecteur(t); if (c) surCode(c); }); return () => {}; }
+    if (window.KiffyNatif && window.KiffyNatif.scanner) {   // app : scanner natif (plein écran), ouvert tout de suite
+      msg.textContent = "Touchez ici pour scanner"; let actif = true;
+      const lance = () => window.KiffyNatif.scanner().then(t => { if (!actif || !t) return; const c = lecteur(t); c ? surCode(c) : toast("QR non reconnu."); }).catch(e => toast(e.message || "Scanner indisponible."));
+      cadre.onclick = lance; lance(); return () => { actif = false; };
+    }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { msg.textContent = "Caméra non disponible sur ce navigateur."; return () => {}; }
     let flux, arret = false, t = 0;
     try { flux = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false }); }
@@ -475,12 +505,12 @@
     tour(); return arreter;
   }
   // NFC : app native, ou Chrome Android (Web NFC) ; une carte / un autocollant NFC qui contient le lien de la carte
-  async function lireNFC(surCode) {
-    if (window.KiffyNatif && window.KiffyNatif.nfc) { const t = await window.KiffyNatif.nfc().catch(() => ""); const c = lireCode(t); return c ? surCode(c) : toast("Carte NFC non reconnue."); }
+  async function lireNFC(surCode, lecteur = lireCode) {
+    if (window.KiffyNatif && window.KiffyNatif.nfc) { const t = await window.KiffyNatif.nfc().catch(() => ""); const c = lecteur(t); return c ? surCode(c) : t && toast("Puce NFC non reconnue."); }
     if (!("NDEFReader" in window)) { toast("NFC : disponible sur Android (Chrome) et dans l’app Kiffy. Scannez le QR.", true); return; }
     try {
       const r = new NDEFReader(); await r.scan(); toast("Approchez la carte du téléphone…");
-      r.onreading = e => { for (const rec of e.message.records) { const txt = new TextDecoder().decode(rec.data); const c = lireCode(txt); if (c) return surCode(c); } toast("Carte NFC non reconnue."); };
+      r.onreading = e => { for (const rec of e.message.records) { const txt = new TextDecoder().decode(rec.data); const c = lecteur(txt); if (c) return surCode(c); } toast("Puce NFC non reconnue."); };
     } catch (e) { toast("NFC refusé ou désactivé.", true); }
   }
   function chercher(surChoix, sansTel) {
@@ -715,6 +745,8 @@
           ${opt("r-lien", ic("link"), "Lien d’inscription des clients", "")}
           ${WHATSAPP ? opt("r-aide", ic("whatsapp"), "Aide NFC Work (WhatsApp)", "") : ""}
           <button class="opt" id="r-dx" style="display:block;font-weight:700" ><span class="danger" style="font-size:15px">Se déconnecter</span></button></div>
+        ${vueAdmin ? "" : `<button class="lien danger" id="r-suppr" style="align-self:center;font-weight:600;font-size:13px;padding:6px">Supprimer mon compte</button>`}
+        <div class="petit"><a href="${SITE}/legal/kiffy/" target="_blank" rel="noopener" style="color:inherit">Confidentialité et données</a></div>
       </div>${nav("reglages")}</div>`;
     brancherAdmin();
     $("#r-mod").onclick = $("#r-design").onclick = () => reglageDesign();
@@ -735,7 +767,12 @@
       $("#cp", f).onclick = () => navigator.clipboard.writeText(l).then(() => toast("Lien copié"), () => toast(l));
     };
     if ($("#r-aide")) $("#r-aide").onclick = () => window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Bonjour NFC Work, j’ai besoin d’aide pour Kiffy (${P.nom}).`)}`, "_blank", "noopener");
-    $("#r-dx").onclick = async () => { if (await confirmer("Se déconnecter ?", "Il faudra retaper l’e-mail et le mot de passe du commerce sur ce téléphone.", "Se déconnecter", true)) { if (vueAdmin) { $("#quitte-vue") && $("#quitte-vue").click(); return; } ssSet(cleSession(P.id), null); auth.signOut(); } };
+    if ($("#r-suppr")) $("#r-suppr").onclick = async () => {
+      if (!(await pinGerant())) return;
+      if (!(await confirmer("Supprimer le compte du commerce ?", "Votre accès Kiffy est supprimé tout de suite et le commerce est mis en pause. NFC Work efface ensuite ses données (voir nfcwork.ma/legal/kiffy). Impossible d’annuler.", "Supprimer définitivement", true))) return;
+      try { await appel("kiffySupprimerCompte", {}); ssSet(cleSession(P.id), null); toast("Compte supprimé", true); await auth.signOut().catch(() => {}); } catch (e) { erreur(e); }
+    };
+    $("#r-dx").onclick = async () => { if (await confirmer("Se déconnecter ?", "Il faudra retaper l’e-mail et le mot de passe du commerce sur ce téléphone.", "Se déconnecter", true)) { if (vueAdmin) { $("#quitte-vue") && $("#quitte-vue").click(); return; } deconnexion(); } };
   }
   function reglageDesign() {
     let col = P.couleur || "#16C172", fm = P.fondMetier || "";
@@ -858,7 +895,7 @@
   /* ================= ESPACE NFC WORK (admin) ================= */
   const navAdmin = actif => `<nav class="nav-bas">
     <a href="#/admin" class="${actif === "accueil" ? "on" : ""}">${S.boutique(actif === "accueil" ? "#0A0A0A" : "#8A938E")}Commerces</a>
-    <a href="#/admin/paiements" class="${actif === "paiements" ? "on" : ""}">${S.billet(actif === "paiements" ? "#0A0A0A" : "#8A938E")}Paiements</a>
+    ${PRIX ? `<a href="#/admin/paiements" class="${actif === "paiements" ? "on" : ""}">${S.billet(actif === "paiements" ? "#0A0A0A" : "#8A938E")}Paiements</a>` : ""}
     <a href="#/admin/creer" class="centre" aria-label="Nouveau commerce"><span>${S.plus(30, "#0A0A0A")}</span></a>
     <a href="#/admin/plaques" class="${actif === "plaques" ? "on" : ""}">${S.plaques(actif === "plaques" ? "#0A0A0A" : "#8A938E")}Plaques</a>
     <a href="#" id="na-cpt">${S.perso("#8A938E")}Compte</a></nav>`;
@@ -887,7 +924,8 @@
   const impayes = pid => paiementsAdmin.filter(x => x.pid === pid && !x.paye);
   function statut(p) {
     if (p.actif === false) return `<span class="tag" style="background:#EEF2EF;color:#5B665F">En pause</span>`;
-    if (impayes(p.id).length) return `<span class="tag rouge">Impayé</span>`;
+    if (p.suppressionDemandee) return `<span class="tag rouge">Suppression demandée</span>`;
+    if (PRIX && impayes(p.id).length) return `<span class="tag rouge">Impayé</span>`;
     if (p.essai && p.expire >= jourPlus(0)) { const j = Math.max(0, Math.round((new Date(p.expire) - new Date(jourPlus(0))) / 864e5)); return `<span class="tag jaune">Essai · ${j} j</span>`; }
     return `<span class="tag menthe">Actif</span>`;
   }
@@ -904,8 +942,8 @@
     app.innerHTML = `<div class="ecran nav">
       <div style="padding:var(--haut) 20px 6px;display:flex;justify-content:space-between;align-items:center"><div><div class="eyebrow">ESPACE NFC WORK</div><div style="font-size:26px;font-weight:800">Mes commerces</div></div><span style="font-family:var(--logo);font-weight:800;font-size:22px">kiffy</span></div>
       <div class="page" style="padding-top:8px;gap:12px">
-        <div class="ca"><div class="t">Encaissé ce mois</div><div class="m">${encaisse.toLocaleString("fr-FR")} <span>DH</span></div>
-          <div class="g"><div><b>${nAct}</b><span>Actifs</span></div><div><b>${nEss}</b><span>En essai</span></div><div class="rouge"><b>${nImp}</b><span>Impayés</span></div></div></div>
+        <div class="ca">${PRIX ? `<div class="t">Encaissé ce mois</div><div class="m">${encaisse.toLocaleString("fr-FR")} <span>DH</span></div>` : `<div class="t">Commerces</div><div class="m">${progsAdmin.length}</div>`}
+          <div class="g"><div><b>${nAct}</b><span>Actifs</span></div><div><b>${nEss}</b><span>En essai</span></div>${PRIX ? `<div class="rouge"><b>${nImp}</b><span>Impayés</span></div>` : `<div><b>${progsAdmin.filter(p => p.actif === false).length}</b><span>En pause</span></div>`}</div></div>
         <label class="recherche">${S.loupe}<input id="aq" placeholder="Chercher un commerce" value="${esc(rechercheAdmin)}" autocomplete="off"></label>
         <div class="carte liste">${L.length ? L.map(p => `<a class="ligne" href="#/admin/c/${esc(p.id)}"><span class="tuile" style="background:${esc(p.couleur || "#16C172")};color:${clair(p.couleur) ? "#0A0A0A" : "#FFFFFF"}">${logoHTML(p)}</span><span class="txt"><b>${esc(p.nom)}</b><span>${esc(nomMetier(p.metier))} · ${(cartesAdmin[p.id] || { n: 0 }).n} clients${p.ville ? " · " + esc(p.ville) : ""}</span></span>${statut(p)}</a>`).join("") : `<div class="vide">Aucun commerce. Touchez + pour en créer un.</div>`}</div>
       </div>${navAdmin("accueil")}</div>`;
@@ -937,7 +975,7 @@
       <div class="page" style="gap:12px">
         <div class="fiche-haut" style="background:${esc(p.couleur || "#16C172")};color:${clair(p.couleur) ? "#0A0A0A" : "#FFFFFF"}"><span class="logo-c" style="color:#0A0A0A">${logoHTML(p)}</span><span style="flex:1;min-width:0"><b>${esc(p.nom)}</b><span class="s" style="color:inherit;opacity:.8">${esc(p.ownerEmail || "sans e-mail")}${ms(p.createdAt) ? " · depuis " + new Date(ms(p.createdAt)).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }) : ""}</span></span>${p.actif === false ? `<span class="tag noir">En pause</span>` : `<span class="tag noir">Actif</span>`}</div>
         <div class="mini-stats"><div><b>${st.n}</b><span>Clients</span></div><div><b>${st.vm}</b><span>Visites ce mois</span></div><div><b>${emps}</b><span>Employés</span></div></div>
-        <div class="carte" style="padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Paiements</h3>${du ? `<span class="tag jaune">${esc(du.libelle || du.mois)} à payer</span>` : paies.length ? `<span class="tag menthe">À jour</span>` : ""}</div>
+        <div class="carte" style="padding:14px 16px;${PRIX ? "" : "display:none"}"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Paiements</h3>${du ? `<span class="tag jaune">${esc(du.libelle || du.mois)} à payer</span>` : paies.length ? `<span class="tag menthe">À jour</span>` : ""}</div>
           ${paies.length ? paies.slice(0, 6).map(x => `<div class="paie"><span>${esc(x.libelle || x.mois)} · ${x.montant} DH</span>${x.paye ? `<b class="ok">Payé ${S.coche(13, "#0E8A51")}</b>` : `<b class="ko">À payer</b>`}</div>`).join("") : `<div class="vide" style="padding:10px 0">${p.kiffy ? "Aucun paiement." : "Commerce créé dans l’Espace (pas d’abonnement Kiffy)."}</div>`}
           ${du ? `<button class="btn-noir moyen" id="enc" style="margin-top:10px">Encaisser ${du.montant} DH</button>` : ""}</div>
         <div class="carte menu">
@@ -1001,10 +1039,11 @@
       let fini = false, stop = () => {};
       const f = feuille(`<h2>Scanner la plaque</h2><div class="cadre" style="margin:0 auto">${S.coins}<div class="ligne-scan"></div><div class="msg-cam">Ouverture de la caméra…</div></div>
         <label class="champ" style="color:#fff">Ou tapez le code<input id="pl-c" placeholder="KF-A7K2" autocapitalize="characters" style="text-transform:uppercase;color:#0A0A0A"></label>
-        <button class="btn-vert" id="pl-ok">Valider</button><button class="btn-ligne" data-fermer>Annuler</button>`, { noir: true, surFermer: () => { stop(); if (!fini) { fini = true; ok(""); } } });
+        <button class="btn-vert" id="pl-ok">Valider</button><button class="btn-ligne" id="pl-nfc">${S.ondes.replace('stroke="#0A0A0A"', 'stroke="#FFFFFF"')} Approcher la plaque (NFC)</button><button class="btn-ligne" data-fermer>Annuler</button>`, { noir: true, surFermer: () => { stop(); if (!fini) { fini = true; ok(""); } } });
       const fin = c => { if (fini) return; fini = true; stop(); f.remove(); ok(c); };
       demarrerCamera($(".cadre", f), fin, lirePlaque).then(s0 => { stop = s0; if (fini) s0(); });
       $("#pl-ok", f).onclick = () => { const c = lirePlaque($("#pl-c", f).value); c ? fin(c) : toast("Code invalide (ex. KF-A7K2)"); };
+      $("#pl-nfc", f).onclick = () => lireNFC(fin, lirePlaque);
     });
   }
   // fiche commerce : la plaque liée (scanner, délier)
@@ -1091,11 +1130,11 @@
           <div style="font-size:13px;font-weight:700">Récompense</div><div class="choix rec" id="rc"></div>
           <label class="champ" style="font-weight:600">Autre récompense<input id="rc-x" maxlength="80" value="${esc(s.rec)}"></label></section>
         <section class="section" style="gap:2px"><b style="margin-bottom:8px">6 · Fonctions à activer</b><div id="op"></div></section>
-        <section class="section" style="gap:10px"><b>7 · Abonnement et plaque</b>
-          <div class="seg"><button data-f="standard">Standard</button><button data-f="offre">Offre fin d’année</button></div>
+        <section class="section" style="gap:10px"><b>7 · ${PRIX ? "Abonnement et plaque" : "Plaque"}</b>
+          ${PRIX ? `<div class="seg"><button data-f="standard">Standard</button><button data-f="offre">Offre fin d’année</button></div>
           <div class="kv" style="font-size:14px"><span>Installation</span><b>${TARIF.installation} DH</b></div>
           <div class="kv" style="font-size:14px"><span>Abonnement</span><b>${TARIF.mensuel} DH / mois</b></div>
-          <div class="kv" style="font-size:14px"><span>Offre fin d’année (3 mois inclus)</span><b>${TARIF.offre} DH</b></div>
+          <div class="kv" style="font-size:14px"><span>Offre fin d’année (3 mois inclus)</span><b>${TARIF.offre} DH</b></div>` : ""}
           <div class="plaque-ligne">${ic("qrcode", 20)}<span style="flex:1" id="pl-txt"><b>Plaque Kiffy</b> · scannez la plaque à installer</span><button class="lien" id="pl-scan">Scanner</button></div></section>
         <p class="err" id="c-err"></p>
         <button class="btn-noir" id="c-ok">${ex ? "Enregistrer" : "Créer et envoyer l’accès au gérant"}</button>
@@ -1183,7 +1222,7 @@
         }
         if (s.plaque) { try { await lierPlaque(s.plaque, id, data.nom); } catch (e) { erreur(e); } }
         if (!ex) {
-          await db.doc(`kiffyPaiements/${id}-installation`).set({ pid: id, mois: "installation", libelle: s.formule === "offre" ? "Offre fin d’année (3 mois)" : "Installation", montant: data.kiffy.installation, paye: false, cree: FV.serverTimestamp() });
+          if (PRIX) await db.doc(`kiffyPaiements/${id}-installation`).set({ pid: id, mois: "installation", libelle: s.formule === "offre" ? "Offre fin d’année (3 mois)" : "Installation", montant: data.kiffy.installation, paye: false, cree: FV.serverTimestamp() });
           b.textContent = "Envoi de l’accès…";
           const ok = await envoyerAcces({ id, ownerEmail: email });
           if (!ok) toast("Commerce créé. L’accès n’est pas parti : utilisez « Renvoyer l’accès ».", true);
@@ -1194,5 +1233,5 @@
   }
 
   /* ---------------- PWA ---------------- */
-  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => {});
+  if ("serviceWorker" in navigator && location.protocol === "https:" && !NATIF) navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => {});
 })();

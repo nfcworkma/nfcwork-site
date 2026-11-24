@@ -9,7 +9,7 @@
    Paramètres : APPLE_PASS_TYPE, WORKER (fichier .env de ce dossier)
    ========================================================= */
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret, defineString } = require("firebase-functions/params");
 const admin = require("firebase-admin");
@@ -29,6 +29,9 @@ const jeton = serie => crypto.createHmac("sha256", APPLE_AUTH.value()).update(se
 const egal = (a, b) => { a = Buffer.from(String(a)); b = Buffer.from(String(b)); return a.length === b.length && crypto.timingSafeEqual(a, b); };
 const regId = (dev, serie) => crypto.createHash("sha1").update(dev + "|" + serie).digest("hex");
 const nettoyer = s => String(s || "").replace(/[^\w.-]/g, "").slice(0, 120);
+// site + app Kiffy (iOS : capacitor://localhost, Android : https://localhost)
+const ORIGINES = ["https://nfcwork.ma", "capacitor://localhost", "https://localhost"];
+const origine = req => ORIGINES.includes(req.get("Origin")) ? req.get("Origin") : ORIGINES[0];
 
 /* ---------- 1) web service Apple ---------- */
 exports.apple = onRequest({ region: REGION, secrets: [APPLE_CERT, APPLE_KEY, APPLE_AUTH], cors: false, maxInstances: 5 }, async (req, res) => {
@@ -36,7 +39,7 @@ exports.apple = onRequest({ region: REGION, secrets: [APPLE_CERT, APPLE_KEY, APP
     const p = req.path.replace(/\/+$/, "").split("/").filter(Boolean);   // ex. v1/devices/<dev>/registrations/<type>/<serie>
     if (p[0] === "notifier" && req.method === "OPTIONS") p[0] = "annonce";   // même réponse CORS
     if (p[0] === "notifier" && req.method === "POST") return notifier(req, res);
-    if (p[0] === "annonce" && req.method === "OPTIONS") return res.set({ "Access-Control-Allow-Origin": "https://nfcwork.ma", "Access-Control-Allow-Methods": "POST", "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Max-Age": "86400" }).status(204).end();
+    if (p[0] === "annonce" && req.method === "OPTIONS") return res.set({ "Vary": "Origin", "Access-Control-Allow-Origin": origine(req), "Access-Control-Allow-Methods": "POST", "Access-Control-Allow-Headers": "Content-Type, Authorization", "Access-Control-Max-Age": "86400" }).status(204).end();
     if (p[0] === "annonce" && req.method === "POST") return annonce(req, res);
     if (p[0] !== "v1") return res.status(404).end();
     if (p[1] === "log" && req.method === "POST") { console.log("apple log", JSON.stringify(req.body || {}).slice(0, 2000)); return res.status(200).end(); }
@@ -135,7 +138,7 @@ exports.appleProgramme = onDocumentWritten({ document: "fidProgrammes/{pid}", re
 /* ---------- 3) message du commerçant (« Aujourd'hui -20 % ») ---------- */
 // vérifie que la personne connectée est le commerçant de ce programme (ou l'admin)
 async function patron(req, res, pid) {
-  res.set("Access-Control-Allow-Origin", "https://nfcwork.ma");
+  res.set({ "Vary": "Origin", "Access-Control-Allow-Origin": origine(req) });
   const tok = String(req.get("Authorization") || "").replace(/^Bearer\s+/, "");
   let u; try { u = await admin.auth().verifyIdToken(tok); } catch (e) { res.status(401).json({ ok: false, erreur: "connexion" }); return null; }
   const ref = db.doc("fidProgrammes/" + nettoyer(pid)), p = await ref.get();
@@ -286,4 +289,73 @@ exports.kiffyReglages = onCall({ region: REGION, maxInstances: 5 }, async req =>
   maj.maj = FieldValue.serverTimestamp();
   await ref.update(maj);
   return { ok: true };
+});
+
+/* ---------- 7) 📲 app Kiffy (iOS / Android) : notifications et suppression du compte ---------- */
+// un téléphone du commerce s'enregistre (jeton FCM) ; « retirer » à la déconnexion
+exports.kiffyAppareil = onCall({ region: REGION, maxInstances: 5 }, async req => {
+  if (!req.auth || req.auth.token.email_verified !== true) throw new HttpsError("unauthenticated", "Connectez-vous d’abord.");
+  const { token, plateforme, retirer } = req.data || {};
+  if (typeof token !== "string" || token.length < 20 || token.length > 4096) throw new HttpsError("invalid-argument", "Jeton invalide.");
+  const ref = db.doc("kiffyAppareils/" + crypto.createHash("sha256").update(token).digest("hex").slice(0, 40));
+  if (retirer) { await ref.delete(); return { ok: true }; }
+  await ref.set({ token, email: String(req.auth.token.email || "").toLowerCase(), plateforme: plateforme === "ios" ? "ios" : "android", maj: Timestamp.now() });
+  return { ok: true };
+});
+
+// suppression du compte depuis l'app (exigence Apple) : compte effacé tout de suite, commerce mis en pause pour NFC Work
+exports.kiffySupprimerCompte = onCall({ region: REGION, maxInstances: 3 }, async req => {
+  if (!req.auth || req.auth.token.email_verified !== true) throw new HttpsError("unauthenticated", "Connectez-vous d’abord.");
+  const email = String(req.auth.token.email || "").toLowerCase();
+  if (email === ADMIN) throw new HttpsError("permission-denied", "Le compte NFC Work ne peut pas être supprimé ici.");
+  const progs = await db.collection("fidProgrammes").where("ownerEmail", "==", email).get();
+  for (const p of progs.docs) {
+    await p.ref.update({ actif: false, suppressionDemandee: FieldValue.serverTimestamp() });
+    await db.doc("fidSecrets/" + p.id).update({ pins: FieldValue.delete() }).catch(() => {});
+  }
+  const app = await db.collection("kiffyAppareils").where("email", "==", email).get();
+  for (const d of app.docs) await d.ref.delete();
+  await admin.auth().deleteUser(req.auth.uid);
+  console.log("kiffy : compte supprimé", email, progs.size, "commerce(s)");
+  return { ok: true, commerces: progs.size };
+});
+
+async function pushA(email, titre, texte) {
+  const s = await db.collection("kiffyAppareils").where("email", "==", String(email || "").toLowerCase()).get();
+  if (s.empty) return 0;
+  const r = await admin.messaging().sendEachForMulticast({ tokens: s.docs.map(d => d.data().token), notification: { title: titre, body: texte },
+    apns: { payload: { aps: { sound: "default" } } }, android: { priority: "high", notification: { sound: "default", color: "#16C172" } } });
+  r.responses.forEach((x, i) => { if (!x.success && /not-registered|invalid-registration|invalid-argument/.test((x.error && x.error.code) || "")) s.docs[i].ref.delete().catch(() => {}); });
+  return r.successCount;
+}
+// début de la journée au Maroc (pour les bilans)
+const debutJour = () => { const n = Date.now(), [h, m, s] = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Casablanca", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(n).split(":").map(Number); return n - ((h * 60 + m) * 60 + s) * 1000; };
+const prenomDe = nom => String(nom || "Un client").trim().split(/\s+/)[0];
+
+// 🆕 un client vient de créer sa carte
+exports.kiffyPushInscription = onDocumentCreated({ document: "fidCartes/{cid}", region: REGION }, async ev => {
+  const c = ev.data && ev.data.data(); if (!c || !c.ownerEmail) return;
+  const p = await db.doc("fidProgrammes/" + nettoyer(c.pid)).get();
+  await pushA(c.ownerEmail, "Nouveau client", `${prenomDe(c.nom)} vient de créer sa carte${p.exists ? " chez " + p.data().nom : ""}.`).catch(e => console.log("push inscription", e.message));
+});
+
+// 🎂 le matin : les anniversaires du jour
+exports.kiffyPushMatin = onSchedule({ schedule: "5 9 * * *", timeZone: "Africa/Casablanca", region: REGION }, async () => {
+  const j = new Date().toLocaleDateString("fr-CA", { timeZone: "Africa/Casablanca" }).slice(5);
+  const s = await db.collection("fidCartes").where("anniv", "==", j).get(), par = {};
+  s.docs.forEach(d => { const c = d.data(); if (c.ownerEmail) (par[c.ownerEmail] = par[c.ownerEmail] || []).push(prenomDe(c.nom)); });
+  for (const [email, L] of Object.entries(par)) await pushA(email, `${L.length} anniversaire${L.length > 1 ? "s" : ""} aujourd’hui`, L.slice(0, 4).join(", ") + (L.length > 4 ? "…" : "") + " · le message part tout seul dans leur Wallet.").catch(e => console.log("push matin", e.message));
+});
+
+// 🌙 le soir : bilan de la journée (seulement s'il s'est passé quelque chose)
+exports.kiffyPushSoir = onSchedule({ schedule: "0 20 * * *", timeZone: "Africa/Casablanca", region: REGION }, async () => {
+  const t0 = debutJour(), emails = new Set((await db.collection("kiffyAppareils").get()).docs.map(d => d.data().email).filter(Boolean));
+  for (const email of emails) {
+    const s = await db.collection("fidCartes").where("ownerEmail", "==", email).get();
+    let visites = 0, nouveaux = 0, cadeaux = 0;
+    s.docs.forEach(d => { const c = d.data(); if (c.createdAt && c.createdAt.toMillis() >= t0) nouveaux++; (c.hist || []).forEach(h => { if (h.t >= t0) { if (h.a === "visite") visites++; else if (h.a === "cadeau") cadeaux++; } }); });
+    if (!visites && !nouveaux) continue;
+    const bouts = [`${visites} visite${visites > 1 ? "s" : ""}`, nouveaux ? `${nouveaux} nouveau${nouveaux > 1 ? "x" : ""} client${nouveaux > 1 ? "s" : ""}` : "", cadeaux ? `${cadeaux} cadeau${cadeaux > 1 ? "x" : ""} offert${cadeaux > 1 ? "s" : ""}` : ""].filter(Boolean);
+    await pushA(email, "Bilan du jour", bouts.join(" · ")).catch(e => console.log("push soir", e.message));
+  }
 });

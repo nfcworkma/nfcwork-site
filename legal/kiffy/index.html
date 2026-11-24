@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confidentialité · Kiffy</title>
+<meta name="description" content="Politique de confidentialité de l’app Kiffy et des cartes de fidélité NFC Work : données collectées, utilisation, conservation, suppression.">
+<meta name="theme-color" content="#16C172">
+<link rel="icon" type="image/png" sizes="192x192" href="/kiffy/icones/kiffy-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;600;700;800&display=swap">
+<style>
+:root { --vert: #16C172; --noir: #0A0A0A; --fond: #F4F7F5; --gris: #5B665F; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #fff; color: var(--noir); font-family: Inter, system-ui, sans-serif; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+header { background: var(--vert); padding: 40px 20px 34px; text-align: center; }
+.kiffy { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 56px; letter-spacing: -2px; line-height: 1; }
+header p { margin: 8px 0 0; font-weight: 700; }
+main { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
+h1 { font-size: 28px; line-height: 1.2; margin: 8px 0 4px; }
+h2 { font-size: 19px; margin: 30px 0 6px; }
+.maj { color: var(--gris); font-size: 14px; margin: 0 0 18px; }
+.encadre { background: var(--fond); border-radius: 16px; padding: 14px 18px; }
+ul { padding-left: 20px; }
+li { margin: 4px 0; }
+a { color: #0E8A51; font-weight: 600; }
+footer { text-align: center; font-size: 13px; color: var(--gris); padding: 0 20px 40px; }
+</style>
+</head>
+<body>
+<header><div class="kiffy">kiffy</div><p>par NFC Work</p></header>
+<main>
+<h1>Politique de confidentialité</h1>
+<p class="maj">Kiffy (app iOS, Android et nfcwork.ma/kiffy) et cartes de fidélité NFC Work · mise à jour le 24 novembre 2026</p>
+
+<div class="encadre">En bref : nous gardons seulement ce qu’il faut pour faire marcher la carte de fidélité. Pas de publicité, pas de pistage, aucune revente de données. Vous pouvez supprimer votre compte depuis l’app à tout moment.</div>
+
+<h2>Qui sommes-nous</h2>
+<p>NFC Work (Maroc) édite Kiffy, l’outil des commerçants pour gérer leur carte de fidélité, et les cartes de fidélité digitales (Apple Wallet et Google Wallet) de leurs clients. Contact : <a href="mailto:nfcworkmacontact@gmail.com">nfcworkmacontact@gmail.com</a><span id="wa"></span>.</p>
+
+<h2>Données des commerçants (utilisateurs de l’app Kiffy)</h2>
+<ul>
+<li>L’e-mail du compte du commerce et ses informations (nom, ville, téléphone du commerce, logo, couleurs, programme de fidélité, adresse du commerce si vous l’ajoutez).</li>
+<li>Le prénom des employés et leurs codes PIN, enregistrés uniquement sous forme chiffrée (empreinte SHA-256), jamais en clair.</li>
+<li>Pour les notifications de l’app : un identifiant technique du téléphone (jeton de notification), supprimé à la déconnexion ou à la suppression du compte.</li>
+</ul>
+
+<h2>Données des clients des commerces</h2>
+<ul>
+<li>Prénom (ou nom), numéro de téléphone et, si le client la donne, sa date d’anniversaire (jour et mois).</li>
+<li>Les points, les visites (date, heure et prénom de l’employé qui a servi) et les cadeaux reçus.</li>
+<li>Si la carte est ajoutée dans Apple Wallet : un identifiant technique fourni par Apple pour mettre la carte à jour.</li>
+</ul>
+<p>Ces données servent uniquement à faire fonctionner la carte : compter les points, afficher la carte, envoyer les messages du commerce (offres, anniversaire, rappel) dans Apple Wallet et Google Wallet. Chaque commerce ne voit que ses propres clients. Un employé ne voit pas la liste des clients ni leurs numéros.</p>
+
+<h2>Autorisations de l’app</h2>
+<ul>
+<li><b>Caméra</b> : uniquement pour scanner le QR de la carte d’un client ou d’une plaque Kiffy. Aucune photo n’est enregistrée.</li>
+<li><b>NFC</b> : uniquement pour lire une plaque ou une carte Kiffy approchée du téléphone.</li>
+<li><b>Face ID / empreinte</b> : vérifié par votre téléphone ; nous ne recevons jamais votre visage ni votre empreinte.</li>
+<li><b>Notifications</b> : nouveau client, anniversaires du jour, bilan du soir. Vous pouvez les couper dans les réglages du téléphone.</li>
+</ul>
+
+<h2>Où sont les données</h2>
+<p>Les données sont hébergées chez Google Firebase (Google Cloud) et chez Cloudflare pour le serveur des cartes Wallet ; Apple et Google affichent les cartes dans leurs Wallet. Ces prestataires traitent les données pour notre compte. Aucune donnée n’est vendue ni utilisée pour de la publicité.</p>
+
+<h2>Durée de conservation</h2>
+<p>Les données d’un commerce et de ses clients sont gardées tant que le commerce utilise Kiffy, puis supprimées au plus tard 3 mois après la fin du service ou la demande de suppression, sauf obligation légale (factures).</p>
+
+<h2>Supprimer un compte ou des données</h2>
+<ul>
+<li><b>Commerçant</b> : dans l’app, Réglages → « Supprimer mon compte ». L’accès est supprimé tout de suite, le commerce est mis en pause, puis ses données sont effacées.</li>
+<li><b>Client d’un commerce</b> : demandez au commerce de supprimer votre carte, ou écrivez-nous à <a href="mailto:nfcworkmacontact@gmail.com">nfcworkmacontact@gmail.com</a> avec le nom du commerce et votre numéro : nous supprimons votre carte sous 30 jours. Vous pouvez aussi retirer la carte de votre Wallet à tout moment.</li>
+</ul>
+
+<h2>Vos droits</h2>
+<p>Conformément à la loi marocaine 09-08 sur la protection des données personnelles, vous pouvez accéder à vos données, les faire corriger ou supprimer, et vous opposer à leur traitement, en écrivant à <a href="mailto:nfcworkmacontact@gmail.com">nfcworkmacontact@gmail.com</a>.</p>
+
+<h2>Enfants</h2>
+<p>Kiffy est un outil pour les commerçants. Les cartes de fidélité ne sont pas destinées aux enfants de moins de 13 ans.</p>
+
+<h2>Changements</h2>
+<p>Si cette politique change, la date en haut de la page est mise à jour.</p>
+</main>
+<footer>Propulsé par <b>NFC WORK</b> · <a href="/">nfcwork.ma</a></footer>
+<script src="/assets/js/config.js"></script>
+<script>try { if (typeof CONFIG !== "undefined" && CONFIG.whatsapp) document.getElementById("wa").innerHTML = ' · WhatsApp : <a href="https://wa.me/' + CONFIG.whatsapp + '">' + (CONFIG.phoneDisplay || "+" + CONFIG.whatsapp) + "</a>"; } catch (e) {}</script>
+</body>
+</html>
