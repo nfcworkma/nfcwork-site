@@ -6,6 +6,9 @@ keep_vars = true
 
 [vars]
 ISSUER_ID = "3388000000023226403"
+APPLE_PASS_TYPE = "pass.ma.nfcwork.fidelite"
+APPLE_TEAM_ID = "J69K68SACA"
+APPLE_WS = "https://europe-west1-nfcwork-espace.cloudfunctions.net/apple"
 
 # ⏰ chaque jour à 08:00 (UTC) : anniversaires du jour → message Google Wallet automatique
 [triggers]
