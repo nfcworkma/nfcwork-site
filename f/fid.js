@@ -148,7 +148,7 @@
   function badgeWallet(c) {
     if (!WALLET) return "";
     if (!IOS) return `<a class="wbadge" href="${WALLET}/google/save?c=${encodeURIComponent(c.id)}" rel="noopener" aria-label="Ajouter à Google Wallet"><img src="/assets/wallet/badge-google-fr.svg" alt="Ajouter à Google Wallet" onerror="this.parentNode.classList.add('sans')"><span>Ajouter à <b>Google Wallet</b></span></a>`;
-    if (APPLE) return `<a class="wbadge awallet" href="${WALLET}/apple/pass?c=${encodeURIComponent(c.id)}" rel="noopener" aria-label="Ajouter à Apple Wallet"><img src="/assets/wallet/badge-apple-fr.svg" alt="Ajouter à Apple Wallet" onerror="this.parentNode.classList.add('sans')"><span>Ajouter à <b>Apple Wallet</b></span></a>`;
+    if (APPLE) return `<a class="abtn awallet" href="${WALLET}/apple/pass?c=${encodeURIComponent(c.id)}" rel="noopener"><img src="/assets/wallet/apple-wallet-icon.png" alt="" width="34" height="34"><span>Ajouter à<b>Apple Wallet</b></span></a>`;
     return "";
   }
   // juste après l'inscription : on ouvre directement l'ajout au Wallet (une seule fois par carte).
@@ -157,7 +157,7 @@
   function tenterAutoWallet() {
     if (!autoWallet || !carte || carte.id !== autoWallet) return;
     if (/Instagram|FBAN|FBAV|FB_IAB|TikTok|musical_ly|Snapchat|Line\//i.test(navigator.userAgent)) { autoWallet = ""; return; }
-    const b = app.querySelector(".wbadge"); if (!b) return;   // iPhone : on attend qu'Apple soit prêt
+    const b = app.querySelector(".wbadge, .abtn"); if (!b) return;   // iPhone : on attend qu'Apple soit prêt
     let deja = false; try { deja = localStorage.getItem("nfcw-wallet-" + carte.id) === "1"; localStorage.setItem("nfcw-wallet-" + carte.id, "1"); } catch (e) {}
     autoWallet = ""; if (deja) return;
     setTimeout(() => { location.href = b.href; }, 900);
