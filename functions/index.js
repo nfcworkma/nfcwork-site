@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — Apple Wallet, phase 2 (Firebase Functions, Node 20)
+   NFCWORK — Apple Wallet, phase 2 (Firebase Functions, Node 22)
    Le Worker Cloudflare fabrique la carte (.pkpass). Ici :
    1) le « web service » Apple : les iPhones s'enregistrent pour recevoir les mises à jour d'une carte
    2) l'envoi des mises à jour (APNs, HTTP/2 + certificat Pass Type ID) :
