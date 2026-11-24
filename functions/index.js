@@ -177,6 +177,13 @@ async function notifier(req, res) {
 }
 
 /* ---------- 5) 🎂 anniversaires automatiques, chaque matin ---------- */
+// 🎂 message d'anniversaire : celui écrit par le commerçant ({prenom}, {cadeau}, {commerce}), sinon le texte par défaut
+function texteAnniv(p, c) {
+  const cadeau = String(p.cadeauAnniv || "").trim(), prenom = String(c.nom || "").trim().split(/\s+/)[0] || "";
+  const modele = String(p.annivMessage || "").trim() || `${p.nom || "Nous"} vous souhaite un très joyeux anniversaire{ prenom} ! ` + (cadeau ? "Votre cadeau : {cadeau} — passez cette semaine 🎁" : "Passez cette semaine, une surprise vous attend 🎁");
+  return modele.replace(/\{ prenom\}/g, prenom ? " " + prenom : "").replace(/\{prenom\}/gi, prenom).replace(/\{cadeau\}/gi, cadeau || "une surprise").replace(/\{commerce\}/gi, p.nom || "");
+}
+
 exports.appleAnniversaires = onSchedule({ schedule: "0 9 * * *", timeZone: "Africa/Casablanca", region: REGION }, async () => {
   const j = new Date().toLocaleDateString("fr-CA", { timeZone: "Africa/Casablanca" }).slice(5);   // « MM-JJ »
   const cartes = await db.collection("fidCartes").where("anniv", "==", j).get();
@@ -188,9 +195,8 @@ exports.appleAnniversaires = onSchedule({ schedule: "0 9 * * *", timeZone: "Afri
     if (!(pid in progs)) { const p = await db.doc("fidProgrammes/" + nettoyer(pid)).get(); progs[pid] = p.exists ? p.data() : null; }
     const p = progs[pid];
     if (!p || p.actif === false || p.annivAuto === false) continue;
-    const cadeau = String(p.cadeauAnniv || "").trim();
-    const t = `🎂 ${p.nom || "Nous"} vous souhaite un joyeux anniversaire ! ` + (cadeau ? `Votre cadeau : ${cadeau} 🎁` : "Une surprise vous attend 🎁");
-    await c.ref.update({ msgWallet: { texte: datee(t).slice(0, 160), date: Date.now() } });
+    const t = "🎂 " + texteAnniv(p, c.data());
+    await c.ref.update({ msgWallet: { texte: datee(t).slice(0, 320), date: Date.now() } });
     n++;
   }
   console.log("anniversaires Apple :", n);

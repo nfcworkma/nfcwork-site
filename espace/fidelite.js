@@ -253,7 +253,8 @@
             <label class="f" style="margin-top:8px">Message affiché près du commerce<input id="p-lieu-txt" maxlength="80" value="${esc(p.lieuTexte || "")}" placeholder="Vous êtes près de chez nous : montrez votre carte 🎁"></label>
           </div>
           <label class="f">🎂 Cadeau d’anniversaire (envoyé au client le jour J)<input id="p-anniv" maxlength="80" value="${esc(p.cadeauAnniv || "")}" placeholder="1 boisson offerte · -20 % · 1 partie offerte"></label>
-          <label class="check"><input type="checkbox" id="p-anniv-auto" ${p.annivAuto !== false ? "checked" : ""}> 🎁 Envoyer automatiquement le jour de l’anniversaire (Google Wallet)</label>
+          <label class="f">🎂 Message d’anniversaire (le jour J, sur le téléphone du client)<textarea id="p-anniv-msg" rows="3" maxlength="300" placeholder="Joyeux anniversaire {prenom} ! 🎉 Toute l’équipe de ${esc(p.nom || "votre commerce")} vous offre {cadeau}. Passez cette semaine 🎁">${esc(p.annivMessage || "")}</textarea><small class="muted">{prenom} = prénom du client · {cadeau} = le cadeau ci-dessus. Vide = message par défaut.</small></label>
+          <label class="check"><input type="checkbox" id="p-anniv-auto" ${p.annivAuto !== false ? "checked" : ""}> 🎁 Envoyer automatiquement le jour de l’anniversaire (Apple Wallet et Google Wallet)</label>
           <label class="f">Comment ça marche (affiché au client, une étape par ligne)<textarea id="p-guide" maxlength="400" rows="3">${esc(p.guide || "")}</textarea></label>
           <label class="check"><input type="checkbox" id="p-actif" ${p.actif !== false ? "checked" : ""}> Programme actif</label>
         </div></details>
@@ -372,7 +373,7 @@
         primeEmploye: $("#p-prime", d).value.trim(), actif: $("#p-actif", d).checked, maj: NOW(),
         prix: parseInt($("#p-prix", d).value, 10) || 0, periode: $("#p-per", d).value, guide: $("#p-guide", d).value.trim().slice(0, 400),
         lienAvis: /^https:\/\//.test($("#p-avis", d).value.trim()) ? $("#p-avis", d).value.trim() : "",
-        cadeauAnniv: $("#p-anniv", d).value.trim().slice(0, 80), annivAuto: $("#p-anniv-auto", d).checked,
+        cadeauAnniv: $("#p-anniv", d).value.trim().slice(0, 80), annivMessage: $("#p-anniv-msg", d).value.trim().slice(0, 300), annivAuto: $("#p-anniv-auto", d).checked,
         lieux, lieuTexte: $("#p-lieu-txt", d).value.trim().slice(0, 80), logoPng
       };
       // ancien logo sans version PNG : on la fabrique maintenant (Apple Wallet)
@@ -512,7 +513,7 @@
     if (!L.length) { toast(type === "anniv" ? "Aucun anniversaire aujourd’hui." : "Aucun client absent depuis 30 jours."); return; }
     const cadeau = String(P.cadeauAnniv || "").trim();
     const t0 = type === "anniv" ? `🎂 Joyeux anniversaire !` : `On ne vous a pas vu depuis un moment 👋`;
-    const x0 = type === "anniv" ? `${P.nom} vous souhaite un joyeux anniversaire ! 🎂 ${cadeau ? "Votre cadeau : " + cadeau + " — passez cette semaine 🎁" : "Passez cette semaine, une surprise vous attend 🎁"}` : `${P.nom} vous offre +1 point si vous passez cette semaine. À très vite !`;
+    const x0 = type === "anniv" ? (P.annivMessage ? P.annivMessage.replace(/\{prenom\}\s*/gi, "").replace(/\{cadeau\}/gi, cadeau || "une surprise").replace(/\{commerce\}/gi, P.nom) : `${P.nom} vous souhaite un joyeux anniversaire ! 🎂 ${cadeau ? "Votre cadeau : " + cadeau + " — passez cette semaine 🎁" : "Passez cette semaine, une surprise vous attend 🎁"}`) : `${P.nom} vous offre +1 point si vous passez cette semaine. À très vite !`;
     const d = fenetre(`<h2>${type === "anniv" ? "🎂 Anniversaires du jour" : "😴 Clients absents"} (${L.length})</h2>
       <p class="muted" style="margin:2px 0 10px;font-size:13.5px">${esc(L.slice(0, 8).map(c => c.nom).join(", "))}${L.length > 8 ? "…" : ""}<br>Ils reçoivent une <b>notification</b> s’ils ont la carte dans Google Wallet.</p>
       <label class="f">Titre<input id="rl-t" maxlength="60" value="${esc(t0)}"></label>

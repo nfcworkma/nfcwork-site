@@ -258,6 +258,13 @@ async function notifier(req, env) {
 }
 
 /* ---------- 🎂 anniversaires automatiques (déclenché chaque jour par le cron) ---------- */
+// 🎂 message d'anniversaire : celui écrit par le commerçant ({prenom}, {cadeau}, {commerce}), sinon le texte par défaut
+function texteAnniv(p, c) {
+  const cadeau = String(p.cadeauAnniv || "").trim(), prenom = String(c.nom || "").trim().split(/\s+/)[0] || "";
+  const modele = String(p.annivMessage || "").trim() || `${p.nom || "Nous"} vous souhaite un très joyeux anniversaire{ prenom} ! ` + (cadeau ? "Votre cadeau : {cadeau} — passez cette semaine 🎁" : "Passez cette semaine, une surprise vous attend 🎁");
+  return modele.replace(/\{ prenom\}/g, prenom ? " " + prenom : "").replace(/\{prenom\}/gi, prenom).replace(/\{cadeau\}/gi, cadeau || "une surprise").replace(/\{commerce\}/gi, p.nom || "");
+}
+
 async function anniversairesAuto(env) {
   const d = new Date(), today = String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
   const dateJour = d.toISOString().slice(0, 10);
@@ -268,9 +275,8 @@ async function anniversairesAuto(env) {
   for (const pid of Object.keys(parProg)) {
     const p = await lire("fidProgrammes/" + propre(pid, 60)).catch(() => null);
     if (!p || p.actif === false || p.annivAuto === false) continue;   // le commerçant peut couper l'envoi auto
-    const cadeau = String(p.cadeauAnniv || "").trim();
     const titre = "🎂 Joyeux anniversaire !";
-    const texte = (`${p.nom || "Nous"} vous souhaite un très joyeux anniversaire ! ` + (cadeau ? `Votre cadeau : ${cadeau} — passez cette semaine 🎁` : "Passez cette semaine, une surprise vous attend 🎁")).slice(0, 400);
+    const texte = texteAnniv(p, c).slice(0, 400);
     for (const c of parProg[pid]) {
       const r = await wo(env, "POST", "loyaltyObject/" + encodeURIComponent(`${env.ISSUER_ID}.c-${propre(c.id)}`) + "/addMessage", {
         message: { id: "anniv-" + dateJour + "-" + propre(c.id).slice(0, 8), header: titre, body: texte, messageType: "TEXT_AND_NOTIFY",
@@ -554,7 +560,7 @@ function passJson(env, c, p) {
         { key: "reste", label: pts >= obj ? "BRAVO" : "IL VOUS MANQUE", value: pts >= obj ? "🎁 Récompense prête !" : `${obj - pts} ${u}` }
       ],
       backFields: [
-        ...(c.msgWallet && c.msgWallet.texte && Date.now() - (c.msgWallet.date || 0) < 14 * 86400e3 ? [{ key: "perso", label: "✉️ Pour vous", value: String(c.msgWallet.texte).slice(0, 160), changeMessage: "%@" }] : []),
+        ...(c.msgWallet && c.msgWallet.texte && Date.now() - (c.msgWallet.date || 0) < 14 * 86400e3 ? [{ key: "perso", label: "✉️ Pour vous", value: String(c.msgWallet.texte).slice(0, 320), changeMessage: "%@" }] : []),
         ...(p.annonce && p.annonce.texte ? [{ key: "annonce", label: "📣 " + String(p.nom || "Message").slice(0, 40), value: String(p.annonce.texte).slice(0, 160), changeMessage: "%@" }] : []),
         { key: "regle", label: "Récompense", value: `${obj} ${u} = ${p.recompense || "une récompense"}` },
         { key: "carte", label: "Ma carte", value: lien, attributedValue: `<a href="${lien}">Ouvrir ma carte</a>` },
