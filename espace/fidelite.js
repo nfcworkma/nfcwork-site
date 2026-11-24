@@ -214,7 +214,7 @@
     const d = fenetre(`<div class="row between"><h2>${ex ? "Réglages" : "Nouveau programme"}</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
       <form class="stack" id="pf" style="margin-top:10px">
         <div><div class="eyebrow" style="margin-bottom:6px">1 · Le métier</div>
-          <div class="seg3" id="metiers" style="grid-template-columns:repeat(4,1fr)">${Object.entries(METIERS).filter(([k]) => k[0] !== "_").map(([k, m]) => `<button type="button" data-metier="${k}" aria-pressed="${p.metier === k}"><b style="font-size:22px">${m.ico}</b><small>${esc(m.nom.split(" (")[0])}</small>${m.prix ? `<small class="muted">${esc(prixTxt(m))}</small>` : ""}</button>`).join("")}</div></div>
+          <div class="seg3" id="metiers" style="grid-template-columns:repeat(4,1fr)">${Object.entries(METIERS).filter(([k]) => k[0] !== "_").sort(([a], [b]) => (a === "autre") - (b === "autre")).map(([k, m]) => `<button type="button" data-metier="${k}" aria-pressed="${p.metier === k}"><b style="font-size:22px">${m.ico}</b><small>${esc(m.nom.split(" (")[0])}</small>${m.prix ? `<small class="muted">${esc(prixTxt(m))}</small>` : ""}</button>`).join("")}</div></div>
         <div class="eyebrow">2 · Le commerce</div>
         ${!ex && window.NFCW_SOURCES ? `<button type="button" class="btn" id="p-src">📋 Remplir depuis un client existant (menu, avis, carte…)</button>` : ""}
         <label class="f">Nom du commerce<input id="p-nom" required maxlength="60" value="${esc(p.nom)}" placeholder="Barber Atlas"></label>
