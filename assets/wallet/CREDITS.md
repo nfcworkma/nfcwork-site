@@ -7,7 +7,8 @@ Recadrées en 750×246 : `fond-<métier>.png` (aperçu) et `fond-<métier>.rgb` 
 | Métier | Photo | Auteur |
 |---|---|---|
 | cafe | https://unsplash.com/photos/3q9FzbvWf9w | Shannon Douglas (@shannondouglas) |
-| billard (+ gaming) | https://unsplash.com/photos/hEGSbVPzJMA | Denise Jans (@dmjdenise) |
+| billard | https://unsplash.com/photos/hEGSbVPzJMA | Denise Jans (@dmjdenise) |
+| gaming | https://unsplash.com/photos/BVi74hFpZfc | Taylor R (@usualmorals) |
 | terrain | https://unsplash.com/photos/ARU18GpF6QQ | Jonathan Petersson (@grizzlybear) |
 | resto | https://unsplash.com/photos/_WI3DGseB3g | Delightin Dee (@delightindee) |
 | snack | https://unsplash.com/photos/6PczwlIS7B0 | Dima Solomin (@solomin_d) |
