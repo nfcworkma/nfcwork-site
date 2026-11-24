@@ -57,8 +57,10 @@
       idees: [[500, "points", "Bon d’achat de 25 DH", "montant", 10], [1000, "points", "Bon d’achat de 60 DH", "montant", 10], [10, "visites", "1 article surprise offert"]] },
     telephone: { ico: "📱", nom: "Téléphonie / Réparation", type: "visites", objectif: 5, unite: "achats", recompense: "1 protection d’écran offerte", employes: false,
       idees: [[5, "achats", "1 protection d’écran offerte"], [3, "réparations", "-30 % sur la 4e réparation"], [500, "points", "1 câble ou chargeur offert", "montant", 10]] },
-    gaming:    { ico: "🎮", nom: "Salle de jeux / Gaming", type: "visites", objectif: 10, unite: "heures", recompense: "2 heures offertes", employes: false,
+    gaming:    { ico: "🎮", nom: "Salle de jeux / Billard / Gaming", type: "visites", objectif: 10, unite: "heures", recompense: "2 heures offertes", employes: false,
       idees: [[10, "heures", "2 heures offertes"], [8, "visites", "1 boisson offerte"], [20, "heures", "1 tournoi gratuit"]] },
+    terrain:   { ico: "⚽", nom: "Terrain de foot / Padel", type: "visites", objectif: 10, unite: "matchs", recompense: "Le 11e match offert", employes: false,
+      idees: [[10, "matchs", "Le 11e match offert"], [5, "matchs", "1 heure offerte"], [8, "matchs", "Boissons offertes pour l’équipe"]] },
     location:  { ico: "🏠", nom: "Location (maisons, voitures)", type: "visites", objectif: 5, unite: "locations", recompense: "La 6e location à -50 %", employes: false,
       idees: [[5, "locations", "La 6e location à -50 %"], [3, "locations", "1 jour offert"], [10, "nuits", "1 nuit offerte"]] },
     lavage:    { ico: "🚗", nom: "Lavage auto", type: "visites", objectif: 5, unite: "lavages", recompense: "Le 6e lavage offert", employes: true,
@@ -221,6 +223,9 @@
         <div class="imgpick" id="p-logo-box"><span id="p-logo-prev">${logoSrc(p) ? `<img class="prev" src="${esc(logoSrc(p))}" alt="">` : '<div class="prev"></div>'}</span>
           <div class="stack" style="gap:6px"><b>Logo</b><small class="muted">Depuis le téléphone ou l’ordinateur. La carte prend sa couleur.</small>
           <div class="row"><label class="btn sm primary">📷 Importer le logo<input type="file" accept="image/*" hidden id="p-logo"></label><input id="p-coul" type="color" value="${esc(p.couleur)}" title="Couleur de la carte" style="width:46px;height:38px;padding:2px;border-radius:10px;border:1px solid var(--line);background:var(--bg)"></div></div></div>
+        <div class="imgpick" id="p-fond-box"><span id="p-fond-prev"><div class="prev" style="width:120px;height:40px;border-radius:8px;background:#0003"></div></span>
+          <div class="stack" style="gap:6px"><b>Photo de fond (Apple Wallet)</b><small class="muted">Derrière les tampons. Sans photo : l’image du métier (café, billard, terrain, resto…).</small>
+          <div class="row"><label class="btn sm">📷 Photo du commerce<input type="file" accept="image/*" hidden id="p-fond"></label><button type="button" class="btn sm ghost" id="p-fond-x" hidden>Retirer</button></div></div></div>
         <div class="eyebrow">3 · La récompense</div>
         <div class="grid2"><label class="f">Objectif<input id="p-obj" type="number" min="1" max="1000" value="${esc(p.objectif)}" inputmode="numeric"></label>
           <label class="f">Unité (coupes, cafés…)<input id="p-unite" maxlength="20" value="${esc(p.unite)}"></label></div>
@@ -301,6 +306,25 @@
       if (D.couleur) $("#p-coul", d).value = D.couleur;
       src.textContent = "✅ Rempli avec : " + D.trouve.join(", ");
     };
+    // 📷 photo de fond : recadrée 750×246, en PNG (le serveur Wallet la lit sans librairie)
+    let fond = null;   // null = inchangé ; "" = retirer ; "data:image/png…" = nouvelle
+    const voirFond = src => { $("#p-fond-prev", d).innerHTML = src ? `<img src="${src}" alt="" style="width:120px;height:40px;object-fit:cover;border-radius:8px">` : `<div class="prev" style="width:120px;height:40px;border-radius:8px;background:#0003"></div>`; $("#p-fond-x", d).hidden = !src; };
+    if (pid) db.doc("fidFonds/" + pid).get().then(x => { if (x.exists && x.data().png && fond === null) voirFond(x.data().png); }).catch(() => {});
+    $("#p-fond", d).onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try {
+        const url = URL.createObjectURL(f), img = new Image();
+        await new Promise((ok, ko) => { img.onload = ok; img.onerror = ko; img.src = url; });
+        const c = document.createElement("canvas"); c.width = 750; c.height = 246; const g = c.getContext("2d");
+        const k = Math.max(750 / img.naturalWidth, 246 / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k;
+        g.filter = "blur(0.6px)"; g.drawImage(img, (750 - w) / 2, (246 - h) / 2, w, h); URL.revokeObjectURL(url);
+        fond = c.toDataURL("image/png");
+        if (fond.length > 900000) { const c2 = document.createElement("canvas"); c2.width = 750; c2.height = 246; const g2 = c2.getContext("2d"); g2.filter = "blur(1.6px)"; g2.drawImage(c, 0, 0); fond = c2.toDataURL("image/png"); }
+        voirFond(fond);
+      } catch (x) { $("#perr", d).textContent = "Photo illisible : choisissez une photo JPG ou PNG."; }
+      e.target.value = "";
+    };
+    $("#p-fond-x", d).onclick = () => { fond = ""; voirFond(""); };
     $("#p-logo", d).onchange = async e => {
       const f = e.target.files[0]; if (!f) return;
       try { const r = await lireLogo(f); logoData = r.data; logoPng = r.png; $("#p-logo-prev", d).innerHTML = `<img class="prev" src="${r.data}" alt="">`; if (r.couleur) $("#p-coul", d).value = r.couleur; }
@@ -362,6 +386,8 @@
         const id = pid || await idLibre(data.nom);
         if (!pid) data.createdAt = NOW();
         await db.doc("fidProgrammes/" + id).set(data, { merge: true });
+        if (fond) await db.doc("fidFonds/" + id).set({ png: fond, maj: Date.now(), ownerEmail: data.ownerEmail }).catch(x => { console.warn(x); toast("Photo de fond non enregistrée (règles Firestore fidFonds).", true); });
+        else if (fond === "") await db.doc("fidFonds/" + id).delete().catch(() => {});
         if (ex && String(ex.ownerEmail || "").toLowerCase() !== data.ownerEmail) {   // nouvel e-mail : ses cartes clients et employés suivent
           for (const col of ["fidCartes", "fidEmployes"]) { try { const s = await db.collection(col).where("pid", "==", id).get(); for (const x of s.docs) await x.ref.update({ ownerEmail: data.ownerEmail }); } catch (e) { console.warn(col, e); } }
         }

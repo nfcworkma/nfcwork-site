@@ -406,11 +406,60 @@ async function pngEncode(W, H, rgbBuf) {
   const bloc = (type, data) => { const t = new TextEncoder().encode(type), td = cat(t, data); return cat(u32(data.length), td, u32(crc32(td))); };
   return cat(Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10), bloc("IHDR", cat(u32(W), u32(H), Uint8Array.of(8, 2, 0, 0, 0))), bloc("IDAT", z), bloc("IEND", new Uint8Array(0)));
 }
-function dessiner(fond, obj, pts, tampons) {
+// lit un PNG (8 bits, RGB ou RGBA, non entrelacé) → pixels RGB 750×246
+async function pngDecode(u8) {
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength); let i = 8, w = 0, h = 0, ct = 0; const idat = [];
+  while (i < u8.length) {
+    const len = dv.getUint32(i), type = String.fromCharCode(...u8.subarray(i + 4, i + 8)), data = u8.subarray(i + 8, i + 8 + len);
+    if (type === "IHDR") { w = dv.getUint32(i + 8); h = dv.getUint32(i + 12); ct = u8[i + 17]; if (u8[i + 16] !== 8 || u8[i + 20] !== 0 || (ct !== 2 && ct !== 6)) return null; }
+    else if (type === "IDAT") idat.push(data); else if (type === "IEND") break;
+    i += 12 + len;
+  }
+  if (!w || !idat.length) return null;
+  const raw = new Uint8Array(await new Response(new Blob(idat).stream().pipeThrough(new DecompressionStream("deflate"))).arrayBuffer());
+  const bpp = ct === 6 ? 4 : 3, st = w * bpp, px = new Uint8Array(w * h * bpp);
+  for (let y = 0; y < h; y++) {
+    const f = raw[y * (st + 1)], src = y * (st + 1) + 1, o = y * st;
+    for (let x = 0; x < st; x++) {
+      const a = x >= bpp ? px[o + x - bpp] : 0, b = y ? px[o - st + x] : 0, c = x >= bpp && y ? px[o - st + x - bpp] : 0;
+      let v = raw[src + x];
+      if (f === 1) v += a; else if (f === 2) v += b; else if (f === 3) v += (a + b) >> 1;
+      else if (f === 4) { const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c); v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c; }
+      px[o + x] = v & 255;
+    }
+  }
+  const W = 750, H = 246, out = new Uint8Array(W * H * 3);                 // recadrage au centre si la taille diffère
+  const k = Math.max(W / w, H / h), ox = (w - W / k) / 2, oy = (h - H / k) / 2;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const sx = Math.min(w - 1, Math.floor(ox + x / k)), sy = Math.min(h - 1, Math.floor(oy + y / k)), s = (sy * w + sx) * bpp, d = (y * W + x) * 3;
+    out[d] = px[s]; out[d + 1] = px[s + 1]; out[d + 2] = px[s + 2];
+  }
+  return out;
+}
+// le fond derrière les tampons : la photo du commerce, sinon celle de son métier
+const FONDS = { cafe: "cafe", location: "location", gaming: "billard", billard: "billard", terrain: "terrain", resto: "resto", pizzeria: "resto", snack: "resto", barber: "barber" };
+async function photoFond(p) {
+  try {
+    const f = await lire("fidFonds/" + propre(p.id, 60)).catch(() => null);
+    const m = f && String(f.png || "").match(/^data:image\/png;base64,(.+)$/);
+    if (m) return { id: "p" + (f.maj || 0), px: await pngDecode(Uint8Array.from(atob(m[1]), ch => ch.charCodeAt(0))) };
+  } catch (e) {}
+  const n = FONDS[p.metier]; if (!n) return null;
+  try {   // pixels déjà prêts (750×246 RGB brut) : aucun décodage, très rapide
+    const r = await fetch(`${SITE}/assets/wallet/fond-${n}.rgb`);
+    if (r.ok) { const px = new Uint8Array(await r.arrayBuffer()); if (px.length === 750 * 246 * 3) return { id: "m" + n, px }; }
+  } catch (e) {}
+  return null;
+}
+function dessiner(fond, obj, pts, tampons, photo) {
   const W = 750, H = 246, b = new Uint8Array(W * H * 3);
   const mix = (a, c, t) => a.map((v, i) => Math.round(v * (1 - t) + c[i] * t));
   const haut = mix(fond, [255, 255, 255], 0.06), bas = mix(fond, [0, 0, 0], 0.32);
-  for (let y = 0; y < H; y++) {                                           // dégradé + lumière douce en haut à gauche
+  if (photo) {                                                            // photo assombrie + teinte du commerce (les tampons restent lisibles)
+    const t = mix(fond, [0, 0, 0], 0.45);
+    for (let y = 0; y < H; y++) { const a = 0.5 + 0.2 * (y / H); let o = y * W * 3;
+      for (let x = 0; x < W; x++, o += 3) { b[o] = photo[o] * (1 - a) + t[0] * a; b[o + 1] = photo[o + 1] * (1 - a) + t[1] * a; b[o + 2] = photo[o + 2] * (1 - a) + t[2] * a; } }
+  } else for (let y = 0; y < H; y++) {                                           // dégradé + lumière douce en haut à gauche
     const t = y / H, r0 = haut[0] * (1 - t) + bas[0] * t, g0 = haut[1] * (1 - t) + bas[1] * t, b0 = haut[2] * (1 - t) + bas[2] * t, dy2 = (y + 60) * (y + 60);
     let o = y * W * 3;
     for (let x = 0; x < W; x++, o += 3) {
@@ -443,9 +492,9 @@ function dessiner(fond, obj, pts, tampons) {
     trait(cx, cy, r, [[0, -0.3 * r], [-0.28 * r, -0.52 * r], [-0.3 * r, -0.36 * r], [0, -0.3 * r]], 0.09 * r, c);
     trait(cx, cy, r, [[0, -0.3 * r], [0.28 * r, -0.52 * r], [0.3 * r, -0.36 * r], [0, -0.3 * r]], 0.09 * r, c);
   };
-  const blanc = [255, 255, 255], pale = clair(fond);
+  const blanc = [255, 255, 255], pale = !photo && clair(fond);
   const encre = pale ? mix(fond, [0, 0, 0], 0.6) : blanc;                  // traits sur le fond (clair → foncé)
-  const coche = pale ? mix(fond, [0, 0, 0], 0.45) : fond;                  // couleur dans les pastilles blanches
+  const coche = clair(fond) ? mix(fond, [0, 0, 0], 0.45) : fond;                  // couleur dans les pastilles blanches
   if (tampons) {
     const rangs = obj <= 5 ? 1 : 2, cols = Math.ceil(obj / rangs);
     const cw = (W - 70) / cols, ch = (H - 26) / rangs, r = Math.min(cw, ch) * 0.39;
@@ -470,10 +519,11 @@ function dessiner(fond, obj, pts, tampons) {
 }
 async function bandeau(p, c) {
   const obj = Math.max(1, p.objectif || 10), pts = Math.min(obj, c.points || 0), tampons = p.type !== "montant" && obj <= 20;
-  const cle = `https://cache.nfcwork.ma/strip/v2/${couleur(p).slice(1)}/${obj}/${pts}/${tampons ? 1 : 0}`;
+  const f = await photoFond(p);
+  const cle = `https://cache.nfcwork.ma/strip/v3/${couleur(p).slice(1)}/${obj}/${pts}/${tampons ? 1 : 0}/${f ? f.id : "0"}${f && f.id[0] === "p" ? "/" + propre(p.id, 40) : ""}`;
   const cache = typeof caches !== "undefined" ? caches.default : null;
   if (cache) { const r = await cache.match(cle); if (r) return new Uint8Array(await r.arrayBuffer()); }
-  const { W, H, b } = dessiner(rgb(couleur(p)), tampons ? obj : obj, pts, tampons);
+  const { W, H, b } = dessiner(rgb(couleur(p)), obj, pts, tampons, f && f.px);
   const png = await pngEncode(W, H, b);
   if (cache) await cache.put(cle, new Response(png, { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=31536000" } })).catch(() => {});
   return png;
