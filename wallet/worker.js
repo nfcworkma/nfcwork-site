@@ -147,12 +147,14 @@ const couleur = p => /^#[0-9a-f]{6}$/i.test(p.couleur || "") ? p.couleur : "#1e9
 const unite = p => p.unite || (p.type === "montant" ? "points" : p.type === "articles" ? "articles" : "visites");
 const idClasse = (env, p) => `${env.ISSUER_ID}.fid-${propre(p.id, 60)}`;
 const idObjet = (env, c) => `${env.ISSUER_ID}.c-${propre(c.id)}`;
+// empreinte du logo : quand il change, l'adresse change → Google recharge l'image
+const vLogo = p => { const t = String(p.logoPng || p.logoData || p.logo || ""); let h = 5381; for (let i = 0; i < t.length; i += 7) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36); };
 function classe(env, p, base) {
   return {
     id: idClasse(env, p),
     issuerName: String(p.nom || "Commerce").slice(0, 60),
     programName: "Carte fidélité",
-    programLogo: { sourceUri: { uri: base + "/logo/" + propre(p.id, 60) }, contentDescription: { defaultValue: { language: "fr-FR", value: String(p.nom || "Logo") } } },
+    programLogo: { sourceUri: { uri: base + "/logo/" + propre(p.id, 60) + "?v=" + vLogo(p) }, contentDescription: { defaultValue: { language: "fr-FR", value: String(p.nom || "Logo") } } },
     hexBackgroundColor: couleur(p),
     reviewStatus: "UNDER_REVIEW",
     countryCode: "MA"
@@ -292,8 +294,9 @@ async function anniversairesAuto(env) {
 /* ---------- logo ---------- */
 async function logo(pid) {
   const p = await lire("fidProgrammes/" + propre(pid, 60)).catch(() => null);
-  const d = p && String(p.logoData || "");
-  const m = d.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/);
+  // Google Wallet : PNG ou JPEG seulement (logoData peut être en WebP → on prend alors logoPng)
+  const re = /^data:(image\/(?:png|jpeg));base64,(.+)$/;
+  const m = p && (String(p.logoData || "").match(re) || String(p.logoPng || "").match(re));
   if (m) return new Response(Uint8Array.from(atob(m[2]), ch => ch.charCodeAt(0)), { headers: { "Content-Type": m[1], "Cache-Control": "public, max-age=3600" } });
   if (p && /^https:\/\//.test(p.logo || "")) return Response.redirect(p.logo, 302);
   return Response.redirect(SITE + "/assets/img/icons/icon-512.png", 302);

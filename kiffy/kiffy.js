@@ -139,7 +139,7 @@
   /* ---------------- état ---------------- */
   let user = null, estAdmin = false;
   let P = null, mesProgs = [];                  // commerce affiché
-  let cartes = [], employes = [], pins = {}, plaque = "";
+  let cartes = [], employes = [], pins = {};
   let vueAdmin = "";                            // admin « voir comme le gérant » : pid
   let session = null;                           // { mode: "gerant" | "employe", eid }
   let dernierPinGerant = 0;
@@ -171,7 +171,7 @@
   });
 
   function ouvrirCommerce(pid, admin) {
-    desabonner(); cartes = []; employes = []; pins = {}; plaque = ""; pinsCharges = false;
+    desabonner(); cartes = []; employes = []; pins = {}; pinsCharges = false;
     vueAdmin = admin ? pid : ""; lsSet("kiffy-pid", admin ? lsGet("kiffy-pid") : pid);
     session = admin ? { mode: "gerant" } : ssGet(cleSession(pid));
     let pret = false;
@@ -180,7 +180,7 @@
     abos.push(base("fidCartes").onSnapshot(s => { cartes = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.pid === pid); rafraichir(); }, erreur));
     abos.push(base("fidEmployes").onSnapshot(s => { employes = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.pid === pid); rafraichir(); }, erreur));
     chargerPins(pid);
-    db.collection("fidPlaques").where("pid", "==", pid).limit(1).get().then(s => { plaque = s.empty ? "" : s.docs[0].id; }).catch(() => {});
+
   }
   let pinsCharges = false;
   const chargerPins = pid => db.doc("fidSecrets/" + pid).get().then(s => { pins = (s.exists && s.data().pins) || {}; pinsCharges = true; rafraichir(); })
@@ -741,7 +741,7 @@
           ${opt("r-equipe", ic("users"), "Employés et codes PIN", String(actifs().length))}
           ${opt("r-emp", ic("lock"), "Mode employé", "")}</div>
         <div class="carte menu"><div class="sect">COMPTE</div>
-          ${opt("r-plaque", ic("qrcode"), "Ma plaque Kiffy", plaque || "")}
+          ${opt("r-plaque", ic("qrcode"), "Ma plaque Kiffy", P.plaque || "")}
           ${opt("r-lien", ic("link"), "Lien d’inscription des clients", "")}
           ${WHATSAPP ? opt("r-aide", ic("whatsapp"), "Aide NFC Work (WhatsApp)", "") : ""}
           <button class="opt" id="r-dx" style="display:block;font-weight:700" ><span class="danger" style="font-size:15px">Se déconnecter</span></button></div>
@@ -760,6 +760,7 @@
     };
     $("#r-equipe").onclick = () => aller("#/equipe");
     $("#r-emp").onclick = () => actifs().some(e => pins[e.id]) ? verrouiller() : toast("Ajoutez d’abord un employé avec son code.", true);
+    const plaque = P.plaque || "";
     $("#r-plaque").onclick = () => feuille(`<h2>Ma plaque Kiffy</h2><p class="muted" style="margin:0;font-size:14px">${plaque ? `Votre plaque : <b>${esc(plaque)}</b>. Les clients la scannent ou l’approchent pour créer leur carte.` : "Aucune plaque liée pour l’instant. NFC Work la lie à votre commerce lors de l’installation."}</p><button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
     $("#r-lien").onclick = () => {
       const l = lienCarte(P);
@@ -1030,9 +1031,18 @@
     const ex = d.data().pid;
     if (ex === pid) { toast(`${code} est déjà liée à ${nom}.`); return true; }
     if (ex) { const autre = (progsAdmin.find(x => x.id === ex) || { nom: ex }).nom; if (!(await confirmer("Plaque déjà liée", `${code} est liée à ${autre}. La déplacer vers ${nom} ?`, "Déplacer"))) return false; }
-    await ref.update({ pid, lieLe: FV.serverTimestamp() }); toast(`${code} liée à ${nom}`); return true;
+    const b = db.batch();
+    b.update(ref, { pid, lieLe: FV.serverTimestamp() });
+    b.update(db.doc("fidProgrammes/" + pid), { plaque: code });   // le gérant lit sa plaque ici (la liste des plaques est réservée à l'admin)
+    if (ex) b.update(db.doc("fidProgrammes/" + ex), { plaque: FV.delete() });
+    await b.commit(); toast(`${code} liée à ${nom}`); return true;
   }
-  const delierPlaque = code => db.doc("fidPlaques/" + code).update({ pid: null, lieLe: null });
+  async function delierPlaque(code) {
+    const ref = db.doc("fidPlaques/" + code), d = await ref.get(), pid = d.exists && d.data().pid;
+    const b = db.batch(); b.update(ref, { pid: null, lieLe: null });
+    if (pid) { const p = await db.doc("fidProgrammes/" + pid).get(); if (p.exists && p.data().plaque === code) b.update(p.ref, { plaque: FV.delete() }); }
+    await b.commit();
+  }
   // caméra (QR de la plaque) ou code tapé à la main → code « KF-XXXX »
   function scannerPlaque() {
     return new Promise(ok => {
@@ -1205,6 +1215,9 @@
         kiffy: { wallet: s.on.wallet, relance: s.on.relance, promo: s.on.promo, formule: s.formule, installation: s.formule === "offre" ? TARIF.offre : TARIF.installation, mensuel: TARIF.mensuel, ...(ex && ex.kiffy && ex.kiffy.cree ? {} : { cree: FV.serverTimestamp() }) },
         maj: FV.serverTimestamp()
       };
+      // Apple Wallet n'accepte que le PNG : logoPng toujours fabriqué à partir du logo (comme l'Espace)
+      if (data.logoData && !/^data:image\/png;base64,/.test(data.logoPng || "")) { try { const bl = await (await fetch(data.logoData)).blob(); data.logoPng = (await lireLogo(new File([bl], "logo", { type: bl.type }))).png; } catch (x) {} }
+      if (!data.logoData) data.logoPng = "";
       if (s.on.essai && !(ex && ex.essai)) Object.assign(data, { essai: true, expire: jourPlus(7), preavis: jourPlus(5) });
       if (!s.on.essai && ex && ex.essai) Object.assign(data, { essai: false, expire: "", preavis: "" });
       try {
