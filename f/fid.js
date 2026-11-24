@@ -126,6 +126,7 @@
     const reste = Math.max(0, obj - pts);
     app.innerHTML = `${brand(p)}
       ${msg ? `<div class="msg ${msg[0]}">${msg[1]}</div>` : ""}
+      ${badgeWallet(c)}
       ${voteBloc()}
       ${pret ? `<div class="msg win">🎁 Bravo ! Votre récompense est prête : ${esc(p.recompense)}. Montrez cette carte à la caisse.</div>` : ""}
       <section class="card" aria-label="Carte fidélité">
@@ -138,11 +139,28 @@
       ${p.modeClient === "caisse" ? `<div class="msg info">📱 À chaque visite : scannez le QR affiché sur le téléphone de la caisse, le point s’ajoute tout seul.</div>` : ""}
       <div class="qrbox">${window.QRGEN.svg(SITE + "/f/?c=" + c.id, { marge: 1 })}<small>${p.modeClient === "caisse" ? "Code de votre carte (pour la récompense)" : "Montrez ce code à la caisse"}</small></div>
       <p class="tip">${esc(regle(p))}${p.guide ? "<br>" + p.guide.split(/\n+/).filter(Boolean).map(esc).join(" · ") : ""}</p>
-      ${WALLET && !IOS ? `<a class="wbadge" href="${WALLET}/google/save?c=${encodeURIComponent(c.id)}" rel="noopener" aria-label="Ajouter à Google Wallet"><img src="/assets/wallet/badge-google-fr.svg" alt="Ajouter à Google Wallet" onerror="this.parentNode.classList.add('sans')"><span>Ajouter à <b>Google Wallet</b></span></a>` : ""}
-      ${WALLET && IOS && APPLE ? `<a class="wbadge awallet" href="${WALLET}/apple/pass?c=${encodeURIComponent(c.id)}" rel="noopener" aria-label="Ajouter à Apple Wallet"><img src="/assets/wallet/badge-apple-fr.svg" alt="Ajouter à Apple Wallet" onerror="this.parentNode.classList.add('sans')"><span>Ajouter à <b>Apple Wallet</b></span></a>` : ""}
       <p class="tip">📲 Gardez votre carte : ${IOS && APPLE ? "touchez <b>Ajouter à Apple Wallet</b> : elle reste dans votre iPhone avec le logo" : IOS ? "<b>Partager</b> → <b>Sur l’écran d’accueil</b>" : WALLET ? "touchez <b>Ajouter à Google Wallet</b> : elle reste dans votre téléphone avec le logo" : "<b>⋮</b> → <b>Ajouter à l’écran d’accueil</b>"}.</p>
       ${pro ? `<div class="pro"><b>Espace commerçant</b><a class="btn primary" href="/espace/fidelite.html#c=${esc(c.id)}">Ouvrir cette carte (ajouter des points)</a></div>` : ""}
       ${pied}`;
+    tenterAutoWallet();
+  }
+  // 📲 le bouton Wallet officiel, tout en haut : Apple sur iPhone, Google sur Android
+  function badgeWallet(c) {
+    if (!WALLET) return "";
+    if (!IOS) return `<a class="wbadge" href="${WALLET}/google/save?c=${encodeURIComponent(c.id)}" rel="noopener" aria-label="Ajouter à Google Wallet"><img src="/assets/wallet/badge-google-fr.svg" alt="Ajouter à Google Wallet" onerror="this.parentNode.classList.add('sans')"><span>Ajouter à <b>Google Wallet</b></span></a>`;
+    if (APPLE) return `<a class="wbadge awallet" href="${WALLET}/apple/pass?c=${encodeURIComponent(c.id)}" rel="noopener" aria-label="Ajouter à Apple Wallet"><img src="/assets/wallet/badge-apple-fr.svg" alt="Ajouter à Apple Wallet" onerror="this.parentNode.classList.add('sans')"><span>Ajouter à <b>Apple Wallet</b></span></a>`;
+    return "";
+  }
+  // juste après l'inscription : on ouvre directement l'ajout au Wallet (une seule fois par carte).
+  // Pas dans Instagram / Facebook / TikTok / Snapchat : leur navigateur ne sait pas ouvrir le Wallet.
+  let autoWallet = "";
+  function tenterAutoWallet() {
+    if (!autoWallet || !carte || carte.id !== autoWallet) return;
+    if (/Instagram|FBAN|FBAV|FB_IAB|TikTok|musical_ly|Snapchat|Line\//i.test(navigator.userAgent)) { autoWallet = ""; return; }
+    const b = app.querySelector(".wbadge"); if (!b) return;   // iPhone : on attend qu'Apple soit prêt
+    let deja = false; try { deja = localStorage.getItem("nfcw-wallet-" + carte.id) === "1"; localStorage.setItem("nfcw-wallet-" + carte.id, "1"); } catch (e) {}
+    autoWallet = ""; if (deja) return;
+    setTimeout(() => { location.href = b.href; }, 900);
   }
   // après une visite enregistrée par le commerçant : le client dit qui l'a servi (une seule fois)
   function voteBloc() {
@@ -285,7 +303,8 @@
         lsSet("nfcwork-fid-" + pid, cid);
         let sc = null; try { sc = JSON.parse(sessionStorage.getItem(SCAN) || "null"); } catch (e) {}
         if (sc && sc.pid === pid && Date.now() - sc.t < 10 * 60000) { await pointCaisse(cid, sc.w, sc.j); return; }
-        await ouvrirCarte(cid, ["ok", "✓ Carte créée ! Montrez-la à la caisse à chaque visite."]);
+        autoWallet = cid;
+        await ouvrirCarte(cid, ["ok", "✓ Carte créée ! Ajoutez-la à votre Wallet 👇"]);
       } catch (x) {
         // créée entre-temps (double clic, deux onglets) → on l'ouvre
         if (cid && x && x.status === 409) { const ex = await lire("fidCartes/" + cid).catch(() => null); if (ex) { lsSet("nfcwork-fid-" + pid, cid); await ouvrirCarte(cid); return; } }
