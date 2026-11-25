@@ -9,7 +9,7 @@
    Paramètres : APPLE_PASS_TYPE, WORKER (fichier .env de ce dossier)
    ========================================================= */
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentWritten, onDocumentCreated, onDocumentWrittenWithAuthContext } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret, defineString } = require("firebase-functions/params");
 const admin = require("firebase-admin");
@@ -145,7 +145,7 @@ async function patron(req, res, pid) {
   if (!p.exists) { res.status(404).json({ ok: false }); return null; }
   const mail = String(u.email || "").toLowerCase();
   if (mail !== ADMIN && !(u.email_verified && mail === String(p.data().ownerEmail || "").toLowerCase())) { res.status(403).json({ ok: false }); return null; }
-  return { ref, p: p.data() };
+  return { ref, p: p.data(), mail, role: mail === ADMIN ? "admin" : "gerant" };
 }
 const texteMsg = (titre, texte) => [titre, texte].map(x => String(x || "").trim()).filter(Boolean).join(" — ").slice(0, 160);
 // la date devant le message : il change toujours, donc l'iPhone notifie toujours
@@ -158,6 +158,7 @@ async function annonce(req, res) {
   const t = texteMsg(titre, texte);
   if (!t) return res.status(400).json({ ok: false });
   await ref.update({ annonce: { texte: datee(t), date: Date.now() } });   // → appleProgramme envoie à tous les iPhones
+  await journal({ role: x.role, qui: x.mail, action: "message", pid: ref.id, commerce: x.p.nom, detail: "À tous les clients : " + t });
   return res.json({ ok: true });
 }
 
@@ -176,6 +177,7 @@ async function notifier(req, res) {
     await c.ref.update({ msgWallet: { texte: datee(t), date: Date.now() } });   // → appleCarte met à jour l'iPhone
     iphones++;
   }
+  await journal({ role: x.role, qui: x.mail, action: "message", pid: x.ref.id, commerce: x.p.nom, detail: `À ${ids.length} client(s) : ${t}` });
   return res.json({ ok: true, iphones });
 }
 
@@ -217,6 +219,14 @@ async function kiffyCommerce(auth, pid) {
   if (!estAdmin && !(verifie && mail === String(p.ownerEmail || "").toLowerCase())) throw new HttpsError("permission-denied", "Ce compte n’est pas celui du commerce.");
   return { ref, p, estAdmin };
 }
+// 📒 journal d'activité (lu par l'admin seulement) : qui a fait quoi, quand
+async function journal(e) {
+  try {
+    await db.collection("kiffyJournal").add({ t: Timestamp.now(), role: e.role || "systeme", qui: String(e.qui || "").slice(0, 80), action: String(e.action || "").slice(0, 40),
+      pid: String(e.pid || "").slice(0, 80), commerce: String(e.commerce || "").slice(0, 60), detail: String(e.detail || "").slice(0, 300) });
+  } catch (x) { console.log("journal", x.message); }
+}
+const mailDe = auth => String((auth && auth.token && auth.token.email) || "").toLowerCase();
 // même clé de mois que l'Espace et les règles Firestore (« 202611 »)
 const kiffyMois = () => { const d = new Date(); return String(d.getUTCFullYear() * 100 + d.getUTCMonth() + 1); };
 
@@ -227,7 +237,7 @@ exports.kiffyVisite = onCall({ region: REGION, maxInstances: 10 }, async req => 
   if (!["visite", "cadeau", "retirer"].includes(action)) throw new HttpsError("invalid-argument", "Action inconnue.");
   const cref = db.doc("fidCartes/" + nettoyer(cid)), c0 = await cref.get();
   if (!c0.exists) throw new HttpsError("not-found", "Carte introuvable.");
-  const { ref: pref, p } = await kiffyCommerce(req.auth, c0.data().pid);
+  const { ref: pref, p, estAdmin } = await kiffyCommerce(req.auth, c0.data().pid);
   if (p.actif === false) throw new HttpsError("failed-precondition", "Ce commerce est en pause.");
   let emp = null;
   if (eid) {
@@ -236,7 +246,7 @@ exports.kiffyVisite = onCall({ region: REGION, maxInstances: 10 }, async req => 
     emp = { id: e.id, nom: String(e.data().nom || "").slice(0, 40) };
   }
   const obj = Math.max(1, parseInt(p.objectif, 10) || 10), mois = kiffyMois();
-  return db.runTransaction(async t => {
+  const r = await db.runTransaction(async t => {
     const c = (await t.get(cref)).data(), maintenant = Date.now(), pts = c.points || 0;
     const derniere = c.lastAt && c.lastAt.toMillis ? c.lastAt.toMillis() : 0;
     let n, maj;
@@ -257,6 +267,9 @@ exports.kiffyVisite = onCall({ region: REGION, maxInstances: 10 }, async req => 
     if (emp && action === "visite") t.update(db.doc("fidEmployes/" + emp.id), { ["m." + mois]: FieldValue.increment(1), lastAt: Timestamp.now() });
     return { ok: true, points: pts + n, objectif: obj, nom: c.nom || "", n };
   });
+  await journal({ role: emp ? "employe" : estAdmin ? "admin" : "gerant", qui: emp ? emp.nom : mailDe(req.auth), action, pid: pref.id, commerce: p.nom,
+    detail: `${r.nom} · ${r.n > 0 ? "+" : ""}${r.n} → ${r.points}/${r.objectif}` });
+  return r;
 });
 
 // admin : crée (ou retrouve) le compte du gérant ; l'app envoie ensuite l'e-mail « choisir le mot de passe »
@@ -269,15 +282,19 @@ exports.kiffyAcces = onCall({ region: REGION, maxInstances: 3 }, async req => {
   try { u = await admin.auth().getUserByEmail(email); } catch (e) { if (e.code !== "auth/user-not-found") throw e; }
   if (!u) { u = await admin.auth().createUser({ email, emailVerified: true, password: crypto.randomBytes(24).toString("base64url"), displayName: String(p.nom || "").slice(0, 60) }); cree = true; }
   else if (!u.emailVerified) await admin.auth().updateUser(u.uid, { emailVerified: true });   // NFC Work a vérifié l'e-mail avec le commerçant
+  await journal({ role: "admin", qui: ADMIN, action: "acces", pid: (req.data || {}).pid, commerce: p.nom, detail: (cree ? "Compte créé · " : "") + "accès envoyé à " + email });
   return { ok: true, email, cree };
 });
 
-// réglages que le gérant peut changer lui-même (le reste du programme reste réservé à l'admin)
+// réglages que le gérant peut changer lui-même : récompense, objectif, anniversaire. Tout le design de la carte est réservé à NFC Work.
+const KIFFY_GERANT = ["recompense", "objectif", "cadeauAnniv", "annivMessage", "annivAuto"];
 const KIFFY_METIERS = /^(unie|barber|beaute|cafe|snack|resto|pizzeria|patisserie|glacier|vetement|pressing|hammam|sport|pharmacie|epicerie|telephone|gaming|billard|terrain|location|lavage|garage|autre)?$/;
 exports.kiffyReglages = onCall({ region: REGION, maxInstances: 5 }, async req => {
   const { pid, champs } = req.data || {};
-  const { ref } = await kiffyCommerce(req.auth, pid);
+  const { ref, p, estAdmin } = await kiffyCommerce(req.auth, pid);
   const c = champs && typeof champs === "object" ? champs : {}, maj = {};
+  const interdits = Object.keys(c).filter(k => !KIFFY_GERANT.includes(k));
+  if (!estAdmin && interdits.length) throw new HttpsError("permission-denied", "Contactez NFC Work pour modifier la carte (" + interdits.slice(0, 4).join(", ") + ").");
   const txt = (k, n) => { if (k in c) maj[k] = String(c[k] || "").trim().slice(0, n); };
   txt("recompense", 80); txt("unite", 30); txt("cadeauAnniv", 80); txt("annivMessage", 300); txt("lieuTexte", 80);
   if ("objectif" in c) { const o = parseInt(c.objectif, 10); if (!(o >= 1 && o <= 1000)) throw new HttpsError("invalid-argument", "Objectif invalide."); maj.objectif = o; }
@@ -288,7 +305,32 @@ exports.kiffyReglages = onCall({ region: REGION, maxInstances: 5 }, async req =>
   if (!Object.keys(maj).length) throw new HttpsError("invalid-argument", "Rien à enregistrer.");
   maj.maj = FieldValue.serverTimestamp();
   await ref.update(maj);
+  await journal({ role: estAdmin ? "admin" : "gerant", qui: mailDe(req.auth), action: "reglages", pid: ref.id, commerce: p.nom, detail: Object.keys(maj).filter(k => k !== "maj").join(", ") });
   return { ok: true };
+});
+
+// admin : ajouter / retirer des points à la main, avec un motif (tracé dans la carte et le journal)
+exports.kiffyAjuster = onCall({ region: REGION, maxInstances: 5 }, async req => {
+  if (!req.auth) throw new HttpsError("unauthenticated", "Connectez-vous d’abord.");
+  if (mailDe(req.auth) !== ADMIN || req.auth.token.email_verified !== true) throw new HttpsError("permission-denied", "Réservé à NFC Work.");
+  const { cid, n, motif } = req.data || {};
+  if (!nettoyer(cid)) throw new HttpsError("invalid-argument", "Carte manquante.");
+  const cref = db.doc("fidCartes/" + nettoyer(cid)), c0 = await cref.get();
+  if (!c0.exists) throw new HttpsError("not-found", "Carte introuvable.");
+  const { p, estAdmin } = await kiffyCommerce(req.auth, c0.data().pid);
+  if (!estAdmin) throw new HttpsError("permission-denied", "Réservé à NFC Work.");
+  const k = parseInt(n, 10), m = String(motif || "").trim().slice(0, 120);
+  if (!k || Math.abs(k) > 1000) throw new HttpsError("invalid-argument", "Nombre de points invalide.");
+  if (m.length < 3) throw new HttpsError("invalid-argument", "Indiquez le motif.");
+  const r = await db.runTransaction(async t => {
+    const c = (await t.get(cref)).data(), pts = c.points || 0, tot = c.total || 0;
+    if (pts + k < 0) throw new HttpsError("failed-precondition", `La carte n’a que ${pts} point(s).`);
+    t.update(cref, { points: FieldValue.increment(k), total: FieldValue.increment(Math.max(-tot, k)),
+      hist: [{ a: "ajust", n: k, t: Date.now(), e: "NFC Work", eid: "", motif: m }, ...(Array.isArray(c.hist) ? c.hist : [])].slice(0, 15) });
+    return { ok: true, points: pts + k, nom: c.nom || "" };
+  });
+  await journal({ role: "admin", qui: mailDe(req.auth), action: "points", pid: c0.data().pid, commerce: p.nom, detail: `${r.nom} · ${k > 0 ? "+" : ""}${k} · ${m}` });
+  return r;
 });
 
 /* ---------- 7) 📲 app Kiffy (iOS / Android) : notifications et suppression du compte ---------- */
@@ -326,8 +368,11 @@ const lienLogo = p => (p.logoPng || p.logoData) ? `${WORKER.value()}/logo/${nett
 // titre = nom du commerce ; Android : message « data » (l'app met le logo en grande icône) ; iOS : logo joint par l'extension
 async function pushA(email, p, sujet, texte) {
   const s = await db.collection("kiffyAppareils").where("email", "==", String(email || "").toLowerCase()).get();
-  if (s.empty) return 0;
-  const titre = String(p.nom || "Kiffy").slice(0, 60), corps = `${sujet} · ${texte}`, logo = lienLogo(p);
+  return envoyerPush(s.docs, String(p.nom || "Kiffy").slice(0, 60), `${sujet} · ${texte}`, lienLogo(p));
+}
+async function envoyerPush(docs, titre, corps, logo) {
+  if (!docs.length) return 0;
+  const s = { docs };
   const messages = s.docs.map(d => { const { token, plateforme } = d.data(); return plateforme === "ios"
     ? { token, notification: { title: titre, body: corps }, apns: { payload: { aps: { sound: "default", mutableContent: true } }, ...(logo ? { fcmOptions: { imageUrl: logo } } : {}) } }
     : { token, data: { kiffy_titre: titre, kiffy_texte: corps, kiffy_logo: logo }, android: { priority: "high" } }; });
@@ -335,6 +380,46 @@ async function pushA(email, p, sujet, texte) {
   r.responses.forEach((x, i) => { if (!x.success && /not-registered|invalid-registration|invalid-argument/.test((x.error && x.error.code) || "")) s.docs[i].ref.delete().catch(() => {}); });
   return r.successCount;
 }
+// admin : notification à tous les gérants (ou à un seul, par e-mail) — rappel d'impayé, nouveauté…
+exports.kiffyNotifGerants = onCall({ region: REGION, maxInstances: 3 }, async req => {
+  if (!req.auth || req.auth.token.email_verified !== true || mailDe(req.auth) !== ADMIN) throw new HttpsError("permission-denied", "Réservé à NFC Work.");
+  const titre = String((req.data || {}).titre || "NFC Work").trim().slice(0, 60) || "NFC Work", texte = String((req.data || {}).texte || "").trim().slice(0, 240);
+  const email = String((req.data || {}).email || "").trim().toLowerCase();
+  if (!texte) throw new HttpsError("invalid-argument", "Écrivez le message.");
+  const s = await db.collection("kiffyAppareils").get();
+  const docs = s.docs.filter(d => d.data().email && d.data().email !== ADMIN && (!email || d.data().email === email));
+  const envoyes = await envoyerPush(docs, titre, texte, "");
+  await journal({ role: "admin", qui: ADMIN, action: "notification", detail: `${email || "tous les gérants"} · ${titre} — ${texte}`.slice(0, 300) });
+  return { ok: true, appareils: docs.length, envoyes, gerants: new Set(docs.map(d => d.data().email)).size };
+});
+
+// 📒 équipe et codes PIN modifiés (depuis l'app ou l'Espace) → journal, avec l'auteur
+const auteur = async ev => {
+  if (ev.authType !== "app_user" || !ev.authId) return { role: "systeme", qui: "" };
+  const u = await admin.auth().getUser(ev.authId).catch(() => null), m = String((u && u.email) || "").toLowerCase();
+  return { role: m === ADMIN ? "admin" : "gerant", qui: m };
+};
+exports.kiffyJournalEquipe = onDocumentWrittenWithAuthContext({ document: "fidEmployes/{eid}", region: REGION }, async ev => {
+  const a = ev.data.before.exists ? ev.data.before.data() : null, n = ev.data.after.exists ? ev.data.after.data() : null, x = n || a;
+  const action = !a ? "Employé ajouté" : !n ? "Employé supprimé" : a.actif !== false && n.actif === false ? "Employé désactivé" : a.actif === false && n.actif !== false ? "Employé réactivé" : a.nom !== n.nom ? "Employé renommé" : "";
+  if (!action || !x || !x.pid) return;
+  const p = await programme(x.pid);
+  await journal({ ...(await auteur(ev)), action: "equipe", pid: x.pid, commerce: p ? p.nom : "", detail: `${action} : ${x.nom || ev.params.eid}` });
+});
+exports.kiffyJournalPins = onDocumentWrittenWithAuthContext({ document: "fidSecrets/{pid}", region: REGION }, async ev => {
+  const a = (ev.data.before.exists && ev.data.before.data().pins) || {}, n = (ev.data.after.exists && ev.data.after.data().pins) || {};
+  const cles = [...new Set([...Object.keys(a), ...Object.keys(n)])].filter(k => a[k] !== n[k]);
+  if (!cles.length) return;
+  const noms = [];
+  for (const k of cles) {
+    if (k === "gerant") { noms.push("gérant" + (n[k] ? "" : " (effacé)")); continue; }
+    const e = await db.doc("fidEmployes/" + nettoyer(k)).get().catch(() => null);
+    noms.push(((e && e.exists && e.data().nom) || "employé") + (n[k] ? "" : " (retiré)"));
+  }
+  const p = await programme(ev.params.pid);
+  await journal({ ...(await auteur(ev)), action: "pin", pid: ev.params.pid, commerce: p ? p.nom : "", detail: "Code PIN : " + noms.join(", ") });
+});
+
 const programme = async pid => { const d = await db.doc("fidProgrammes/" + nettoyer(pid)).get(); return d.exists ? { id: d.id, ...d.data() } : null; };
 // début de la journée au Maroc (pour les bilans)
 const debutJour = () => { const n = Date.now(), [h, m, s] = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Casablanca", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(n).split(":").map(Number); return n - ((h * 60 + m) * 60 + s) * 1000; };
@@ -345,6 +430,7 @@ exports.kiffyPushInscription = onDocumentCreated({ document: "fidCartes/{cid}", 
   const c = ev.data && ev.data.data(); if (!c || !c.ownerEmail) return;
   const p = await programme(c.pid); if (!p) return;
   await pushA(c.ownerEmail, p, "Nouveau client", `${prenomDe(c.nom)} vient de créer sa carte.`).catch(e => console.log("push inscription", e.message));
+  await journal({ role: "client", qui: prenomDe(c.nom), action: "inscription", pid: c.pid, commerce: p.nom, detail: "Nouvelle carte" });
 });
 
 // 🎂 le matin : les anniversaires du jour

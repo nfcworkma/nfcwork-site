@@ -39,8 +39,11 @@
   const auth = firebase.auth(), db = firebase.firestore(), fns = firebase.app().functions("europe-west1");
   if (EMU) { auth.useEmulator("http://127.0.0.1:9099", { disableWarnings: true }); db.useEmulator("127.0.0.1", 8080); fns.useEmulator("127.0.0.1", 5001); }
   if (NATIF) db.enablePersistence({ synchronizeTabs: false }).catch(() => {});   // app : clients et cartes lisibles sans réseau
-  // Apple / Google : pas de prix ni de paiement dans l'app (le commerçant paie NFC Work directement)
-  const PRIX = !NATIF;
+  // prix et abonnements : affichés seulement dans l'espace NFC Work (admin) ; le gérant ne voit jamais de prix ni de paiement
+  const PRIX = true;
+  // session gardée sur le téléphone (on ne retape jamais l'e-mail) ; app : copie de secours des identifiants dans le Keychain / Keystore
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+  const ID = NATIF && window.KiffyNatif && window.KiffyNatif.identifiants;
   window.addEventListener("offline", () => toast("Hors ligne : les visites seront possibles dès le retour du réseau.", true));
   window.addEventListener("online", () => toast("De nouveau en ligne"));
   const FV = firebase.firestore.FieldValue, TS = firebase.firestore.Timestamp;
@@ -160,7 +163,8 @@
   let dernierPinGerant = 0;
   let abos = [];
   let dernierResultat = null;                   // mode employé : dernière carte servie
-  let progsAdmin = [], cartesAdmin = {}, paiementsAdmin = [];
+  let progsAdmin = [], progsArchives = [], cartesAdmin = {}, cartesTout = [], paiementsAdmin = [];
+  let ADM = null;                               // module « espace NFC Work » (kiffy-admin.js)
   const cleSession = pid => "kiffy-session-" + pid;
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
@@ -170,9 +174,11 @@
 
   /* ---------------- démarrage ---------------- */
   app.innerHTML = `<div class="chargement"><span class="logo-kiffy">kiffy</span></div>`;
+  let essaiSilencieux = false;
   auth.onAuthStateChanged(async u => {
     desabonner(); user = u; P = null; session = null; vueAdmin = ""; cartes = []; employes = []; pins = {};
-    if (!u) return ecranConnexion();
+    $$(".voile-f").forEach(v => v.remove());   // changement de compte : aucune fenêtre ne reste ouverte
+    if (!u) return (await reconnexionSilencieuse()) || ecranConnexion();
     estAdmin = u.emailVerified && String(u.email || "").toLowerCase() === ADMIN;
     if (estAdmin) { if (!/^#\/(admin|voir)/.test(location.hash)) location.hash = "#/admin"; return route(); }
     try {
@@ -184,6 +190,35 @@
     const choisi = lsGet("kiffy-pid");
     ouvrirCommerce((mesProgs.find(p => p.id === choisi) || mesProgs[0]).id);
   });
+
+  // la session Firebase a disparu (stockage vidé par iOS…) : on se reconnecte avec les identifiants du Keychain, sans rien demander
+  async function reconnexionSilencieuse() {
+    if (!ID || essaiSilencieux || lsGet("kiffy-sortie") === "1") return false;
+    essaiSilencieux = true;
+    const c = await ID.lire().catch(() => null);
+    if (!c || !c.email || !c.mdp) return false;
+    app.innerHTML = `<div class="chargement"><span class="logo-kiffy">kiffy</span></div>`;
+    try { await auth.signInWithEmailAndPassword(c.email, c.mdp); return true; }
+    catch (x) {
+      if (/wrong-password|invalid-credential|user-not-found|user-disabled|invalid-login/i.test(x.code || "")) { await ID.effacer().catch(() => {}); return false; }   // mot de passe changé
+      essaiSilencieux = false;
+      app.innerHTML = `<div class="ecran"><div class="bienvenue-haut" style="height:240px"><div class="logo-kiffy" style="font-size:64px">kiffy</div></div>${S.vague}
+        <div class="page" style="padding:18px 24px"><div class="carte"><h3>Pas de connexion internet</h3><p class="muted" style="font-size:14px;margin:6px 0 0">Kiffy se reconnecte tout seul dès que le réseau revient.</p></div><button class="btn-noir" id="rx">Réessayer</button></div></div>`;
+      $("#rx").onclick = () => reconnexionSilencieuse().then(ok => ok || ecranConnexion());
+      window.addEventListener("online", () => { if (!user) reconnexionSilencieuse(); }, { once: true });
+      return true;
+    }
+  }
+  // seule sortie : « Se déconnecter » (réglages), après confirmation → on efface aussi la copie du Keychain
+  async function seDeconnecter(dejaConfirme) {
+    if (!dejaConfirme && !(await confirmer("Se déconnecter ?", "Il faudra retaper l’e-mail et le mot de passe sur ce téléphone.", "Se déconnecter", true))) return;
+    if (jetonPush) { await appel("kiffyAppareil", { token: jetonPush, retirer: true }).catch(() => {}); jetonPush = ""; }
+    if (P) ssSet(cleSession(P.id), null);
+    ssSet("kiffy-admin-ok", null);
+    if (ID) await ID.effacer().catch(() => {});
+    lsSet("kiffy-sortie", "1");
+    return auth.signOut();
+  }
 
   function ouvrirCommerce(pid, admin) {
     desabonner(); cartes = []; employes = []; pins = {}; pinsCharges = false;
@@ -218,8 +253,10 @@
     if (!rafraichissement) app.scrollTop = 0;   // nouvel écran : on repart du haut
     if (!user) return ecranConnexion();
     if (estAdmin && !vueAdmin) {
+      if (!adminOuvert()) return rafraichissement ? null : ecranVerrouAdmin();
       if (r === "voir" && a) { ouvrirCommerce(a, true); location.hash = "#/accueil"; return; }
       if (rafraichissement) return;
+      if (r === "admin" && ADM && ADM.route(h.split("/").slice(1).map(x => decodeURIComponent(x)))) return;
       if (r === "admin" && a === "creer") return adminCreer();
       if (r === "admin" && a === "modifier") return adminCreer(h.split("/")[2]);
       if (r === "admin" && a === "c") return adminCommerce(h.split("/")[2]);
@@ -272,7 +309,12 @@
       </form></div>`;
     $("#cx").onsubmit = async e => {
       e.preventDefault(); const b = e.target.querySelector("button.btn-noir"); $("#cx-e").textContent = ""; b.disabled = true;
-      try { await auth.signInWithEmailAndPassword($("#cx-m").value.trim(), $("#cx-p").value); }
+      const m = $("#cx-m").value.trim(), mdp = $("#cx-p").value;
+      try {
+        lsSet("kiffy-sortie", null); essaiSilencieux = true;
+        await auth.signInWithEmailAndPassword(m, mdp);
+        if (ID) ID.enregistrer(m, mdp).catch(() => {});   // Keychain (iOS) / Keystore (Android), jamais en clair
+      }
       catch (x) { $("#cx-e").textContent = /wrong-password|invalid-credential|user-not-found|invalid-login/i.test(x.code || "") ? "E-mail ou mot de passe incorrect." : /too-many/i.test(x.code || "") ? "Trop d’essais. Réessayez dans quelques minutes." : "Connexion impossible. Vérifiez internet."; b.disabled = false; }
     };
     $("#cx-o").onclick = async () => {
@@ -285,7 +327,7 @@
       <div class="page" style="padding:18px 24px"><div class="carte"><h3>Aucun commerce sur ce compte</h3><p class="muted" style="font-size:14px;margin:6px 0 0">${esc(msg || "Ce compte n’est lié à aucun commerce Kiffy. Contactez NFC Work.")}</p></div>
       ${WHATSAPP ? `<a class="btn-vert" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Bonjour NFC Work, j’ai besoin d’aide pour Kiffy (" + (user && user.email) + ").")}" target="_blank" rel="noopener">${ic("whatsapp", 20)} Écrire à NFC Work</a>` : ""}
       <button class="btn-clair" id="dx" style="padding:12px">Se déconnecter</button></div></div>`;
-    $("#dx").onclick = () => auth.signOut();
+    $("#dx").onclick = () => seDeconnecter();
   }
 
   /* ---------------- code PIN ---------------- */
@@ -301,22 +343,26 @@
     for (const [k, h] of Object.entries(pins)) if (k !== sauf && typeof h === "string" && h === await hachePin(P.id, k, code)) return false;
     return true;
   }
-  // Face ID / empreinte (app) : le gérant l'active une fois, sur son téléphone, après son code
-  const faceOk = () => NATIF && !!(window.KiffyNatif && window.KiffyNatif.faceId) && P && lsGet("kiffy-face-" + P.id) === "1";
-  async function proposerFaceId() {
-    if (!NATIF || !window.KiffyNatif || !window.KiffyNatif.faceIdDispo || faceOk() || lsGet("kiffy-face-non-" + P.id)) return;
-    if (!(await window.KiffyNatif.faceIdDispo().catch(() => false))) return;
-    if (await confirmer("Activer Face ID ?", "Ouvrez l’espace du gérant avec votre visage (ou votre empreinte), sans taper le code.", "Activer")) {
-      if (await window.KiffyNatif.faceId().catch(() => false)) { lsSet("kiffy-face-" + P.id, "1"); toast("Face ID activé"); }
-    } else lsSet("kiffy-face-non-" + P.id, "1");
+  // Face ID / empreinte (app) : proposé après la première connexion ; ensuite il ouvre directement l'espace (gérant ou admin)
+  const FN = () => NATIF && window.KiffyNatif && window.KiffyNatif.faceId ? window.KiffyNatif : null;
+  const cleFace = () => estAdmin && !vueAdmin ? "kiffy-face-admin" : "kiffy-face-" + (P && P.id);
+  const faceOk = () => !!FN() && (estAdmin && !vueAdmin || P) && lsGet(cleFace()) === "1";
+  const faceId = raison => FN() ? FN().faceId(raison).catch(() => false) : Promise.resolve(false);
+  async function proposerFaceId(force) {
+    if (!FN() || !FN().faceIdDispo || (!force && (faceOk() || lsGet(cleFace() + "-non")))) return;
+    if (!(await FN().faceIdDispo().catch(() => false))) { if (force) toast("Face ID n’est pas configuré sur ce téléphone.", true); return; }
+    if (await confirmer("Activer Face ID ?", estAdmin && !vueAdmin ? "Ouvrez l’espace NFC Work avec votre visage (ou votre empreinte). Le code admin reste possible en secours." : "Ouvrez l’espace du gérant avec votre visage (ou votre empreinte). Le code du gérant reste possible en secours.", "Activer Face ID")) {
+      if (await faceId("Activer Face ID pour Kiffy")) { lsSet(cleFace(), "1"); lsSet(cleFace() + "-non", null); toast("Face ID activé"); return true; }
+    } else lsSet(cleFace() + "-non", "1");
   }
-  // clavier réutilisable : écran de démarrage et confirmation du gérant
-  function clavier(zone, { titre, aide, note, surCode, annuler }) {
+  // clavier réutilisable : verrou (gérant, employé, admin) et confirmations
+  function clavier(zone, { titre, aide, note, surCode, annuler, logo, face, auto }) {
     let code = "", bloqueJusqua = 0, essais = 0;
     zone.innerHTML = `<div class="pin">
-      <div class="logo-c">${logoHTML(P)}</div><div class="nom">${esc(titre)}</div><div class="aide" data-aide>${esc(aide)}</div>
+      <div class="logo-c">${logo || (P ? logoHTML(P) : "K")}</div><div class="nom">${esc(titre)}</div><div class="aide" data-aide>${esc(aide)}</div>
       <div class="points" data-pts>${"<span></span>".repeat(4)}</div>
-      <div class="clavier">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-n="${n}">${n}</button>`).join("")}<button type="button" class="vide" ${faceOk() ? 'data-face' : "disabled"} aria-label="${faceOk() ? "Face ID" : ""}">${faceOk() ? S.faceid : ""}</button><button type="button" data-n="0">0</button><button type="button" class="vide" data-x aria-label="Effacer">${ic("backspace", 24)}</button></div>
+      <div class="clavier">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-n="${n}">${n}</button>`).join("")}<button type="button" class="vide" ${face ? "data-face" : "disabled"} aria-label="${face ? "Face ID" : ""}">${face ? S.faceid.replace(/width="18" height="18"/, 'width="30" height="30"') : ""}</button><button type="button" data-n="0">0</button><button type="button" class="vide" data-x aria-label="Effacer">${ic("backspace", 24)}</button></div>
+      ${face ? `<button class="faceid" data-face2>${S.faceid} Ouvrir avec Face ID</button>` : ""}
       ${note ? `<div class="note">${esc(note)}</div>` : ""}
       ${annuler ? `<button class="sortir" data-ann>${esc(annuler)}</button>` : ""}</div>`;
     const pts = $("[data-pts]", zone), aideEl = $("[data-aide]", zone);
@@ -335,7 +381,13 @@
     };
     $$("[data-n]", zone).forEach(b => (b.onclick = () => tape(b.dataset.n)));
     $("[data-x]", zone).onclick = () => tape("x");
-    if ($("[data-face]", zone)) $("[data-face]", zone).onclick = () => window.KiffyNatif && window.KiffyNatif.faceId && window.KiffyNatif.faceId().then(ok => ok && surCode(null, true));
+    let enCours = false;
+    const lanceFace = async () => {
+      if (enCours) return; enCours = true;
+      const ok = await faceId(titre); enCours = false;
+      if (ok) surCode(null, true); else aideEl.textContent = "Face ID non reconnu : tapez le code";
+    };
+    if (face) { $("[data-face]", zone).onclick = lanceFace; $("[data-face2]", zone).onclick = lanceFace; if (auto) setTimeout(lanceFace, 350); }
     const clav = e => { if (/^[0-9]$/.test(e.key)) tape(e.key); else if (e.key === "Backspace") tape("x"); };
     document.addEventListener("keydown", clav);
     if (annuler) $("[data-ann]", zone).onclick = () => { document.removeEventListener("keydown", clav); zone.dispatchEvent(new Event("annule")); };
@@ -345,9 +397,9 @@
     document.body.classList.add("sombre");
     app.innerHTML = `<div class="ecran noir" id="pinz"></div>`;
     const z = $("#pinz");
-    if (!pins.gerant) {   // premier lancement : le gérant choisit son code
+    if (!pins.gerant) {   // premier lancement (ou code effacé par NFC Work) : le gérant choisit son code
       let premier = "";
-      const fin = clavier(z, { titre: P.nom, aide: "Choisissez le code du gérant (4 chiffres)", note: "Ce code ouvre tout l’espace. Les employés auront leur propre code.", annuler: "Se déconnecter",
+      const fin = clavier(z, { titre: P.nom, aide: "Choisissez le code du gérant (4 chiffres)", note: "Ce code ouvre tout l’espace. Les employés auront leur propre code.",
         surCode: async c => {
           if (!premier) { premier = c; return "Retapez le même code"; }
           if (c !== premier) { premier = ""; return "Les 2 codes sont différents. Recommencez"; }
@@ -356,20 +408,21 @@
           catch (e) { erreur(e); premier = ""; return "Enregistrement impossible"; }
           pins.gerant = await hachePin(P.id, "gerant", c); fin(); ouvrirSession({ mode: "gerant" }); return true;
         } });
-      z.addEventListener("annule", () => auth.signOut());
       return;
     }
-    const fin = clavier(z, { titre: P.nom, aide: "Tapez votre code", note: "Code du gérant → tout l’espace · Code d’un employé → le scan", annuler: mesProgs.length > 1 ? "Changer de commerce" : "Se déconnecter",
+    // Face ID d'abord (sauf si le téléphone était en mode employé) ; sinon le code du gérant ou d'un employé
+    const fin = clavier(z, { titre: P.nom, aide: "Tapez votre code", note: "Code du gérant → tout l’espace · Code d’un employé → le scan", annuler: mesProgs.length > 1 ? "Changer de commerce" : "",
+      face: faceOk(), auto: faceOk() && lsGet("kiffy-mode-" + P.id) !== "employe",
       surCode: async (c, face) => {
         const k = face ? "gerant" : await quiEst(c);
         if (!k) return false;
         fin(); ouvrirSession(k === "gerant" ? { mode: "gerant" } : { mode: "employe", eid: k }); return true;
       } });
-    z.addEventListener("annule", () => mesProgs.length > 1 ? choisirCommerce() : auth.signOut());
+    z.addEventListener("annule", () => choisirCommerce());
   }
   function ouvrirSession(s) {
     session = s; if (s.mode === "gerant") dernierPinGerant = Date.now();
-    if (!vueAdmin) ssSet(cleSession(P.id), s);
+    if (!vueAdmin) { ssSet(cleSession(P.id), s); lsSet("kiffy-mode-" + P.id, s.mode); }
     location.hash = s.mode === "employe" ? "#/emp" : "#/accueil"; route();
     if (s.mode === "gerant" && !vueAdmin) setTimeout(proposerFaceId, 600);
     if (!vueAdmin) enregistrerAppareil();
@@ -379,29 +432,56 @@
     if (!NATIF || !window.KiffyNatif || !window.KiffyNatif.push || jetonPush) return;
     try { const r = await window.KiffyNatif.push(); if (r && r.token) { jetonPush = r.token; await appel("kiffyAppareil", { token: r.token, plateforme: r.plateforme }); } } catch (e) { console.warn("notifications", e); }
   }
-  async function deconnexion() {
-    if (jetonPush) { await appel("kiffyAppareil", { token: jetonPush, retirer: true }).catch(() => {}); jetonPush = ""; }
-    if (P) ssSet(cleSession(P.id), null);
-    return auth.signOut();
-  }
   function verrouiller() { if (!vueAdmin) ssSet(cleSession(P.id), null); session = null; dernierResultat = null; location.hash = "#/"; route(); }
   function choisirCommerce() {
     const f = feuille(`<h2>Quel commerce ?</h2><div class="carte liste">${mesProgs.map(p => `<button class="ligne" data-p="${esc(p.id)}"><span class="tuile" style="background:${esc(p.couleur || "#16C172")}">${logoHTML(p)}</span><span class="txt"><b>${esc(p.nom)}</b><span>${esc(nomMetier(p.metier))}</span></span>${S.chev()}</button>`).join("")}</div>
-      <button class="btn-clair" id="dx" style="padding:12px">Se déconnecter</button>`, { noir: false });
+      <button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`, { noir: false });
     $$("[data-p]", f).forEach(b => (b.onclick = () => { f.remove(); lsSet("kiffy-pid", b.dataset.p); ouvrirCommerce(b.dataset.p); }));
-    $("#dx", f).onclick = () => auth.signOut();
   }
-  // actions sensibles : redemander le code du gérant (valable 2 minutes)
+  // actions sensibles : redemander le code du gérant (valable 2 minutes) — Face ID accepté
   function pinGerant() {
     if (vueAdmin || Date.now() - dernierPinGerant < 120000) return Promise.resolve(true);
     return new Promise(ok => {
       const f = feuille(`<div id="pg"></div>`, { pin: true, noir: true, bloque: true });
       const z = $("#pg", f);
-      const fin = clavier(z, { titre: "Code du gérant", aide: "Pour continuer, tapez le code du gérant", annuler: "Annuler",
+      const fin = clavier(z, { titre: "Code du gérant", aide: "Pour continuer, tapez le code du gérant", annuler: "Annuler", face: faceOk(), auto: faceOk(),
         surCode: async (c, face) => { if (!face && (await quiEst(c)) !== "gerant") return false; dernierPinGerant = Date.now(); fin(); f.remove(); ok(true); return true; } });
       z.addEventListener("annule", () => { fin(); f.remove(); ok(false); });
     });
   }
+
+  /* ---------------- verrou de l'espace NFC Work (admin) : Face ID, sinon le code admin ---------------- */
+  const adminOuvert = () => !!ssGet("kiffy-admin-ok");
+  async function ecranVerrouAdmin() {
+    document.body.classList.add("sombre");
+    app.innerHTML = `<div class="ecran noir" id="pinz"></div>`;
+    const z = $("#pinz"), ref = db.doc("kiffyAdmin/securite");
+    let doc = null; try { doc = await ref.get(); } catch (e) { erreur(e); }
+    const h = doc && doc.exists ? doc.data().pin : "", logo = `<span style="font-family:var(--logo);font-size:22px">nw</span>`;
+    const ouvrir = () => { ssSet("kiffy-admin-ok", 1); document.body.classList.remove("sombre"); route(); setTimeout(proposerFaceId, 600); };
+    if (!h) {   // premier lancement : choisir le code admin (secours de Face ID)
+      let premier = "";
+      const fin = clavier(z, { titre: "Espace NFC Work", aide: "Choisissez votre code admin (4 chiffres)", note: "Il remplace Face ID quand le visage n’est pas reconnu. Enregistré chiffré.", logo,
+        surCode: async c => {
+          if (!premier) { premier = c; return "Retapez le même code"; }
+          if (c !== premier) { premier = ""; return "Les 2 codes sont différents. Recommencez"; }
+          try { await ref.set({ pin: await hachePin("admin", user.uid, c), maj: FV.serverTimestamp() }); } catch (e) { erreur(e); premier = ""; return "Enregistrement impossible"; }
+          fin(); ouvrir(); return true;
+        } });
+      return;
+    }
+    const fin = clavier(z, { titre: "Espace NFC Work", aide: "Face ID ou code admin", logo, face: faceOk(), auto: faceOk(),
+      surCode: async (c, face) => { if (!face && (await hachePin("admin", user.uid, c)) !== h) return false; fin(); ouvrir(); return true; } });
+  }
+  // retour dans l'app après 5 minutes : on reverrouille (gérant → Face ID / code ; admin → Face ID / code admin ; le mode employé reste ouvert)
+  let cacheLe = 0;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { cacheLe = Date.now(); return; }
+    if (!NATIF || !user || !cacheLe || Date.now() - cacheLe < 5 * 60000 || $(".voile-f.pin-f")) return;
+    cacheLe = 0;
+    if (estAdmin && !vueAdmin) { ssSet("kiffy-admin-ok", null); $$(".voile-f").forEach(v => v.remove()); return route(); }
+    if (P && session && session.mode === "gerant" && !vueAdmin) { $$(".voile-f").forEach(v => v.remove()); verrouiller(); }
+  });
 
   /* ---------------- barre du bas (gérant) ---------------- */
   const nav = actif => `<nav class="nav-bas">
@@ -607,7 +687,7 @@
         <button class="btn-noir gros" id="ajout" ${P.actif === false ? "disabled" : ""}>${S.plus(24, "#16C172")}${P.type === "montant" ? "Ajouter les points" : "Ajouter 1 visite"}</button>
         ${!emp && pts >= obj ? `<button class="btn-vert" id="cadeau">${S.cadeau(20, "#0A0A0A")} Offrir le cadeau</button>` : ""}
         ${equipe ? `<div class="carte"><h3>Qui a servi le client ?</h3><div class="qui-servi">${actifs().map(e => `<button data-e="${esc(e.id)}">${esc(e.nom)}</button>`).join("")}</div></div>` : ""}
-        ${emp ? "" : `<div class="carte"><h3>Historique</h3>${(c.hist || []).length ? c.hist.slice(0, 8).map(h => `<div class="histo"><span>${h.a === "visite" ? `+${h.n} ${h.n > 1 ? "points" : "visite"}` : h.a === "cadeau" ? "Cadeau offert" : "-1 point"}${h.e ? " · " + esc(h.e) : ""}</span><span class="q">${esc(quand(h.t))}</span></div>`).join("") : `<div class="vide" style="padding:10px 0 4px">Les prochaines visites s’afficheront ici.</div>`}</div>
+        ${emp ? "" : `<div class="carte"><h3>Historique</h3>${(c.hist || []).length ? c.hist.slice(0, 8).map(h => `<div class="histo"><span>${h.a === "visite" ? `+${h.n} ${h.n > 1 ? "points" : "visite"}` : h.a === "cadeau" ? "Cadeau offert" : h.a === "ajust" ? `${h.n > 0 ? "+" : ""}${h.n} point${Math.abs(h.n) > 1 ? "s" : ""} (${esc(h.motif || "correction")})` : "-1 point"}${h.e ? " · " + esc(h.e) : ""}</span><span class="q">${esc(quand(h.t))}</span></div>`).join("") : `<div class="vide" style="padding:10px 0 4px">Les prochaines visites s’afficheront ici.</div>`}</div>
         <div class="actions-g"><button class="btn-clair" id="moins">Retirer 1 point</button><button class="btn-clair danger" id="suppr">${ic("trash", 16)} Supprimer</button></div>`}
       </div></div>`;
     brancherAdmin();
@@ -748,16 +828,19 @@
     app.innerHTML = `${bandeauAdmin()}<div class="ecran nav"><div class="titre-page"><h1>Réglages</h1></div>
       <div class="page">
         <div class="carte" style="display:flex;align-items:center;gap:14px"><div class="logo-c" style="width:56px;height:56px;border-radius:16px;background:${esc(P.couleur || "#16C172")};display:flex;align-items:center;justify-content:center;font-family:var(--logo);font-weight:800;font-size:26px;overflow:hidden;color:${clair(P.couleur) ? "#0A0A0A" : "#FFFFFF"}">${logoHTML(P)}</div>
-          <div style="flex:1;min-width:0"><b style="display:block;font-size:17px">${esc(P.nom)}</b><span style="font-size:13px;color:#5B665F">${esc(nomMetier(P.metier))}${P.ville ? " · " + esc(P.ville) : ""}</span></div><button class="lien" id="r-mod">Modifier</button></div>
-        <div class="carte menu"><div class="sect">LA CARTE</div>
-          ${opt("r-design", ic("palette"), "Logo, couleur, photo de fond", "")}
+          <div style="flex:1;min-width:0"><b style="display:block;font-size:17px">${esc(P.nom)}</b><span style="font-size:13px;color:#5B665F">${esc(nomMetier(P.metier))}${P.ville ? " · " + esc(P.ville) : ""}</span></div></div>
+        <div class="carte menu"><div class="sect">CE QUE VOUS POUVEZ CHANGER</div>
           ${opt("r-prog", ic("target"), "Objectif et récompense", `${objectif(P)} ${unite(P)}`)}
-          ${opt("r-anniv", ic("cake"), "Anniversaires", P.cadeauAnniv || "")}
-          ${opt("r-lieu", ic("map-pin"), "Adresse du commerce", nbLieux ? `${nbLieux} lieu${nbLieux > 1 ? "x" : ""}` : "aucune")}</div>
+          ${opt("r-anniv", ic("cake"), "Anniversaires", P.cadeauAnniv || "")}</div>
+        <div class="carte menu"><div class="sect" style="display:flex;align-items:center;gap:6px">${ic("lock", 14)} DESIGN DE LA CARTE · NFC WORK</div>
+          ${opt("r-design", ic("palette"), "Logo, couleur, photo, nom", "")}
+          ${opt("r-lieu", ic("map-pin"), "Adresses et liens", nbLieux ? `${nbLieux} lieu${nbLieux > 1 ? "x" : ""}` : "")}
+          <div class="verrou-note">${ic("lock", 16)}<span>Contactez NFC Work pour modifier le design, le nom, les adresses, la règle ou les liens de la carte.</span></div></div>
         <div class="carte menu"><div class="sect">L’ÉQUIPE</div>
           ${opt("r-equipe", ic("users"), "Employés et codes PIN", String(actifs().length))}
           ${opt("r-emp", ic("lock"), "Mode employé", "")}</div>
         <div class="carte menu"><div class="sect">COMPTE</div>
+          ${NATIF && !vueAdmin ? opt("r-face", ic("face-id"), "Face ID", faceOk() ? "activé" : "désactivé") : ""}
           ${opt("r-plaque", ic("qrcode"), "Ma plaque Kiffy", P.plaque || "")}
           ${opt("r-lien", ic("link"), "Lien d’inscription des clients", "")}
           ${WHATSAPP ? opt("r-aide", ic("whatsapp"), "Aide NFC Work (WhatsApp)", "") : ""}
@@ -766,14 +849,13 @@
         <div class="petit"><a href="${SITE}/legal/kiffy/" target="_blank" rel="noopener" style="color:inherit">Confidentialité et données</a></div>
       </div>${nav("reglages")}</div>`;
     brancherAdmin();
-    $("#r-mod").onclick = $("#r-design").onclick = () => reglageDesign();
+    $("#r-design").onclick = () => designLecture();
     $("#r-prog").onclick = () => reglageProgramme();
     $("#r-anniv").onclick = () => aller("#/anniversaires");
-    $("#r-lieu").onclick = () => {
-      const f = feuille(`<h2>Adresse du commerce</h2><p class="muted" style="margin:0;font-size:13.5px">${nbLieux ? `${nbLieux} adresse${nbLieux > 1 ? "s" : ""} enregistrée${nbLieux > 1 ? "s" : ""} : la carte s’affiche toute seule sur l’iPhone du client quand il passe près du commerce.` : "Aucune adresse : demandez à NFC Work de l’ajouter pour que la carte s’affiche près du commerce."}</p>
-        <label class="champ">Texte affiché près du commerce<input id="lt" maxlength="80" value="${esc(P.lieuTexte || "")}" placeholder="Vous êtes près de ${esc(P.nom)} : montrez votre carte"></label>
-        <button class="btn-noir moyen" id="lt-ok">Enregistrer</button><button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
-      $("#lt-ok", f).onclick = async () => { try { await appel("kiffyReglages", { pid: P.id, champs: { lieuTexte: $("#lt", f).value } }); f.remove(); toast("Enregistré"); } catch (e) { erreur(e); } };
+    $("#r-lieu").onclick = () => designLecture(true);
+    if ($("#r-face")) $("#r-face").onclick = async () => {
+      if (faceOk()) { if (await confirmer("Désactiver Face ID ?", "L’espace du gérant s’ouvrira avec le code du gérant.", "Désactiver")) { lsSet(cleFace(), null); lsSet(cleFace() + "-non", "1"); toast("Face ID désactivé"); ecranReglages(true); } }
+      else if (await proposerFaceId(true)) ecranReglages(true);
     };
     $("#r-equipe").onclick = () => aller("#/equipe");
     $("#r-emp").onclick = () => actifs().some(e => pins[e.id]) ? verrouiller() : toast("Ajoutez d’abord un employé avec son code.", true);
@@ -788,46 +870,33 @@
     if ($("#r-suppr")) $("#r-suppr").onclick = async () => {
       if (!(await pinGerant())) return;
       if (!(await confirmer("Supprimer le compte du commerce ?", "Votre accès Kiffy est supprimé tout de suite et le commerce est mis en pause. NFC Work efface ensuite ses données (voir nfcwork.ma/legal/kiffy). Impossible d’annuler.", "Supprimer définitivement", true))) return;
-      try { await appel("kiffySupprimerCompte", {}); ssSet(cleSession(P.id), null); toast("Compte supprimé", true); await auth.signOut().catch(() => {}); } catch (e) { erreur(e); }
+      try { await appel("kiffySupprimerCompte", {}); ssSet(cleSession(P.id), null); toast("Compte supprimé", true); if (ID) await ID.effacer().catch(() => {}); await auth.signOut().catch(() => {}); } catch (e) { erreur(e); }
     };
-    $("#r-dx").onclick = async () => { if (await confirmer("Se déconnecter ?", "Il faudra retaper l’e-mail et le mot de passe du commerce sur ce téléphone.", "Se déconnecter", true)) { if (vueAdmin) { $("#quitte-vue") && $("#quitte-vue").click(); return; } deconnexion(); } };
+    $("#r-dx").onclick = async () => { if (await confirmer("Se déconnecter ?", "Il faudra retaper l’e-mail et le mot de passe du commerce sur ce téléphone.", "Se déconnecter", true)) { if (vueAdmin) { $("#quitte-vue") && $("#quitte-vue").click(); return; } seDeconnecter(true); } };
   }
-  function reglageDesign() {
-    let col = P.couleur || "#16C172", fm = P.fondMetier || "";
-    const photos = () => [["", "Photo du métier", photoMetier(P.metier)], ...["cafe", "gaming", "terrain", "resto"].filter(k => k !== P.metier).slice(0, 4).map(k => [k, nomMetier(k), photoMetier(k)]), ["unie", "Couleur unie", ""]];
-    const f = feuille(`<h2>Logo, couleur, photo</h2>
-      <div class="section" style="padding:14px"><b>Couleur de la carte</b><div class="couleurs" id="dc">${COULEURS.map(x => `<button data-c="${x}" style="background:${x}" aria-label="Couleur ${x}"></button>`).join("")}</div>
-        <label class="champ">Code couleur<input id="dc-h" maxlength="7" value="${esc(col)}" autocapitalize="off"></label></div>
-      <div class="section" style="padding:14px"><b>Photo derrière les tampons</b><div class="grille3" id="dp">${photos().map(([k, l, src]) => `<button class="photo-choix" data-p="${k}">${src ? `<img src="${esc(src)}" alt="">` : ""}<span>${esc(l)}</span></button>`).join("")}</div>
-        <label class="pointille">${ic("camera", 18)} Photo du commerce (la meilleure option)<input type="file" accept="image/*" id="dp-f" hidden></label></div>
-      <div class="muted" style="font-size:12.5px">Le logo est changé par NFC Work (envoyez-le sur WhatsApp).</div>
-      <button class="btn-noir moyen" id="d-ok">Enregistrer</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
-    let fond = null;
-    const maj = () => { $$("#dc button", f).forEach(b => b.classList.toggle("on", b.dataset.c.toLowerCase() === col.toLowerCase())); $$("#dp button", f).forEach(b => b.classList.toggle("on", fond == null && b.dataset.p === fm)); };
-    $$("#dc button", f).forEach(b => (b.onclick = () => { col = b.dataset.c; $("#dc-h", f).value = col; maj(); }));
-    $("#dc-h", f).oninput = e => { if (/^#[0-9a-f]{6}$/i.test(e.target.value)) { col = e.target.value; maj(); } };
-    $$("#dp button", f).forEach(b => (b.onclick = () => { fm = b.dataset.p; fond = null; maj(); }));
-    $("#dp-f", f).onchange = async e => { const fi = e.target.files[0]; if (!fi) return; try { fond = await lireFond(fi); toast("Photo prête : touchez Enregistrer"); maj(); } catch (x) { toast("Photo illisible."); } };
-    maj();
-    $("#d-ok", f).onclick = async () => {
-      const b = $("#d-ok", f); b.disabled = true;
-      try {
-        if (fond) await db.doc("fidFonds/" + P.id).set({ png: fond, maj: Date.now(), ownerEmail: P.ownerEmail });
-        else if (fm !== (P.fondMetier || "")) await db.doc("fidFonds/" + P.id).delete().catch(() => {});
-        await appel("kiffyReglages", { pid: P.id, champs: { couleur: col, fondMetier: fond ? "" : fm } });
-        f.remove(); toast("Carte mise à jour (les Wallet se mettent à jour tout seuls)", true);
-      } catch (e) { erreur(e); b.disabled = false; }
-    };
+  // le design de la carte est réservé à NFC Work : le gérant le voit, sans pouvoir le changer
+  function designLecture(lieux) {
+    const nbL = Array.isArray(P.lieux) ? P.lieux.length : 0, fond = P.fondMetier === "unie" ? "" : photoMetier(P.fondMetier || P.metier);
+    const kv = (l, v) => `<div class="kv"><span class="muted">${esc(l)}</span><b style="text-align:right">${v}</b></div>`;
+    const f = feuille(`<h2>${lieux ? "Adresses et liens" : "Design de la carte"}</h2>
+      ${lieux ? "" : `<div class="apercu" style="background:${esc(P.couleur || "#16C172")}"><div class="h"><span class="lg">${logoHTML(P)}</span><span class="nm" style="color:${clair(P.couleur) ? "#0A0A0A" : "#FFFFFF"}">${esc(P.nom)}</span></div><div class="bd">${fond ? `<img src="${esc(fond)}" alt="">` : ""}<div class="voile" style="background:${esc(P.couleur || "#16C172")};opacity:${fond ? .55 : 0}"></div></div></div>`}
+      <div class="carte" style="display:flex;flex-direction:column;gap:8px">
+        ${lieux ? kv("Adresses", nbL ? `${nbL} enregistrée${nbL > 1 ? "s" : ""}` : "aucune") + kv("Texte près du commerce", esc(P.lieuTexte || "par défaut")) + kv("Lien avis Google", P.lienAvis ? "activé" : "non")
+          : kv("Nom affiché", esc(P.nom)) + kv("Métier", esc(nomMetier(P.metier))) + kv("Couleur", `<span style="display:inline-block;width:14px;height:14px;border-radius:7px;background:${esc(P.couleur || "#16C172")};vertical-align:-2px"></span> ${esc(P.couleur || "#16C172")}`) + kv("Règle", `${P.type === "montant" ? "points selon le montant" : "1 tampon par visite"} · ${esc(unite(P))}`)}
+      </div>
+      <div class="verrou-note">${ic("lock", 16)}<span>Réservé à NFC Work. Contactez NFC Work pour modifier ${lieux ? "les adresses et les liens" : "le logo, la couleur, la photo, le nom ou la règle"}.</span></div>
+      ${vueAdmin ? `<button class="btn-noir moyen" id="dl-adm">${ic("palette", 18)} Modifier (NFC Work)</button>` : WHATSAPP ? `<a class="btn-vert" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Bonjour NFC Work, je voudrais modifier ${lieux ? "les adresses / liens" : "le design"} de ma carte Kiffy (${P.nom}).`)}" target="_blank" rel="noopener">${ic("whatsapp", 20)} Contacter NFC Work</a>` : ""}
+      <button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+    if ($("#dl-adm", f)) $("#dl-adm", f).onclick = () => { const pid = P.id; f.remove(); $("#quitte-vue") && $("#quitte-vue").click(); setTimeout(() => aller("#/admin/modifier/" + encodeURIComponent(pid)), 50); };
   }
   function reglageProgramme() {
     const f = feuille(`<h2>Objectif et récompense</h2>
       <label class="champ">Objectif (${P.type === "montant" ? "points" : "nombre de visites"})<input id="po" type="number" inputmode="numeric" min="1" max="1000" value="${objectif(P)}"></label>
-      <label class="champ">Unité<input id="pu" maxlength="30" value="${esc(unite(P))}"></label>
       <label class="champ">Récompense<input id="pr" maxlength="80" value="${esc(P.recompense || "")}"></label>
-      <div class="muted" style="font-size:12.5px">Les cartes de vos clients se mettent à jour toutes seules.</div>
+      <div class="muted" style="font-size:12.5px">Unité : ${esc(unite(P))} (règle fixée par NFC Work). Les cartes de vos clients se mettent à jour toutes seules.</div>
       <button class="btn-noir moyen" id="p-ok">Enregistrer</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
     $("#p-ok", f).onclick = async () => {
-      try { await appel("kiffyReglages", { pid: P.id, champs: { objectif: parseInt($("#po", f).value, 10), unite: $("#pu", f).value, recompense: $("#pr", f).value } }); f.remove(); toast("Enregistré"); } catch (e) { erreur(e); }
+      try { await appel("kiffyReglages", { pid: P.id, champs: { objectif: parseInt($("#po", f).value, 10), recompense: $("#pr", f).value } }); f.remove(); toast("Enregistré"); } catch (e) { erreur(e); }
     };
   }
   // photo du commerce → 750×246 PNG (le Worker Wallet la lit sans librairie)
@@ -911,20 +980,44 @@
   }
 
   /* ================= ESPACE NFC WORK (admin) ================= */
-  const navAdmin = actif => `<nav class="nav-bas">
-    <a href="#/admin" class="${actif === "accueil" ? "on" : ""}">${S.boutique(actif === "accueil" ? "#0A0A0A" : "#8A938E")}Commerces</a>
-    ${PRIX ? `<a href="#/admin/paiements" class="${actif === "paiements" ? "on" : ""}">${S.billet(actif === "paiements" ? "#0A0A0A" : "#8A938E")}Paiements</a>` : ""}
-    <a href="#/admin/creer" class="centre" aria-label="Nouveau commerce"><span>${S.plus(30, "#0A0A0A")}</span></a>
-    <a href="#/admin/plaques" class="${actif === "plaques" ? "on" : ""}">${S.plaques(actif === "plaques" ? "#0A0A0A" : "#8A938E")}Plaques</a>
-    <a href="#" id="na-cpt">${S.perso("#8A938E")}Compte</a></nav>`;
+  const navAdmin = actif => { const c = k => actif === k ? "on" : ""; return `<nav class="nav-bas">
+    <a href="#/admin" class="${c("accueil")}">${S.boutique(actif === "accueil" ? "#0A0A0A" : "#8A938E")}Commerces</a>
+    <a href="#/admin/stats" class="${c("stats")}">${ic("chart-bar")}Stats</a>
+    <a href="#" class="centre" id="na-plus" aria-label="Ajouter"><span>${S.plus(30, "#0A0A0A")}</span></a>
+    <a href="#/admin/ventes" class="${c("ventes")}">${ic("receipt")}Ventes</a>
+    <a href="#/admin/plus" class="${c("plus")}">${ic("dots")}Plus</a></nav>`; };
   function brancherNavAdmin() {
-    $("#na-cpt").onclick = e => { e.preventDefault(); const f = feuille(`<h2>Compte NFC Work</h2><p class="muted" style="margin:0">${esc(user.email)}</p><a class="btn-clair" href="../espace/" style="padding:12px;text-decoration:none">Ouvrir l’Espace client</a><button class="btn-clair danger" id="dx" style="padding:12px">Se déconnecter</button><button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`); $("#dx", f).onclick = () => auth.signOut(); };
+    const b = $("#na-plus"); if (!b) return;
+    b.onclick = e => {
+      e.preventDefault();
+      const f = feuille(`<h2>Ajouter</h2><div class="carte menu">
+        <a class="opt" href="#/admin/vente/nouvelle"><span class="ico">${ic("receipt")}</span><span class="l">Nouvelle vente</span><span class="chev">${S.chev()}</span></a>
+        <a class="opt" href="#/admin/creer"><span class="ico">${ic("building-store")}</span><span class="l">Nouveau commerce</span><span class="chev">${S.chev()}</span></a>
+        <a class="opt" href="#/admin/plaques"><span class="ico">${ic("qrcode")}</span><span class="l">Générer des plaques</span><span class="chev">${S.chev()}</span></a></div>
+        <button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+      $$("a", f).forEach(a => a.addEventListener("click", () => f.remove()));
+    };
   }
+  // journal d'activité : ce que fait l'admin depuis l'app (le reste est écrit par les Functions)
+  const journal = (action, detail, p) => db.collection("kiffyJournal").add({ t: FV.serverTimestamp(), role: "admin", qui: String(user.email || "").toLowerCase(), action, pid: (p && p.id) || "", commerce: String((p && p.nom) || "").slice(0, 60), detail: String(detail || "").slice(0, 300) }).catch(e => console.warn("journal", e));
+  // fichier à donner à l'utilisateur : app → feuille de partage (Enregistrer dans Fichiers, WhatsApp, Mail…) ; web → partage ou téléchargement
+  async function fichier(nom, blob, titre, partager) {
+    if (window.KiffyNatif && window.KiffyNatif.partager) {
+      const b64 = await new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = ko; r.readAsDataURL(blob); });
+      return window.KiffyNatif.partager(nom, b64, titre || nom).catch(e => { if (!/cancel|annul/i.test(e && e.message || "")) toast("Partage impossible."); });
+    }
+    const f = new File([blob], nom, { type: blob.type });
+    if (partager && navigator.canShare && navigator.canShare({ files: [f] })) return navigator.share({ files: [f], title: titre || nom }).catch(() => {});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nom; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  const csv = (lignes, nom) => fichier(nom, new Blob(["\ufeff" + lignes.map(l => l.map(v => { const t = String(v == null ? "" : v); return /[";\n,]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; }).join(";")).join("\n") + "\n"], { type: "text/csv" }), nom);
   async function chargerAdmin(force) {
     if (progsAdmin.length && !force) return;
     const [p, c, pa] = await Promise.all([db.collection("fidProgrammes").get(), db.collection("fidCartes").get(), db.collection("kiffyPaiements").get()]);
-    progsAdmin = p.docs.map(d => ({ id: d.id, ...d.data() })).filter(x => !x.arch);
-    cartesAdmin = {}; c.docs.forEach(d => { const x = d.data(); const k = x.pid; if (!cartesAdmin[k]) cartesAdmin[k] = { n: 0, vm: 0 }; cartesAdmin[k].n++; cartesAdmin[k].vm += (x.vm && x.vm[moisCle()]) || 0; });
+    const tous = p.docs.map(d => ({ id: d.id, ...d.data() }));
+    progsAdmin = tous.filter(x => !x.arch); progsArchives = tous.filter(x => x.arch);
+    cartesTout = c.docs.map(d => ({ id: d.id, ...d.data() }));
+    cartesAdmin = {}; cartesTout.forEach(x => { const k = x.pid; if (!cartesAdmin[k]) cartesAdmin[k] = { n: 0, vm: 0 }; cartesAdmin[k].n++; cartesAdmin[k].vm += (x.vm && x.vm[moisCle()]) || 0; });
     paiementsAdmin = pa.docs.map(d => ({ id: d.id, ...d.data() }));
     // facture du mois en cours pour les commerces Kiffy (créée une seule fois)
     const b = db.batch(); let n = 0;
@@ -941,13 +1034,15 @@
   }
   const impayes = pid => paiementsAdmin.filter(x => x.pid === pid && !x.paye);
   function statut(p) {
+    if (p.arch) return `<span class="tag" style="background:#EEF2EF;color:#5B665F">Archivé</span>`;
     if (p.actif === false) return `<span class="tag" style="background:#EEF2EF;color:#5B665F">En pause</span>`;
     if (p.suppressionDemandee) return `<span class="tag rouge">Suppression demandée</span>`;
     if (PRIX && impayes(p.id).length) return `<span class="tag rouge">Impayé</span>`;
     if (p.essai && p.expire >= jourPlus(0)) { const j = Math.max(0, Math.round((new Date(p.expire) - new Date(jourPlus(0))) / 864e5)); return `<span class="tag jaune">Essai · ${j} j</span>`; }
     return `<span class="tag menthe">Actif</span>`;
   }
-  let rechercheAdmin = "";
+  let rechercheAdmin = "", filtreAdmin = "tous";
+  const etat = p => p.arch ? "archive" : p.actif === false ? "pause" : impayes(p.id).length ? "impaye" : p.essai && p.expire >= jourPlus(0) ? "essai" : "actif";
   async function adminAccueil() {
     document.body.classList.remove("sombre");
     if (!progsAdmin.length) app.innerHTML = `<div class="chargement"><span class="logo-kiffy">kiffy</span></div>`;
@@ -956,16 +1051,20 @@
     const nAct = progsAdmin.filter(p => p.actif !== false && !(p.essai && p.expire >= jourPlus(0)) && !impayes(p.id).length).length;
     const nEss = progsAdmin.filter(p => p.actif !== false && p.essai && p.expire >= jourPlus(0)).length, nImp = progsAdmin.filter(p => impayes(p.id).length).length;
     const q = rechercheAdmin.trim().toLowerCase();
-    const L = progsAdmin.filter(p => !q || String(p.nom).toLowerCase().includes(q) || String(p.ville || "").toLowerCase().includes(q)).sort((a, b) => ms(b.createdAt) - ms(a.createdAt));
+    const base = filtreAdmin === "archive" ? progsArchives : progsAdmin.filter(p => filtreAdmin === "tous" || etat(p) === filtreAdmin);
+    const L = base.filter(p => !q || String(p.nom).toLowerCase().includes(q) || String(p.ville || "").toLowerCase().includes(q) || String(p.ownerEmail || "").includes(q)).sort((a, b) => ms(b.createdAt) - ms(a.createdAt));
+    const nb = k => k === "archive" ? progsArchives.length : progsAdmin.filter(p => k === "tous" || etat(p) === k).length;
     app.innerHTML = `<div class="ecran nav">
       <div class="haut-fixe" style="padding:var(--haut) 20px 6px;display:flex;justify-content:space-between;align-items:center"><div><div class="eyebrow">ESPACE NFC WORK</div><div style="font-size:26px;font-weight:800">Mes commerces</div></div><span style="font-family:var(--logo);font-weight:800;font-size:22px">kiffy</span></div>
       <div class="page" style="padding-top:8px;gap:12px">
         <div class="ca">${PRIX ? `<div class="t">Encaissé ce mois</div><div class="m">${encaisse.toLocaleString("fr-FR")} <span>DH</span></div>` : `<div class="t">Commerces</div><div class="m">${progsAdmin.length}</div>`}
           <div class="g"><div><b>${nAct}</b><span>Actifs</span></div><div><b>${nEss}</b><span>En essai</span></div>${PRIX ? `<div class="rouge"><b>${nImp}</b><span>Impayés</span></div>` : `<div><b>${progsAdmin.filter(p => p.actif === false).length}</b><span>En pause</span></div>`}</div></div>
-        <label class="recherche">${S.loupe}<input id="aq" placeholder="Chercher un commerce" value="${esc(rechercheAdmin)}" autocomplete="off"></label>
+        <label class="recherche">${S.loupe}<input id="aq" placeholder="Nom, ville ou e-mail" value="${esc(rechercheAdmin)}" autocomplete="off"></label>
+        <div class="puces">${[["tous", "Tous"], ["actif", "Actifs"], ["essai", "Essai"], ["impaye", "Impayés"], ["pause", "En pause"], ["archive", "Archivés"]].map(([k, t]) => `<button class="puce${filtreAdmin === k ? " on" : ""}" data-fa="${k}">${t} · ${nb(k)}</button>`).join("")}</div>
         <div class="carte liste">${L.length ? L.map(p => `<a class="ligne" href="#/admin/c/${esc(p.id)}"><span class="tuile" style="background:${esc(p.couleur || "#16C172")};color:${clair(p.couleur) ? "#0A0A0A" : "#FFFFFF"}">${logoHTML(p)}</span><span class="txt"><b>${esc(p.nom)}</b><span>${esc(nomMetier(p.metier))} · ${(cartesAdmin[p.id] || { n: 0 }).n} clients${p.ville ? " · " + esc(p.ville) : ""}</span></span>${statut(p)}</a>`).join("") : `<div class="vide">Aucun commerce. Touchez + pour en créer un.</div>`}</div>
       </div>${navAdmin("accueil")}</div>`;
     brancherNavAdmin();
+    $$("[data-fa]").forEach(b => (b.onclick = () => { filtreAdmin = b.dataset.fa; adminAccueil(); }));
     $("#aq").oninput = e => { rechercheAdmin = e.target.value; const pos = e.target.selectionStart; adminAccueil(); const r = $("#aq"); r.focus(); r.setSelectionRange(pos, pos); };
   }
   async function adminPaiements() {
@@ -979,44 +1078,112 @@
   async function adminCommerce(pid) {
     pid = decodeURIComponent(pid || ""); lsSet("kiffy-admin-pid", pid);
     try { await chargerAdmin(); } catch (e) { erreur(e); }
-    let p = progsAdmin.find(x => x.id === pid);
+    let p = progsAdmin.find(x => x.id === pid) || progsArchives.find(x => x.id === pid);
     if (!p) { const d = await db.doc("fidProgrammes/" + pid).get().catch(() => null); p = d && d.exists ? { id: d.id, ...d.data() } : null; }
     if (!p) { app.innerHTML = `<div class="ecran"><div class="barre"><a class="retour" href="#/admin">${S.retour()}</a><span class="t">Commerce introuvable</span></div></div>`; return; }
-    const emps = (await db.collection("fidEmployes").where("pid", "==", pid).get().catch(() => ({ docs: [] }))).docs.filter(d => d.data().actif !== false).length;
+    const empsTous = (await db.collection("fidEmployes").where("pid", "==", pid).get().catch(() => ({ docs: [] }))).docs.map(d => ({ id: d.id, ...d.data() }));
+    const emps = empsTous.filter(e => e.actif !== false).length;
     const pl = await db.collection("fidPlaques").where("pid", "==", pid).limit(1).get().then(s => s.empty ? "" : s.docs[0].id).catch(() => "");
     const paies = paiementsAdmin.filter(x => x.pid === pid).sort((a, b) => (a.mois === "installation") - (b.mois === "installation") || String(b.mois).localeCompare(String(a.mois)));
     const du = paies.filter(x => !x.paye).sort((a, b) => (b.mois === "installation") - (a.mois === "installation") || String(a.mois).localeCompare(String(b.mois)))[0];
-    const st = cartesAdmin[pid] || { n: 0, vm: 0 };
+    const st = cartesAdmin[pid] || { n: 0, vm: 0 }, ech = ADM ? ADM.echeance(p) : "";
     const opt = (id, icone, l, v, rouge) => `<button class="opt" id="${id}" style="padding:13px 0"><span class="ico">${icone}</span><span class="l${rouge ? " danger" : ""}" ${rouge ? 'style="font-weight:700"' : ""}>${esc(l)}</span><span class="v">${esc(v || "")}</span>${rouge ? "" : `<span class="chev">${S.chev()}</span>`}</button>`;
     app.innerHTML = `<div class="ecran nav">
       <div class="barre"><a class="retour" href="#/admin" aria-label="Retour">${S.retour()}</a><span class="t">Fiche commerce</span></div>
       <div class="page" style="gap:12px">
-        <div class="fiche-haut" style="background:${esc(p.couleur || "#16C172")};color:${clair(p.couleur) ? "#0A0A0A" : "#FFFFFF"}"><span class="logo-c" style="color:#0A0A0A">${logoHTML(p)}</span><span style="flex:1;min-width:0"><b>${esc(p.nom)}</b><span class="s" style="color:inherit;opacity:.8">${esc(p.ownerEmail || "sans e-mail")}${ms(p.createdAt) ? " · depuis " + new Date(ms(p.createdAt)).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }) : ""}</span></span>${p.actif === false ? `<span class="tag noir">En pause</span>` : `<span class="tag noir">Actif</span>`}</div>
+        <div class="fiche-haut" style="background:${esc(p.couleur || "#16C172")};color:${clair(p.couleur) ? "#0A0A0A" : "#FFFFFF"}"><span class="logo-c" style="color:#0A0A0A">${logoHTML(p)}</span><span style="flex:1;min-width:0"><b>${esc(p.nom)}</b><span class="s" style="color:inherit;opacity:.8">${esc(p.ownerEmail || "sans e-mail")}${ms(p.createdAt) ? " · depuis " + new Date(ms(p.createdAt)).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }) : ""}</span></span>${statut(p)}</div>
+        ${p.arch ? `<div class="pause">Commerce archivé (supprimé de la liste). Ses cartes clients sont conservées.</div>` : ""}
         <div class="mini-stats"><div><b>${st.n}</b><span>Clients</span></div><div><b>${st.vm}</b><span>Visites ce mois</span></div><div><b>${emps}</b><span>Employés</span></div></div>
-        <div class="carte" style="padding:14px 16px;${PRIX ? "" : "display:none"}"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Paiements</h3>${du ? `<span class="tag jaune">${esc(du.libelle || du.mois)} à payer</span>` : paies.length ? `<span class="tag menthe">À jour</span>` : ""}</div>
+        <div class="carte" style="padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Abonnement</h3>${du ? `<span class="tag jaune">${esc(du.libelle || du.mois)} à payer</span>` : paies.length ? `<span class="tag menthe">À jour</span>` : ""}</div>
+          ${ech ? `<div class="kv" style="padding:8px 0 4px"><span class="muted">Prochaine échéance</span><b>${esc(ech)}</b></div>` : ""}
           ${paies.length ? paies.slice(0, 6).map(x => `<div class="paie"><span>${esc(x.libelle || x.mois)} · ${x.montant} DH</span>${x.paye ? `<b class="ok">Payé ${S.coche(13, "#0E8A51")}</b>` : `<b class="ko">À payer</b>`}</div>`).join("") : `<div class="vide" style="padding:10px 0">${p.kiffy ? "Aucun paiement." : "Commerce créé dans l’Espace (pas d’abonnement Kiffy)."}</div>`}
-          ${du ? `<button class="btn-noir moyen" id="enc" style="margin-top:10px">Encaisser ${du.montant} DH</button>` : ""}</div>
-        <div class="carte menu">
-          ${opt("a-mod", ic("palette"), "Modifier la carte", "")}
+          ${du ? `<div class="actions-g" style="margin-top:10px"><button class="btn-noir moyen" id="enc">Encaisser ${du.montant} DH</button><button class="btn-clair" id="rap">${ic("bell", 16)} Rappeler</button></div>` : ""}</div>
+        <div class="carte menu"><div class="sect">CARTE ET CLIENTS</div>
+          ${opt("a-mod", ic("palette"), "Modifier tout le design de la carte", "")}
           ${opt("a-voir", ic("eye"), "Voir comme le gérant", "")}
-          ${opt("a-pl", ic("qrcode"), "Plaque liée", pl || "aucune")}
-          ${opt("a-acc", ic("key"), "Renvoyer l’accès au gérant", "")}
-          ${opt("a-pause", ic(p.actif === false ? "player-play" : "player-pause"), p.actif === false ? "Réactiver" : "Mettre en pause", "", p.actif !== false)}
-        </div></div>${navAdmin("")}</div>`;
+          ${opt("a-cli", ic("users"), "Clients du commerce", String(st.n))}
+          ${opt("a-msg", ic("send"), "Message Wallet aux clients", "")}
+          ${opt("a-pl", ic("qrcode"), "Plaque liée", pl || "aucune")}</div>
+        <div class="carte menu"><div class="sect">ACCÈS DU GÉRANT</div>
+          ${opt("a-acc", ic("mail"), "Renvoyer l’e-mail d’accès", "")}
+          ${opt("a-mdp", ic("key"), "Réinitialiser le mot de passe", "")}
+          ${opt("a-pin", ic("lock"), "Réinitialiser le code PIN du gérant", "")}
+          ${opt("a-emp", ic("users"), "Codes PIN des employés", String(emps))}</div>
+        <div class="carte menu"><div class="sect">COMPTE</div>
+          ${opt("a-essai", ic("calendar"), "Prolonger l’essai", p.essai && p.expire ? "jusqu’au " + new Date(p.expire).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "")}
+          ${p.arch ? opt("a-rest", ic("refresh"), "Restaurer le commerce", "") : opt("a-pause", ic(p.actif === false ? "player-play" : "player-pause"), p.actif === false ? "Réactiver" : "Mettre en pause", "", p.actif !== false)}
+          ${p.arch ? "" : opt("a-suppr", ic("trash"), "Supprimer le commerce", "", true)}</div>
+      </div>${navAdmin("")}</div>`;
     brancherNavAdmin();
+    const recharger = async () => { progsAdmin = []; await chargerAdmin(true).catch(erreur); adminCommerce(pid); };
     $("#a-mod").onclick = () => aller("#/admin/modifier/" + encodeURIComponent(pid));
     $("#a-voir").onclick = () => { if (!p.ownerEmail) { toast("Ajoutez d’abord l’e-mail du gérant."); return; } location.hash = "#/voir/" + encodeURIComponent(pid); };
+    $("#a-cli").onclick = () => aller("#/admin/clients/" + encodeURIComponent(pid));
+    $("#a-msg").onclick = () => ADM && ADM.messageClients(p);
     $("#a-pl").onclick = () => feuillePlaqueCommerce(p, () => adminCommerce(pid));
     $("#a-acc").onclick = () => envoyerAcces(p);
-    $("#a-pause").onclick = async () => {
+    $("#a-mdp").onclick = async () => {
+      if (!p.ownerEmail) return toast("Pas d’e-mail de gérant.");
+      if (!(await confirmer("Réinitialiser le mot de passe ?", `${p.ownerEmail} reçoit un e-mail pour choisir un nouveau mot de passe. L’ancien ne marchera plus après le changement.`, "Envoyer l’e-mail"))) return;
+      try { await auth.sendPasswordResetEmail(p.ownerEmail, { url: SITE + "/kiffy/" }); journal("mot-de-passe", "Lien de nouveau mot de passe envoyé à " + p.ownerEmail, p); toast("E-mail envoyé à " + p.ownerEmail, true); } catch (e) { erreur(e); }
+    };
+    $("#a-pin").onclick = async () => {
+      if (!(await confirmer("Réinitialiser le code du gérant ?", "Le code actuel est effacé. À la prochaine ouverture, le gérant choisira un nouveau code (Face ID reste possible).", "Réinitialiser", true))) return;
+      try { await db.doc("fidSecrets/" + pid).set({ pins: { gerant: FV.delete() } }, { merge: true }); journal("pin", "Code du gérant réinitialisé", p); toast("Code du gérant effacé"); } catch (e) { erreur(e); }
+    };
+    $("#a-emp").onclick = () => codesEmployes(p, empsTous);
+    $("#a-essai").onclick = () => {
+      const f = feuille(`<h2>Prolonger l’essai</h2><p class="muted" style="margin:0;font-size:14px">${p.essai && p.expire ? "Fin actuelle : " + new Date(p.expire).toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) : "Pas d’essai en cours : un nouvel essai commence aujourd’hui."}</p>
+        <div class="choix">${[7, 14, 30].map(n => `<button data-j="${n}">+${n} jours</button>`).join("")}</div><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
+      $$("[data-j]", f).forEach(b => (b.onclick = async () => {
+        const base = p.essai && p.expire && p.expire >= jourPlus(0) ? new Date(p.expire + "T12:00:00") : new Date();
+        const fin = new Date(base.getTime() + (+b.dataset.j) * 864e5).toLocaleDateString("fr-CA", { timeZone: "Africa/Casablanca" });
+        try { await db.doc("fidProgrammes/" + pid).update({ essai: true, expire: fin, preavis: new Date(new Date(fin + "T12:00:00").getTime() - 2 * 864e5).toLocaleDateString("fr-CA"), actif: true, maj: FV.serverTimestamp() }); journal("essai", "Essai prolongé jusqu’au " + fin, p); f.remove(); toast("Essai prolongé jusqu’au " + new Date(fin).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })); recharger(); } catch (e) { erreur(e); }
+      }));
+    };
+    if ($("#a-pause")) $("#a-pause").onclick = async () => {
       const pause = p.actif !== false;
       if (!(await confirmer(pause ? "Mettre en pause ?" : "Réactiver ?", pause ? "Les visites seront bloquées et les nouvelles inscriptions refusées. Les clients gardent leurs points." : "Le commerce peut de nouveau ajouter des visites.", pause ? "Mettre en pause" : "Réactiver", pause))) return;
-      try { await db.doc("fidProgrammes/" + pid).update({ actif: !pause, maj: FV.serverTimestamp() }); p.actif = !pause; const x = progsAdmin.find(y => y.id === pid); if (x) x.actif = !pause; toast(pause ? "Commerce en pause" : "Commerce réactivé"); adminCommerce(pid); } catch (e) { erreur(e); }
+      try { await db.doc("fidProgrammes/" + pid).update({ actif: !pause, maj: FV.serverTimestamp() }); journal(pause ? "pause" : "reactivation", pause ? "Commerce mis en pause" : "Commerce réactivé", p); toast(pause ? "Commerce en pause" : "Commerce réactivé"); recharger(); } catch (e) { erreur(e); }
+    };
+    // supprimer = archiver (rien n'est effacé : les cartes des clients restent) ; double confirmation
+    if ($("#a-suppr")) $("#a-suppr").onclick = async () => {
+      if (!(await confirmer(`Supprimer ${p.nom} ?`, "Le commerce est mis en pause et retiré de la liste. Les cartes des clients et l’historique sont conservés (restauration possible dans « Archivés »).", "Continuer", true))) return;
+      const f = feuille(`<h2>Dernière confirmation</h2><p class="muted" style="margin:0;font-size:14px">Tapez le nom du commerce pour confirmer :</p><div class="modele"><b>${esc(p.nom)}</b></div>
+        <label class="champ">Nom du commerce<input id="sx" autocomplete="off" autocapitalize="off"></label><button class="btn-noir moyen danger" id="sx-ok">Supprimer définitivement de la liste</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
+      $("#sx-ok", f).onclick = async () => {
+        if ($("#sx", f).value.trim().toLowerCase() !== String(p.nom).trim().toLowerCase()) return toast("Le nom ne correspond pas.");
+        try { await db.doc("fidProgrammes/" + pid).update({ arch: true, actif: false, archiveLe: FV.serverTimestamp(), maj: FV.serverTimestamp() }); journal("suppression", "Commerce supprimé (archivé)", p); f.remove(); toast("Commerce supprimé (archivé)"); progsAdmin = []; aller("#/admin"); } catch (e) { erreur(e); }
+      };
+    };
+    if ($("#a-rest")) $("#a-rest").onclick = async () => {
+      if (!(await confirmer(`Restaurer ${p.nom} ?`, "Il revient dans la liste, en pause : réactivez-le ensuite.", "Restaurer"))) return;
+      try { await db.doc("fidProgrammes/" + pid).update({ arch: false, maj: FV.serverTimestamp() }); journal("restauration", "Commerce restauré", p); toast("Commerce restauré"); recharger(); } catch (e) { erreur(e); }
     };
     if ($("#enc")) $("#enc").onclick = async () => {
       if (!(await confirmer(`Encaisser ${du.montant} DH ?`, `${p.nom} · ${du.libelle || du.mois}`, "Encaisser"))) return;
-      try { await db.doc("kiffyPaiements/" + du.id).update({ paye: true, payeLe: FV.serverTimestamp(), par: user.email }); du.paye = true; du.payeLe = Date.now(); toast("Paiement enregistré"); adminCommerce(pid); } catch (e) { erreur(e); }
+      try { await db.doc("kiffyPaiements/" + du.id).update({ paye: true, payeLe: FV.serverTimestamp(), par: user.email }); du.paye = true; du.payeLe = Date.now(); journal("encaissement", `${du.libelle || du.mois} · ${du.montant} DH`, p); toast("Paiement enregistré"); adminCommerce(pid); } catch (e) { erreur(e); }
     };
+    if ($("#rap")) $("#rap").onclick = () => ADM && ADM.rappel(p, du);
+  }
+  // admin : les codes PIN des employés (on ne voit jamais un code : on voit qui en a un, on l'efface ou on en donne un nouveau)
+  async function codesEmployes(p, emps) {
+    const sec = await db.doc("fidSecrets/" + p.id).get().catch(() => null), pn = (sec && sec.exists && sec.data().pins) || {};
+    const f = feuille(`<h2>Codes PIN · ${esc(p.nom)}</h2>
+      <div class="carte liste">${`<div class="ligne"><span class="av">${ic("key", 18)}</span><span class="txt"><b>Gérant</b><span>${pn.gerant ? "code défini" : "pas de code"}</span></span></div>` + (emps.length ? emps.map(e => `<div class="ligne"><span class="av" style="${e.actif === false ? "opacity:.45" : ""}">${esc(initiale(e.nom))}</span><span class="txt"><b>${esc(e.nom)}</b><span>${e.actif === false ? "désactivé" : pn[e.id] ? "code défini" : "pas de code"}</span></span>${e.actif === false ? "" : `<button class="lien" data-n="${esc(e.id)}">Nouveau</button>${pn[e.id] ? `<button class="lien danger" data-x="${esc(e.id)}" style="margin-left:10px">Effacer</button>` : ""}`}</div>`).join("") : `<div class="vide">Aucun employé.</div>`)}</div>
+      <div class="muted" style="font-size:12.5px">Les codes sont chiffrés : personne ne peut les lire. « Nouveau » donne un code que vous communiquez à l’employé.</div>
+      <button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+    $$("[data-x]", f).forEach(b => (b.onclick = async () => {
+      const e = emps.find(x => x.id === b.dataset.x);
+      if (!(await confirmer(`Effacer le code de ${e.nom} ?`, "Son code ne marchera plus.", "Effacer", true))) return;
+      try { await db.doc("fidSecrets/" + p.id).update({ ["pins." + e.id]: FV.delete() }); journal("pin", `Code de ${e.nom} effacé`, p); f.remove(); toast("Code effacé"); } catch (x) { erreur(x); }
+    }));
+    $$("[data-n]", f).forEach(b => (b.onclick = async () => {
+      const e = emps.find(x => x.id === b.dataset.n), pris = async c => { for (const [k, h] of Object.entries(pn)) if (k !== e.id && h === await hachePin(p.id, k, c)) return true; return false; };
+      let c = ""; for (let i = 0; i < 20; i++) { c = String(crypto.getRandomValues(new Uint16Array(1))[0] % 10000).padStart(4, "0"); if (!(await pris(c))) break; }
+      if (!(await confirmer(`Nouveau code pour ${e.nom}`, `Code : ${c}. Notez-le et donnez-le à ${e.nom} : il ne sera plus affiché.`, "Enregistrer ce code"))) return;
+      try { await db.doc("fidSecrets/" + p.id).set({ pins: { [e.id]: await hachePin(p.id, e.id, c) } }, { merge: true }); journal("pin", `Nouveau code pour ${e.nom}`, p); f.remove(); toast(`Code de ${e.nom} : ${c}`, true); } catch (x) { erreur(x); }
+    }));
   }
   async function envoyerAcces(p) {
     if (!p.ownerEmail) { toast("Pas d’e-mail de gérant."); return false; }
@@ -1036,11 +1203,29 @@
     while (codes.length < n) { const c = codePlaque(); if (codes.includes(c)) continue; if ((await db.doc("fidPlaques/" + c).get()).exists) continue; codes.push(c); }
     const lot = Date.now();
     for (let i = 0; i < codes.length; i += 400) { const b = db.batch(); codes.slice(i, i + 400).forEach(c => b.set(db.doc("fidPlaques/" + c), { pid: null, creeLe: FV.serverTimestamp(), lot })); await b.commit(); }
+    journal("plaque", `${codes.length} plaque(s) générée(s)`);
     return codes;
   }
   function telechargerCSV(codes, nom) {
-    const csv = "code,url\n" + codes.map(c => `${c},${lienPlaque(c)}`).join("\n") + "\n";
-    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = nom; document.body.appendChild(a); a.click(); a.remove();
+    return fichier(nom, new Blob(["code,url\n" + codes.map(c => `${c},${lienPlaque(c)}`).join("\n") + "\n"], { type: "text/csv" }), nom);
+  }
+  // PDF à imprimer : une plaque de 10 × 10 cm par page (QR + code), au vert Kiffy
+  const chargerJs = src => new Promise((ok, ko) => { if ($(`script[data-src="${src}"]`)) return ok(); const x = document.createElement("script"); x.src = src; x.dataset.src = src; x.onload = ok; x.onerror = () => ko(new Error("Chargement impossible : " + src)); document.head.appendChild(x); });
+  async function pdfPlaques(codes, nom) {
+    await Promise.all([chargerJs("vendor/jspdf.umd.min.js"), chargerJs("vendor/qrcode.min.js")]);
+    const pdf = new window.jspdf.jsPDF({ unit: "mm", format: [100, 100] });
+    codes.forEach((c, i) => {
+      if (i) pdf.addPage([100, 100]);
+      pdf.setFillColor(22, 193, 114); pdf.rect(0, 0, 100, 100, "F");
+      pdf.setTextColor(10, 10, 10); pdf.setFont("helvetica", "bold"); pdf.setFontSize(22); pdf.text("kiffy", 50, 13, { align: "center" });
+      pdf.setFillColor(255, 255, 255); pdf.roundedRect(21, 18, 58, 58, 4, 4, "F");
+      const q = window.qrcode(0, "M"); q.addData(lienPlaque(c)); q.make();
+      const n = q.getModuleCount(), t = 50 / n; pdf.setFillColor(10, 10, 10);
+      for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (q.isDark(r, k)) pdf.rect(25 + k * t, 22 + r * t, t + 0.02, t + 0.02, "F");
+      pdf.setFont("helvetica", "bold"); pdf.setFontSize(10.5); pdf.text("Scannez ou approchez le téléphone", 50, 84, { align: "center" });
+      pdf.setFontSize(13); pdf.text(c, 50, 93, { align: "center" });
+    });
+    return fichier(nom, pdf.output("blob"), nom);
   }
   async function lierPlaque(code, pid, nom) {
     const ref = db.doc("fidPlaques/" + code), d = await ref.get();
@@ -1049,6 +1234,7 @@
     if (ex === pid) { toast(`${code} est déjà liée à ${nom}.`); return true; }
     if (ex) { const autre = (progsAdmin.find(x => x.id === ex) || { nom: ex }).nom; if (!(await confirmer("Plaque déjà liée", `${code} est liée à ${autre}. La déplacer vers ${nom} ?`, "Déplacer"))) return false; }
     const b = db.batch();
+    journal("plaque", `${code} liée${ex ? " (déplacée)" : ""}`, { id: pid, nom });
     b.update(ref, { pid, lieLe: FV.serverTimestamp() });
     b.update(db.doc("fidProgrammes/" + pid), { plaque: code });   // le gérant lit sa plaque ici (la liste des plaques est réservée à l'admin)
     if (ex) b.update(db.doc("fidProgrammes/" + ex), { plaque: FV.delete() });
@@ -1057,6 +1243,7 @@
   async function delierPlaque(code) {
     const ref = db.doc("fidPlaques/" + code), d = await ref.get(), pid = d.exists && d.data().pid;
     const b = db.batch(); b.update(ref, { pid: null, lieLe: null });
+    journal("plaque", `${code} déliée`, { id: pid || "", nom: pid ? (progsAdmin.find(x => x.id === pid) || { nom: pid }).nom : "" });
     if (pid) { const p = await db.doc("fidProgrammes/" + pid).get(); if (p.exists && p.data().plaque === code) b.update(p.ref, { plaque: FV.delete() }); }
     await b.commit();
   }
@@ -1093,18 +1280,24 @@
     app.innerHTML = `<div class="ecran nav"><div class="titre-page"><h1>Plaques</h1><p>${L.length} plaque${L.length > 1 ? "s" : ""} · ${nL} liée${nL > 1 ? "s" : ""} · ${L.length - nL} libre${L.length - nL > 1 ? "s" : ""}</p></div>
       <div class="page" style="gap:12px">
         <div class="actions-g"><button class="btn-noir moyen" id="pl-gen">${S.plus(20, "#16C172")} Générer des plaques</button></div>
-        <div class="puces">${[["tous", "Toutes"], ["libres", "Libres"], ["liees", "Liées"]].map(([k, t]) => `<button class="puce${filtrePl === k ? " on" : ""}" data-f="${k}">${t}</button>`).join("")}<button class="puce" id="pl-csv">${ic("qrcode", 16)} CSV (NFC)</button></div>
+        <div class="puces">${[["tous", "Toutes"], ["libres", "Libres"], ["liees", "Liées"]].map(([k, t]) => `<button class="puce${filtrePl === k ? " on" : ""}" data-f="${k}">${t}</button>`).join("")}<button class="puce" id="pl-pdf">${ic("file-text", 16)} PDF</button><button class="puce" id="pl-csv">${ic("qrcode", 16)} CSV (NFC)</button></div>
         <div class="carte liste">${V.length ? V.slice(0, 300).map(x => `<button class="ligne" data-c="${esc(x.code)}"><span class="tuile" style="background:${x.pid ? "#16C172" : "#D5DED9"};color:#0A0A0A">${ic("qrcode", 20)}</span><span class="txt"><b>${esc(x.code)}</b><span>${x.pid ? esc(nom(x.pid)) : "libre"}</span></span>${x.pid ? `<span class="tag menthe">Liée</span>` : `<span class="tag" style="background:#EEF2EF;color:#5B665F">Libre</span>`}</button>`).join("") : `<div class="vide">Aucune plaque. Touchez « Générer des plaques ».</div>`}</div>
-        <div class="petit">PDF à imprimer (10 × 10 cm, un QR par plaque) : outil NFC Work sur le Mac.</div>
+        <div class="petit">PDF à imprimer : une plaque de 10 × 10 cm par page (QR + code). CSV : pour programmer les puces NFC.</div>
       </div>${navAdmin("plaques")}</div>`;
     brancherNavAdmin();
     $$("[data-f]").forEach(b => (b.onclick = () => { filtrePl = b.dataset.f; adminPlaques(); }));
     $("#pl-csv").onclick = () => { const c = V.map(x => x.code); if (!c.length) return toast("Aucune plaque."); telechargerCSV(c, `Kiffy-Plaques-${c.length}.csv`); };
+    $("#pl-pdf").onclick = async () => { const c = V.map(x => x.code); if (!c.length) return toast("Aucune plaque."); toast("Préparation du PDF…"); try { await pdfPlaques(c, `Kiffy-Plaques-${c.length}.pdf`); } catch (e) { erreur(e); } };
     $("#pl-gen").onclick = () => {
       const f = feuille(`<h2>Générer des plaques</h2><label class="champ">Combien ?<input id="pn" type="number" inputmode="numeric" min="1" max="200" value="20"></label><p class="muted" style="margin:0;font-size:13px">Chaque plaque reçoit un code unique (ex. KF-A7K2) et son lien nfcwork.ma/w/?c=…</p><button class="btn-noir moyen" id="pn-ok">Générer</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
       $("#pn-ok", f).onclick = async () => {
         const n = Math.max(1, Math.min(200, parseInt($("#pn", f).value, 10) || 0)), b = $("#pn-ok", f); b.disabled = true; b.textContent = "Génération…";
-        try { const codes = await genererPlaques(n); f.remove(); telechargerCSV(codes, `Kiffy-Plaques-${n}.csv`); toast(`${n} plaques créées (CSV téléchargé)`, true); adminPlaques(); } catch (e) { erreur(e); b.disabled = false; b.textContent = "Générer"; }
+        try {
+          const codes = await genererPlaques(n); f.remove(); adminPlaques();
+          const g = feuille(`<h2>${n} plaques créées</h2><p class="muted" style="margin:0;font-size:14px">${esc(codes.slice(0, 6).join(" · "))}${codes.length > 6 ? "…" : ""}</p><button class="btn-noir moyen" id="g-pdf">${ic("file-text", 18)} PDF à imprimer</button><button class="btn-clair" id="g-csv" style="padding:12px">CSV pour les puces NFC</button><button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+          $("#g-pdf", g).onclick = () => pdfPlaques(codes, `Kiffy-Plaques-${n}.pdf`).catch(erreur);
+          $("#g-csv", g).onclick = () => telechargerCSV(codes, `Kiffy-Plaques-${n}.csv`);
+        } catch (e) { erreur(e); b.disabled = false; b.textContent = "Générer"; }
       };
     };
     $$("[data-c]").forEach(b => (b.onclick = () => {
@@ -1256,11 +1449,24 @@
           b.textContent = "Envoi de l’accès…";
           const ok = await envoyerAcces({ id, ownerEmail: email });
           if (!ok) toast("Commerce créé. L’accès n’est pas parti : utilisez « Renvoyer l’accès ».", true);
-        } else toast("Carte enregistrée (les Wallet se mettent à jour tout seuls)", true);
+          journal("creation", "Commerce créé · " + email, { id, nom: data.nom });
+        } else { toast("Carte enregistrée (les Wallet se mettent à jour tout seuls)", true); journal("design", "Carte modifiée (design, règle, options)", { id, nom: data.nom }); }
         progsAdmin = []; aller("#/admin/c/" + encodeURIComponent(id));
       } catch (e) { erreur(e); b.disabled = false; b.textContent = ex ? "Enregistrer" : "Créer et envoyer l’accès au gérant"; }
     };
   }
+
+  /* ---------------- espace NFC Work : module kiffy-admin.js ---------------- */
+  const K = {
+    $, $$, esc, app, db, auth, FV, TS, ic, S, toast, erreur, ms, moisCle, moisPlus, nomMois, jourPlus, ilya, quand, dateCourte, initiale, prenom, masque, rid,
+    feuille, confirmer, aller, appel, logoHTML, clair, nomMetier, objectif, unite, statut, impayes, etat, navAdmin, brancherNavAdmin, chargerAdmin, journal, fichier, csv, chargerJs,
+    SITE, WHATSAPP, WALLET, APPLE_WS, TARIF, NATIF, PRIX,
+    get user() { return user; }, get progs() { return progsAdmin; }, get archives() { return progsArchives; }, get cartes() { return cartesTout; }, get paiements() { return paiementsAdmin; },
+    faceAdmin: { dispo: () => !!FN(), actif: () => faceOk(), activer: () => proposerFaceId(true), desactiver: () => { lsSet("kiffy-face-admin", null); lsSet("kiffy-face-admin-non", "1"); } },
+    nouveauCodeAdmin: async () => { await db.doc("kiffyAdmin/securite").delete(); ssSet("kiffy-admin-ok", null); route(); },
+    seDeconnecter: () => seDeconnecter()
+  };
+  ADM = window.KiffyAdminModule ? window.KiffyAdminModule(K) : null;
 
   /* ---------------- PWA ---------------- */
   if ("serviceWorker" in navigator && location.protocol === "https:" && !NATIF) navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => {});

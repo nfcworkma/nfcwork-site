@@ -1,0 +1,623 @@
+/* =========================================================
+   KIFFY — espace NFC Work (admin seulement) · branché par kiffy.js (window.KiffyAdminModule)
+   Statistiques · clients de tous les commerces · abonnements · journal · notifications aux gérants
+   Carnet des ventes · catalogue · devis / factures / reçus (PDF) · Mon entreprise
+   Collections (règles Firestore : admin seulement) : kiffyJournal, kiffyVentes, kiffyProduits, kiffyDocs, kiffyCompteurs, kiffyEntreprise
+   ========================================================= */
+window.KiffyAdminModule = function (K) {
+  "use strict";
+  const { $, $$, esc, app, db, FV, ic, S, toast, erreur, ms, moisCle, moisPlus, nomMois, jourPlus, quand, initiale, feuille, confirmer, aller, appel, logoHTML, clair, nomMetier, objectif } = K;
+
+  /* ---------------- outils ---------------- */
+  const dh = n => (Math.round((+n || 0) * 100) / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 }).replace(/[  ]/g, " ") + " DH";
+  const jour = d => d ? new Date(d + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "";
+  const auj = () => jourPlus(0), moisDe = d => String(d || "").slice(0, 7), moisActuel = () => auj().slice(0, 7);
+  const sansAccent = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  const telWa = t => { let d = String(t || "").replace(/\D/g, ""); if (d.startsWith("00")) d = d.slice(2); if (d.startsWith("0")) d = "212" + d.slice(1); return d.length >= 11 ? d : ""; };
+  const cleClient = c => { const d = String(c.tel || "").replace(/\D/g, "").slice(-9); return d.length === 9 ? "t" + d : "n" + sansAccent(c.nom).replace(/[^a-z0-9]+/g, "-"); };
+  const haut = (titre, retour, droite) => `<div class="barre">${retour ? `<a class="retour" href="${retour}" aria-label="Retour">${S.retour()}</a>` : ""}<span class="t" style="flex:1">${esc(titre)}</span>${droite || ""}</div>`;
+  const ecran = (contenu, actif) => { app.innerHTML = `<div class="ecran nav">${contenu}${K.navAdmin(actif)}</div>`; K.brancherNavAdmin(); };
+  const ligneOpt = (href, icone, l, v) => `<a class="opt" href="${href}"><span class="ico">${ic(icone)}</span><span class="l">${esc(l)}</span><span class="v">${esc(v || "")}</span><span class="chev">${S.chev()}</span></a>`;
+  const charger = async () => { try { await K.chargerAdmin(); } catch (e) { erreur(e); } };
+  const nomP = pid => (K.progs.find(p => p.id === pid) || K.archives.find(p => p.id === pid) || { nom: pid || "—" }).nom;
+
+  /* ================= STATISTIQUES ================= */
+  async function stats() {
+    await charger();
+    const P = K.progs, C = K.cartes, k = moisCle(), t0 = new Date(auj() + "T00:00:00").getTime();
+    const actifs = P.filter(p => K.etat(p) === "actif").length, essais = P.filter(p => K.etat(p) === "essai").length, imp = P.filter(p => K.etat(p) === "impaye").length;
+    const creesMois = C.filter(c => moisCle(ms(c.createdAt)) === k).length;
+    const visMois = C.reduce((s, c) => s + ((c.vm && c.vm[k]) || 0), 0);
+    let visJour = 0; C.forEach(c => (c.hist || []).forEach(h => { if (h.a === "visite" && ms(h.t) >= t0) visJour++; }));
+    const parP = {}; C.forEach(c => { parP[c.pid] = (parP[c.pid] || 0) + ((c.vm && c.vm[k]) || 0); });
+    const top = Object.entries(parP).filter(([pid, n]) => n > 0 && P.some(p => p.id === pid)).sort((a, b) => b[1] - a[1]).slice(0, 5), max = top.length ? top[0][1] : 1;
+    const du = K.paiements.filter(x => !x.paye).reduce((s, x) => s + (x.montant || 0), 0);
+    const tuile = (n, l, c) => `<div class="stat${c ? " " + c : ""}"><b>${n}</b><span>${esc(l)}</span></div>`;
+    ecran(`<div class="titre-page"><h1>Statistiques</h1><p>${esc(nomMois(k))} · tous les commerces</p></div>
+      <div class="page" style="gap:12px">
+        <div class="stat-grille">${tuile(actifs, "Commerces actifs")}${tuile(C.length, "Cartes créées")}${tuile(visJour, "Visites aujourd’hui", "vert")}${tuile(visMois, "Visites ce mois")}${tuile("+" + creesMois, "Nouvelles cartes ce mois")}${tuile(P.length, "Commerces au total")}</div>
+        <a class="carte" href="#/admin/abonnements" style="text-decoration:none;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Abonnements</h3>${S.chev()}</div>
+          <div class="kv"><span class="muted">En essai</span><b>${essais}</b></div><div class="kv"><span class="muted">Impayés</span><b class="${imp ? "danger" : ""}">${imp} · ${dh(du)}</b></div></a>
+        <div class="carte"><h3 style="margin-bottom:10px">Top commerces (visites ce mois)</h3>
+          ${top.length ? top.map(([pid, n], i) => `<a class="barre-stat" href="#/admin/c/${esc(pid)}"><span class="r">${i + 1}</span><span style="flex:1;min-width:0"><b>${esc(nomP(pid))}</b><i style="width:${Math.max(6, Math.round(n / max * 100))}%"></i></span><b>${n}</b></a>`).join("") : `<div class="vide">Pas encore de visite ce mois.</div>`}</div>
+        ${ligneOpt("#/admin/journal", "history", "Journal d’activité", "")}
+      </div>`, "stats");
+  }
+
+  /* ================= PLUS ================= */
+  function plus() {
+    const F = K.faceAdmin;
+    ecran(`<div class="titre-page"><h1>Plus</h1><p>Espace NFC Work</p></div>
+      <div class="page" style="gap:12px">
+        <div class="carte menu"><div class="sect">GESTION</div>
+          ${ligneOpt("#/admin/clients", "users", "Clients de tous les commerces", String(K.cartes.length || ""))}
+          ${ligneOpt("#/admin/abonnements", "cash", "Abonnements", "")}
+          ${ligneOpt("#/admin/plaques", "qrcode", "Plaques", "")}
+          ${ligneOpt("#/admin/journal", "history", "Journal d’activité", "")}
+          <button class="opt" id="p-notif"><span class="ico">${ic("bell")}</span><span class="l">Notifier tous les gérants</span><span class="chev">${S.chev()}</span></button></div>
+        <div class="carte menu"><div class="sect">VENTES</div>
+          ${ligneOpt("#/admin/ventes", "receipt", "Carnet des ventes", "")}
+          ${ligneOpt("#/admin/docs", "file-invoice", "Devis et factures", "")}
+          ${ligneOpt("#/admin/produits", "package", "Catalogue des produits", "")}
+          ${ligneOpt("#/admin/entreprise", "id", "Mon entreprise", "")}</div>
+        <div class="carte menu"><div class="sect">COMPTE · ${esc(K.user.email)}</div>
+          ${F.dispo() ? `<button class="opt" id="p-face"><span class="ico">${ic("face-id")}</span><span class="l">Face ID</span><span class="v">${F.actif() ? "activé" : "désactivé"}</span><span class="chev">${S.chev()}</span></button>` : ""}
+          <button class="opt" id="p-code"><span class="ico">${ic("key")}</span><span class="l">Changer le code admin</span><span class="chev">${S.chev()}</span></button>
+          <a class="opt" href="../espace/"><span class="ico">${ic("world")}</span><span class="l">Ouvrir l’Espace client (site)</span><span class="chev">${S.chev()}</span></a>
+          <button class="opt" id="p-dx"><span class="ico">${ic("logout")}</span><span class="l danger" style="font-weight:700">Se déconnecter</span></button></div>
+      </div>`, "plus");
+    $("#p-notif").onclick = () => notifierGerants();
+    if ($("#p-face")) $("#p-face").onclick = async () => {
+      if (F.actif()) { if (await confirmer("Désactiver Face ID ?", "L’espace NFC Work s’ouvrira avec le code admin.", "Désactiver")) { F.desactiver(); plus(); } }
+      else if (await F.activer()) plus();
+    };
+    $("#p-code").onclick = async () => { if (await confirmer("Changer le code admin ?", "Vous allez choisir un nouveau code à 4 chiffres (secours de Face ID).", "Continuer")) K.nouveauCodeAdmin().catch(erreur); };
+    $("#p-dx").onclick = () => K.seDeconnecter();
+  }
+
+  /* ================= NOTIFICATIONS AUX GÉRANTS ================= */
+  function notifierGerants(email, titre0, texte0) {
+    const f = feuille(`<h2>${email ? "Notifier le gérant" : "Notifier tous les gérants"}</h2>
+      ${email ? `<p class="muted" style="margin:0;font-size:13.5px">${esc(email)}</p>` : `<p class="muted" style="margin:0;font-size:13.5px">Notification sur les téléphones des gérants qui ont l’app Kiffy.</p>`}
+      <label class="champ">Titre<input id="n-t" maxlength="60" value="${esc(titre0 || "NFC Work")}"></label>
+      <label class="champ">Message<textarea id="n-x" rows="4" maxlength="240" placeholder="Nouveauté : …">${esc(texte0 || "")}</textarea></label>
+      <p class="err" id="n-e"></p><button class="btn-noir moyen" id="n-go">${ic("send", 18)} Envoyer</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
+    $("#n-go", f).onclick = async () => {
+      const t = $("#n-t", f).value.trim(), x = $("#n-x", f).value.trim(), b = $("#n-go", f);
+      if (!x) { $("#n-e", f).textContent = "Écrivez le message."; return; }
+      if (!email && !(await confirmer("Envoyer à tous les gérants ?", x, "Envoyer"))) return;
+      b.disabled = true;
+      try { const r = await appel("kiffyNotifGerants", { titre: t, texte: x, email: email || "" }); f.remove(); toast(r.appareils ? `Envoyé : ${r.envoyes}/${r.appareils} téléphone(s), ${r.gerants} gérant(s)` : "Aucun téléphone de gérant enregistré (l’app n’est pas encore ouverte).", true); }
+      catch (e) { erreur(e); b.disabled = false; }
+    };
+  }
+
+  /* ================= ABONNEMENTS ================= */
+  function echeance(p) {
+    if (p.arch || p.actif === false) return "";
+    if (p.essai && p.expire && p.expire >= auj()) return "fin d’essai le " + jour(p.expire);
+    const imp = K.impayes(p.id); if (imp.length) return "en retard : " + imp.map(x => x.libelle || x.mois).join(", ");
+    if (!p.kiffy) return "";
+    const debut = moisCle(ms(p.kiffy.cree) || ms(p.createdAt) || Date.now());
+    let pro = moisPlus(moisCle(), 1);
+    if (p.kiffy.formule === "offre" && moisPlus(debut, K.TARIF.moisOfferts) > pro) pro = moisPlus(debut, K.TARIF.moisOfferts);
+    return `1er ${nomMois(pro).toLowerCase()} ${pro.slice(0, 4)} · ${p.kiffy.mensuel || K.TARIF.mensuel} DH`;
+  }
+  function rappel(p, du) {
+    const imp = K.impayes(p.id), montant = imp.reduce((s, x) => s + (x.montant || 0), 0) || (du && du.montant) || 0;
+    const texte = `Bonjour, votre abonnement Kiffy (${imp.map(x => x.libelle || x.mois).join(", ") || "ce mois"}) de ${dh(montant)} est en attente de paiement. Merci de régulariser auprès de NFC Work.`;
+    const wa = telWa(p.telCommerce);
+    const f = feuille(`<h2>Rappel · ${esc(p.nom)}</h2><div class="modele">${esc(texte)}</div>
+      <button class="btn-noir moyen" id="r-app">${ic("bell", 18)} Notification dans l’app</button>
+      ${wa ? `<a class="btn-vert" id="r-wa" href="https://wa.me/${wa}?text=${encodeURIComponent(texte)}" target="_blank" rel="noopener">${ic("whatsapp", 20)} WhatsApp au commerce</a>` : `<div class="muted" style="font-size:12.5px">Pas de téléphone du commerce : ajoutez-le dans « Modifier la carte ».</div>`}
+      <button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+    $("#r-app", f).onclick = async () => {
+      try { const r = await appel("kiffyNotifGerants", { titre: "Abonnement Kiffy", texte, email: p.ownerEmail }); K.journal("rappel", `Rappel d’impayé (${dh(montant)}) · ${r.envoyes} téléphone(s)`, p); toast(r.appareils ? "Rappel envoyé" : "Le gérant n’a pas encore l’app : utilisez WhatsApp.", true); }
+      catch (e) { erreur(e); }
+    };
+    if ($("#r-wa", f)) $("#r-wa", f).addEventListener("click", () => K.journal("rappel", `Rappel d’impayé WhatsApp (${dh(montant)})`, p));
+  }
+  let filtreAb = "tous";
+  async function abonnements() {
+    await charger();
+    const nb = k => K.progs.filter(p => k === "tous" || K.etat(p) === k).length;
+    const L = K.progs.filter(p => filtreAb === "tous" || K.etat(p) === filtreAb).sort((a, b) => ["impaye", "essai", "actif", "pause"].indexOf(K.etat(a)) - ["impaye", "essai", "actif", "pause"].indexOf(K.etat(b)) || String(a.nom).localeCompare(String(b.nom)));
+    const du = K.paiements.filter(x => !x.paye), totalDu = du.reduce((s, x) => s + (x.montant || 0), 0);
+    ecran(`${haut("Abonnements", "#/admin/plus")}
+      <div class="page" style="gap:12px">
+        <div class="ca"><div class="t">Reste à encaisser (abonnements)</div><div class="m">${dh(totalDu).replace(" DH", "")} <span>DH</span></div>
+          <div class="g"><div><b>${nb("actif")}</b><span>Actifs</span></div><div><b>${nb("essai")}</b><span>En essai</span></div><div class="rouge"><b>${nb("impaye")}</b><span>Impayés</span></div></div></div>
+        <div class="puces">${[["tous", "Tous"], ["impaye", "Impayés"], ["essai", "Essai"], ["actif", "Actifs"], ["pause", "En pause"]].map(([k, t]) => `<button class="puce${filtreAb === k ? " on" : ""}" data-f="${k}">${t} · ${nb(k)}</button>`).join("")}</div>
+        ${filtreAb === "impaye" && nb("impaye") ? `<button class="btn-noir moyen" id="ab-tous">${ic("bell", 18)} Rappeler tous les impayés</button>` : ""}
+        <div class="carte liste">${L.length ? L.map(p => { const imp = K.impayes(p.id), m = imp.reduce((s, x) => s + (x.montant || 0), 0); return `<div class="ligne"><a href="#/admin/c/${esc(p.id)}" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-decoration:none;color:inherit"><span class="tuile" style="background:${esc(p.couleur || "#16C172")};color:${clair(p.couleur) ? "#0A0A0A" : "#FFFFFF"}">${logoHTML(p)}</span><span class="txt"><b>${esc(p.nom)}</b><span>${esc(echeance(p) || "—")}${m ? " · " + dh(m) : ""}</span></span></a>${K.statut(p)}${imp.length ? `<button class="lien" data-r="${esc(p.id)}" style="margin-left:8px">Rappeler</button>` : ""}</div>`; }).join("") : `<div class="vide">Aucun commerce.</div>`}</div>
+      </div>`, "plus");
+    $$("[data-f]").forEach(b => (b.onclick = () => { filtreAb = b.dataset.f; abonnements(); }));
+    $$("[data-r]").forEach(b => (b.onclick = () => rappel(K.progs.find(p => p.id === b.dataset.r))));
+    if ($("#ab-tous")) $("#ab-tous").onclick = async () => {
+      const Ls = K.progs.filter(p => K.etat(p) === "impaye" && p.ownerEmail);
+      if (!(await confirmer(`Rappeler ${Ls.length} commerce(s) ?`, "Une notification part sur le téléphone de chaque gérant concerné.", "Envoyer les rappels"))) return;
+      let n = 0;
+      for (const p of Ls) { const imp = K.impayes(p.id), m = imp.reduce((s, x) => s + (x.montant || 0), 0); try { const r = await appel("kiffyNotifGerants", { titre: "Abonnement Kiffy", texte: `Bonjour, votre abonnement Kiffy (${imp.map(x => x.libelle || x.mois).join(", ")}) de ${dh(m)} est en attente de paiement. Merci de régulariser auprès de NFC Work.`, email: p.ownerEmail }); n += r.envoyes ? 1 : 0; } catch (e) {} }
+      toast(`${n}/${Ls.length} rappel(s) reçus sur un téléphone`, true);
+    };
+  }
+
+  /* ================= MESSAGE WALLET AUX CLIENTS D'UN COMMERCE ================= */
+  function messageClients(p) {
+    const n = K.cartes.filter(c => c.pid === p.id).length;
+    const f = feuille(`<h2>Message aux clients</h2><p class="muted" style="margin:0;font-size:13.5px">${esc(p.nom)} · ${n} client(s) · Apple Wallet et Google Wallet</p>
+      <label class="champ">Titre<input id="mc-t" maxlength="60" placeholder="Ce week-end"></label><label class="champ">Message<textarea id="mc-x" rows="3" maxlength="300"></textarea></label>
+      <p class="err" id="mc-e"></p><button class="btn-noir moyen" id="mc-go">${ic("send", 18)} Envoyer</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
+    $("#mc-go", f).onclick = async () => {
+      const t = $("#mc-t", f).value.trim(), x = $("#mc-x", f).value.trim(), b = $("#mc-go", f);
+      if (!t && !x) { $("#mc-e", f).textContent = "Écrivez un titre ou un message."; return; }
+      if (!(await confirmer("Envoyer ?", `${n} clients de ${p.nom} recevront ce message dans leur Wallet.`, "Envoyer"))) return;
+      b.disabled = true;
+      try {
+        const tok = await K.user.getIdToken(), h = { "Content-Type": "application/json", Authorization: "Bearer " + tok }, corps = JSON.stringify({ pid: p.id, titre: t, texte: x });
+        const [oa, og] = await Promise.all([K.APPLE_WS ? fetch(K.APPLE_WS + "/annonce", { method: "POST", headers: h, body: corps }).then(r => r.ok).catch(() => false) : false, K.WALLET ? fetch(K.WALLET + "/google/message", { method: "POST", headers: h, body: corps }).then(r => r.ok).catch(() => false) : false]);
+        if (!oa && !og) throw new Error("Envoi impossible. Réessayez.");
+        f.remove(); toast("Message envoyé", true);
+      } catch (e) { $("#mc-e", f).textContent = e.message; b.disabled = false; }
+    };
+  }
+
+  /* ================= CLIENTS (tous les commerces) ================= */
+  let rechCli = "";
+  async function clients(pid) {
+    await charger();
+    const q = sansAccent(rechCli), qd = rechCli.replace(/\D/g, "");
+    const base = K.cartes.filter(c => !pid || c.pid === pid);
+    const L = base.filter(c => !q || sansAccent(c.nom).includes(q) || (qd.length >= 3 && String(c.tel || "").replace(/\D/g, "").includes(qd)) || (!pid && sansAccent(nomP(c.pid)).includes(q)))
+      .sort((a, b) => ms(b.lastAt) - ms(a.lastAt) || ms(b.createdAt) - ms(a.createdAt));
+    const p = pid ? K.progs.find(x => x.id === pid) || K.archives.find(x => x.id === pid) : null;
+    ecran(`${haut(p ? "Clients · " + p.nom : "Clients", p ? "#/admin/c/" + encodeURIComponent(pid) : "#/admin/plus", `<button class="lien" id="cl-csv">${ic("download", 16)} CSV</button>`)}
+      <div class="page" style="gap:12px">
+        <label class="recherche">${S.loupe}<input id="cq" placeholder="${pid ? "Nom ou téléphone" : "Nom, téléphone ou commerce"}" value="${esc(rechCli)}" autocomplete="off"></label>
+        <div class="muted" style="font-size:12.5px;padding:0 4px">${L.length} carte(s)${pid ? "" : ` · ${new Set(L.map(c => c.pid)).size} commerce(s)`}</div>
+        <div class="carte liste">${L.length ? L.slice(0, 250).map(c => { const pp = K.progs.find(x => x.id === c.pid) || {}; return `<button class="ligne" data-c="${esc(c.id)}"><span class="av">${esc(initiale(c.nom))}</span><span class="txt"><b>${esc(c.nom)}</b><span>${pid ? "" : esc(nomP(c.pid)) + " · "}${c.points || 0}/${pp.objectif ? objectif(pp) : "?"} · ${esc(c.tel || "")}</span></span>${S.chev()}</button>`; }).join("") : `<div class="vide">Aucun client.</div>`}</div>
+      </div>`, "plus");
+    $("#cq").oninput = e => { rechCli = e.target.value; const pos = e.target.selectionStart; clients(pid).then(() => { const r = $("#cq"); r.focus(); r.setSelectionRange(pos, pos); }); };
+    $$("[data-c]").forEach(b => (b.onclick = () => ficheCarte(K.cartes.find(c => c.id === b.dataset.c), () => clients(pid))));
+    $("#cl-csv").onclick = () => K.csv([["Client", "Téléphone", "Commerce", "Points", "Visites au total", "Cadeaux", "Inscrit le", "Dernière visite"],
+      ...L.map(c => [c.nom, c.tel, nomP(c.pid), c.points || 0, c.total || 0, c.recompenses || 0, ms(c.createdAt) ? new Date(ms(c.createdAt)).toLocaleDateString("fr-FR") : "", ms(c.lastAt) ? new Date(ms(c.lastAt)).toLocaleDateString("fr-FR") : ""])], `Kiffy-Clients${p ? "-" + p.id : ""}-${auj()}.csv`);
+  }
+  function ficheCarte(c, apres) {
+    if (!c) return;
+    const p = K.progs.find(x => x.id === c.pid) || K.archives.find(x => x.id === c.pid) || { nom: c.pid };
+    const wa = telWa(c.tel);
+    const f = feuille(`<h2>${esc(c.nom)}</h2><p class="muted" style="margin:0;font-size:13.5px">${esc(p.nom)}${c.tel ? " · " + esc(c.tel) : ""}</p>
+      <div class="mini-stats"><div><b>${c.points || 0}${p.objectif ? "/" + objectif(p) : ""}</b><span>Points</span></div><div><b>${c.total || 0}</b><span>Visites</span></div><div><b>${c.recompenses || 0}</b><span>Cadeaux</span></div></div>
+      <div class="carte"><h3>Historique</h3>${(c.hist || []).length ? c.hist.slice(0, 10).map(h => `<div class="histo"><span>${h.a === "visite" ? `+${h.n} visite` : h.a === "cadeau" ? "Cadeau offert" : h.a === "ajust" ? `${h.n > 0 ? "+" : ""}${h.n} (${esc(h.motif || "")})` : "-1 point"}${h.e ? " · " + esc(h.e) : ""}</span><span class="q">${esc(quand(ms(h.t)))}</span></div>`).join("") : `<div class="vide" style="padding:8px 0">Aucune visite.</div>`}</div>
+      <div class="actions-g"><button class="btn-clair" id="fc-plus">${ic("plus", 16)} Ajouter des points</button><button class="btn-clair" id="fc-moins">${ic("minus", 16)} Retirer</button></div>
+      ${wa ? `<a class="btn-clair" style="padding:12px;text-decoration:none" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ic("whatsapp", 18)} WhatsApp</a>` : ""}
+      <a class="btn-clair" style="padding:12px;text-decoration:none" href="#/admin/c/${esc(c.pid)}">${ic("building-store", 18)} Voir le commerce</a>
+      <button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+    $$("a[href^='#']", f).forEach(a => a.addEventListener("click", () => f.remove()));
+    const ajuster = signe => {
+      const g = feuille(`<h2>${signe > 0 ? "Ajouter" : "Retirer"} des points</h2><p class="muted" style="margin:0;font-size:13.5px">${esc(c.nom)} · ${c.points || 0} point(s) aujourd’hui</p>
+        <label class="champ">Nombre de points<input id="aj-n" type="number" inputmode="numeric" min="1" max="1000" value="1"></label>
+        <label class="champ">Motif (obligatoire, tracé)<input id="aj-m" maxlength="120" placeholder="${signe > 0 ? "Visite oubliée le 12/11" : "Erreur de saisie"}"></label>
+        <p class="err" id="aj-e"></p><button class="btn-noir moyen" id="aj-ok">Valider</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
+      $("#aj-ok", g).onclick = async () => {
+        const n = parseInt($("#aj-n", g).value, 10), m = $("#aj-m", g).value.trim();
+        if (!(n >= 1)) return ($("#aj-e", g).textContent = "Nombre invalide.");
+        if (m.length < 3) return ($("#aj-e", g).textContent = "Écrivez le motif.");
+        if (!(await confirmer(`${signe > 0 ? "Ajouter" : "Retirer"} ${n} point(s) ?`, `${c.nom} · motif : ${m}`, "Confirmer"))) return;
+        try {
+          const r = await appel("kiffyAjuster", { cid: c.id, n: signe * n, motif: m });
+          if (K.WALLET) fetch(K.WALLET + "/google/sync?c=" + encodeURIComponent(c.id), { mode: "no-cors" }).catch(() => {});
+          g.remove(); f.remove(); toast(`${c.nom} : ${r.points} point(s)`); await K.chargerAdmin(true).catch(() => {}); apres && apres();
+        } catch (e) { $("#aj-e", g).textContent = e.message || "Échec."; }
+      };
+    };
+    $("#fc-plus", f).onclick = () => ajuster(1);
+    $("#fc-moins", f).onclick = () => ajuster(-1);
+  }
+
+  /* ================= JOURNAL D'ACTIVITÉ ================= */
+  let filtreJ = "tous", rechJ = "";
+  async function journal() {
+    let L = [];
+    try { L = (await db.collection("kiffyJournal").orderBy("t", "desc").limit(400).get()).docs.map(d => ({ id: d.id, ...d.data() })); } catch (e) { erreur(e); }
+    const R = { admin: ["Admin", "noir"], gerant: ["Gérant", "menthe"], employe: ["Employé", "jaune"], client: ["Client", "orange"], systeme: ["Système", ""] };
+    const q = sansAccent(rechJ);
+    const V = L.filter(x => (filtreJ === "tous" || x.role === filtreJ) && (!q || sansAccent([x.qui, x.commerce, x.detail, x.action].join(" ")).includes(q)));
+    const ICO = { visite: "plus", cadeau: "gift", retirer: "minus", points: "refresh", reglages: "pencil", design: "palette", message: "send", notification: "bell", pin: "key", equipe: "users", acces: "mail", "mot-de-passe": "key", plaque: "qrcode", creation: "building-store", suppression: "trash", pause: "player-pause", reactivation: "player-play", essai: "calendar", encaissement: "cash", rappel: "bell", vente: "receipt", document: "file-invoice", inscription: "user-plus", restauration: "refresh" };
+    ecran(`${haut("Journal d’activité", "#/admin/plus")}
+      <div class="page" style="gap:12px">
+        <label class="recherche">${S.loupe}<input id="jq" placeholder="Commerce, personne, action…" value="${esc(rechJ)}" autocomplete="off"></label>
+        <div class="puces">${[["tous", "Tout"], ["admin", "Admin"], ["gerant", "Gérants"], ["employe", "Employés"], ["client", "Clients"]].map(([k, t]) => `<button class="puce${filtreJ === k ? " on" : ""}" data-f="${k}">${t}</button>`).join("")}</div>
+        <div class="carte liste">${V.length ? V.slice(0, 300).map(x => `<div class="ligne" style="align-items:flex-start"><span class="av" style="width:36px;height:36px">${ic(ICO[x.action] || "history", 18)}</span><span class="txt"><b style="white-space:normal">${esc(x.detail || x.action)}</b><span>${esc([x.qui, x.commerce].filter(Boolean).join(" · "))}</span><span style="display:block;font-size:11.5px;color:#8A938E">${esc(quand(ms(x.t)))}</span></span><span class="tag ${(R[x.role] || R.systeme)[1]}">${(R[x.role] || R.systeme)[0]}</span></div>`).join("") : `<div class="vide">Rien pour l’instant.</div>`}</div>
+      </div>`, "plus");
+    $$("[data-f]").forEach(b => (b.onclick = () => { filtreJ = b.dataset.f; journal(); }));
+    $("#jq").oninput = e => { rechJ = e.target.value; const pos = e.target.selectionStart; journal().then(() => { const r = $("#jq"); r.focus(); r.setSelectionRange(pos, pos); }); };
+  }
+
+  /* ================= MON ENTREPRISE ================= */
+  let E = null;
+  const ENT_DEF = { nom: "NFC Work", adresse: "", tel: K.WHATSAPP ? "+" + K.WHATSAPP : "", email: "nfcworkmacontact@gmail.com", site: "nfcwork.ma", ae: "", ifisc: "", ice: "", cin: "", rib: "", mention: "", validite: 30 };
+  async function entrepriseDoc() { if (E) return E; try { const d = await db.doc("kiffyEntreprise/moi").get(); E = { ...ENT_DEF, ...(d.exists ? d.data() : {}) }; } catch (e) { E = { ...ENT_DEF }; } return E; }
+  const fiscal = e => !!(e.ice || e.ifisc || e.ae);
+  async function entreprise() {
+    const e = await entrepriseDoc();
+    const ch = (k, l, ph, type) => `<label class="champ">${esc(l)}<input data-k="${k}" ${type ? `type="${type}"` : ""} value="${esc(e[k] || "")}" placeholder="${esc(ph || "")}" autocomplete="off"></label>`;
+    ecran(`${haut("Mon entreprise", "#/admin/plus")}
+      <div class="page" style="gap:12px">
+        <section class="section"><b>Sur les devis et factures</b>${ch("nom", "Nom", "NFC Work")}${ch("adresse", "Adresse", "Rue, ville")}<div class="grille2">${ch("tel", "Téléphone", "+212…", "tel")}${ch("email", "E-mail", "", "email")}</div>${ch("site", "Site", "nfcwork.ma")}
+          <label class="champ">Validité des devis (jours)<input data-k="validite" type="number" inputmode="numeric" min="1" max="365" value="${esc(e.validite || 30)}"></label></section>
+        <section class="section"><b>Identifiants fiscaux <span>(à remplir plus tard)</span></b>
+          <div class="grille2">${ch("ae", "N° auto-entrepreneur")}${ch("ifisc", "IF")}</div><div class="grille2">${ch("ice", "ICE")}${ch("cin", "CIN")}</div>${ch("rib", "RIB")}
+          <label class="champ">Mention légale libre<textarea data-k="mention" rows="2" maxlength="300">${esc(e.mention || "")}</textarea></label>
+          <div class="info-vert">${ic("file-invoice", 20)}<span>${fiscal(e) ? "Identifiants présents : les ventes payées donnent une <b>Facture</b> (F-…)." : "Sans ICE, IF ni n° d’auto-entrepreneur, « Convertir en facture » donne un <b>Reçu</b> (R-…), sans numéro fiscal."}</span></div></section>
+        <button class="btn-noir" id="ent-ok">Enregistrer</button>
+      </div>`, "plus");
+    $("#ent-ok").onclick = async () => {
+      const d = {}; $$("[data-k]").forEach(i => { d[i.dataset.k] = i.dataset.k === "validite" ? Math.max(1, Math.min(365, parseInt(i.value, 10) || 30)) : i.value.trim().slice(0, 300); });
+      try { await db.doc("kiffyEntreprise/moi").set({ ...d, maj: FV.serverTimestamp() }, { merge: true }); E = { ...ENT_DEF, ...d }; K.journal("entreprise", "Infos de l’entreprise modifiées"); toast("Enregistré"); entreprise(); } catch (x) { erreur(x); }
+    };
+  }
+
+  /* ================= CATALOGUE DES PRODUITS ================= */
+  const PROD_DEF = [["Kiffy installation", 299], ["Kiffy abonnement mensuel", 149], ["Carte de visite NFC", 99], ["Plaque avis Google NFC", 99], ["Menu digital", 199], ["Plaque Wi-Fi NFC", 79], ["Autre", 0]];
+  let produitsCache = null;
+  async function produitsListe(force) {
+    if (produitsCache && !force) return produitsCache;
+    const s = await db.collection("kiffyProduits").get();
+    if (s.empty) {   // premier lancement : le catalogue de départ (modifiable)
+      const b = db.batch(); PROD_DEF.forEach(([nom, prix], i) => b.set(db.collection("kiffyProduits").doc(), { nom, prix, ordre: i, actif: true, cree: FV.serverTimestamp() })); await b.commit();
+      return produitsListe(true);
+    }
+    produitsCache = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.ordre || 0) - (b.ordre || 0) || String(a.nom).localeCompare(String(b.nom)));
+    return produitsCache;
+  }
+  async function produits() {
+    let L = []; try { L = await produitsListe(true); } catch (e) { erreur(e); }
+    ecran(`${haut("Catalogue des produits", "#/admin/plus")}
+      <div class="page" style="gap:12px">
+        <div class="carte liste">${L.map(x => `<button class="ligne" data-p="${esc(x.id)}" style="${x.actif === false ? "opacity:.5" : ""}"><span class="av">${ic("package", 18)}</span><span class="txt"><b>${esc(x.nom)}</b><span>${x.actif === false ? "masqué" : "prix par défaut"}</span></span><b>${dh(x.prix)}</b></button>`).join("")}</div>
+        <button class="btn-noir moyen" id="pr-add">${ic("plus", 18)} Ajouter un produit</button>
+      </div>`, "plus");
+    const editer = x => {
+      const f = feuille(`<h2>${x ? "Modifier le produit" : "Nouveau produit"}</h2><label class="champ">Nom<input id="pn" maxlength="80" value="${esc(x ? x.nom : "")}"></label><label class="champ">Prix par défaut (DH)<input id="pp" type="number" inputmode="decimal" min="0" step="0.01" value="${x ? x.prix : ""}"></label>
+        ${x ? `<div class="kv"><span>Proposé dans les ventes</span><button class="inter${x.actif !== false ? " on" : ""}" id="pa"></button></div>` : ""}
+        <button class="btn-noir moyen" id="p-ok">Enregistrer</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
+      let actif = !x || x.actif !== false;
+      if ($("#pa", f)) $("#pa", f).onclick = e => { actif = !actif; e.target.classList.toggle("on", actif); };
+      $("#p-ok", f).onclick = async () => {
+        const nom = $("#pn", f).value.trim(), prix = Math.max(0, parseFloat($("#pp", f).value) || 0);
+        if (!nom) return toast("Écrivez le nom.");
+        try { if (x) await db.doc("kiffyProduits/" + x.id).update({ nom, prix, actif }); else await db.collection("kiffyProduits").add({ nom, prix, actif: true, ordre: L.length, cree: FV.serverTimestamp() }); produitsCache = null; f.remove(); toast("Enregistré"); produits(); } catch (e) { erreur(e); }
+      };
+    };
+    $$("[data-p]").forEach(b => (b.onclick = () => editer(L.find(x => x.id === b.dataset.p))));
+    $("#pr-add").onclick = () => editer(null);
+  }
+
+  /* ================= CARNET DES VENTES ================= */
+  const STATUTS = { "Prospect": "", "Devis envoyé": "jaune", "Confirmé": "menthe", "Payé": "vert", "Partiellement payé": "orange", "Annulé": "rouge" };
+  const MODES = ["Espèces", "Virement", "Chèque", "Carte", "Autre"];
+  const tagStatut = s => `<span class="tag ${STATUTS[s] || ""}"${STATUTS[s] === "" ? ' style="background:#EEF2EF;color:#5B665F"' : ""}>${esc(s)}</span>`;
+  const totalDe = lignes => (lignes || []).reduce((s, l) => s + (+l.qte || 0) * (+l.prix || 0), 0);
+  const payeDe = v => (v.paiements || []).reduce((s, x) => s + (+x.montant || 0), 0);
+  const resteDe = v => Math.max(0, (v.total || 0) - payeDe(v));
+  const compte = v => !["Prospect", "Annulé"].includes(v.statut);
+  let ventesCache = null;
+  async function ventesListe(force) {
+    if (ventesCache && !force) return ventesCache;
+    ventesCache = (await db.collection("kiffyVentes").get()).docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.date).localeCompare(String(a.date)) || ms(b.cree) - ms(a.cree));
+    return ventesCache;
+  }
+  let filtreV = "tous", moisV = "", rechV = "";
+  async function ventes() {
+    let V = []; try { V = await ventesListe(true); } catch (e) { erreur(e); }
+    const m = moisActuel(), ok = V.filter(compte);
+    const encaisse = V.reduce((s, v) => s + (v.paiements || []).filter(x => moisDe(x.date) === m).reduce((a, x) => a + (+x.montant || 0), 0), 0);
+    const reste = ok.reduce((s, v) => s + (v.statut === "Devis envoyé" ? 0 : resteDe(v)), 0);
+    const duMois = ok.filter(v => moisDe(v.date) === m && v.statut !== "Devis envoyé");
+    const impayes = ok.filter(v => v.statut !== "Devis envoyé" && resteDe(v) > 0);
+    const top = {}; duMois.forEach(v => (v.lignes || []).forEach(l => { top[l.produit] = (top[l.produit] || 0) + (+l.qte || 0); }));
+    const topL = Object.entries(top).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const moisDispo = [...new Set(V.map(v => moisDe(v.date)).filter(Boolean))].sort().reverse();
+    const q = sansAccent(rechV);
+    const L = V.filter(v => (filtreV === "tous" || (filtreV === "impayes" ? compte(v) && v.statut !== "Devis envoyé" && resteDe(v) > 0 : v.statut === filtreV)) && (!moisV || moisDe(v.date) === moisV)
+      && (!q || sansAccent([v.client && v.client.nom, v.client && v.client.commerce, v.client && v.client.ville, (v.lignes || []).map(l => l.produit).join(" ")].join(" ")).includes(q)));
+    ecran(`<div class="titre-page" style="display:flex;justify-content:space-between;align-items:flex-end"><div><h1>Ventes</h1><p>${esc(nomMois(m.replace("-", "")))} ${m.slice(0, 4)}</p></div><a class="btn-noir moyen" href="#/admin/vente/nouvelle" style="width:auto;padding:10px 14px;text-decoration:none">${ic("plus", 18)} Vente</a></div>
+      <div class="page" style="gap:12px">
+        <div class="ca"><div class="t">Encaissé ce mois</div><div class="m">${dh(encaisse).replace(" DH", "")} <span>DH</span></div>
+          <div class="g"><div><b>${dh(reste).replace(" DH", "")}</b><span>Reste à encaisser</span></div><div><b>${duMois.length}</b><span>Ventes ce mois</span></div><div class="rouge"><b>${impayes.length}</b><span>Impayés</span></div></div></div>
+        ${topL.length ? `<div class="carte"><h3 style="margin-bottom:6px">Top produits ce mois</h3>${topL.map(([n, x]) => `<div class="kv" style="padding:4px 0"><span>${esc(n)}</span><b>× ${x}</b></div>`).join("")}</div>` : ""}
+        <div style="display:flex;gap:8px"><label class="recherche" style="flex:1">${S.loupe}<input id="vq" placeholder="Client, commerce, produit" value="${esc(rechV)}" autocomplete="off"></label>
+          <select id="vm" class="select-mois"><option value="">Tous les mois</option>${moisDispo.map(x => `<option value="${x}"${x === moisV ? " selected" : ""}>${esc(nomMois(x.replace("-", "")))} ${x.slice(0, 4)}</option>`).join("")}</select></div>
+        <div class="puces">${[["tous", "Toutes"], ["impayes", "Impayés"], ...Object.keys(STATUTS).map(s => [s, s])].map(([k, t]) => `<button class="puce${filtreV === k ? " on" : ""}" data-f="${esc(k)}">${esc(t)}</button>`).join("")}</div>
+        <div class="carte liste">${L.length ? L.map(v => `<a class="ligne" href="#/admin/vente/${esc(v.id)}"><span class="av">${esc(initiale(v.client && v.client.nom))}</span><span class="txt"><b>${esc((v.client && v.client.nom) || "Client")}${v.client && v.client.commerce ? " · " + esc(v.client.commerce) : ""}</b><span>${esc(jour(v.date))} · ${esc((v.lignes || []).map(l => (l.qte > 1 ? l.qte + "× " : "") + l.produit).join(", ").slice(0, 60))}</span></span><span style="text-align:right"><b style="display:block;font-size:14px">${dh(v.total)}</b>${tagStatut(v.statut)}</span></a>`).join("") : `<div class="vide">${V.length ? "Aucune vente ne correspond." : "Pas encore de vente : touchez « + Vente »."}</div>`}</div>
+        <button class="btn-clair" id="v-csv" style="padding:12px">${ic("download", 16)} Exporter en CSV</button>
+      </div>`, "ventes");
+    $$("[data-f]").forEach(b => (b.onclick = () => { filtreV = b.dataset.f; ventes(); }));
+    $("#vm").onchange = e => { moisV = e.target.value; ventes(); };
+    $("#vq").oninput = e => { rechV = e.target.value; const pos = e.target.selectionStart; ventes().then(() => { const r = $("#vq"); r.focus(); r.setSelectionRange(pos, pos); }); };
+    $("#v-csv").onclick = () => K.csv([["Date", "Client", "Commerce", "Téléphone", "Ville", "Produits", "Total (DH)", "Payé (DH)", "Reste (DH)", "Statut", "Mode de paiement", "Notes"],
+      ...L.map(v => [v.date, v.client && v.client.nom, v.client && v.client.commerce, v.client && v.client.tel, v.client && v.client.ville, (v.lignes || []).map(l => `${l.qte}× ${l.produit} (${l.prix})`).join(" + "), v.total || 0, payeDe(v), resteDe(v), v.statut, v.mode || "", v.notes || ""])], `NFCWork-Ventes-${moisV || "tout"}-${auj()}.csv`);
+  }
+
+  // ajouter une vente en 20 secondes : client, produits, statut, paiement
+  async function formVente(id) {
+    let ex = null;
+    const [prods, V] = await Promise.all([produitsListe().catch(() => []), ventesListe().catch(() => [])]);
+    if (id) { ex = V.find(v => v.id === id); if (!ex) return aller("#/admin/ventes"); }
+    const s = ex ? JSON.parse(JSON.stringify({ client: ex.client || {}, lignes: ex.lignes || [], date: ex.date, statut: ex.statut, notes: ex.notes || "" })) : { client: { nom: "", commerce: "", tel: "", ville: "" }, lignes: [], date: auj(), statut: "Confirmé", notes: "" };
+    let paye = ex ? payeDe(ex) : 0, mode = (ex && ex.mode) || "Espèces";
+    const clientsConnus = {}; V.forEach(v => { if (v.client && v.client.nom) clientsConnus[v.client.nom] = clientsConnus[v.client.nom] || v.client; });
+    app.innerHTML = `<div class="ecran" style="padding-bottom:40px">${haut(ex ? "Modifier la vente" : "Nouvelle vente", ex ? "#/admin/vente/" + esc(ex.id) : "#/admin/ventes")}
+      <div class="page" style="gap:12px">
+        <section class="section"><b>Client</b>
+          <label class="champ">Nom<input id="v-nom" list="v-cl" maxlength="80" value="${esc(s.client.nom)}" placeholder="Karim Benali" autocomplete="off"></label><datalist id="v-cl">${Object.keys(clientsConnus).map(n => `<option value="${esc(n)}"></option>`).join("")}</datalist>
+          <div class="grille2"><label class="champ">Commerce<input id="v-com" maxlength="80" value="${esc(s.client.commerce)}" placeholder="Café Atlas"></label><label class="champ">Téléphone<input id="v-tel" type="tel" maxlength="20" value="${esc(s.client.tel)}" placeholder="06…"></label></div>
+          <label class="champ">Ville<input id="v-ville" maxlength="40" value="${esc(s.client.ville)}" placeholder="Kénitra"></label></section>
+        <section class="section"><b>Produits</b><div class="choix" id="v-pr">${prods.filter(x => x.actif !== false).map(x => `<button data-p="${esc(x.id)}">${esc(x.nom)}</button>`).join("")}</div><div id="v-lignes"></div>
+          <div class="kv" style="font-size:17px;padding-top:4px"><span>Total</span><b id="v-tot"></b></div></section>
+        <section class="section"><b>Statut et paiement</b>
+          <label class="champ">Date<input id="v-date" type="date" value="${esc(s.date)}"></label>
+          <div class="choix" id="v-st">${Object.keys(STATUTS).map(x => `<button data-s="${esc(x)}">${esc(x)}</button>`).join("")}</div>
+          ${ex ? `<div class="muted" style="font-size:12.5px">Payé : ${dh(paye)} (les paiements s’ajoutent depuis la fiche de la vente)</div>` : `<div class="grille2" style="align-items:end"><label class="champ">Montant payé (DH)<input id="v-paye" type="number" inputmode="decimal" min="0" step="0.01" value="0"></label><div class="choix"><button id="v-rien">Rien</button><button id="v-tout">Tout</button></div></div>
+          <div class="muted" style="font-size:12.5px">Reste à payer : <b id="v-reste"></b></div>
+          <div class="choix" id="v-mode">${MODES.map(x => `<button data-m="${x}">${x}</button>`).join("")}</div>`}
+          <label class="champ">Notes<textarea id="v-notes" rows="2" maxlength="600">${esc(s.notes)}</textarea></label></section>
+        <p class="err" id="v-err"></p><button class="btn-noir" id="v-ok">${ex ? "Enregistrer" : "Enregistrer la vente"}</button>
+      </div></div>`;
+    const dessine = () => {
+      $("#v-lignes").innerHTML = s.lignes.length ? s.lignes.map((l, i) => `<div class="vente-ligne"><input class="vl-nom" data-i="${i}" value="${esc(l.produit)}" maxlength="80"><div class="qte"><button data-m="${i}" aria-label="Moins">−</button><b>${l.qte}</b><button data-pl="${i}" aria-label="Plus">+</button></div><input class="vl-prix" data-i="${i}" type="number" inputmode="decimal" min="0" step="0.01" value="${l.prix}"><button class="vl-x" data-x="${i}" aria-label="Retirer">${ic("x", 16)}</button></div>`).join("") : `<div class="muted" style="font-size:13px">Touchez un produit pour l’ajouter.</div>`;
+      const tot = totalDe(s.lignes); $("#v-tot").textContent = dh(tot);
+      if ($("#v-reste")) $("#v-reste").textContent = dh(Math.max(0, tot - paye));
+      $$("#v-st [data-s]").forEach(b => b.classList.toggle("on", b.dataset.s === s.statut));
+      $$("#v-mode [data-m]").forEach(b => b.classList.toggle("on", b.dataset.m === mode));
+      $$("[data-m].qte, .qte [data-m]").forEach(b => (b.onclick = () => { const l = s.lignes[+b.dataset.m]; l.qte = Math.max(1, l.qte - 1); dessine(); }));
+      $$(".qte [data-pl]").forEach(b => (b.onclick = () => { s.lignes[+b.dataset.pl].qte++; dessine(); }));
+      $$(".vl-x").forEach(b => (b.onclick = () => { s.lignes.splice(+b.dataset.x, 1); dessine(); }));
+      $$(".vl-nom").forEach(i => (i.oninput = () => { s.lignes[+i.dataset.i].produit = i.value; }));
+      $$(".vl-prix").forEach(i => (i.oninput = () => { s.lignes[+i.dataset.i].prix = Math.max(0, parseFloat(i.value) || 0); $("#v-tot").textContent = dh(totalDe(s.lignes)); if ($("#v-reste")) $("#v-reste").textContent = dh(Math.max(0, totalDe(s.lignes) - paye)); }));
+    };
+    $$("#v-pr [data-p]").forEach(b => (b.onclick = () => { const x = prods.find(p => p.id === b.dataset.p), l = s.lignes.find(y => y.produit === x.nom); if (l) l.qte++; else s.lignes.push({ produit: x.nom, qte: 1, prix: +x.prix || 0 }); dessine(); }));
+    $$("#v-st [data-s]").forEach(b => (b.onclick = () => { s.statut = b.dataset.s; dessine(); }));
+    $$("#v-mode [data-m]").forEach(b => (b.onclick = () => { mode = b.dataset.m; dessine(); }));
+    if ($("#v-paye")) {
+      const majPaye = v => { paye = Math.max(0, v); $("#v-paye").value = paye; const t = totalDe(s.lignes); if (t > 0 && !["Prospect", "Annulé", "Devis envoyé"].includes(s.statut)) s.statut = paye >= t ? "Payé" : paye > 0 ? "Partiellement payé" : "Confirmé"; dessine(); };
+      $("#v-paye").oninput = e => { paye = Math.max(0, parseFloat(e.target.value) || 0); const t = totalDe(s.lignes); if (t > 0 && ["Confirmé", "Payé", "Partiellement payé"].includes(s.statut)) s.statut = paye >= t ? "Payé" : paye > 0 ? "Partiellement payé" : "Confirmé"; dessine(); };
+      $("#v-rien").onclick = () => majPaye(0); $("#v-tout").onclick = () => majPaye(totalDe(s.lignes));
+    }
+    $("#v-nom").oninput = e => { const c = clientsConnus[e.target.value]; if (c) { if (!$("#v-com").value) $("#v-com").value = c.commerce || ""; if (!$("#v-tel").value) $("#v-tel").value = c.tel || ""; if (!$("#v-ville").value) $("#v-ville").value = c.ville || ""; } };
+    dessine();
+    $("#v-ok").onclick = async () => {
+      const client = { nom: $("#v-nom").value.trim().slice(0, 80), commerce: $("#v-com").value.trim().slice(0, 80), tel: $("#v-tel").value.trim().slice(0, 20), ville: $("#v-ville").value.trim().slice(0, 40) };
+      const lignes = s.lignes.map(l => ({ produit: String(l.produit || "").trim().slice(0, 80) || "Produit", qte: Math.max(1, parseInt(l.qte, 10) || 1), prix: Math.max(0, +l.prix || 0) }));
+      if (!client.nom) return ($("#v-err").textContent = "Écrivez le nom du client.");
+      if (!lignes.length) return ($("#v-err").textContent = "Ajoutez au moins un produit.");
+      const total = Math.round(totalDe(lignes) * 100) / 100, date = $("#v-date").value || auj(), b = $("#v-ok"); b.disabled = true;
+      const data = { client, cle: cleClient(client), lignes, total, date, statut: s.statut, notes: $("#v-notes").value.trim(), maj: FV.serverTimestamp() };
+      try {
+        if (ex) { data.paye = payeDe(ex); await db.doc("kiffyVentes/" + ex.id).update(data); K.journal("vente", `Vente modifiée · ${client.nom} · ${dh(total)}`); ventesCache = null; toast("Vente enregistrée"); return aller("#/admin/vente/" + ex.id); }
+        const p = Math.min(paye, total);
+        Object.assign(data, { paiements: p > 0 ? [{ montant: p, date, mode }] : [], paye: p, mode: p > 0 ? mode : "", cree: FV.serverTimestamp() });
+        const ref = await db.collection("kiffyVentes").add(data);
+        K.journal("vente", `Nouvelle vente · ${client.nom} · ${dh(total)} · ${s.statut}`); ventesCache = null; toast("Vente enregistrée"); aller("#/admin/vente/" + ref.id);
+      } catch (e) { erreur(e); b.disabled = false; }
+    };
+  }
+
+  async function ficheVente(id) {
+    let v = null; try { const d = await db.doc("kiffyVentes/" + id).get(); v = d.exists ? { id: d.id, ...d.data() } : null; } catch (e) { erreur(e); }
+    if (!v) return aller("#/admin/ventes");
+    const docs = (await db.collection("kiffyDocs").where("venteId", "==", id).get().catch(() => ({ docs: [] }))).docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => ms(b.cree) - ms(a.cree));
+    const paye = payeDe(v), reste = resteDe(v), c = v.client || {}, wa = telWa(c.tel);
+    const devisOuvert = docs.find(d => d.type === "devis" && d.statut === "emis");
+    const nomType = { devis: "Devis", facture: "Facture", recu: "Reçu" };
+    ecran(`${haut("Vente", "#/admin/ventes", `<a class="lien" href="#/admin/vente/${esc(id)}/modifier">Modifier</a>`)}
+      <div class="page" style="gap:12px">
+        <div class="carte" style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><b style="font-size:18px">${esc(c.nom || "Client")}</b><div class="muted" style="font-size:13px">${esc([c.commerce, c.ville].filter(Boolean).join(" · "))}${c.tel ? " · " + esc(c.tel) : ""}</div></div>${tagStatut(v.statut)}</div>
+          <div class="muted" style="font-size:12.5px">${esc(jour(v.date))}</div>
+          <div class="actions-g">${wa ? `<a class="btn-clair" style="text-decoration:none" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ic("whatsapp", 16)} WhatsApp</a>` : ""}<a class="btn-clair" style="text-decoration:none" href="#/admin/vclient/${esc(v.cle || cleClient(c))}">${ic("history", 16)} Fiche client</a></div></div>
+        <div class="carte">${(v.lignes || []).map(l => `<div class="histo"><span>${l.qte} × ${esc(l.produit)}</span><span>${dh(l.qte * l.prix)}</span></div>`).join("")}
+          <div class="kv" style="padding-top:10px;font-size:16px"><span>Total</span><b>${dh(v.total)}</b></div><div class="kv"><span class="muted">Payé</span><b style="color:#0E8A51">${dh(paye)}</b></div><div class="kv"><span class="muted">Reste à payer</span><b class="${reste ? "danger" : ""}">${dh(reste)}</b></div></div>
+        <div class="carte"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Paiements</h3>${reste > 0 && v.statut !== "Annulé" ? `<button class="lien" id="vp-add">+ Ajouter</button>` : ""}</div>
+          ${(v.paiements || []).length ? v.paiements.map(x => `<div class="histo"><span>${esc(jour(x.date))} · ${esc(x.mode || "")}</span><b>${dh(x.montant)}</b></div>`).join("") : `<div class="vide" style="padding:8px 0">Aucun paiement.</div>`}</div>
+        <div class="carte"><h3 style="margin-bottom:8px">Statut</h3><div class="choix" id="vs">${Object.keys(STATUTS).map(x => `<button data-s="${esc(x)}" class="${x === v.statut ? "on" : ""}">${esc(x)}</button>`).join("")}</div></div>
+        <div class="carte"><h3 style="margin-bottom:6px">Documents</h3>
+          ${docs.length ? docs.map(d => `<button class="ligne" data-d="${esc(d.id)}"><span class="av">${ic(d.type === "devis" ? "file-text" : "file-invoice", 18)}</span><span class="txt"><b>${esc(nomType[d.type])} ${esc(d.numero)}</b><span>${esc(jour(d.date))} · ${dh(d.total)}${d.statut === "annule" ? " · annulé" : d.statut === "converti" ? " · converti en " + esc(d.convertiEn || "facture") : ""}</span></span>${S.chev()}</button>`).join("") : `<div class="muted" style="font-size:13px;padding-bottom:6px">Aucun document.</div>`}
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            ${v.statut !== "Annulé" ? `<button class="btn-clair" id="vd-devis" style="padding:11px">${ic("file-text", 16)} Créer un devis</button>` : ""}
+            ${v.statut !== "Annulé" && v.statut !== "Prospect" ? `<button class="btn-noir moyen" id="vd-fact">${ic("file-invoice", 18)} ${devisOuvert ? "Convertir le devis en facture" : "Convertir en facture"}</button>` : ""}
+            ${paye > 0 ? `<button class="btn-clair" id="vd-recu" style="padding:11px">${ic("receipt", 16)} Reçu de paiement</button>` : ""}</div></div>
+        ${v.notes ? `<div class="carte"><h3>Notes</h3><p style="margin:6px 0 0;font-size:14px;white-space:pre-wrap">${esc(v.notes)}</p></div>` : ""}
+      </div>`, "ventes");
+    const recharger = () => { ventesCache = null; ficheVente(id); };
+    $$("#vs [data-s]").forEach(b => (b.onclick = async () => {
+      const st = b.dataset.s; if (st === v.statut) return;
+      if (st === "Annulé" && !(await confirmer("Annuler la vente ?", "Elle reste dans le carnet, marquée « Annulé ».", "Annuler la vente", true))) return;
+      try { await db.doc("kiffyVentes/" + id).update({ statut: st, maj: FV.serverTimestamp() }); K.journal("vente", `Vente ${c.nom} : ${st}`); recharger(); } catch (e) { erreur(e); }
+    }));
+    if ($("#vp-add")) $("#vp-add").onclick = () => {
+      let mode = v.mode || "Espèces";
+      const f = feuille(`<h2>Ajouter un paiement</h2><label class="champ">Montant (DH)<input id="pm" type="number" inputmode="decimal" min="0" step="0.01" value="${reste}"></label><label class="champ">Date<input id="pd" type="date" value="${auj()}"></label>
+        <div class="choix" id="pmo">${MODES.map(x => `<button data-m="${x}" class="${x === mode ? "on" : ""}">${x}</button>`).join("")}</div><button class="btn-noir moyen" id="pm-ok">Enregistrer</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
+      $$("#pmo [data-m]", f).forEach(b => (b.onclick = () => { mode = b.dataset.m; $$("#pmo [data-m]", f).forEach(x => x.classList.toggle("on", x === b)); }));
+      $("#pm-ok", f).onclick = async () => {
+        const m = Math.round((parseFloat($("#pm", f).value) || 0) * 100) / 100; if (!(m > 0)) return toast("Montant invalide.");
+        const P2 = [...(v.paiements || []), { montant: m, date: $("#pd", f).value || auj(), mode }], tot = P2.reduce((s, x) => s + x.montant, 0);
+        const st = ["Prospect", "Annulé"].includes(v.statut) ? v.statut : tot >= v.total ? "Payé" : "Partiellement payé";
+        try { await db.doc("kiffyVentes/" + id).update({ paiements: P2, paye: tot, mode, statut: st, maj: FV.serverTimestamp() }); K.journal("encaissement", `Paiement ${dh(m)} (${mode}) · ${c.nom}`); f.remove(); toast("Paiement enregistré"); recharger(); } catch (e) { erreur(e); }
+      };
+    };
+    $$("[data-d]").forEach(b => (b.onclick = () => ouvrirDoc(docs.find(d => d.id === b.dataset.d), recharger)));
+    if ($("#vd-devis")) $("#vd-devis").onclick = async () => {
+      if (devisOuvert && !(await confirmer("Un devis existe déjà", `${devisOuvert.numero} est toujours valable. En créer un nouveau ?`, "Créer un nouveau devis"))) return;
+      emettre("devis", v).then(d => { if (d) { if (v.statut === "Prospect") db.doc("kiffyVentes/" + id).update({ statut: "Devis envoyé" }).catch(() => {}); ouvrirDoc(d, recharger); recharger(); } });
+    };
+    if ($("#vd-fact")) $("#vd-fact").onclick = async () => {
+      const e = await entrepriseDoc();
+      const lib = fiscal(e) ? "une facture (F-…)" : "un reçu (R-…), car l’ICE, l’IF et le n° d’auto-entrepreneur ne sont pas encore remplis (Mon entreprise)";
+      if (!(await confirmer("Émettre le document ?", `Cette vente donne ${lib}. Une fois émis, il ne se modifie plus (correction = annulation tracée).`, "Émettre"))) return;
+      const d = await emettre("facture", v); if (!d) return;
+      if (devisOuvert) await db.doc("kiffyDocs/" + devisOuvert.id).update({ statut: "converti", convertiEn: d.numero }).catch(erreur);
+      ouvrirDoc(d, recharger); recharger();
+    };
+    if ($("#vd-recu")) $("#vd-recu").onclick = async () => { const d = await emettre("recu", v); if (d) { ouvrirDoc(d, recharger); recharger(); } };
+  }
+
+  // fiche client : tout l'historique des ventes (même téléphone, sinon même nom)
+  async function ficheClientVente(cle) {
+    let V = []; try { V = await ventesListe(true); } catch (e) { erreur(e); }
+    const L = V.filter(v => (v.cle || cleClient(v.client || {})) === cle);
+    if (!L.length) return aller("#/admin/ventes");
+    const c = L[0].client || {}, ok = L.filter(compte), wa = telWa(c.tel);
+    ecran(`${haut("Fiche client", "#/admin/ventes")}
+      <div class="page" style="gap:12px">
+        <div class="carte"><b style="font-size:18px">${esc(c.nom)}</b><div class="muted" style="font-size:13px">${esc([c.commerce, c.ville, c.tel].filter(Boolean).join(" · "))}</div>
+          ${wa ? `<div class="actions-g" style="margin-top:10px"><a class="btn-clair" style="text-decoration:none" href="https://wa.me/${wa}" target="_blank" rel="noopener">${ic("whatsapp", 16)} WhatsApp</a><a class="btn-clair" style="text-decoration:none" href="tel:${esc(c.tel)}">Appeler</a></div>` : ""}</div>
+        <div class="mini-stats"><div><b>${dh(ok.reduce((s, v) => s + (v.total || 0), 0)).replace(" DH", "")}</b><span>Total (DH)</span></div><div><b>${dh(ok.reduce((s, v) => s + payeDe(v), 0)).replace(" DH", "")}</b><span>Payé</span></div><div><b>${dh(ok.reduce((s, v) => s + (v.statut === "Devis envoyé" ? 0 : resteDe(v)), 0)).replace(" DH", "")}</b><span>Reste</span></div></div>
+        <div class="carte liste">${L.map(v => `<a class="ligne" href="#/admin/vente/${esc(v.id)}"><span class="txt"><b>${esc((v.lignes || []).map(l => (l.qte > 1 ? l.qte + "× " : "") + l.produit).join(", "))}</b><span>${esc(jour(v.date))}</span></span><span style="text-align:right"><b style="display:block;font-size:14px">${dh(v.total)}</b>${tagStatut(v.statut)}</span></a>`).join("")}</div>
+        <a class="btn-noir moyen" href="#/admin/vente/nouvelle" style="text-decoration:none">${ic("plus", 18)} Nouvelle vente</a>
+      </div>`, "ventes");
+  }
+
+  /* ================= DEVIS / FACTURES / REÇUS ================= */
+  // numérotation continue par année : D-2026-001, F-2026-001, R-2026-001 (transaction : jamais deux fois le même numéro)
+  async function emettre(type, v) {
+    const e = await entrepriseDoc();
+    if (type === "facture" && !fiscal(e)) type = "recu";
+    const an = new Date().getFullYear(), pre = { devis: "D", facture: "F", recu: "R" }[type];
+    const cref = db.doc(`kiffyCompteurs/${type}-${an}`), dref = db.collection("kiffyDocs").doc();
+    const paye = payeDe(v), date = auj();
+    const validite = type === "devis" ? new Date(Date.now() + (e.validite || 30) * 864e5).toLocaleDateString("fr-CA", { timeZone: "Africa/Casablanca" }) : "";
+    const entr = { nom: e.nom, adresse: e.adresse, tel: e.tel, email: e.email, site: e.site, ae: e.ae, ifisc: e.ifisc, ice: e.ice, cin: e.cin, rib: e.rib, mention: e.mention };
+    try {
+      const doc = await db.runTransaction(async t => {
+        const c = await t.get(cref), n = (c.exists ? c.data().n || 0 : 0) + 1, numero = `${pre}-${an}-${String(n).padStart(3, "0")}`;
+        const d = { type, numero, venteId: v.id, date, validite, client: v.client || {}, lignes: v.lignes || [], total: v.total || 0, paye: type === "devis" ? 0 : paye, reste: type === "devis" ? v.total || 0 : Math.max(0, (v.total || 0) - paye),
+          mode: v.mode || "", paiements: type === "devis" ? [] : v.paiements || [], entreprise: entr, statut: "emis", cree: FV.serverTimestamp() };
+        t.set(cref, { n, maj: FV.serverTimestamp() }); t.set(dref, d); return { id: dref.id, ...d, cree: Date.now() };
+      });
+      K.journal("document", `${{ devis: "Devis", facture: "Facture", recu: "Reçu" }[type]} ${doc.numero} · ${(v.client || {}).nom || ""} · ${dh(doc.total)}`);
+      toast(`${doc.numero} créé`);
+      return doc;
+    } catch (x) { erreur(x); return null; }
+  }
+  function ouvrirDoc(d, apres) {
+    if (!d) return;
+    const nom = { devis: "Devis", facture: "Facture", recu: "Reçu" }[d.type], fichierNom = `${d.numero}.pdf`, c = d.client || {}, wa = telWa(c.tel);
+    const texte = `Bonjour ${String(c.nom || "").split(" ")[0]}, voici ${d.type === "devis" ? "votre devis" : d.type === "facture" ? "votre facture" : "votre reçu"} ${d.numero} de ${dh(d.total)} · ${(d.entreprise && d.entreprise.nom) || "NFC Work"}.`;
+    const f = feuille(`<h2>${esc(nom)} ${esc(d.numero)}</h2><p class="muted" style="margin:0;font-size:13.5px">${esc(c.nom || "")} · ${dh(d.total)} · ${esc(jour(d.date))}${d.statut === "annule" ? ` · <b class="danger">annulé</b>` : ""}</p>
+      ${d.statut === "annule" ? `<div class="pause">Annulé${d.motifAnnulation ? " : " + esc(d.motifAnnulation) : ""}</div>` : ""}
+      <button class="btn-noir moyen" id="dc-pdf">${ic("share", 18)} Partager le PDF (WhatsApp, mail…)</button>
+      <button class="btn-clair" id="dc-dl" style="padding:12px">${ic("download", 16)} Télécharger</button>
+      <div class="actions-g">${wa ? `<a class="btn-clair" style="text-decoration:none" href="https://wa.me/${wa}?text=${encodeURIComponent(texte)}" target="_blank" rel="noopener">${ic("whatsapp", 16)} WhatsApp</a>` : ""}<a class="btn-clair" style="text-decoration:none" href="mailto:?subject=${encodeURIComponent(nom + " " + d.numero)}&body=${encodeURIComponent(texte + "\n\nLe PDF est en pièce jointe.")}">${ic("mail", 16)} E-mail</a></div>
+      ${d.statut === "emis" ? `<button class="btn-clair danger" id="dc-ann" style="padding:12px">Annuler ce ${d.type === "facture" ? "document (annulation tracée)" : "document"}</button>` : ""}
+      <button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+    const faire = async partager => { try { toast("Préparation du PDF…"); const blob = await pdf(d); await K.fichier(fichierNom, blob, `${nom} ${d.numero}`, partager); } catch (e) { erreur(e); } };
+    $("#dc-pdf", f).onclick = () => faire(true);
+    $("#dc-dl", f).onclick = () => faire(false);
+    if ($("#dc-ann", f)) $("#dc-ann", f).onclick = async () => {
+      const g = feuille(`<h2>Annuler ${esc(d.numero)} ?</h2><p class="muted" style="margin:0;font-size:13.5px">Le document reste dans le registre, marqué « annulé » avec le motif. Pour corriger, émettez-en un nouveau depuis la vente.</p>
+        <label class="champ">Motif<input id="am" maxlength="160" placeholder="Erreur de prix"></label><button class="btn-noir moyen danger" id="am-ok">Annuler le document</button><button class="btn-clair" data-fermer style="padding:12px">Retour</button>`);
+      $("#am-ok", g).onclick = async () => {
+        const m = $("#am", g).value.trim(); if (m.length < 3) return toast("Écrivez le motif.");
+        try { await db.doc("kiffyDocs/" + d.id).update({ statut: "annule", annuleLe: FV.serverTimestamp(), motifAnnulation: m }); K.journal("document", `${nom} ${d.numero} annulé · ${m}`); g.remove(); f.remove(); toast(`${d.numero} annulé`); apres && apres(); } catch (e) { erreur(e); }
+      };
+    };
+  }
+  let filtreD = "tous";
+  async function docs() {
+    let L = []; try { L = (await db.collection("kiffyDocs").get()).docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.numero).localeCompare(String(a.numero)) || ms(b.cree) - ms(a.cree)); } catch (e) { erreur(e); }
+    const V = L.filter(d => filtreD === "tous" || d.type === filtreD);
+    const nomType = { devis: "Devis", facture: "Facture", recu: "Reçu" };
+    ecran(`${haut("Devis et factures", "#/admin/plus")}
+      <div class="page" style="gap:12px">
+        <div class="puces">${[["tous", "Tous"], ["devis", "Devis"], ["facture", "Factures"], ["recu", "Reçus"]].map(([k, t]) => `<button class="puce${filtreD === k ? " on" : ""}" data-f="${k}">${t} · ${k === "tous" ? L.length : L.filter(d => d.type === k).length}</button>`).join("")}</div>
+        <div class="carte liste">${V.length ? V.map(d => `<button class="ligne" data-d="${esc(d.id)}"><span class="av">${ic(d.type === "devis" ? "file-text" : "file-invoice", 18)}</span><span class="txt"><b>${esc(nomType[d.type])} ${esc(d.numero)}</b><span>${esc((d.client || {}).nom || "")} · ${esc(jour(d.date))}</span></span><span style="text-align:right"><b style="display:block;font-size:14px">${dh(d.total)}</b>${d.statut === "annule" ? `<span class="tag rouge">Annulé</span>` : d.statut === "converti" ? `<span class="tag menthe">Converti</span>` : `<span class="tag" style="background:#EEF2EF;color:#5B665F">Émis</span>`}</span></button>`).join("") : `<div class="vide">Aucun document. Ils se créent depuis une vente.</div>`}</div>
+        <button class="btn-clair" id="d-csv" style="padding:12px">${ic("download", 16)} Registre en CSV</button>
+      </div>`, "plus");
+    $$("[data-f]").forEach(b => (b.onclick = () => { filtreD = b.dataset.f; docs(); }));
+    $$("[data-d]").forEach(b => (b.onclick = () => ouvrirDoc(L.find(d => d.id === b.dataset.d), docs)));
+    $("#d-csv").onclick = () => K.csv([["Numéro", "Type", "Date", "Client", "Commerce", "Total (DH)", "Payé (DH)", "Statut", "Motif d’annulation"], ...V.map(d => [d.numero, nomType[d.type], d.date, (d.client || {}).nom, (d.client || {}).commerce, d.total, d.paye, d.statut, d.motifAnnulation || ""])], `NFCWork-Documents-${auj()}.csv`);
+  }
+
+  // PDF au design Kiffy / NFC Work (A4, français)
+  let logoPdf = null;
+  // logo réduit (500 px) sur fond blanc, en JPEG : un PDF léger (~30 Ko) à envoyer sur WhatsApp
+  const imageData = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => { const w = Math.min(500, i.naturalWidth), h = Math.round(i.naturalHeight * w / i.naturalWidth), c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.drawImage(i, 0, 0, w, h); ok({ data: c.toDataURL("image/jpeg", 0.9), w, h }); }; i.onerror = ko; i.src = src; });
+  const latin = t => String(t == null ? "" : t).replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[  ]/g, " ").replace(/[–—]/g, "-").replace(/…/g, "...").replace(/[^\x00-\xFF]/g, "");
+  async function pdf(d) {
+    await K.chargerJs("vendor/jspdf.umd.min.js");
+    if (!logoPdf) logoPdf = await imageData("../assets/img/logo-nfcwork-full.png").catch(() => null);
+    const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" }), e = d.entreprise || {}, c = d.client || {};
+    const V = [22, 193, 114], N = [10, 10, 10], G = [91, 102, 95], L = [230, 236, 232];
+    const T = (t, x, y, o) => doc.text(latin(t), x, y, o);
+    const titre = { devis: "DEVIS", facture: "FACTURE", recu: "REÇU" }[d.type];
+    doc.setFillColor(...V); doc.rect(0, 0, 210, 6, "F");
+    if (logoPdf) doc.addImage(logoPdf.data, "JPEG", 15, 15, 56, 56 * logoPdf.h / logoPdf.w);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...G);
+    let y = 30; [e.nom, e.adresse, [e.tel, e.email].filter(Boolean).join(" · "), e.site].filter(Boolean).forEach(l => { T(l, 15, y); y += 4.6; });
+    doc.setTextColor(...N); doc.setFont("helvetica", "bold"); doc.setFontSize(24); T(titre, 195, 22, { align: "right" });
+    doc.setFontSize(10.5); T("N° " + d.numero, 195, 30, { align: "right" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...G);
+    T("Date : " + new Date(d.date + "T12:00:00").toLocaleDateString("fr-FR"), 195, 36, { align: "right" });
+    if (d.type === "devis" && d.validite) T("Valable jusqu'au " + new Date(d.validite + "T12:00:00").toLocaleDateString("fr-FR"), 195, 41, { align: "right" });
+    // client
+    y = Math.max(y + 6, 54);
+    doc.setFillColor(244, 247, 245); doc.roundedRect(15, y, 90, 30, 3, 3, "F");
+    doc.setTextColor(...G); doc.setFontSize(8.5); doc.setFont("helvetica", "bold"); T(d.type === "devis" ? "DEVIS POUR" : "CLIENT", 20, y + 7);
+    doc.setTextColor(...N); doc.setFontSize(11); T(c.nom || "", 20, y + 13);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...G);
+    [c.commerce, [c.tel, c.ville].filter(Boolean).join(" · ")].filter(Boolean).forEach((l, i) => T(l, 20, y + 19 + i * 5));
+    // lignes
+    y += 42;
+    doc.setFillColor(230, 248, 238); doc.rect(15, y, 180, 9, "F");
+    doc.setTextColor(...N); doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
+    T("Désignation", 19, y + 6); T("Qté", 122, y + 6, { align: "right" }); T("Prix unitaire", 155, y + 6, { align: "right" }); T("Total", 191, y + 6, { align: "right" });
+    y += 9; doc.setFont("helvetica", "normal");
+    (d.lignes || []).forEach(l => {
+      const lignesTxt = doc.splitTextToSize(latin(l.produit), 92), h = Math.max(9, lignesTxt.length * 4.6 + 4);
+      if (y + h > 250) { doc.addPage(); y = 20; }
+      doc.text(lignesTxt, 19, y + 6); T(String(l.qte), 122, y + 6, { align: "right" }); T(dh(l.prix), 155, y + 6, { align: "right" }); T(dh(l.qte * l.prix), 191, y + 6, { align: "right" });
+      y += h; doc.setDrawColor(...L); doc.line(15, y, 195, y);
+    });
+    // totaux
+    y += 6; const tot = (lib, val, gras, coul) => { doc.setFont("helvetica", gras ? "bold" : "normal"); doc.setFontSize(gras ? 12 : 10); doc.setTextColor(...(coul || N)); T(lib, 150, y, { align: "right" }); T(val, 191, y, { align: "right" }); y += gras ? 8 : 6; };
+    doc.setFillColor(244, 247, 245); doc.roundedRect(110, y - 5, 85, d.type === "devis" ? 12 : 26, 3, 3, "F");
+    tot(d.type === "devis" ? "Total" : "Total", dh(d.total), true);
+    if (d.type !== "devis") { tot("Payé", dh(d.paye), false, [14, 138, 81]); tot("Reste à payer", dh(d.reste), false, d.reste > 0 ? [192, 38, 45] : N); }
+    y += 4; doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...G);
+    if (d.type !== "devis" && (d.paiements || []).length) { T("Paiement : " + d.paiements.map(p => `${dh(p.montant)} le ${new Date(p.date + "T12:00:00").toLocaleDateString("fr-FR")} (${p.mode})`).join(" · "), 15, y); y += 6; }
+    else if (d.mode) { T("Mode de paiement : " + d.mode, 15, y); y += 6; }
+    if (d.type === "devis") { T("Devis valable " + Math.round((new Date(d.validite) - new Date(d.date)) / 864e5) + " jours. Bon pour accord : date et signature du client.", 15, y); y += 6; }
+    // pied : identifiants, RIB, mention
+    const pied = [[e.ice && "ICE : " + e.ice, e.ifisc && "IF : " + e.ifisc, e.ae && "N° auto-entrepreneur : " + e.ae, e.cin && "CIN : " + e.cin].filter(Boolean).join(" · "), e.rib && "RIB : " + e.rib, e.mention].filter(Boolean);
+    let yp = 278 - pied.length * 4.4;
+    doc.setDrawColor(...L); doc.line(15, yp - 4, 195, yp - 4); doc.setFontSize(8.5); doc.setTextColor(...G);
+    pied.forEach(l => { doc.text(doc.splitTextToSize(latin(l), 180), 105, yp, { align: "center" }); yp += 4.4; });
+    doc.setTextColor(...V); doc.setFont("helvetica", "bold"); T("Merci pour votre confiance · Kiffy par NFC Work", 105, 287, { align: "center" });
+    if (d.statut === "annule") { doc.setTextColor(192, 38, 45); doc.setFontSize(64); doc.text("ANNULÉ", 105, 160, { align: "center", angle: 30 }); }
+    return doc.output("blob");
+  }
+
+  /* ---------------- routes « #/admin/… » gérées ici ---------------- */
+  return {
+    echeance, rappel, messageClients,
+    route(r) {
+      const [a, b, c] = r;
+      switch (a) {
+        case "stats": stats(); return true;
+        case "plus": plus(); return true;
+        case "abonnements": abonnements(); return true;
+        case "clients": clients(b || ""); return true;
+        case "journal": journal(); return true;
+        case "entreprise": entreprise(); return true;
+        case "produits": produits(); return true;
+        case "ventes": ventes(); return true;
+        case "vente": if (b === "nouvelle") formVente(); else if (c === "modifier") formVente(b); else ficheVente(b); return true;
+        case "vclient": ficheClientVente(b); return true;
+        case "docs": docs(); return true;
+        default: return false;
+      }
+    }
+  };
+};
