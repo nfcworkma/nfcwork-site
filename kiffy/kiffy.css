@@ -380,3 +380,5 @@ body.sombre #toast { background: var(--vert); color: var(--noir); }
 .select-mois { border: 0; border-radius: 16px; padding: 0 12px; background: var(--blanc); max-width: 42%; }
 .tag.orange, .tag.jaune, .tag.rouge, .tag.menthe, .tag.vert { white-space: nowrap; }
 .pin .faceid { align-items: center; }
+.avant-apres { display: block; font-size: 12px; color: var(--gris); margin-top: 2px; white-space: normal; }
+.avant-apres s { color: #9B1C1C; text-decoration-color: rgba(155, 28, 28, .5); }

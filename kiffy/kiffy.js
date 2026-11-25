@@ -1018,7 +1018,8 @@
     };
   }
   // journal d'activité : ce que fait l'admin depuis l'app (le reste est écrit par les Functions)
-  const journal = (action, detail, p) => db.collection("kiffyJournal").add({ t: FV.serverTimestamp(), role: "admin", qui: String(user.email || "").toLowerCase(), action, pid: (p && p.id) || "", commerce: String((p && p.nom) || "").slice(0, 60), detail: String(detail || "").slice(0, 300) }).catch(e => console.warn("journal", e));
+  const journal = (action, detail, p, x = {}) => db.collection("kiffyJournal").add({ t: FV.serverTimestamp(), role: "admin", qui: String(user.email || "").toLowerCase(), action, pid: (p && p.id) || "", commerce: String((p && p.nom) || "").slice(0, 60), detail: String(detail || "").slice(0, 300),
+    ...(x.avant ? { avant: String(x.avant).slice(0, 600) } : {}), ...(x.apres ? { apres: String(x.apres).slice(0, 600) } : {}), ...(x.motif ? { motif: String(x.motif).slice(0, 200) } : {}) }).catch(e => console.warn("journal", e));
   // fichier à donner à l'utilisateur : app → feuille de partage (Enregistrer dans Fichiers, WhatsApp, Mail…) ; web → partage ou téléchargement
   async function fichier(nom, blob, titre, partager) {
     if (window.KiffyNatif && window.KiffyNatif.partager) {
@@ -1045,15 +1046,17 @@
   }
   // standard : installation + 149 DH chaque mois (dès le 1er) · offre : 599 DH couvre les 3 premiers mois · essai en cours : rien
   function factureDue(p) {
-    if (!p.kiffy || p.actif === false) return null;
+    if (!p.kiffy || p.actif === false || p.kiffy.resilie) return null;
     const k = moisCle(), debut = moisCle(ms(p.kiffy.cree) || ms(p.createdAt) || Date.now());
+    if (p.kiffy.prochaine && k < moisCle(new Date(p.kiffy.prochaine + "T12:00:00"))) return null;
     if (p.essai && p.expire && p.expire >= jourPlus(0)) return null;
     if (p.kiffy.formule === "offre" && k < moisPlus(debut, TARIF.moisOfferts)) return null;
     return { id: `${p.id}-${k}`, data: { pid: p.id, mois: k, libelle: nomMois(k), montant: p.kiffy.mensuel || TARIF.mensuel, paye: false, cree: FV.serverTimestamp() } };
   }
-  const impayes = pid => paiementsAdmin.filter(x => x.pid === pid && !x.paye);
+  const impayes = pid => paiementsAdmin.filter(x => x.pid === pid && !x.paye && !x.annule);
   function statut(p) {
     if (p.arch) return `<span class="tag" style="background:#EEF2EF;color:#5B665F">Archivé</span>`;
+    if (p.kiffy && p.kiffy.resilie) return `<span class="tag" style="background:#EEF2EF;color:#5B665F">Résilié</span>`;
     if (p.actif === false) return `<span class="tag" style="background:#EEF2EF;color:#5B665F">En pause</span>`;
     if (p.suppressionDemandee) return `<span class="tag rouge">Suppression demandée</span>`;
     if (PRIX && impayes(p.id).length) return `<span class="tag rouge">Impayé</span>`;
@@ -1104,7 +1107,7 @@
     const emps = empsTous.filter(e => e.actif !== false).length;
     const pl = await db.collection("fidPlaques").where("pid", "==", pid).limit(1).get().then(s => s.empty ? "" : s.docs[0].id).catch(() => "");
     const paies = paiementsAdmin.filter(x => x.pid === pid).sort((a, b) => (a.mois === "installation") - (b.mois === "installation") || String(b.mois).localeCompare(String(a.mois)));
-    const du = paies.filter(x => !x.paye).sort((a, b) => (b.mois === "installation") - (a.mois === "installation") || String(a.mois).localeCompare(String(b.mois)))[0];
+    const du = paies.filter(x => !x.paye && !x.annule).sort((a, b) => (b.mois === "installation") - (a.mois === "installation") || String(a.mois).localeCompare(String(b.mois)))[0];
     const st = cartesAdmin[pid] || { n: 0, vm: 0 }, ech = ADM ? ADM.echeance(p) : "";
     const opt = (id, icone, l, v, rouge) => `<button class="opt" id="${id}" style="padding:13px 0"><span class="ico">${icone}</span><span class="l${rouge ? " danger" : ""}" ${rouge ? 'style="font-weight:700"' : ""}>${esc(l)}</span><span class="v">${esc(v || "")}</span>${rouge ? "" : `<span class="chev">${S.chev()}</span>`}</button>`;
     app.innerHTML = `<div class="ecran nav">
@@ -1115,7 +1118,8 @@
         <div class="mini-stats"><div><b>${st.n}</b><span>Clients</span></div><div><b>${st.vm}</b><span>Visites ce mois</span></div><div><b>${emps}</b><span>Employés</span></div></div>
         <div class="carte" style="padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center"><h3>Abonnement</h3>${du ? `<span class="tag jaune">${esc(du.libelle || du.mois)} à payer</span>` : paies.length ? `<span class="tag menthe">À jour</span>` : ""}</div>
           ${ech ? `<div class="kv" style="padding:8px 0 4px"><span class="muted">Prochaine échéance</span><b>${esc(ech)}</b></div>` : ""}
-          ${paies.length ? paies.slice(0, 6).map(x => `<div class="paie"><span>${esc(x.libelle || x.mois)} · ${x.montant} DH</span>${x.paye ? `<b class="ok">Payé ${S.coche(13, "#0E8A51")}</b>` : `<b class="ko">À payer</b>`}</div>`).join("") : `<div class="vide" style="padding:10px 0">${p.kiffy ? "Aucun paiement." : "Commerce créé dans l’Espace (pas d’abonnement Kiffy)."}</div>`}
+          ${paies.length ? paies.slice(0, 8).map(x => `<button class="paie" data-pa="${esc(x.id)}" style="width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;color:inherit"><span>${esc(x.libelle || x.mois)} · ${x.montant} DH${x.mode ? " · " + esc(x.mode) : ""}</span>${x.annule ? `<b style="color:#8A938E">Annulé</b>` : x.paye ? `<b class="ok">Payé ${S.coche(13, "#0E8A51")}</b>` : `<b class="ko">À payer</b>`}</button>`).join("") : `<div class="vide" style="padding:10px 0">${p.kiffy ? "Aucun paiement." : "Commerce créé dans l’Espace (pas d’abonnement Kiffy)."}</div>`}
+          ${p.kiffy ? `<button class="btn-clair" id="a-abo" style="padding:10px;margin-top:10px">${ic("pencil", 16)} Modifier l’abonnement</button>` : ""}
           ${du ? `<div class="actions-g" style="margin-top:10px"><button class="btn-noir moyen" id="enc">Encaisser ${du.montant} DH</button><button class="btn-clair" id="rap">${ic("bell", 16)} Rappeler</button></div>` : ""}</div>
         <div class="carte menu"><div class="sect">CARTE ET CLIENTS</div>
           ${opt("a-mod", ic("palette"), "Modifier tout le design de la carte", "")}
@@ -1184,6 +1188,8 @@
       try { await db.doc("kiffyPaiements/" + du.id).update({ paye: true, payeLe: FV.serverTimestamp(), par: user.email }); du.paye = true; du.payeLe = Date.now(); journal("encaissement", `${du.libelle || du.mois} · ${du.montant} DH`, p); toast("Paiement enregistré"); adminCommerce(pid); } catch (e) { erreur(e); }
     };
     if ($("#rap")) $("#rap").onclick = () => ADM && ADM.rappel(p, du);
+    $$("[data-pa]").forEach(b => (b.onclick = () => ADM && ADM.paiementAbo(paies.find(x => x.id === b.dataset.pa), p, recharger)));
+    if ($("#a-abo")) $("#a-abo").onclick = () => ADM && ADM.abonnementReglages(p, recharger);
   }
   // admin : les codes PIN des employés (on ne voit jamais un code : on voit qui en a un, on l'efface ou on en donne un nouveau)
   async function codesEmployes(p, emps) {
