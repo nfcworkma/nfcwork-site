@@ -588,6 +588,15 @@
     try { const u = new URL(t); const c = u.searchParams.get("c"); if (c && /\/w\/?$/.test(u.pathname)) t = c; } catch (e) {}
     t = t.toUpperCase(); return /^KF-[A-Z0-9]{4,8}$/.test(t) ? t : "";
   }
+  // le scanner ne s'ouvre pas : un message clair (jamais l'anglais du plugin) + « Réessayer » + « Chercher par nom ou téléphone »
+  function problemeScan(code, reessayer) {
+    const camera = code === "camera", cherche = $("#cherche");
+    const f = feuille(`<h2>${camera ? "Autorisez la caméra" : "Le scanner ne s’est pas ouvert"}</h2>
+      <p class="muted" style="margin:0;font-size:14px">${camera ? "Kiffy a besoin de la caméra pour lire le QR de la carte. Ouvrez Réglages → Kiffy → Caméra, puis activez-la." : "Réessayez. Si le problème continue, retrouvez le client par son nom ou son téléphone."}</p>
+      <button class="btn-noir moyen" id="ps-re">Réessayer</button>${cherche ? `<button class="btn-clair" id="ps-ch" style="padding:12px">${esc(cherche.textContent.trim())}</button>` : ""}<button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+    $("#ps-re", f).onclick = () => { f.remove(); reessayer(); };
+    if ($("#ps-ch", f)) $("#ps-ch", f).onclick = () => { f.remove(); cherche.click(); };
+  }
   async function demarrerCamera(cadre, surCode, lecteur = lireCode) {
     const msg = $(".msg-cam", cadre);
     if (window.KiffyNatif && window.KiffyNatif.scanner) {   // app : scanner natif (plein écran), ouvert tout de suite
@@ -595,7 +604,7 @@
       const lance = () => {
         if (ouvert || !actif) return; ouvert = true;
         window.KiffyNatif.scanner().then(t => { ouvert = false; if (!actif) return; if (!t) { msg.textContent = "Touchez ici pour scanner à nouveau"; return; } const c = lecteur(t); if (c) surCode(c); else { msg.textContent = "Touchez ici pour scanner à nouveau"; toast("Ce QR n’est pas une carte Kiffy."); } })
-          .catch(e => { ouvert = false; msg.textContent = "Touchez ici pour scanner"; if (!/cancel|annul/i.test(e && e.message || "")) toast(/permission|denied|refus/i.test(e && e.message || "") ? "Autorisez la caméra : Réglages → Kiffy → Caméra." : (e && e.message) || "Scanner indisponible.", true); });
+          .catch(e => { ouvert = false; msg.textContent = "Touchez ici pour scanner"; if (actif && (e && e.code) !== "annule") problemeScan(e && e.code, lance); });
       };
       cadre.onclick = lance; setTimeout(lance, 250); return () => { actif = false; };
     }
