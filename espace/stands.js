@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — STANDS QR (admin seulement)
+   NFC WORK — STANDS QR (admin seulement)
    Chaque stand imprimé porte un QR fixe : nfcwork.ma/q/<CODE>.
    Le lien vers lequel il envoie se change ici, sans jamais réimprimer.
    Firestore, collection « settings » (lecture publique, écriture admin — règle déjà en place) :
@@ -31,7 +31,7 @@
     user = u;
     if (!u) { renderLogin(); return; }
     if ((u.email || "").toLowerCase() !== ADMIN) {
-      app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Cette page est réservée à l’administrateur NFCWORK.</p><a class="btn" href="./">Retour à l’Espace</a></div>`;
+      app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Cette page est réservée à l’administrateur NFC WORK.</p><a class="btn" href="./">Retour à l’Espace</a></div>`;
       return;
     }
     try { localStorage.setItem("nfcwork-admin", "1"); } catch (e) {}
@@ -128,7 +128,7 @@
     if (!codes.length) return;
     const feuilles = [];
     for (let i = 0; i < codes.length; i += 12) feuilles.push(codes.slice(i, i + 12));
-    $("#planche").innerHTML = feuilles.map(f => `<div class="feuille">${f.map(c => `<div class="sticker"><img src="../assets/img/logo-nfcwork.png" alt="NFCWORK">${svgQR(c, "#05080f")}<b>Scannez-moi</b><small>${esc(c)}</small></div>`).join("")}</div>`).join("");
+    $("#planche").innerHTML = feuilles.map(f => `<div class="feuille">${f.map(c => `<div class="sticker"><img src="../assets/img/logo-nfcwork.png" alt="NFC WORK">${svgQR(c, "#05080f")}<b>Scannez-moi</b><small>${esc(c)}</small></div>`).join("")}</div>`).join("");
     const d = fenetre(`<h2>Prêt à imprimer</h2><p class="muted">${codes.length} QR sur ${feuilles.length} feuille${feuilles.length > 1 ? "s" : ""} A4. Sur Mac : Imprimer → « Enregistrer au format PDF » pour l’envoyer à l’imprimeur.</p>
       <div class="thumbs" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr));margin:12px 0">${codes.slice(0, 12).map(c => `<div style="background:#fff;border-radius:10px;padding:6px;text-align:center;color:#05080f">${svgQR(c)}<small style="font-weight:700;letter-spacing:.1em">${esc(c)}</small></div>`).join("")}</div>
       <div class="row"><button class="btn primary" style="flex:1" id="pr">🖨 Imprimer</button><button class="btn ghost" data-fermer>Fermer</button></div>`);
@@ -215,7 +215,7 @@
           const k = Math.min(1, 640 / v.videoWidth); c.width = v.videoWidth * k; c.height = v.videoHeight * k;
           g.drawImage(v, 0, 0, c.width, c.height);
           const r = jsQR(g.getImageData(0, 0, c.width, c.height).data, c.width, c.height, { inversionAttempts: "dontInvert" });
-          if (r && r.data) { const code = codeDe(r.data); if (/\/q\/|[?&]c=/.test(r.data) && code) { trouve(code); return; } $("#sm", d).textContent = "Ce QR n’est pas un stand NFCWORK."; }
+          if (r && r.data) { const code = codeDe(r.data); if (/\/q\/|[?&]c=/.test(r.data) && code) { trouve(code); return; } $("#sm", d).textContent = "Ce QR n’est pas un stand NFC WORK."; }
         }
         requestAnimationFrame(tour);
       };

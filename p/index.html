@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script>if(location.protocol==="http:"&&/nfcwork\.ma$/.test(location.hostname))location.replace("https:"+location.href.slice(5))</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>NFCWORK</title>
+<title>NFC WORK</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#05080f">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/icons/favicon-32.png">
@@ -245,8 +245,8 @@ a:active,button:active{transform:scale(.98)}
   }
   const T = (fr, ar) => (P && P.langue === "ar" ? ar : fr);
   const row = (href, ic, b, s) => href ? `<a class="row" href="${esc(href)}" ${/^https?:/.test(href) ? 'target="_blank" rel="noopener"' : ""}>${I[ic] || I.link}<div><b>${esc(b)}</b>${s ? `<span>${esc(s)}</span>` : ""}</div>${I.ar}</a>` : "";
-  const brand = '<div class="brand"><img src="/assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></div>';
-  const pied = () => `<div class="foot">${T("Créé par", "صُنع بواسطة")} <a href="https://nfcwork.ma" aria-label="NFCWORK"><img src="/assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></a></div>`;
+  const brand = '<div class="brand"><img src="/assets/img/logo-nfcwork.png" alt="NFC WORK" width="1332" height="268"></div>';
+  const pied = () => `<div class="foot">${T("Créé par", "صُنع بواسطة")} <a href="https://nfcwork.ma" aria-label="NFC WORK"><img src="/assets/img/logo-nfcwork.png" alt="NFC WORK" width="1332" height="268"></a></div>`;
   const JOURS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], JOURS_AR = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
   function horairesDe(h, titre) {
     h = h || {}; const ordre = [1, 2, 3, 4, 5, 6, 0];
@@ -281,7 +281,7 @@ a:active,button:active{transform:scale(.98)}
       ${tags.length ? `<div class="pills">${tags.map(t => `<span class="pill">${esc(t)}</span>`).join("")}</div>` : ""}
       ${P.bio ? `<p class="bio">${esc(P.bio)}</p>` : ""}
       ${quick.length ? `<div class="quick" style="--n:${quick.length}">${quick.join("")}</div>` : ""}
-      ${wa ? `<a class="main" href="https://wa.me/${wa}?text=${encodeURIComponent(T("Bonjour, j’ai vu votre carte NFCWORK", "السلام، شفت الكارطة ديالك"))}" target="_blank" rel="noopener">${I.wa}${T("Écrire sur WhatsApp", "كتب فالواتساب")}</a>` : ""}
+      ${wa ? `<a class="main" href="https://wa.me/${wa}?text=${encodeURIComponent(T("Bonjour, j’ai vu votre carte NFC WORK", "السلام، شفت الكارطة ديالك"))}" target="_blank" rel="noopener">${I.wa}${T("Écrire sur WhatsApp", "كتب فالواتساب")}</a>` : ""}
       <button class="main ghost" id="vcf">${I.user}${T("Enregistrer le contact", "حفظ جهة الاتصال")}</button>
       ${lieuxHoraires ? "" : horaires()}
       ${row(handle(P.instagram, "https://instagram.com/"), "insta", "Instagram", String(P.instagram || "").replace(/^https?:\/\/(www\.)?/, ""))}
@@ -434,7 +434,7 @@ a:active,button:active{transform:scale(.98)}
         ${COVER ? `<div class="hero-bg"><img data-img="${esc(COVER)}" alt=""></div>` : `<div class="hero-bg"><img src="${ART}" alt=""></div>`}
         <div class="hero-ov"></div><div class="hero-glow"></div>
         <div class="hero-in">
-          <div class="brand hbrand"><img src="/assets/img/logo-nfcwork.png" alt="NFCWORK" width="1332" height="268"></div>
+          <div class="brand hbrand"><img src="/assets/img/logo-nfcwork.png" alt="NFC WORK" width="1332" height="268"></div>
           ${P.photo ? `<div class="hero-badge"><img data-img="${esc(P.photo)}" alt=""></div>` : ""}
           <div class="hero-eyebrow">${esc(sport !== "generic" ? ({ foot: "Terrain de foot", basket: "Basketball", tennis: "Tennis", padel: "Padel" }[sport]) : metLabel)}</div>
           <h1 class="hero-t">${esc(P.nom || "")}</h1>
@@ -712,12 +712,12 @@ a:active,button:active{transform:scale(.98)}
       if (!ati) { ati = document.createElement("link"); ati.rel = "apple-touch-icon"; document.head.appendChild(ati); }
       ati.href = url;
       const metaSet = (n, c) => { let m = document.querySelector(`meta[name="${n}"]`); if (!m) { m = document.createElement("meta"); m.name = n; document.head.appendChild(m); } m.content = c; };
-      metaSet("apple-mobile-web-app-title", P.nom || "NFCWORK");
+      metaSet("apple-mobile-web-app-title", P.nom || "NFC WORK");
       metaSet("apple-mobile-web-app-capable", "yes");
       metaSet("mobile-web-app-capable", "yes");
       try {
         const bg = (getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()) || "#05080f";
-        const man = { name: P.nom || "NFCWORK", short_name: (P.nom || "NFCWORK").slice(0, 28), start_url: location.pathname + location.search, display: "standalone", background_color: bg, theme_color: bg, icons: [{ src: url, sizes: "192x192", type: "image/png", purpose: "any" }, { src: url, sizes: "512x512", type: "image/png", purpose: "any" }] };
+        const man = { name: P.nom || "NFC WORK", short_name: (P.nom || "NFC WORK").slice(0, 28), start_url: location.pathname + location.search, display: "standalone", background_color: bg, theme_color: bg, icons: [{ src: url, sizes: "192x192", type: "image/png", purpose: "any" }, { src: url, sizes: "512x512", type: "image/png", purpose: "any" }] };
         let ml = document.querySelector('link[rel="manifest"]');
         if (!ml) { ml = document.createElement("link"); ml.rel = "manifest"; document.head.appendChild(ml); }
         if (ml._u) URL.revokeObjectURL(ml._u);
@@ -734,7 +734,7 @@ a:active,button:active{transform:scale(.98)}
     theme();
     if (!apercu && window.NFCW_PREAVIS && P.expire) NFCW_PREAVIS(P.preavis, P.expire);
     if (!apercu && window.NFCW_VUE && !/^demo-/.test(slug)) NFCW_VUE("page", slug);
-    document.title = (P.nom || "NFCWORK") + (P.fonction ? " · " + P.fonction : "");
+    document.title = (P.nom || "NFC WORK") + (P.fonction ? " · " + P.fonction : "");
     if (!apercu) majIcone();
     ({ profil, avis, wifi, liens, rdv }[P.type] || profil)();
     remplir();
@@ -750,7 +750,7 @@ a:active,button:active{transform:scale(.98)}
     if (memo) { try { rendre(JSON.parse(memo)); } catch (e) {} }
     try {
       const [f, c] = await Promise.all([lireDoc("page-" + slug), lireDoc("coupures").catch(() => null)]);
-      if (!f) { try { const rd = await lireDoc("predir-" + slug); const to = rd && rd.to && rd.to.stringValue; if (to && to !== slug) { location.replace("/p/" + to); return; } } catch (e) {} if (!P) etat("Page introuvable", "Vérifiez le lien ou contactez NFCWORK."); return; }
+      if (!f) { try { const rd = await lireDoc("predir-" + slug); const to = rd && rd.to && rd.to.stringValue; if (to && to !== slug) { location.replace("/p/" + to); return; } } catch (e) {} if (!P) etat("Page introuvable", "Vérifiez le lien ou contactez NFC WORK."); return; }
       const j = (f.json && f.json.stringValue) || "{}";
       const data = JSON.parse(j);
       try { const cp = JSON.parse((c && c.json && c.json.stringValue) || "{}")[slug]; if (cp && (cp.actif === false || cp.expire)) { if (cp.actif === false) data.actif = false; if (cp.expire) data.expire = cp.expire; if (cp.preavis) data.preavis = cp.preavis; } } catch (e) {}

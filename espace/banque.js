@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — BANQUE DE PHOTOS pour les menus
+   NFC WORK — BANQUE DE PHOTOS pour les menus
    Photos Unsplash (licence Unsplash : usage commercial gratuit, sans attribution obligatoire).
    Une photo choisie est enregistrée dans le menu sous la forme « u:<id> » et affichée
    directement depuis Unsplash (taille adaptée à l'écran).

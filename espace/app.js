@@ -260,7 +260,7 @@ async function annivBadge(){
     let abos=[];try{abos=(await fs.collection("abonnements").get()).docs.map(x=>x.data()).filter(a=>a.actif!==false)}catch(e){}
     const n=t=>String(t||"").toLowerCase().replace(/\s+/g,"");
     const wa=t=>{let d=String(t||"").replace(/\D/g,"");if(d.startsWith("0"))d="212"+d.slice(1);return d.length>=11?d:""};
-    box.innerHTML=`<div class="paper" style="padding:14px 16px;border-radius:16px;margin-bottom:16px;border:1px solid var(--warn)"><b>🎂 Anniversaires des clients</b>${L.map(([c,i])=>{const ab=abos.some(a=>n(a.client)===n(c.name)||(a.email&&a.email===c.email));const cad=ab?"1 mois d’abonnement offert":"un produit offert (plaque, porte-clés…)";const msg=`Joyeux anniversaire ${c.name} 🎉 Toute l’équipe NFCWORK vous souhaite une belle année ! Pour l’occasion : ${cad} 🎁`;
+    box.innerHTML=`<div class="paper" style="padding:14px 16px;border-radius:16px;margin-bottom:16px;border:1px solid var(--warn)"><b>🎂 Anniversaires des clients</b>${L.map(([c,i])=>{const ab=abos.some(a=>n(a.client)===n(c.name)||(a.email&&a.email===c.email));const cad=ab?"1 mois d’abonnement offert":"un produit offert (plaque, porte-clés…)";const msg=`Joyeux anniversaire ${c.name} 🎉 Toute l’équipe NFC WORK vous souhaite une belle année ! Pour l’occasion : ${cad} 🎁`;
       return `<div class="row between" style="gap:8px;margin-top:8px;flex-wrap:wrap"><span><b>${esc(c.name)}</b> · ${i===0?"aujourd’hui 🎉":i===1?"demain":"dans "+i+" jours"}<br><small class="muted">🎁 ${ab?"Abonné : 1 mois offert":"Pas abonné : un produit en cadeau"}</small></span>${wa(c.phone)?`<a class="btn sm primary" target="_blank" rel="noopener" href="https://wa.me/${wa(c.phone)}?text=${encodeURIComponent(msg)}">Souhaiter</a>`:""}</div>`}).join("")}</div>`;
   }catch(e){}
 }
@@ -742,7 +742,7 @@ function infosHtml(o){const ts=typesCommande(o);if(!ts.length)return"";
     const lien=t==="menu"?"menus.html#nouveau="+b64({nom:i.nom||o.business||o.clientName||"",formule:i.formule||"",tel:i.whatsapp||o.phone||"",commande:o.number}):lienOutil(o,t);
     return `<div class="paper"><div class="row between"><b>${NFC_TYPES[t][0]} ${NFC_TYPES[t][1]}</b><a class="btn sm primary" href="${esc(lien)}" ${t==="menu"?"":'target="_blank" rel="noopener"'}>${t==="menu"?"Créer le menu":"Créer dans l’outil"}</a></div>
     ${Object.keys(i).length?`<dl class="kv">${Object.entries(i).map(([k,v])=>`<dt>${esc(NOMS_CHAMPS[k]||k)}</dt><dd style="white-space:pre-wrap">${esc(v===true?"oui":v)}</dd>`).join("")}</dl>`:`<p class="muted" style="margin:6px 0 0;font-size:13px">Pas encore d’infos : le formulaire de l’outil s’ouvrira avec le nom et le téléphone du client.</p>`}</div>`}).join("")}</div>
-    <p class="muted" style="font-size:12.5px;margin:6px 0 0">« Créer dans l’outil » ouvre l’outil NFCWORK (sur le Mac, ou sur l’iPhone si l’outil est ouvert à l’adresse du Mac).</p>`}
+    <p class="muted" style="font-size:12.5px;margin:6px 0 0">« Créer dans l’outil » ouvre l’outil NFC WORK (sur le Mac, ou sur l’iPhone si l’outil est ouvert à l’adresse du Mac).</p>`}
 /* admin : onglet Produits NFC */
 let nfcFiltre="";
 function renderNfc(){

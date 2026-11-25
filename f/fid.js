@@ -1,12 +1,12 @@
 /* =========================================================
-   NFCWORK — CARTE FIDÉLITÉ (pages publiques, sans application)
+   NFC WORK — CARTE FIDÉLITÉ (pages publiques, sans application)
      /f/?p=<programme>            inscription du client (QR d'inscription, NFC…)
      /f/?c=<carte>                la carte du client (à ajouter à l'écran d'accueil) ; après une visite
                                   enregistrée par le commerçant, le client peut dire qui l'a servi (une fois)
      /f/?e=<employé>              QR d'un employé : il voit ses points du mois (lecture seule, aucun gain possible)
    Anti-triche : seuls le commerçant (son compte) ou une visite réelle donnent des points.
    Firestore (lecture/écriture par l'API REST, règles « Fidélité » dans firestore.rules) :
-     fidProgrammes/{pid}  réglages du commerce (écrits par l'admin NFCWORK)
+     fidProgrammes/{pid}  réglages du commerce (écrits par l'admin NFC WORK)
      fidCartes/{cid}      cartes clients
      fidEmployes/{eid}    employés, points par mois { m: { "202610": 12 } }
    ========================================================= */
@@ -107,8 +107,8 @@
   const logoSrc = p => /^data:image\//.test(p.logoData || "") ? p.logoData : /^https?:\/\//.test(p.logo || "") ? p.logo : "";
   const brand = p => `<div class="brand">${logoSrc(p) ? `<img class="lg" src="${esc(logoSrc(p))}" alt="">` : `<div class="ini">${esc((p.nom || "?").trim()[0].toUpperCase())}</div>`}
     <div><b>${esc(p.nom || "Commerce")}</b><small>Carte fidélité</small></div></div>`;
-  const pied = `<div class="foot">Carte fidélité par <a href="${SITE}" target="_blank" rel="noopener"><b>NFCWORK</b></a></div>`;
-  // abonnement NFCWORK : programme coupé à la main (actif:false) ou date de coupure dépassée (expire)
+  const pied = `<div class="foot">Carte fidélité par <a href="${SITE}" target="_blank" rel="noopener"><b>NFC WORK</b></a></div>`;
+  // abonnement NFC WORK : programme coupé à la main (actif:false) ou date de coupure dépassée (expire)
   const jourLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const coupe = p => p.actif === false || (!!p.expire && jourLocal() > String(p.expire));
   function etat(titre, texte, spin) { app.innerHTML = `<div class="state"><div>${spin ? '<div class="spin"></div>' : ""}${titre ? `<h1>${esc(titre)}</h1>` : ""}<div>${esc(texte || "")}</div></div></div>`; }

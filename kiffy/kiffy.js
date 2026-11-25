@@ -2,7 +2,7 @@
    KIFFY — app du commerçant (PWA, mobile d'abord) · maquettes : design/kiffy/
    Données partagées avec l'Espace (/espace/fidelite.js), les cartes clients (/f/) et le Worker Wallet :
      fidProgrammes, fidCartes, fidEmployes, fidSecrets (pins), fidFonds, kiffyPaiements, fidPlaques.
-   Rôles : admin NFC Work (Espace NFC Work) · compte du commerce → code PIN gérant ou employé.
+   Rôles : admin NFC WORK (Espace NFC WORK) · compte du commerce → code PIN gérant ou employé.
    Écritures sur une carte : Cloud Function « kiffyVisite » (jamais d'écriture directe des points).
    ========================================================= */
 (function () {
@@ -35,14 +35,16 @@
   if (!window.FIREBASE_CONFIG || !window.firebase) { app.innerHTML = '<div class="vide">Configuration manquante.</div>'; return; }
   // tests en local : http://localhost:5500/kiffy/?emu → émulateurs Firebase (projet demo-kiffy, aucune vraie donnée)
   const EMU = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has("emu");
-  firebase.initializeApp(EMU ? Object.assign({}, window.FIREBASE_CONFIG, { projectId: "demo-kiffy" }) : window.FIREBASE_CONFIG);
+  // sans authDomain : Firebase Auth ne charge plus l'iframe Google des connexions « popup / redirection » (Kiffy n'en a pas besoin).
+  // Sur iPhone, en mode « écran d'accueil », cette iframe pouvait bloquer le démarrage jusqu'à 60 s (écran vert figé).
+  const CFG = Object.assign({}, window.FIREBASE_CONFIG, { authDomain: undefined }, EMU ? { projectId: "demo-kiffy" } : {});
+  firebase.initializeApp(CFG);
   const auth = firebase.auth(), db = firebase.firestore(), fns = firebase.app().functions("europe-west1");
   if (EMU) { auth.useEmulator("http://127.0.0.1:9099", { disableWarnings: true }); db.useEmulator("127.0.0.1", 8080); fns.useEmulator("127.0.0.1", 5001); }
   if (NATIF) db.enablePersistence({ synchronizeTabs: false }).catch(() => {});   // app : clients et cartes lisibles sans réseau
-  // prix et abonnements : affichés seulement dans l'espace NFC Work (admin) ; le gérant ne voit jamais de prix ni de paiement
+  // prix et abonnements : affichés seulement dans l'espace NFC WORK (admin) ; le gérant ne voit jamais de prix ni de paiement
   const PRIX = true;
-  // session gardée sur le téléphone (on ne retape jamais l'e-mail) ; app : copie de secours des identifiants dans le Keychain / Keystore
-  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+  // session gardée sur le téléphone (persistance Firebase par défaut : IndexedDB) ; app native seulement : copie de secours dans le Keychain / Keystore
   const ID = NATIF && window.KiffyNatif && window.KiffyNatif.identifiants;
   window.addEventListener("offline", () => toast("Hors ligne : les visites seront possibles dès le retour du réseau.", true));
   window.addEventListener("online", () => toast("De nouveau en ligne"));
@@ -164,7 +166,7 @@
   let abos = [];
   let dernierResultat = null;                   // mode employé : dernière carte servie
   let progsAdmin = [], progsArchives = [], cartesAdmin = {}, cartesTout = [], paiementsAdmin = [];
-  let ADM = null;                               // module « espace NFC Work » (kiffy-admin.js)
+  let ADM = null;                               // module « espace NFC WORK » (kiffy-admin.js)
   const cleSession = pid => "kiffy-session-" + pid;
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
@@ -174,6 +176,21 @@
 
   /* ---------------- démarrage ---------------- */
   app.innerHTML = `<div class="chargement"><span class="logo-kiffy">kiffy</span></div>`;
+  // jamais d'écran figé : si l'écran vert reste plus de 12 s, ou si une erreur survient pendant le chargement → « Réessayer »
+  function ecranPanne(detail) {
+    if (!$(".chargement")) return;
+    app.innerHTML = `<div class="ecran"><div class="bienvenue-haut" style="height:240px"><div class="logo-kiffy" style="font-size:64px">kiffy</div></div>${S.vague}
+      <div class="page" style="padding:18px 24px"><div class="carte"><h3>Kiffy ne répond pas</h3><p class="muted" style="font-size:14px;margin:6px 0 0">${navigator.onLine ? "Le chargement prend trop de temps." : "Pas de connexion internet."} Touchez « Réessayer ».</p>${detail ? `<p class="muted" style="font-size:11px;margin:8px 0 0">${esc(String(detail).slice(0, 140))}</p>` : ""}</div>
+      <button class="btn-noir" id="rp-re">Réessayer</button><button class="btn-clair" id="rp-raz" style="padding:12px">Vider le cache et réessayer</button></div></div>`;
+    $("#rp-re").onclick = () => location.reload();
+    $("#rp-raz").onclick = async () => {
+      try { if (navigator.serviceWorker) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); if (window.caches) for (const k of await caches.keys()) await caches.delete(k); } catch (e) {}
+      location.replace(location.pathname + "?v=" + Date.now() + location.hash);
+    };
+  }
+  setTimeout(() => ecranPanne(), 12000);
+  window.addEventListener("error", e => ecranPanne(e.message));
+  window.addEventListener("unhandledrejection", e => ecranPanne(e.reason && (e.reason.message || e.reason.code)));
   let essaiSilencieux = false;
   auth.onAuthStateChanged(async u => {
     desabonner(); user = u; P = null; session = null; vueAdmin = ""; cartes = []; employes = []; pins = {};
@@ -182,11 +199,13 @@
     estAdmin = u.emailVerified && String(u.email || "").toLowerCase() === ADMIN;
     if (estAdmin) { if (!/^#\/(admin|voir)/.test(location.hash)) location.hash = "#/admin"; return route(); }
     try {
-      const q = await db.collection("fidProgrammes").where("ownerEmail", "==", String(u.email || "").toLowerCase()).get();
+      const q = await Promise.race([db.collection("fidProgrammes").where("ownerEmail", "==", String(u.email || "").toLowerCase()).get(), new Promise((_, ko) => setTimeout(() => ko(new Error("délai dépassé")), 15000))]);
       mesProgs = q.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => !p.arch);
-    } catch (e) { mesProgs = []; }
+    } catch (e) {   // réseau absent ou trop lent : on propose de réessayer (et pas « aucun commerce »)
+      app.innerHTML = `<div class="chargement"><span class="logo-kiffy">kiffy</span></div>`; return ecranPanne(e && e.message);
+    }
     if (!mesProgs.length) return ecranAucun();
-    if (!u.emailVerified) return ecranAucun("Votre e-mail n’est pas encore vérifié. Demandez à NFC Work de renvoyer l’accès.");
+    if (!u.emailVerified) return ecranAucun("Votre e-mail n’est pas encore vérifié. Demandez à NFC WORK de renvoyer l’accès.");
     const choisi = lsGet("kiffy-pid");
     ouvrirCommerce((mesProgs.find(p => p.id === choisi) || mesProgs[0]).id);
   });
@@ -305,7 +324,7 @@
         <p class="err" id="cx-e"></p>
         <button class="btn-noir" style="border-radius:18px;padding:16px;font-size:16px">Se connecter</button>
         <button type="button" class="lien" id="cx-o" style="align-self:center">Mot de passe oublié ?</button>
-        <div class="petit" style="font-size:12px">Kiffy · propulsé par NFC Work</div>
+        <div class="petit" style="font-size:12px">Kiffy · propulsé par NFC WORK</div>
       </form></div>`;
     $("#cx").onsubmit = async e => {
       e.preventDefault(); const b = e.target.querySelector("button.btn-noir"); $("#cx-e").textContent = ""; b.disabled = true;
@@ -324,8 +343,8 @@
   }
   function ecranAucun(msg) {
     app.innerHTML = `<div class="ecran"><div class="bienvenue-haut" style="height:240px"><div class="logo-kiffy" style="font-size:64px">kiffy</div></div>${S.vague}
-      <div class="page" style="padding:18px 24px"><div class="carte"><h3>Aucun commerce sur ce compte</h3><p class="muted" style="font-size:14px;margin:6px 0 0">${esc(msg || "Ce compte n’est lié à aucun commerce Kiffy. Contactez NFC Work.")}</p></div>
-      ${WHATSAPP ? `<a class="btn-vert" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Bonjour NFC Work, j’ai besoin d’aide pour Kiffy (" + (user && user.email) + ").")}" target="_blank" rel="noopener">${ic("whatsapp", 20)} Écrire à NFC Work</a>` : ""}
+      <div class="page" style="padding:18px 24px"><div class="carte"><h3>Aucun commerce sur ce compte</h3><p class="muted" style="font-size:14px;margin:6px 0 0">${esc(msg || "Ce compte n’est lié à aucun commerce Kiffy. Contactez NFC WORK.")}</p></div>
+      ${WHATSAPP ? `<a class="btn-vert" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Bonjour NFC WORK, j’ai besoin d’aide pour Kiffy (" + (user && user.email) + ").")}" target="_blank" rel="noopener">${ic("whatsapp", 20)} Écrire à NFC WORK</a>` : ""}
       <button class="btn-clair" id="dx" style="padding:12px">Se déconnecter</button></div></div>`;
     $("#dx").onclick = () => seDeconnecter();
   }
@@ -351,7 +370,7 @@
   async function proposerFaceId(force) {
     if (!FN() || !FN().faceIdDispo || (!force && (faceOk() || lsGet(cleFace() + "-non")))) return;
     if (!(await FN().faceIdDispo().catch(() => false))) { if (force) toast("Face ID n’est pas configuré sur ce téléphone.", true); return; }
-    if (await confirmer("Activer Face ID ?", estAdmin && !vueAdmin ? "Ouvrez l’espace NFC Work avec votre visage (ou votre empreinte). Le code admin reste possible en secours." : "Ouvrez l’espace du gérant avec votre visage (ou votre empreinte). Le code du gérant reste possible en secours.", "Activer Face ID")) {
+    if (await confirmer("Activer Face ID ?", estAdmin && !vueAdmin ? "Ouvrez l’espace NFC WORK avec votre visage (ou votre empreinte). Le code admin reste possible en secours." : "Ouvrez l’espace du gérant avec votre visage (ou votre empreinte). Le code du gérant reste possible en secours.", "Activer Face ID")) {
       if (await faceId("Activer Face ID pour Kiffy")) { lsSet(cleFace(), "1"); lsSet(cleFace() + "-non", null); toast("Face ID activé"); return true; }
     } else lsSet(cleFace() + "-non", "1");
   }
@@ -397,7 +416,7 @@
     document.body.classList.add("sombre");
     app.innerHTML = `<div class="ecran noir" id="pinz"></div>`;
     const z = $("#pinz");
-    if (!pins.gerant) {   // premier lancement (ou code effacé par NFC Work) : le gérant choisit son code
+    if (!pins.gerant) {   // premier lancement (ou code effacé par NFC WORK) : le gérant choisit son code
       let premier = "";
       const fin = clavier(z, { titre: P.nom, aide: "Choisissez le code du gérant (4 chiffres)", note: "Ce code ouvre tout l’espace. Les employés auront leur propre code.",
         surCode: async c => {
@@ -450,7 +469,7 @@
     });
   }
 
-  /* ---------------- verrou de l'espace NFC Work (admin) : Face ID, sinon le code admin ---------------- */
+  /* ---------------- verrou de l'espace NFC WORK (admin) : Face ID, sinon le code admin ---------------- */
   const adminOuvert = () => !!ssGet("kiffy-admin-ok");
   async function ecranVerrouAdmin() {
     document.body.classList.add("sombre");
@@ -461,7 +480,7 @@
     const ouvrir = () => { ssSet("kiffy-admin-ok", 1); document.body.classList.remove("sombre"); route(); setTimeout(proposerFaceId, 600); };
     if (!h) {   // premier lancement : choisir le code admin (secours de Face ID)
       let premier = "";
-      const fin = clavier(z, { titre: "Espace NFC Work", aide: "Choisissez votre code admin (4 chiffres)", note: "Il remplace Face ID quand le visage n’est pas reconnu. Enregistré chiffré.", logo,
+      const fin = clavier(z, { titre: "Espace NFC WORK", aide: "Choisissez votre code admin (4 chiffres)", note: "Il remplace Face ID quand le visage n’est pas reconnu. Enregistré chiffré.", logo,
         surCode: async c => {
           if (!premier) { premier = c; return "Retapez le même code"; }
           if (c !== premier) { premier = ""; return "Les 2 codes sont différents. Recommencez"; }
@@ -470,7 +489,7 @@
         } });
       return;
     }
-    const fin = clavier(z, { titre: "Espace NFC Work", aide: "Face ID ou code admin", logo, face: faceOk(), auto: faceOk(),
+    const fin = clavier(z, { titre: "Espace NFC WORK", aide: "Face ID ou code admin", logo, face: faceOk(), auto: faceOk(),
       surCode: async (c, face) => { if (!face && (await hachePin("admin", user.uid, c)) !== h) return false; fin(); ouvrir(); return true; } });
   }
   // retour dans l'app après 5 minutes : on reverrouille (gérant → Face ID / code ; admin → Face ID / code admin ; le mode employé reste ouvert)
@@ -514,8 +533,8 @@
           <button class="rond" id="cloche" aria-label="Nouveaux clients">${S.cloche}${nouveaux ? "<i></i>" : ""}</button></div></header>
       <div class="stats"><div><div class="n">${cartes.length}</div><div class="l">Clients</div></div><div><div class="n">${visitesMois()}</div><div class="l">Visites ce mois</div></div><div><div class="n">${cadeaux()}</div><div class="l">Cadeaux</div></div></div>
       <div class="page" style="padding-top:18px">
-        ${P.actif === false ? `<div class="pause">Commerce en pause : les visites sont bloquées. Contactez NFC Work.</div>` : ""}
-        <a href="#/scanner" class="grosse-action"><span class="c">${S.scan(26)}</span><span style="flex:1"><b>Ajouter une visite</b><small>Scannez ou approchez la carte du client</small></span></a>
+        ${P.actif === false ? `<div class="pause">Commerce en pause : les visites sont bloquées. Contactez NFC WORK.</div>` : ""}
+        <a href="#/scanner" class="grosse-action"><span class="c">${S.scan(26)}</span><span style="flex:1"><b>Ajouter une visite</b><small>Scannez le QR de la carte du client</small></span></a>
         ${an.length ? `<a href="#/anniversaires" class="bandeau-anniv">${ic("cake", 26, "color:#16C172")}<span style="flex:1"><b>${an.length} anniversaire${an.length > 1 ? "s" : ""} aujourd’hui</b><span class="s">${esc(an.slice(0, 3).map(c => prenom(c.nom)).join(" et "))}${P.annivAuto !== false ? " · message envoyé automatiquement" : ""}</span></span>${S.chev("#0A0A0A")}</a>` : ""}
         <div class="raccourcis"><a href="#/message">${S.bulle(24, "#16C172")}Message à tous</a><button id="relance">${S.cloche.replace('stroke="#0A0A0A"', 'stroke="#16C172"').replace(/width="20" height="20"/, 'width="24" height="24"')}Relancer les absents</button><button id="mode-emp">${ic("lock", 24)}Mode employé</button></div>
         <div class="carte"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px"><h3>Dernières visites</h3><a href="#/clients" class="lien" style="font-weight:600">Tout voir</a></div>
@@ -572,9 +591,13 @@
   async function demarrerCamera(cadre, surCode, lecteur = lireCode) {
     const msg = $(".msg-cam", cadre);
     if (window.KiffyNatif && window.KiffyNatif.scanner) {   // app : scanner natif (plein écran), ouvert tout de suite
-      msg.textContent = "Touchez ici pour scanner"; let actif = true;
-      const lance = () => window.KiffyNatif.scanner().then(t => { if (!actif || !t) return; const c = lecteur(t); c ? surCode(c) : toast("QR non reconnu."); }).catch(e => toast(e.message || "Scanner indisponible."));
-      cadre.onclick = lance; lance(); return () => { actif = false; };
+      msg.textContent = "Ouverture de la caméra…"; let actif = true, ouvert = false;
+      const lance = () => {
+        if (ouvert || !actif) return; ouvert = true;
+        window.KiffyNatif.scanner().then(t => { ouvert = false; if (!actif) return; if (!t) { msg.textContent = "Touchez ici pour scanner à nouveau"; return; } const c = lecteur(t); if (c) surCode(c); else { msg.textContent = "Touchez ici pour scanner à nouveau"; toast("Ce QR n’est pas une carte Kiffy."); } })
+          .catch(e => { ouvert = false; msg.textContent = "Touchez ici pour scanner"; if (!/cancel|annul/i.test(e && e.message || "")) toast(/permission|denied|refus/i.test(e && e.message || "") ? "Autorisez la caméra : Réglages → Kiffy → Caméra." : (e && e.message) || "Scanner indisponible.", true); });
+      };
+      cadre.onclick = lance; setTimeout(lance, 250); return () => { actif = false; };
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { msg.textContent = "Caméra non disponible sur ce navigateur."; return () => {}; }
     let flux, arret = false, t = 0;
@@ -625,14 +648,12 @@
     app.innerHTML = `${bandeauAdmin()}<div class="ecran noir">
       <div class="barre" style="justify-content:space-between"><button class="retour" onclick="history.length>1?history.back():location.hash='#/accueil'" aria-label="Retour">${S.fermer}</button><span class="t">Ajouter une visite</span><span style="width:42px"></span></div>
       <div class="scan-zone"><div class="cadre" id="cadre">${S.coins}<div class="ligne-scan"></div><div class="msg-cam">Ouverture de la caméra…</div></div>
-        <div class="scan-txt"><b>Scannez la carte du client</b><span>Le QR de sa carte Kiffy, dans son Wallet</span></div>
+        <div class="scan-txt"><b>Scannez le QR de la carte</b><span>Le client ouvre sa carte Kiffy dans Apple Wallet ou Google Wallet</span></div>
         <div class="ou">OU</div>
-        <button class="btn-vert" id="nfc">${S.ondes}Lire la carte en NFC</button>
         <button class="btn-ligne" id="cherche">Chercher par nom ou téléphone</button></div></div>`;
     brancherAdmin();
     const ouvrir = cid => aller("#/client/" + encodeURIComponent(cid));
     demarrerCamera($("#cadre"), ouvrir).then(stop => (scanActif = stop));
-    $("#nfc").onclick = () => lireNFC(ouvrir);
     $("#cherche").onclick = () => chercher(ouvrir);
   }
 
@@ -644,16 +665,14 @@
     app.innerHTML = `<div class="ecran noir">
       <div class="emp-haut"><span class="qui"><span class="av">${esc(initiale(e.nom))}</span><span><b>${esc(e.nom)}</b><small>Mode employé · ${esc(P.nom)}</small></span></span><button class="pilule" id="changer">${ic("lock", 16)} Changer</button></div>
       <div class="scan-zone"><div class="cadre" id="cadre">${S.coins}<div class="ligne-scan"></div><div class="msg-cam">Ouverture de la caméra…</div></div>
-        <div class="scan-txt"><b>Scannez la carte du client</b><span>Le QR de sa carte Kiffy, dans son Wallet</span></div>
+        <div class="scan-txt"><b>Scannez le QR de la carte</b><span>Le client ouvre sa carte Kiffy dans Apple Wallet ou Google Wallet</span></div>
         <div class="ou">OU</div>
-        <button class="btn-vert" id="nfc">${S.ondes}Lire la carte en NFC</button>
         <button class="btn-ligne" id="cherche">Chercher par prénom</button>
         ${r ? `<div class="resultat${r.ok ? "" : " ko"}">${r.ok ? ic("circle-check", 24, "color:#16C172") : ic("alert-triangle", 24, "color:#FF8A8A")}<span style="flex:1"><b>${esc(r.titre)}</b><span class="s">${esc(r.sous)}</span></span></div>` : ""}
       </div></div>`;
     $("#changer").onclick = verrouiller;
     const ouvrir = cid => aller("#/client/" + encodeURIComponent(cid));
     demarrerCamera($("#cadre"), ouvrir).then(stop => (scanActif = stop));
-    $("#nfc").onclick = () => lireNFC(ouvrir);
     $("#cherche").onclick = () => chercher(ouvrir, true);
   }
 
@@ -750,7 +769,7 @@
     app.innerHTML = `${bandeauAdmin()}<div class="ecran nav">
       <div class="barre"><a class="retour" href="#/accueil" aria-label="Retour">${S.retour()}</a><span class="t">Message à tous les clients</span></div>
       <div class="page">
-        ${bloque ? `<div class="pause">Les messages promo ne sont pas activés pour ce commerce. Contactez NFC Work.</div>` : ""}
+        ${bloque ? `<div class="pause">Les messages promo ne sont pas activés pour ce commerce. Contactez NFC WORK.</div>` : ""}
         <div class="carte" style="display:flex;flex-direction:column;gap:12px">
           <label class="champ">Titre<input id="m-t" maxlength="60" placeholder="Ce week-end chez nous"></label>
           <label class="champ">Message<textarea id="m-x" rows="3" maxlength="300" placeholder="-20 % sur tous les cafés samedi et dimanche"></textarea></label></div>
@@ -835,7 +854,7 @@
         <div class="carte menu"><div class="sect" style="display:flex;align-items:center;gap:6px">${ic("lock", 14)} DESIGN DE LA CARTE · NFC WORK</div>
           ${opt("r-design", ic("palette"), "Logo, couleur, photo, nom", "")}
           ${opt("r-lieu", ic("map-pin"), "Adresses et liens", nbLieux ? `${nbLieux} lieu${nbLieux > 1 ? "x" : ""}` : "")}
-          <div class="verrou-note">${ic("lock", 16)}<span>Contactez NFC Work pour modifier le design, le nom, les adresses, la règle ou les liens de la carte.</span></div></div>
+          <div class="verrou-note">${ic("lock", 16)}<span>Contactez NFC WORK pour modifier le design, le nom, les adresses, la règle ou les liens de la carte.</span></div></div>
         <div class="carte menu"><div class="sect">L’ÉQUIPE</div>
           ${opt("r-equipe", ic("users"), "Employés et codes PIN", String(actifs().length))}
           ${opt("r-emp", ic("lock"), "Mode employé", "")}</div>
@@ -843,7 +862,7 @@
           ${NATIF && !vueAdmin ? opt("r-face", ic("face-id"), "Face ID", faceOk() ? "activé" : "désactivé") : ""}
           ${opt("r-plaque", ic("qrcode"), "Ma plaque Kiffy", P.plaque || "")}
           ${opt("r-lien", ic("link"), "Lien d’inscription des clients", "")}
-          ${WHATSAPP ? opt("r-aide", ic("whatsapp"), "Aide NFC Work (WhatsApp)", "") : ""}
+          ${WHATSAPP ? opt("r-aide", ic("whatsapp"), "Aide NFC WORK (WhatsApp)", "") : ""}
           <button class="opt" id="r-dx" style="display:block;font-weight:700" ><span class="danger" style="font-size:15px">Se déconnecter</span></button></div>
         ${vueAdmin ? "" : `<button class="lien danger" id="r-suppr" style="align-self:center;font-weight:600;font-size:13px;padding:6px">Supprimer mon compte</button>`}
         <div class="petit"><a href="${SITE}/legal/kiffy/" target="_blank" rel="noopener" style="color:inherit">Confidentialité et données</a></div>
@@ -860,21 +879,21 @@
     $("#r-equipe").onclick = () => aller("#/equipe");
     $("#r-emp").onclick = () => actifs().some(e => pins[e.id]) ? verrouiller() : toast("Ajoutez d’abord un employé avec son code.", true);
     const plaque = P.plaque || "";
-    $("#r-plaque").onclick = () => feuille(`<h2>Ma plaque Kiffy</h2><p class="muted" style="margin:0;font-size:14px">${plaque ? `Votre plaque : <b>${esc(plaque)}</b>. Les clients la scannent ou l’approchent pour créer leur carte.` : "Aucune plaque liée pour l’instant. NFC Work la lie à votre commerce lors de l’installation."}</p><button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
+    $("#r-plaque").onclick = () => feuille(`<h2>Ma plaque Kiffy</h2><p class="muted" style="margin:0;font-size:14px">${plaque ? `Votre plaque : <b>${esc(plaque)}</b>. Les clients la scannent ou l’approchent pour créer leur carte.` : "Aucune plaque liée pour l’instant. NFC WORK la lie à votre commerce lors de l’installation."}</p><button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
     $("#r-lien").onclick = () => {
       const l = lienCarte(P);
       const f = feuille(`<h2>Lien d’inscription</h2><p class="muted" style="margin:0;font-size:14px">Les clients ouvrent ce lien pour créer leur carte :</p><div class="modele" style="word-break:break-all">${esc(l)}</div><button class="btn-noir moyen" id="cp">Copier le lien</button><button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
       $("#cp", f).onclick = () => navigator.clipboard.writeText(l).then(() => toast("Lien copié"), () => toast(l));
     };
-    if ($("#r-aide")) $("#r-aide").onclick = () => window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Bonjour NFC Work, j’ai besoin d’aide pour Kiffy (${P.nom}).`)}`, "_blank", "noopener");
+    if ($("#r-aide")) $("#r-aide").onclick = () => window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Bonjour NFC WORK, j’ai besoin d’aide pour Kiffy (${P.nom}).`)}`, "_blank", "noopener");
     if ($("#r-suppr")) $("#r-suppr").onclick = async () => {
       if (!(await pinGerant())) return;
-      if (!(await confirmer("Supprimer le compte du commerce ?", "Votre accès Kiffy est supprimé tout de suite et le commerce est mis en pause. NFC Work efface ensuite ses données (voir nfcwork.ma/legal/kiffy). Impossible d’annuler.", "Supprimer définitivement", true))) return;
+      if (!(await confirmer("Supprimer le compte du commerce ?", "Votre accès Kiffy est supprimé tout de suite et le commerce est mis en pause. NFC WORK efface ensuite ses données (voir nfcwork.ma/legal/kiffy). Impossible d’annuler.", "Supprimer définitivement", true))) return;
       try { await appel("kiffySupprimerCompte", {}); ssSet(cleSession(P.id), null); toast("Compte supprimé", true); if (ID) await ID.effacer().catch(() => {}); await auth.signOut().catch(() => {}); } catch (e) { erreur(e); }
     };
     $("#r-dx").onclick = async () => { if (await confirmer("Se déconnecter ?", "Il faudra retaper l’e-mail et le mot de passe du commerce sur ce téléphone.", "Se déconnecter", true)) { if (vueAdmin) { $("#quitte-vue") && $("#quitte-vue").click(); return; } seDeconnecter(true); } };
   }
-  // le design de la carte est réservé à NFC Work : le gérant le voit, sans pouvoir le changer
+  // le design de la carte est réservé à NFC WORK : le gérant le voit, sans pouvoir le changer
   function designLecture(lieux) {
     const nbL = Array.isArray(P.lieux) ? P.lieux.length : 0, fond = P.fondMetier === "unie" ? "" : photoMetier(P.fondMetier || P.metier);
     const kv = (l, v) => `<div class="kv"><span class="muted">${esc(l)}</span><b style="text-align:right">${v}</b></div>`;
@@ -884,8 +903,8 @@
         ${lieux ? kv("Adresses", nbL ? `${nbL} enregistrée${nbL > 1 ? "s" : ""}` : "aucune") + kv("Texte près du commerce", esc(P.lieuTexte || "par défaut")) + kv("Lien avis Google", P.lienAvis ? "activé" : "non")
           : kv("Nom affiché", esc(P.nom)) + kv("Métier", esc(nomMetier(P.metier))) + kv("Couleur", `<span style="display:inline-block;width:14px;height:14px;border-radius:7px;background:${esc(P.couleur || "#16C172")};vertical-align:-2px"></span> ${esc(P.couleur || "#16C172")}`) + kv("Règle", `${P.type === "montant" ? "points selon le montant" : "1 tampon par visite"} · ${esc(unite(P))}`)}
       </div>
-      <div class="verrou-note">${ic("lock", 16)}<span>Réservé à NFC Work. Contactez NFC Work pour modifier ${lieux ? "les adresses et les liens" : "le logo, la couleur, la photo, le nom ou la règle"}.</span></div>
-      ${vueAdmin ? `<button class="btn-noir moyen" id="dl-adm">${ic("palette", 18)} Modifier (NFC Work)</button>` : WHATSAPP ? `<a class="btn-vert" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Bonjour NFC Work, je voudrais modifier ${lieux ? "les adresses / liens" : "le design"} de ma carte Kiffy (${P.nom}).`)}" target="_blank" rel="noopener">${ic("whatsapp", 20)} Contacter NFC Work</a>` : ""}
+      <div class="verrou-note">${ic("lock", 16)}<span>Réservé à NFC WORK. Contactez NFC WORK pour modifier ${lieux ? "les adresses et les liens" : "le logo, la couleur, la photo, le nom ou la règle"}.</span></div>
+      ${vueAdmin ? `<button class="btn-noir moyen" id="dl-adm">${ic("palette", 18)} Modifier (NFC WORK)</button>` : WHATSAPP ? `<a class="btn-vert" href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Bonjour NFC WORK, je voudrais modifier ${lieux ? "les adresses / liens" : "le design"} de ma carte Kiffy (${P.nom}).`)}" target="_blank" rel="noopener">${ic("whatsapp", 20)} Contacter NFC WORK</a>` : ""}
       <button class="btn-clair" data-fermer style="padding:12px">Fermer</button>`);
     if ($("#dl-adm", f)) $("#dl-adm", f).onclick = () => { const pid = P.id; f.remove(); $("#quitte-vue") && $("#quitte-vue").click(); setTimeout(() => aller("#/admin/modifier/" + encodeURIComponent(pid)), 50); };
   }
@@ -893,7 +912,7 @@
     const f = feuille(`<h2>Objectif et récompense</h2>
       <label class="champ">Objectif (${P.type === "montant" ? "points" : "nombre de visites"})<input id="po" type="number" inputmode="numeric" min="1" max="1000" value="${objectif(P)}"></label>
       <label class="champ">Récompense<input id="pr" maxlength="80" value="${esc(P.recompense || "")}"></label>
-      <div class="muted" style="font-size:12.5px">Unité : ${esc(unite(P))} (règle fixée par NFC Work). Les cartes de vos clients se mettent à jour toutes seules.</div>
+      <div class="muted" style="font-size:12.5px">Unité : ${esc(unite(P))} (règle fixée par NFC WORK). Les cartes de vos clients se mettent à jour toutes seules.</div>
       <button class="btn-noir moyen" id="p-ok">Enregistrer</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
     $("#p-ok", f).onclick = async () => {
       try { await appel("kiffyReglages", { pid: P.id, champs: { objectif: parseInt($("#po", f).value, 10), recompense: $("#pr", f).value } }); f.remove(); toast("Enregistré"); } catch (e) { erreur(e); }
@@ -1456,7 +1475,7 @@
     };
   }
 
-  /* ---------------- espace NFC Work : module kiffy-admin.js ---------------- */
+  /* ---------------- espace NFC WORK : module kiffy-admin.js ---------------- */
   const K = {
     $, $$, esc, app, db, auth, FV, TS, ic, S, toast, erreur, ms, moisCle, moisPlus, nomMois, jourPlus, ilya, quand, dateCourte, initiale, prenom, masque, rid,
     feuille, confirmer, aller, appel, logoHTML, clair, nomMetier, objectif, unite, statut, impayes, etat, navAdmin, brancherNavAdmin, chargerAdmin, journal, fichier, csv, chargerJs,

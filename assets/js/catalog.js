@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — CATALOGUE PRODUITS
+   NFC WORK — CATALOGUE PRODUITS
    Pour changer un prix: modifie "p". Pour ajouter un produit:
    copie un bloc { k:..., n:..., p:..., f:{ar:[],fr:[]} }.
    rec:1 = Recommandé · prem:1 = Premium · best:1 = Best seller
@@ -52,7 +52,7 @@ const CATALOG = [
    {k:"wifi",n:{ar:"واي فاي",fr:"Wi-Fi"},img:"assets/img/produits/cle-nfc-wifi.webp"},
    {k:"contact",n:{ar:"جهة الاتصال",fr:"Contact"},img:"assets/img/produits/cle-nfc-contact.webp"},
    {k:"menu",n:{ar:"منيو",fr:"Menu"},img:"assets/img/produits/cle-nfc-menu.webp",
-    // formule du menu digital (prix d'une clé Menu = prix de l'offre + plus) — c'est NFCWORK qui remplit le menu
+    // formule du menu digital (prix d'une clé Menu = prix de l'offre + plus) — c'est NFC WORK qui remplit le menu
     formules:[{k:"",n:"Standard",plus:0,i:{ar:"صور المنيو ديالكم",fr:"Photos de votre carte"}},
               {k:"pro",n:"Pro",plus:50,i:{ar:"منيو مصمم بالصور والأثمنة",fr:"Menu designé, photos et prix"}},
               {k:"premium",n:"Premium",plus:150,i:{ar:"تصميم فاخر + الطلب عبر واتساب",fr:"Design premium + commande WhatsApp"}}]},

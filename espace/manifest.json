@@ -1,6 +1,6 @@
 {
-  "name": "NFCWORK Espace",
-  "short_name": "NFCWORK",
+  "name": "NFC WORK Espace",
+  "short_name": "NFC WORK",
   "description": "Gérer vos clients, menus, cartes NFC et factures",
   "id": "/espace/",
   "start_url": "/espace/",

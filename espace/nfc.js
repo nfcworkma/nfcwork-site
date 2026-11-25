@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — ÉCRIRE UN LIEN DANS UNE PUCE NFC depuis l'Espace
+   NFC WORK — ÉCRIRE UN LIEN DANS UNE PUCE NFC depuis l'Espace
    Android (Chrome) : directement, sans application (Web NFC).
    iPhone : Apple ne le permet pas depuis un site → on copie le lien et on ouvre NFC Tools.
    Utilisation : NFCW_ECRIRE("https://nfcwork.ma/p/nom", "Nom du produit")

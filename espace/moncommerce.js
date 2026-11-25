@@ -1,4 +1,4 @@
-/* NFCWORK — « Mon commerce » : espace client limité
+/* NFC WORK — « Mon commerce » : espace client limité
    - Admin (fiche client) : choisir les menus / pages du client + ce qu'il a le droit de faire  → clients/<id>.acces
    - Client (accueil) : ses liens, ses visites, et cocher lui-même les plats épuisés → dispo/<slug> { email, off:[ids] }
    Règle Firebase : regle-dispo.txt */
@@ -14,7 +14,7 @@
       allow update: if isAdmin() || (verified() && resource.data.email == myEmail()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['off', 'maj']));
     }
-    // ✏️ le commerçant modifie son propre menu (prix, photos, voitures) si NFCWORK l'autorise
+    // ✏️ le commerçant modifie son propre menu (prix, photos, voitures) si NFC WORK l'autorise
     function proprio(slug) { return verified() && exists(/databases/$(database)/documents/dispo/$(slug))
       && get(/databases/$(database)/documents/dispo/$(slug)).data.email == myEmail()
       && get(/databases/$(database)/documents/dispo/$(slug)).data.get('edit', false) == true; }
@@ -135,7 +135,7 @@
       if (el.querySelector("[data-mca]:checked")) L.push("💳 votre abonnement");
       if (a.visites) L.push("📊 vos visites");
       L.push("🧾 vos factures");
-      const txt = `Bonjour ${c.name || ""} 👋\n\nVotre espace NFCWORK est prêt. Vous y retrouvez :\n${L.map(x => "• " + x).join("\n")}\n\n1️⃣ Ouvrez : https://nfcwork.ma/espace\n2️⃣ Touchez « Créer un compte »\n3️⃣ E-mail : ${c.email}\n4️⃣ Choisissez un mot de passe\n5️⃣ Ouvrez l’e-mail de confirmation reçu, puis revenez sur nfcwork.ma/espace\n\n💡 Ajoutez la page sur l’écran d’accueil de votre téléphone pour l’ouvrir comme une application.\n\nNFCWORK · nfcwork.ma`;
+      const txt = `Bonjour ${c.name || ""} 👋\n\nVotre espace NFC WORK est prêt. Vous y retrouvez :\n${L.map(x => "• " + x).join("\n")}\n\n1️⃣ Ouvrez : https://nfcwork.ma/espace\n2️⃣ Touchez « Créer un compte »\n3️⃣ E-mail : ${c.email}\n4️⃣ Choisissez un mot de passe\n5️⃣ Ouvrez l’e-mail de confirmation reçu, puis revenez sur nfcwork.ma/espace\n\n💡 Ajoutez la page sur l’écran d’accueil de votre téléphone pour l’ouvrir comme une application.\n\nNFC WORK · nfcwork.ma`;
       window.open((w ? "https://wa.me/" + w : "https://wa.me/") + "?text=" + encodeURIComponent(txt), "_blank");
     };
     const off = el.querySelector("#mc-off");
@@ -178,8 +178,8 @@
     const auj = jour();
     const aboL = abos.map(a => { const r = a.echeance && a.echeance < auj; return `<div class="grow" style="flex-wrap:wrap"><span style="font-size:22px">💳</span><div style="flex:1;min-width:0"><b>${esc(SVC[a.service] || "Abonnement")}${a.libelle ? " · " + esc(a.libelle) : ""}</b>
         <div style="font-size:13.5px;margin-top:2px"><b>${(+a.prix || 0).toLocaleString("fr-FR")} DH</b> / mois${a.echeance ? ` · prochaine échéance <b>${esc(frD(a.echeance))}</b>` : ""}</div>
-        <div style="font-size:13px;margin-top:2px;color:${r ? "var(--bad,#e5484d)" : "var(--ok,#30a46c)"}">${r ? "⚠️ Paiement en attente : contactez NFCWORK" : "✅ À jour"}</div></div>
-        <div class="row" style="gap:6px;width:100%;justify-content:flex-end"><a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/212620666027?text=${encodeURIComponent("Bonjour NFCWORK, je veux payer mon abonnement " + (SVC[a.service] || "") + (a.libelle ? " (" + a.libelle + ")" : "") + " 🙏")}">💬 Payer / question</a></div></div>`; }).join("");
+        <div style="font-size:13px;margin-top:2px;color:${r ? "var(--bad,#e5484d)" : "var(--ok,#30a46c)"}">${r ? "⚠️ Paiement en attente : contactez NFC WORK" : "✅ À jour"}</div></div>
+        <div class="row" style="gap:6px;width:100%;justify-content:flex-end"><a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/212620666027?text=${encodeURIComponent("Bonjour NFC WORK, je veux payer mon abonnement " + (SVC[a.service] || "") + (a.libelle ? " (" + a.libelle + ")" : "") + " 🙏")}">💬 Payer / question</a></div></div>`; }).join("");
     const fidL = F.map(p => `<div class="grow" style="flex-wrap:wrap"><span style="font-size:22px">🎁</span><div style="flex:1;min-width:0"><b>${esc(p.nom)}</b><div class="muted" style="font-size:12.5px">Carte fidélité · ${esc(p.objectif || "")} ${esc(p.unite || "")} = ${esc(p.recompense || "")}</div></div>
         <div class="row" style="gap:6px;width:100%;justify-content:flex-end;flex-wrap:wrap"><a class="btn sm primary" href="fidelite.html#p=${esc(p.id)}">📷 Scanner · clients · rapport</a>${p.modeClient === "caisse" ? `<a class="btn sm" href="caisse.html#p=${esc(p.id)}">📱 Écran caisse</a>` : ""}</div></div>`).join("");
     const dessiner = V => { const b = document.getElementById("mcBox"); if (b) b.innerHTML = `<div class="section-head" style="margin-top:4px"><h3>🏪 Mon commerce</h3></div><div class="stack" style="gap:8px;margin-bottom:16px">${fidL}${L.map((x, i) => ligne(x, V[i])).join("")}${aboL}</div>`; };
@@ -203,7 +203,7 @@
         <input id="mcq" type="search" placeholder="🔎 Chercher un plat…" value="${esc(q)}" style="width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;font-size:16px;margin-bottom:10px">
         ${S.size ? `<div class="notice" style="margin-bottom:10px">🚫 ${S.size} plat(s) épuisé(s) <button class="btn sm" id="mcall">↩️ Tout remettre disponible</button></div>` : ""}
         ${cats.map(c => { const it = (c.items || []).filter(i => !n || norm(nomTr(i.nom)).includes(n)); return it.length ? `<div style="font-weight:700;margin:12px 0 6px">${esc(nomTr(c.nom))}</div><div class="stack" style="gap:6px">${it.map(i => { const ko = S.has(i.id) || i.dispo === false;
-          return `<button class="grow mcit${ko ? " ko" : ""}" data-mci="${esc(i.id)}"${i.dispo === false ? " disabled title=\"Épuisé dans le menu (demandez à NFCWORK)\"" : ""}><span style="flex:1;text-align:start">${esc(nomTr(i.nom))}</span><b>${ko ? KO : "✅ Dispo"}</b></button>`; }).join("")}</div>` : ""; }).join("")}`);
+          return `<button class="grow mcit${ko ? " ko" : ""}" data-mci="${esc(i.id)}"${i.dispo === false ? " disabled title=\"Épuisé dans le menu (demandez à NFC WORK)\"" : ""}><span style="flex:1;text-align:start">${esc(nomTr(i.nom))}</span><b>${ko ? KO : "✅ Dispo"}</b></button>`; }).join("")}</div>` : ""; }).join("")}`);
       const inp = document.getElementById("mcq"); inp.oninput = () => { q = inp.value; draw(); const x = document.getElementById("mcq"); x.focus(); x.setSelectionRange(q.length, q.length); };
       const all = document.getElementById("mcall"); if (all) all.onclick = () => { S.clear(); save(); };
       document.querySelectorAll("[data-mci]").forEach(b => b.onclick = () => { const id = b.dataset.mci; S.has(id) ? S.delete(id) : S.add(id); save(); });
@@ -211,7 +211,7 @@
     const save = async () => {
       draw();
       try { await fs.doc("dispo/" + slug).update({ off: [...S], maj: new Date().toISOString() }); ap.toast("✅ C’est fait"); }
-      catch (e) { ap.toast("Pas encore autorisé : demandez à NFCWORK d’activer cette option.", true); }
+      catch (e) { ap.toast("Pas encore autorisé : demandez à NFC WORK d’activer cette option.", true); }
     };
     draw();
   }

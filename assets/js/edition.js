@@ -1,4 +1,4 @@
-/* NFCWORK — ✏️ Mode édition du site (nfcwork.ma/?edition=1), réservé à l'admin.
+/* NFC WORK — ✏️ Mode édition du site (nfcwork.ma/?edition=1), réservé à l'admin.
    Textes : cliquez et écrivez. Images : bouton 📷 sur chaque image. Couleurs, numéro WhatsApp.
    Tout est gardé dans settings/site = { json: '{"slots":{}, "textes":{"fr":{},"ar":{}}, "theme":"a", "wa":""}' } */
 (function () {

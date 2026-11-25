@@ -1,6 +1,6 @@
 /* =========================================================
-   NFCWORK — FIDÉLITÉ (Espace)
-   Admin NFCWORK : crée et règle le programme de chaque commerce (type de points, récompense,
+   NFC WORK — FIDÉLITÉ (Espace)
+   Admin NFC WORK : crée et règle le programme de chaque commerce (type de points, récompense,
                    qui scanne, employés, prime du mois).
    Commerçant (son compte de l'Espace, e-mail = ownerEmail du programme) : scanne les cartes,
                    ajoute des points, offre les récompenses, gère ses employés, imprime ses affiches.
@@ -88,7 +88,7 @@
         const m = JSON.parse(d.data().json || "{}"), retires = m._retires || [];
         if (Object.keys(m).length) {
           METIERS = m;
-          // nouveaux modèles NFCWORK ajoutés depuis : on les montre aussi (sauf ceux supprimés exprès)
+          // nouveaux modèles NFC WORK ajoutés depuis : on les montre aussi (sauf ceux supprimés exprès)
           for (const [k, v] of Object.entries(METIERS_BASE)) if (!METIERS[k] && !retires.includes(k)) METIERS[k] = JSON.parse(JSON.stringify(v));
           for (const [k, v] of Object.entries(METIERS)) if (k[0] !== "_" && !v.idees && METIERS_BASE[k]) v.idees = METIERS_BASE[k].idees;
         }
@@ -127,7 +127,7 @@
       progs = (await q.get()).docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.nom || "").localeCompare(b.nom || ""));
     } catch (e) { erreur(e); progs = []; }
     await chargerMetiers();
-    if (!admin && !progs.length) { app.innerHTML = `<div class="empty"><h3>Pas encore de programme fidélité</h3><p>Contactez NFCWORK pour activer la carte fidélité de votre commerce.</p><a class="btn primary" href="https://wa.me/212620666027" target="_blank" rel="noopener">WhatsApp NFCWORK</a></div>`; return; }
+    if (!admin && !progs.length) { app.innerHTML = `<div class="empty"><h3>Pas encore de programme fidélité</h3><p>Contactez NFC WORK pour activer la carte fidélité de votre commerce.</p><a class="btn primary" href="https://wa.me/212620666027" target="_blank" rel="noopener">WhatsApp NFC WORK</a></div>`; return; }
     try { localStorage.setItem("nfcwork-fid-pro", "1"); localStorage.setItem("nfcwork-patron", "1"); } catch (e) {}
     route();
   });
@@ -412,7 +412,7 @@
       <p class="muted" style="margin:4px 0 12px">Vos modèles : ils pré-remplissent chaque nouveau programme. Touchez un métier pour le modifier.</p>
       <div class="flist" id="mlist"></div>
       <button class="btn primary" style="width:100%;margin-top:12px" data-madd>＋ Ajouter un métier</button>
-      <button class="btn sm ghost" style="width:100%;margin-top:6px" data-mreset>Revenir aux modèles NFCWORK</button>`);
+      <button class="btn sm ghost" style="width:100%;margin-top:6px" data-mreset>Revenir aux modèles NFC WORK</button>`);
     const dessiner = () => {
       $("#mlist", d).innerHTML = Object.entries(METIERS).filter(([k]) => k[0] !== "_").map(([k, m]) => `<div class="frow" data-medit="${esc(k)}" style="cursor:pointer"><span class="av" style="font-size:20px">${esc(m.ico || "✨")}</span>
         <div class="tx"><b>${esc(m.nom)}</b><small>${esc(m.type === "montant" ? `${m.dhParPoint || 10} DH = 1 pt · ${m.objectif} pts` : `${m.objectif} ${m.unite || "visites"}`)} = ${esc(m.recompense || "—")}</small></div>
@@ -425,7 +425,7 @@
       const ed = e.target.closest("[data-medit]"); if (ed) { metierForm(ed.dataset.medit, sauver); return; }
       if (e.target.closest("[data-madd]")) { metierForm(null, sauver); return; }
       const r = e.target.closest("[data-mreset]");
-      if (r) { if (!reset) { reset = true; r.textContent = "Confirmer : remettre les modèles de départ"; return; } METIERS = JSON.parse(JSON.stringify(METIERS_BASE)); delete METIERS._retires; try { await sauver(); } catch (x) { erreur(x); } reset = false; r.textContent = "Revenir aux modèles NFCWORK"; }
+      if (r) { if (!reset) { reset = true; r.textContent = "Confirmer : remettre les modèles de départ"; return; } METIERS = JSON.parse(JSON.stringify(METIERS_BASE)); delete METIERS._retires; try { await sauver(); } catch (x) { erreur(x); } reset = false; r.textContent = "Revenir aux modèles NFC WORK"; }
     });
   }
   function metierForm(cle, sauver) {
@@ -824,7 +824,7 @@
     d.addEventListener("fermee", stop);
     const trouve = txt => {
       const c = (txt.match(/[?&]c=([A-Za-z0-9_-]+)/) || [])[1], e = (txt.match(/[?&]e=([A-Za-z0-9_-]+)/) || [])[1];
-      if (!c && !e) { $("#sm", d).textContent = "Ce QR n’est pas une carte fidélité NFCWORK."; return false; }
+      if (!c && !e) { $("#sm", d).textContent = "Ce QR n’est pas une carte fidélité NFC WORK."; return false; }
       if (!c && verrou) { $("#sm", d).textContent = "Scannez la carte du client."; return false; }
       stop(); d.remove(); if (verrou) touche();
       if (c) { if (cartes.some(x => x.id === c)) carteVue(c); else ouvrirParCarte(c); }
@@ -880,7 +880,7 @@
       pretes ? `⏳ Récompenses prêtes à offrir : ${pretes}` : "",
       fidele && fidele.total ? `⭐ Client le plus fidèle : ${fidele.nom || "—"} (${fidele.total} ${unite(P)})` : "",
       top ? `🏆 Employé du mois : ${top.nom} (${top.m[k]} points)` : "",
-      "", "Merci pour votre confiance · NFCWORK"].filter((l, i, a) => l || (a[i - 1] && a[i - 1] !== "")).join("\n");
+      "", "Merci pour votre confiance · NFC WORK"].filter((l, i, a) => l || (a[i - 1] && a[i - 1] !== "")).join("\n");
     const d = fenetre(`<div class="row between"><h2>📊 Rapport du mois</h2><button class="btn sm ghost" data-fermer>Fermer</button></div>
       <p class="muted" style="margin:4px 0 10px">Envoyez-le au commerçant chaque mois : il voit ce que la carte fidélité lui rapporte.</p>
       <textarea id="rp-t" rows="11" style="width:100%;font:inherit;font-size:14px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg)">${esc(txt)}</textarea>

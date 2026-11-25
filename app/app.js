@@ -273,7 +273,7 @@
       '<span class="logo" data-slug="' + esc(r.slug) + '">' + em + '</span>' +
       '<span class="info"><span class="nm">' + esc(r.nom) + '</span><span class="ty">' + esc(r.slogan || ty) + '</span><span class="meta">' + tags + '</span></span><span class="chev">›</span></a>';
   }
-  const pied = () => '<footer>Propulsé par <b>Ncommandiw</b> · une plateforme <a href="https://nfcwork.ma" target="_blank" rel="noopener">NFCWORK</a><br><a href="/legal/" style="color:var(--muted)">Mentions légales &amp; confidentialité</a></footer>';
+  const pied = () => '<footer>Propulsé par <b>Ncommandiw</b> · une plateforme <a href="https://nfcwork.ma" target="_blank" rel="noopener">NFC WORK</a><br><a href="/legal/" style="color:var(--muted)">Mentions légales &amp; confidentialité</a></footer>';
 
   // ---------- COMMANDES ----------
   function renderOrders() {
@@ -411,7 +411,7 @@
       '<div class="group-t">Apparence</div><div class="seg" id="seg-th">' +
       [["", "Auto"], ["light", "Clair"], ["dark", "Sombre"]].map(([v, n]) => '<button data-th="' + v + '" class="' + (th === v ? "on" : "") + '">' + n + '</button>').join("") + '</div>' +
       '<div class="group-t">Langue</div><div class="list"><a class="lrow"><span class="ic">🇫🇷</span><span class="lt">Français</span><span class="lv">Arabe bientôt</span></a></div>' +
-      '<div class="group-t">À propos</div><div class="list"><a class="lrow"><span class="ic">ℹ️</span><span class="lt">Ncommandiw</span><span class="lv">v1 · by NFCWORK</span></a></div>';
+      '<div class="group-t">À propos</div><div class="list"><a class="lrow"><span class="ic">ℹ️</span><span class="lt">Ncommandiw</span><span class="lv">v1 · by NFC WORK</span></a></div>';
     bindBack();
     document.querySelectorAll("[data-th]").forEach(b => b.onclick = () => { LS.set("ncw-theme", b.dataset.th); applyTheme(); renderReglages(); });
   }

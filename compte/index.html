@@ -20,7 +20,7 @@
   body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:120px 120px;opacity:.5;mix-blend-mode:soft-light}
   .box{position:relative;z-index:1;width:100%;max-width:380px;background:rgba(255,255,255,.92);-webkit-backdrop-filter:blur(16px) saturate(130%);backdrop-filter:blur(16px) saturate(130%);border:1px solid rgba(255,255,255,.75);border-radius:26px;box-shadow:0 34px 80px -26px rgba(110,55,0,.6),0 1px 0 rgba(255,255,255,.7) inset;padding:30px 24px;text-align:center}
   @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .box{background:rgba(32,26,18,.92);border-color:rgba(255,255,255,.14)}}
-  /* Thème NFC Work (bleu nuit) quand le lien vient de l'espace NFC Work */
+  /* Thème NFC WORK (bleu nuit) quand le lien vient de l'espace NFC WORK */
   :root[data-brand="nfc"]{--bg:#0b1733;--fg:#ffffff;--muted:#a7b6d9;--line:#23386b;--accent:#2f7bff;--accent-soft:rgba(47,123,255,.18);--card:#0d1a3a}
   :root[data-brand="nfc"] body{background:radial-gradient(52% 44% at 82% 2%,rgba(92,200,255,.38),transparent 60%),radial-gradient(54% 46% at 8% 8%,rgba(47,123,255,.42),transparent 62%),linear-gradient(170deg,#0c1c40 0%,#060e24 55%)}
   :root[data-brand="nfc"] body::before{opacity:.35}
@@ -60,22 +60,22 @@
   if (FB && !FB.apps.length && window.FIREBASE_CONFIG) FB.initializeApp(window.FIREBASE_CONFIG);
   var auth = FB ? FB.auth() : null;
   var LOGO = '<img class="ic" src="/assets/img/ncommandiw-logo.svg" alt="Ncommandiw">';
-  var BRAND = '<div class="brand"><b>N\'commandiw</b> · by NFCWORK</div>';
+  var BRAND = '<div class="brand"><b>N\'commandiw</b> · by NFC WORK</div>';
 
   function q(k) { return new URLSearchParams(location.search).get(k) || ""; }
   var mode = q("mode"), code = q("oobCode"), cont = q("continueUrl") || "/app/";
   // sécurité : n'autoriser qu'un retour interne au site
   try { var cu = new URL(cont, location.origin); cont = (cu.origin === location.origin) ? cu.pathname + cu.search + cu.hash : "/app/"; } catch (e) { cont = "/app/"; }
 
-  // Détection de l'univers d'après la destination : espace NFC Work ou app Ncommandiw.
+  // Détection de l'univers d'après la destination : espace NFC WORK ou app Ncommandiw.
   // Un seul lien d'action Firebase sert les deux ; on affiche la bonne marque pour éviter toute confusion.
   var isEspace = /\/espace(\/|$)|pos\.html|caisse/i.test(cont);
-  var APPNAME = isEspace ? "NFC Work" : "Ncommandiw";
+  var APPNAME = isEspace ? "NFC WORK" : "Ncommandiw";
   if (isEspace) {
-    LOGO = '<span style="display:inline-flex;align-items:center;background:#fff;border-radius:16px;padding:12px 20px;margin:2px 0 18px;box-shadow:0 12px 28px rgba(0,0,0,.32)"><img src="/assets/img/logo-nfcwork-full.png" alt="NFC Work" style="height:30px;width:auto;max-width:200px;display:block"></span>';
-    BRAND = '<div class="brand"><b>NFC Work</b></div>';
+    LOGO = '<span style="display:inline-flex;align-items:center;background:#fff;border-radius:16px;padding:12px 20px;margin:2px 0 18px;box-shadow:0 12px 28px rgba(0,0,0,.32)"><img src="/assets/img/logo-nfcwork-full.png" alt="NFC WORK" style="height:30px;width:auto;max-width:200px;display:block"></span>';
+    BRAND = '<div class="brand"><b>NFC WORK</b></div>';
     document.documentElement.setAttribute("data-brand", "nfc");
-    try { document.title = "Mon compte · NFC Work"; var tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.setAttribute("content", "#040a1d"); } catch (e) {}
+    try { document.title = "Mon compte · NFC WORK"; var tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.setAttribute("content", "#040a1d"); } catch (e) {}
   }
 
   function render(h) { box.innerHTML = h + BRAND; }

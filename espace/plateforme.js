@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  // Admin NFCWORK — centre de contrôle de la plateforme : Restos (visibilité/ordre),
+  // Admin NFC WORK — centre de contrôle de la plateforme : Restos (visibilité/ordre),
   // Livreurs (pool central settings/livreurs), Commandes (vue d'ensemble, lecture seule).
   if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
   const auth = firebase.auth(), db = firebase.firestore();
@@ -29,11 +29,11 @@
   });
 
   function refuse() {
-    app.innerHTML = '<div class="empty paper"><h3>Accès réservé</h3><p>Connectez-vous avec le compte administrateur NFCWORK.</p><button class="btn" id="out">Changer de compte</button></div>';
+    app.innerHTML = '<div class="empty paper"><h3>Accès réservé</h3><p>Connectez-vous avec le compte administrateur NFC WORK.</p><button class="btn" id="out">Changer de compte</button></div>';
     const o = document.getElementById("out"); if (o) o.onclick = () => auth.signOut();
   }
   function login() {
-    app.innerHTML = '<div class="auth paper"><h2>Connexion</h2><p class="muted">Compte administrateur NFCWORK.</p>' +
+    app.innerHTML = '<div class="auth paper"><h2>Connexion</h2><p class="muted">Compte administrateur NFC WORK.</p>' +
       '<form id="lf" class="stack"><label class="f">E-mail<input id="le" type="email" autocomplete="email" required></label>' +
       '<label class="f">Mot de passe<input id="lp" type="password" autocomplete="current-password" required></label>' +
       '<p class="err" id="lerr"></p><button class="btn primary">Se connecter</button></form></div>';

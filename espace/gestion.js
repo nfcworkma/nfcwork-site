@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — GESTION RAPIDE (admin, téléphone ou PC)
+   NFC WORK — GESTION RAPIDE (admin, téléphone ou PC)
    Dans le tableau de bord : 🔎 recherche partout, 💰 abonnements à relancer,
    🎯 démo en 2 minutes, 📝 devis, ✍️ contrat signé au doigt, 🗂 prospects.
    Dans la fiche client : tous ses produits et les actions rapides.
@@ -64,7 +64,7 @@
     if (!l.length) { box.innerHTML = ""; return; }
     box.innerHTML = `<div class="section-head" style="margin-top:6px"><h3>💰 À encaisser (${l.length})</h3><a class="btn sm ghost" href="abonnements.html">Abonnements</a></div>
       <div class="stack" style="gap:8px;margin-bottom:16px">${l.map(a => { const j = ecart(a.echeance), w = waNum(a.tel);
-        const txt = `Bonjour ${a.client},\n\nVotre abonnement NFCWORK${a.libelle ? " (" + a.libelle + ")" : ""} ${j < 0 ? "est arrivé à échéance le " + frDate(a.echeance) : "arrive à échéance le " + frDate(a.echeance)} : ${prix(a.prix)} DH / mois.\n\nMerci de régler pour garder votre service actif 🙏\n\nNFCWORK · nfcwork.ma`;
+        const txt = `Bonjour ${a.client},\n\nVotre abonnement NFC WORK${a.libelle ? " (" + a.libelle + ")" : ""} ${j < 0 ? "est arrivé à échéance le " + frDate(a.echeance) : "arrive à échéance le " + frDate(a.echeance)} : ${prix(a.prix)} DH / mois.\n\nMerci de régler pour garder votre service actif 🙏\n\nNFC WORK · nfcwork.ma`;
         return `<div class="grow"><div style="flex:1;min-width:0"><b>${esc(a.client)}</b><div class="muted" style="font-size:13px">${prix(a.prix)} DH · ${j < 0 ? `<b style="color:var(--bad)">⚠️ ${-j} j de retard</b>` : j === 0 ? "<b style=\"color:var(--warn)\">aujourd’hui</b>" : "dans " + j + " j"}</div></div>
           ${w ? `<a class="btn sm" href="https://wa.me/${w}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">💬 Rappel</a>` : ""}<a class="btn sm primary" href="abonnements.html">✅ Payé</a></div>`; }).join("")}</div>`;
   }
@@ -156,7 +156,7 @@
         lire(); if (!st.L.length) { ap.toast("Ajoutez au moins une ligne."); return; }
         const t2 = totaux(st.L, st.remise), num = "DEV-" + new Date().getFullYear() + "-" + String(Date.now()).slice(-5);
         if (b.dataset.dv === "pdf") imprimerDevis(st, t2, num);
-        if (b.dataset.dv === "wa") { const w = waNum(st.tel); const txt = `Bonjour ${st.client},\n\nVoici votre devis NFCWORK (${num}) :\n\n${st.L.map(l => `• ${l.q > 1 ? l.q + " × " : ""}${l.nom}${l.p ? " — " + prix(l.p * l.q) + " DH" : ""}${l.m ? " + " + prix(l.m * l.q) + " DH/mois" : ""}`).join("\n")}\n\n${t2.r ? `Remise : −${prix(t2.r)} DH\n` : ""}👉 Au départ : ${prix(t2.net)} DH${t2.m ? `\n👉 Ensuite : ${prix(t2.m)} DH / mois` : ""}\n\n${st.note}\n\nNFCWORK · nfcwork.ma · ${MOI.tel}`; window.open((w ? "https://wa.me/" + w : "https://wa.me/") + "?text=" + encodeURIComponent(txt), "_blank"); }
+        if (b.dataset.dv === "wa") { const w = waNum(st.tel); const txt = `Bonjour ${st.client},\n\nVoici votre devis NFC WORK (${num}) :\n\n${st.L.map(l => `• ${l.q > 1 ? l.q + " × " : ""}${l.nom}${l.p ? " — " + prix(l.p * l.q) + " DH" : ""}${l.m ? " + " + prix(l.m * l.q) + " DH/mois" : ""}`).join("\n")}\n\n${t2.r ? `Remise : −${prix(t2.r)} DH\n` : ""}👉 Au départ : ${prix(t2.net)} DH${t2.m ? `\n👉 Ensuite : ${prix(t2.m)} DH / mois` : ""}\n\n${st.note}\n\nNFC WORK · nfcwork.ma · ${MOI.tel}`; window.open((w ? "https://wa.me/" + w : "https://wa.me/") + "?text=" + encodeURIComponent(txt), "_blank"); }
         if (b.dataset.dv === "fac") { if (!st.clientId) { ap.toast("Choisissez un client enregistré (ou créez-le d’abord)."); return; } ap.factureDepuis(st.clientId, st.L.filter(l => l.p).map(l => ({ serviceId: "", desc: l.nom, qty: l.q, price: l.p * (1 - (+st.remise || 0) / 100) })).concat(st.L.filter(l => l.m).map(l => ({ serviceId: "", desc: l.nom + " · 1er mois d’abonnement", qty: l.q, price: l.m }))), st.note); }
         if (b.dataset.dv === "contrat") { const f = st.L.find(l => l.m) || st.L[0]; contrat(st.clientId, { client: st.client, tel: st.tel, formule: f.nom, setup: t2.net, mois: t2.m, lignes: st.L }); }
       });
@@ -169,7 +169,7 @@
       .h{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1e6fff;padding-bottom:8px}.h img{height:34px}h1{font-size:20pt;margin:18px 0 4px}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}th{background:#f3f6fb;font-size:10pt}td.r,th.r{text-align:right}
       .tot{margin-left:auto;width:60%}.tot div{display:flex;justify-content:space-between;padding:6px 0}.tot .g{font-weight:700;font-size:14pt;border-top:2px solid #111}.n{color:#555;font-size:10pt;white-space:pre-wrap}.bar{text-align:center;margin-bottom:12px}.bar button{font-size:16px;padding:10px 18px;border-radius:10px;border:0;background:#1e90ff;color:#fff}@media print{.bar{display:none}}</style></head><body>
       <div class="bar"><button onclick="print()">🖨 Imprimer / Enregistrer en PDF</button></div>
-      <div class="h"><img src="${location.origin}/assets/img/logo-nfcwork.png" alt="NFCWORK"><div style="text-align:right;font-size:10pt">${MOI.nom} · ${MOI.qualite}<br>WhatsApp ${MOI.tel}<br>${MOI.site} · ${MOI.mail}</div></div>
+      <div class="h"><img src="${location.origin}/assets/img/logo-nfcwork.png" alt="NFC WORK"><div style="text-align:right;font-size:10pt">${MOI.nom} · ${MOI.qualite}<br>WhatsApp ${MOI.tel}<br>${MOI.site} · ${MOI.mail}</div></div>
       <h1>Devis ${esc(num)}</h1><div>Date : ${frDate(auj())}<br>Client : <b>${esc(st.client || "—")}</b>${st.tel ? " · " + esc(st.tel) : ""}</div>
       <table><thead><tr><th>Désignation</th><th class="r">Qté</th><th class="r">Une fois</th><th class="r">Par mois</th></tr></thead><tbody>${st.L.map(l => `<tr><td>${esc(l.nom)}</td><td class="r">${l.q}</td><td class="r">${l.p ? prix(l.p * l.q) + " DH" : "—"}</td><td class="r">${l.m ? prix(l.m * l.q) + " DH" : "—"}</td></tr>`).join("")}</tbody></table>
       <div class="tot"><div><span>Total à payer une fois</span><span>${prix(t.u)} DH</span></div>${t.r ? `<div><span>Remise</span><span>− ${prix(t.r)} DH</span></div>` : ""}<div class="g"><span>Au départ</span><span>${prix(t.net)} DH</span></div>${t.m ? `<div class="g"><span>Ensuite</span><span>${prix(t.m)} DH / mois</span></div>` : ""}</div>
@@ -203,7 +203,7 @@
         <div class="grid2"><label class="f">Mise en place (DH)<input id="ct-s" type="number" value="${esc(st.setup)}" class="num"></label><label class="f">Abonnement (DH / mois)<input id="ct-m" type="number" value="${esc(st.mois)}" class="num"></label></div>
         <div class="grid2"><label class="f">Date de début<input id="ct-d" type="date" value="${esc(st.debut)}"></label><label class="f">Produits en plus<input id="ct-o" value="${esc(st.options)}" placeholder="4 plaques de table…"></label></div>
         <div><div class="eyebrow">✍️ Signature du client</div><canvas id="sg1" class="sig"></canvas><button type="button" class="btn sm ghost" data-ef="1">Effacer</button></div>
-        <div><div class="eyebrow">✍️ Signature NFCWORK</div><canvas id="sg2" class="sig"></canvas><button type="button" class="btn sm ghost" data-ef="2">Effacer</button></div>
+        <div><div class="eyebrow">✍️ Signature NFC WORK</div><canvas id="sg2" class="sig"></canvas><button type="button" class="btn sm ghost" data-ef="2">Effacer</button></div>
         <div class="row" style="gap:8px"><button class="btn primary" id="ct-pdf">🖨 Contrat en PDF</button></div>
         <p class="muted" style="font-size:12.5px;margin:0">💡 Sur le téléphone : « Imprimer » → « Enregistrer en PDF », puis envoyez-le au client sur WhatsApp.</p>
       </div>`);
@@ -220,23 +220,23 @@
   function imprimerContrat(k) {
     const w = window.open("", "_blank"); if (!w) { A().toast("Autorisez les fenêtres pour imprimer."); return; }
     const box = (t, on) => `<div class="cb"><span>${on ? "☑" : "☐"}</span>${t}</div>`;
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Contrat NFCWORK × ${esc(k.client)}</title><style>@page{size:A4;margin:14mm}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:11pt;line-height:1.45}
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Contrat NFC WORK × ${esc(k.client)}</title><style>@page{size:A4;margin:14mm}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:11pt;line-height:1.45}
       .h{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1e6fff;padding-bottom:8px}.h img{height:32px}h1{font-size:17pt;margin:14px 0 2px}h2{font-size:12pt;margin:14px 0 4px;color:#0b4fc0}
       .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.p{border:1px solid #ddd;border-radius:8px;padding:8px 10px}.cb{margin:3px 0}.cb span{margin-right:6px}
       table{width:100%;border-collapse:collapse}td{padding:6px;border-bottom:1px solid #eee}td.r{text-align:right;font-weight:700}.sg{height:90px;border:1px dashed #999;border-radius:8px;display:flex;align-items:center;justify-content:center}.sg img{max-height:86px;max-width:100%}
       .bar{text-align:center;margin-bottom:10px}.bar button{font-size:16px;padding:10px 18px;border-radius:10px;border:0;background:#1e90ff;color:#fff}@media print{.bar{display:none}}</style></head><body>
       <div class="bar"><button onclick="print()">🖨 Imprimer / Enregistrer en PDF</button></div>
-      <div class="h"><img src="${location.origin}/assets/img/logo-nfcwork.png" alt="NFCWORK"><div style="text-align:right;font-size:9.5pt">${MOI.site} · WhatsApp ${MOI.tel}<br>${MOI.mail}</div></div>
-      <h1>Contrat de prestation · NFCWORK × ${esc(k.client)}</h1><div style="color:#555">Fait le ${frDate(auj())}</div>
-      <h2>1. Les parties</h2><div class="two"><div class="p"><b>NFCWORK</b><br>Représenté par ${MOI.nom}, ${MOI.qualite}${(() => { let c = ""; try { c = localStorage.getItem("nfcw-cin") || ""; } catch (e) {} if (!c) { c = (prompt("Votre numéro de CIN (gardé seulement sur cet appareil) :", "") || "").trim().toUpperCase(); try { if (c) localStorage.setItem("nfcw-cin", c); } catch (e) {} } return c ? "<br>CIN : " + c : ""; })()}<br>Tél. : ${MOI.tel}</div>
+      <div class="h"><img src="${location.origin}/assets/img/logo-nfcwork.png" alt="NFC WORK"><div style="text-align:right;font-size:9.5pt">${MOI.site} · WhatsApp ${MOI.tel}<br>${MOI.mail}</div></div>
+      <h1>Contrat de prestation · NFC WORK × ${esc(k.client)}</h1><div style="color:#555">Fait le ${frDate(auj())}</div>
+      <h2>1. Les parties</h2><div class="two"><div class="p"><b>NFC WORK</b><br>Représenté par ${MOI.nom}, ${MOI.qualite}${(() => { let c = ""; try { c = localStorage.getItem("nfcw-cin") || ""; } catch (e) {} if (!c) { c = (prompt("Votre numéro de CIN (gardé seulement sur cet appareil) :", "") || "").trim().toUpperCase(); try { if (c) localStorage.setItem("nfcw-cin", c); } catch (e) {} } return c ? "<br>CIN : " + c : ""; })()}<br>Tél. : ${MOI.tel}</div>
         <div class="p"><b>${esc(k.client)}</b>${k.gerant ? "<br>Représenté par " + esc(k.gerant) : ""}${k.ident ? "<br>" + esc(k.ident) : ""}${k.tel ? "<br>Tél. : " + esc(k.tel) : ""}${k.adresse ? "<br>" + esc(k.adresse) : ""}</div></div>
-      <h2>2. Objet</h2><p>NFCWORK met en place pour le client la formule <b>${esc(k.formule)}</b>${k.options ? ", avec : " + esc(k.options) : ""}, et assure l’hébergement, les mises à jour et le support pendant toute la durée de l’abonnement.</p>
+      <h2>2. Objet</h2><p>NFC WORK met en place pour le client la formule <b>${esc(k.formule)}</b>${k.options ? ", avec : " + esc(k.options) : ""}, et assure l’hébergement, les mises à jour et le support pendant toute la durée de l’abonnement.</p>
       <h2>3. Prix</h2><table><tr><td>Mise en place (payée une seule fois, à la signature)</td><td class="r">${prix(k.setup)} DH</td></tr><tr><td>Abonnement mensuel, à partir du ${frDate(k.debut)}</td><td class="r">${prix(k.mois)} DH / mois</td></tr></table>
       <h2>4. Conditions</h2>
-      ${box("1er mois d’abonnement offert (offre de lancement).", true)}${box("Paiement à l’année possible : 12 mois au prix de 10.", true)}${box("Sans engagement : arrêt possible à la fin de chaque mois, en prévenant NFCWORK.", true)}
+      ${box("1er mois d’abonnement offert (offre de lancement).", true)}${box("Paiement à l’année possible : 12 mois au prix de 10.", true)}${box("Sans engagement : arrêt possible à la fin de chaque mois, en prévenant NFC WORK.", true)}
       ${box("Rappel WhatsApp 3 jours avant l’échéance ; 5 jours de grâce ; ensuite le service se met en pause automatiquement et revient dès le paiement, sans perte de données.", true)}
       ${box("Les cartes, plaques et QR codes imprimés restent la propriété du client et gardent le même lien.", true)}${box("Paiement : espèces, virement, CashPlus ou Wafacash.", true)}
-      <h2>5. Signatures</h2><div class="two"><div><b>Pour NFCWORK</b><div class="sg">${k.sig2 ? `<img src="${k.sig2}">` : ""}</div><small>${MOI.nom}</small></div><div><b>Pour ${esc(k.client)}</b><div class="sg">${k.sig1 ? `<img src="${k.sig1}">` : ""}</div><small>${esc(k.gerant || "Nom, signature et cachet")}</small></div></div>
+      <h2>5. Signatures</h2><div class="two"><div><b>Pour NFC WORK</b><div class="sg">${k.sig2 ? `<img src="${k.sig2}">` : ""}</div><small>${MOI.nom}</small></div><div><b>Pour ${esc(k.client)}</b><div class="sg">${k.sig1 ? `<img src="${k.sig1}">` : ""}</div><small>${esc(k.gerant || "Nom, signature et cachet")}</small></div></div>
       </body></html>`);
     w.document.close();
   }
@@ -308,7 +308,7 @@
     d.pages.forEach(p => { const k = "page-" + p.slug; T[k] = T[k] || { type: "page", slug: p.slug, m0: 0, m1: 0, tot: 0 }; T[k].nom = p.nom; T[k].pt = p.type; });
     const L = Object.values(T).sort((a, b) => b.m0 - a.m0 || b.tot - a.tot), tot0 = L.reduce((s, t) => s + t.m0, 0), tot1 = L.reduce((s, t) => s + t.m1, 0);
     const mx = Math.max(1, ...L.map(t => t.m0)), nomMois = new Date().toLocaleDateString("fr-FR", { month: "long" });
-    const txt = t => `Bonjour 👋\n\n📊 Votre ${t.type === "menu" ? "menu" : "carte"} NFCWORK « ${t.nom || t.slug} » a été ouvert(e) par ${t.m0} personne(s) ce mois-ci${t.m1 ? " (" + t.m1 + " le mois dernier)" : ""}.\n\nnfcwork.ma/${t.type === "menu" ? "menu" : "p"}/${t.slug}\n\nNFCWORK · nfcwork.ma`;
+    const txt = t => `Bonjour 👋\n\n📊 Votre ${t.type === "menu" ? "menu" : "carte"} NFC WORK « ${t.nom || t.slug} » a été ouvert(e) par ${t.m0} personne(s) ce mois-ci${t.m1 ? " (" + t.m1 + " le mois dernier)" : ""}.\n\nnfcwork.ma/${t.type === "menu" ? "menu" : "p"}/${t.slug}\n\nNFC WORK · nfcwork.ma`;
     ap.openModal(`${ap.head("📊 Visites")}
       <div class="grid2" style="margin-bottom:12px"><div class="grow" style="flex-direction:column;align-items:flex-start"><span class="muted" style="font-size:12.5px">Ce mois (${esc(nomMois)})</span><b style="font-size:26px">${tot0}</b></div><div class="grow" style="flex-direction:column;align-items:flex-start"><span class="muted" style="font-size:12.5px">Mois dernier</span><b style="font-size:26px">${tot1}</b></div></div>
       <p class="muted" style="font-size:12.5px;margin:0 0 10px">1 visite = 1 téléphone par jour. Vos propres visites (connecté à l’Espace) ne comptent pas.</p>
@@ -325,7 +325,7 @@
       ${ios ? `<p>📱 <b>آيفون</b> (Safari):</p><ol><li>ورك على زر <b>المشاركة</b> ⬆️ لتحت</li><li>اختار <b>«Sur l’écran d’accueil»</b> ➕</li><li>ورك <b>Ajouter</b> ✅</li></ol>`
         : `<p>📱 <b>أندرويد</b> (Chrome):</p><ol><li>ورك على <b>⋮</b> الفوق على اليمين</li><li>اختار <b>«Installer l’application»</b> ولا <b>«Ajouter à l’écran d’accueil»</b> ➕</li><li>ورك <b>Installer</b> ✅</li></ol>
         <p>💻 <b>PC</b> (Chrome / Edge): ورك على الأيقونة ⊕ فـ آخر خانة العنوان الفوق.</p>`}
-      <p>🎉 من بعد غادي تلقى <b>NFCWORK</b> فـ التليفون بحال شي تطبيق، كيتحل نيشان على الـEspace.</p></div>`);
+      <p>🎉 من بعد غادي تلقى <b>NFC WORK</b> فـ التليفون بحال شي تطبيق، كيتحل نيشان على الـEspace.</p></div>`);
   }
 
   /* ---------- 📖 guide : téléphone seul / PC seul ---------- */

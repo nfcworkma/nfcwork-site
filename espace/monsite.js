@@ -1,4 +1,4 @@
-/* NFCWORK — 🌐 Mon site : changer les images de nfcwork.ma depuis l'Espace (admin)
+/* NFC WORK — 🌐 Mon site : changer les images de nfcwork.ma depuis l'Espace (admin)
    settings/site = { json: '{"slots":{"hero":"<id>", ...}}' } · chaque image : settings/mimg-<id> { data, site: true } */
 (function () {
   "use strict";

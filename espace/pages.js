@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — CARTES DIGITALES, AVIS GOOGLE, WI-FI, PAGES LIENS (admin)
+   NFC WORK — CARTES DIGITALES, AVIS GOOGLE, WI-FI, PAGES LIENS (admin)
    Tout se fait ici, au téléphone ou au PC, sans l'outil du Mac.
    Lien public : nfcwork.ma/p/<nom>  (p/index.html)
    Firestore, collection « settings » (lecture publique, écriture admin — règle déjà en place) :
@@ -61,7 +61,7 @@
       <button class="btn primary">Se connecter</button></form></div>`;
     $("#lf").onsubmit = async e => { e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true; try { await auth.signInWithEmailAndPassword($("#le").value.trim(), $("#lp").value); } catch (x) { $("#lerr").textContent = "E-mail ou mot de passe incorrect."; b.disabled = false; } };
   }
-  function erreur(e) { console.error(e); toast(e && e.code === "permission-denied" ? (PROPRIO ? "Pas encore autorisé : demandez à NFCWORK d’activer la modification." : "Refusé par Firebase : connectez-vous avec l’e-mail admin.") : "Échec. Vérifiez la connexion et réessayez.", true); }
+  function erreur(e) { console.error(e); toast(e && e.code === "permission-denied" ? (PROPRIO ? "Pas encore autorisé : demandez à NFC WORK d’activer la modification." : "Refusé par Firebase : connectez-vous avec l’e-mail admin.") : "Échec. Vérifiez la connexion et réessayez.", true); }
 
   /* ---------- données ---------- */
   async function chargerListe() { try { const d = await db.doc("settings/pages").get(); liste = d.exists ? JSON.parse(d.data().json || "[]") : []; } catch (e) { liste = []; erreur(e); } }
@@ -626,7 +626,7 @@ Skill Play | billard | 0602545454`;
       const key = t.dataset.uppdf, f = t.files[0]; t.value = "";
       const box = t.closest("section"); box.classList.add("busy");
       try { const id = await envoyerPdf(f); if (key === "rib") { P.ribPdf = id; } else { const i = +key; if (!P.docs[i]) P.docs[i] = { titre: "", url: "" }; P.docs[i].id = id; P.docs[i].url = ""; } renderEdit(); toast("📄 PDF ajouté — pensez à Enregistrer"); }
-      catch (x) { box.classList.remove("busy"); toast(x && x.message === "lourd" ? "PDF trop lourd (max ~1 Mo). Compressez-le ou envoyez-le à NFCWORK." : x && x.message === "pas-pdf" ? "Fichier non reconnu : choisissez un vrai PDF." : "Échec de l’envoi du PDF.", true); }
+      catch (x) { box.classList.remove("busy"); toast(x && x.message === "lourd" ? "PDF trop lourd (max ~1 Mo). Compressez-le ou envoyez-le à NFC WORK." : x && x.message === "pas-pdf" ? "Fichier non reconnu : choisissez un vrai PDF." : "Échec de l’envoi du PDF.", true); }
       majBarre(); return;
     }
     if (!t.dataset.up || !t.files.length) return;

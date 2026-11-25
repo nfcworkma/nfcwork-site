@@ -1,4 +1,4 @@
-/* NFCWORK — 💰 Mes ventes (admin)
+/* NFC WORK — 💰 Mes ventes (admin)
    Chaque vente : client, produits (quantité × prix), payé / reste à payer, date, note.
    Totaux : aujourd'hui, ce mois, l'année, reste à encaisser ; par produit et par client.
    Collection Firestore « ventes » (admin seulement) — règle : regle-ventes.txt */
@@ -125,11 +125,11 @@
       .hd img{height:34px}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{padding:8px;border-bottom:1px solid #e1e7f0;text-align:left}th{background:#0e1b33;color:#fff;font-size:13px}td.n,th.n{text-align:right;white-space:nowrap}
       .tot{text-align:right;font-size:15px;line-height:1.8}.tot b{font-size:20px}.box{display:flex;justify-content:space-between;gap:12px;margin-top:14px;font-size:14px}.sig{margin-top:40px;text-align:right;font-size:13px;color:#555}
       .bar{margin:20px 0;text-align:center}.bar button{padding:12px 20px;border-radius:12px;border:0;background:#1e6fff;color:#fff;font-size:16px}@media print{.bar{display:none}}</style></head><body>
-      <div class="hd"><img src="${location.origin}/assets/img/logo-nfcwork.png" alt="NFCWORK"><div style="text-align:right"><h1>REÇU DE PAIEMENT</h1><div>N° ${num} · ${frD(v.date)}</div></div></div>
-      <div class="box"><div><b>NFCWORK</b><br>Oualid Fahfouhi · Kénitra<br>06 20 66 60 27 · nfcwork.ma</div><div style="text-align:right"><b>Client</b><br>${esc(v.client)}${c && c.phone ? "<br>" + esc(c.phone) : ""}</div></div>
+      <div class="hd"><img src="${location.origin}/assets/img/logo-nfcwork.png" alt="NFC WORK"><div style="text-align:right"><h1>REÇU DE PAIEMENT</h1><div>N° ${num} · ${frD(v.date)}</div></div></div>
+      <div class="box"><div><b>NFC WORK</b><br>Oualid Fahfouhi · Kénitra<br>06 20 66 60 27 · nfcwork.ma</div><div style="text-align:right"><b>Client</b><br>${esc(v.client)}${c && c.phone ? "<br>" + esc(c.phone) : ""}</div></div>
       <table><tr><th>Produit / service</th><th class="n">Qté</th><th class="n">Prix</th><th class="n">Montant</th></tr>${(v.lignes || []).map(l => `<tr><td>${esc(l.nom)}</td><td class="n">${l.q}</td><td class="n">${dh(l.p)}</td><td class="n">${dh(l.q * l.p)}</td></tr>`).join("")}</table>
       <div class="tot">Total : <b>${dh(t)}</b><br>Payé (${esc(v.mode || "")}) : <b style="color:#1f7a4d">${dh(v.paye)}</b>${r ? `<br>Reste à payer : <b style="color:#c0392b">${dh(r)}</b>` : `<br><b style="color:#1f7a4d">✅ Payé en totalité</b>`}</div>
-      ${v.note ? `<p style="font-size:14px">Note : ${esc(v.note)}</p>` : ""}<div class="sig">Signature et cachet NFCWORK<br><br><br>________________________</div>
+      ${v.note ? `<p style="font-size:14px">Note : ${esc(v.note)}</p>` : ""}<div class="sig">Signature et cachet NFC WORK<br><br><br>________________________</div>
       <div class="bar"><button onclick="print()">🖨 Imprimer / Enregistrer en PDF</button></div></body></html>`);
     w.document.close();
   }

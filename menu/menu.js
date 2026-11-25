@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — MENU DIGITAL (page publique, en français)
+   NFC WORK — MENU DIGITAL (page publique, en français)
    Lien : nfcwork.ma/menu/<nom-du-menu>  (404.html renvoie ici avec ?m=<nom>)
    Le menu est lu dans Firestore (document « settings/menu-<nom> »), les photos
    envoyées dans « settings/mimg-<id> ». On les remplit depuis l'Espace → Menus.
@@ -208,9 +208,9 @@
 
   function barreDemo() {
     if (!demo || qs.has("cadre")) return "";
-    if (!/^demo-(standard|pro|premium)$/.test(slug)) return `<div class="demobar"><b>Exemple NFCWORK</b><a href="/demo/" class="on">Voir tous les métiers</a></div>`;
+    if (!/^demo-(standard|pro|premium)$/.test(slug)) return `<div class="demobar"><b>Exemple NFC WORK</b><a href="/demo/" class="on">Voir tous les métiers</a></div>`;
     const f = slug.slice(5), th = M.theme || "nuit";
-    return `<div class="demobar"><b>Exemple NFCWORK</b>${["standard", "pro", "premium"].map(k => `<a href="/menu/?m=demo-${k}" class="${f === k ? "on" : ""}">${k[0].toUpperCase() + k.slice(1)}</a>`).join("")}
+    return `<div class="demobar"><b>Exemple NFC WORK</b>${["standard", "pro", "premium"].map(k => `<a href="/menu/?m=demo-${k}" class="${f === k ? "on" : ""}">${k[0].toUpperCase() + k.slice(1)}</a>`).join("")}
       ${f === "pro" ? `<span class="th">Thème : ${[["nuit", "Nuit"], ["creme", "Crème"], ["cafe", "Café"], ["lagon", "Lagon"]].map(([k, n]) => `<a href="/menu/?m=demo-pro&theme=${k}" class="${th === k ? "on" : ""}">${n}</a>`).join("")}</span>` : ""}</div>`;
   }
 
@@ -256,7 +256,7 @@
     U.see = M.type === "salon" ? "Voir mon rendez-vous" : M.type === "boutique" ? "Voir mon panier" : "Voir ma commande";
     if (!apercu) iconeApp();
     if (M.actif === false && !apercu && !demo) { etat(U.off, U.offTx); return; }
-    // abonnement NFCWORK non payé : coupure automatique après la date prévue
+    // abonnement NFC WORK non payé : coupure automatique après la date prévue
     if (M.expire && !apercu && !demo) { const d = new Date(), j = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; if (j > String(M.expire)) { etat("Menu momentanément indisponible", "Merci de revenir un peu plus tard ou de demander au personnel."); return; } }
     if (M.expire && !apercu && !demo && window.NFCW_PREAVIS) NFCW_PREAVIS(M.preavis, M.expire);
     const pro = M.formule === "pro" || M.formule === "premium";

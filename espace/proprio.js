@@ -1,5 +1,5 @@
-/* NFCWORK — mode commerçant pour pages.js et tv.js
-   Le client modifie seulement ce que NFCWORK a coché dans sa fiche (clients/<id>.acces).
+/* NFC WORK — mode commerçant pour pages.js et tv.js
+   Le client modifie seulement ce que NFC WORK a coché dans sa fiche (clients/<id>.acces).
    NFCW_PROPRIO(db, user, "pages"|"tvs", "editPages"|"editTv") → liste des slugs autorisés, ou null */
 window.NFCW_PROPRIO = async function (db, u, cle, droit) {
   try {
@@ -15,5 +15,5 @@ window.NFCW_PROPRIO = async function (db, u, cle, droit) {
   } catch (e) { console.error(e); return null; }
 };
 window.NFCW_REFUS = function (app) {
-  app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Demandez à NFCWORK d’activer la modification pour votre compte.</p><a class="btn" href="./">Retour à mon espace</a></div>`;
+  app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Demandez à NFC WORK d’activer la modification pour votre compte.</p><a class="btn" href="./">Retour à mon espace</a></div>`;
 };

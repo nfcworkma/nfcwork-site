@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — RÉSERVATIONS (Espace du commerçant)
+   NFC WORK — RÉSERVATIONS (Espace du commerçant)
    Le client réserve sur sa page /p/<slug> (type « rdv ») → reservations/{id} + rdvOccupe/{id}.
    Ici : confirmer ✓ / refuser ✕, agenda du jour (par coiffeuse ou par table), « Arrivé +1 » (carte fidélité),
    rappels de demain sur WhatsApp, fidélité et statistiques au même endroit.
@@ -74,7 +74,7 @@
       for (const slug of new Set(R.map(r => r.page))) if (slug && !PAGES[slug]) { PAGES[slug] = { slug, nom: slug, _tmp: 1 }; db.doc("settings/page-" + slug).get().then(d => { ajouterPage(d); rendre(); }).catch(() => {}); }
       if (!premier && R.some(r => !avant.has(r.id) && r.statut === "attente")) { toast("📅 Nouvelle réservation !"); try { navigator.vibrate && navigator.vibrate(200); } catch (e) {} }
       premier = false; rendre();
-    }, e => { console.error(e); app.innerHTML = `<div class="empty paper"><h3>Accès refusé</h3><p>Les réservations ne sont pas encore activées pour ce compte. Contactez NFCWORK.</p><a class="btn" href="./">Retour</a></div>`; }));
+    }, e => { console.error(e); app.innerHTML = `<div class="empty paper"><h3>Accès refusé</h3><p>Les réservations ne sont pas encore activées pour ce compte. Contactez NFC WORK.</p><a class="btn" href="./">Retour</a></div>`; }));
     rendre();
   }
   function fidelite(pid) {
@@ -100,7 +100,7 @@
     $("#topSub").textContent = "Mon Espace · " + jourLong(auj());
     $("#rappels").hidden = tab !== "res" || !R.length;
     if (!pv.length && !R.length) {
-      app.innerHTML = `<div class="empty paper"><h3>Pas encore de page de réservation</h3><p>Demandez à NFCWORK d’activer la réservation en ligne pour votre commerce : vos clients réservent depuis leur téléphone et tout arrive ici.</p><a class="btn primary" href="https://wa.me/212620666027?text=${encodeURIComponent("Salam, je veux activer la réservation en ligne pour mon commerce 📅")}" target="_blank" rel="noopener">📲 Demander</a></div>`;
+      app.innerHTML = `<div class="empty paper"><h3>Pas encore de page de réservation</h3><p>Demandez à NFC WORK d’activer la réservation en ligne pour votre commerce : vos clients réservent depuis leur téléphone et tout arrive ici.</p><a class="btn primary" href="https://wa.me/212620666027?text=${encodeURIComponent("Salam, je veux activer la réservation en ligne pour mon commerce 📅")}" target="_blank" rel="noopener">📲 Demander</a></div>`;
       return;
     }
     app.innerHTML = `${pv.length > 1 ? `<div class="pg"><button class="chip" aria-pressed="${!filtre}" data-pg="">Toutes</button>${pv.map(p => `<button class="chip" aria-pressed="${filtre === p.slug}" data-pg="${esc(p.slug)}">${esc(p.nom || p.slug)}</button>`).join("")}</div>` : ""}
@@ -177,7 +177,7 @@
   }
   function vueFid() {
     const pv = pagesVues().filter(p => p.fidPid && FID[p.fidPid] && FID[p.fidPid].prog);
-    if (!pv.length) return `<div class="empty paper"><h3>Pas de carte fidélité liée</h3><p>Avec la carte fidélité, chaque client qui réserve gagne des points, et vous le faites revenir.</p><a class="btn primary" href="https://wa.me/212620666027?text=${encodeURIComponent("Salam, je veux la carte fidélité avec mes réservations 🎁")}" target="_blank" rel="noopener">📲 Demander à NFCWORK</a></div>`;
+    if (!pv.length) return `<div class="empty paper"><h3>Pas de carte fidélité liée</h3><p>Avec la carte fidélité, chaque client qui réserve gagne des points, et vous le faites revenir.</p><a class="btn primary" href="https://wa.me/212620666027?text=${encodeURIComponent("Salam, je veux la carte fidélité avec mes réservations 🎁")}" target="_blank" rel="noopener">📲 Demander à NFC WORK</a></div>`;
     const prog = FID[pv[0].fidPid].prog, C = pv.flatMap(p => FID[p.fidPid].cartes), obj = Math.max(1, prog.objectif || 10);
     const m0 = new Date(); m0.setDate(1); m0.setHours(0, 0, 0, 0);
     const actifs = C.filter(c => c.lastAt && c.lastAt.seconds * 1000 >= m0.getTime()).length;
@@ -263,7 +263,7 @@
     d.addEventListener("fermee", stop);
     const trouve = txt => {
       const id = (String(txt).match(/[?&]r=([A-Za-z0-9]+)/) || [])[1];
-      if (!id) { $("#sm", d).textContent = "Ce QR n’est pas un ticket de réservation NFCWORK."; return false; }
+      if (!id) { $("#sm", d).textContent = "Ce QR n’est pas un ticket de réservation NFC WORK."; return false; }
       stop(); d.remove(); ticketVue(id); return true;
     };
     $("#scan-code", d).onsubmit = e => { e.preventDefault(); const c = $("#sc-c", d).value.replace(/[^A-Za-z0-9]/g, ""); if (c.length < 6) return; stop(); d.remove(); ticketVue(c); };

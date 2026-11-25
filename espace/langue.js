@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — ESPACE EN ARABE (choix FR / عربي pour les commerçants)
+   NFC WORK — ESPACE EN ARABE (choix FR / عربي pour les commerçants)
    Traduit l'interface à l'affichage : textes, boutons, champs (placeholder), titres.
    Le choix est gardé sur l'appareil. Les données (noms, produits…) ne changent pas.
    ========================================================= */
@@ -125,8 +125,8 @@
     "Accès refusé ou connexion perdue.": "الدخول مرفوض ولا تقطع الاتصال.", "Action refusée : vérifiez que votre e-mail est confirmé.": "العملية مرفوضة: تأكد بلي البريد ديالك مأكد.",
     "Connectez-vous avec le compte de votre commerce.": "دخل بالحساب ديال المحل ديالك.", "Pas encore de compte ?": "مازال ما عندكش حساب؟",
     "Créez-le dans l’Espace client": "صاوبو فـ فضاء الزبون", "Ouvrez le lien reçu par e-mail, puis revenez ici.": "حل الرابط اللي وصلك فالبريد، ومن بعد رجع هنا.",
-    "Pas encore de programme fidélité": "مازال ما عندكش برنامج الوفاء", "Contactez NFCWORK pour activer la carte fidélité de votre commerce.": "تواصل مع NFCWORK باش نفعّلو كارطة الوفاء ديال المحل ديالك.",
-    "WhatsApp NFCWORK": "واتساب NFCWORK", "Profil enregistré": "تسجل الحساب", "Lien copié": "تنسخ الرابط", "Copiez le lien :": "نسخ الرابط:", "Copiez :": "نسخ:",
+    "Pas encore de programme fidélité": "مازال ما عندكش برنامج الوفاء", "Contactez NFC WORK pour activer la carte fidélité de votre commerce.": "تواصل مع NFC WORK باش نفعّلو كارطة الوفاء ديال المحل ديالك.",
+    "WhatsApp NFC WORK": "واتساب NFC WORK", "Profil enregistré": "تسجل الحساب", "Lien copié": "تنسخ الرابط", "Copiez le lien :": "نسخ الرابط:", "Copiez :": "نسخ:",
     // statuts
     "Nouvelle": "جديدة", "Confirmée": "مأكدة", "En préparation": "كتوجد", "Prête": "واجدة", "Livrée": "توصلات", "Annulée": "ملغية", "Devis demandé": "طلب عرض الثمن",
     "Sur devis": "حسب العرض", "Payée": "مخلصة", "Brouillon": "مسودة", "En retard": "متأخرة", "Envoyée": "مرسلة", "Ouverte": "مفتوحة", "Résolue": "تحلّات", "Aucune": "والو",
@@ -157,7 +157,7 @@
     "Imprimer / PDF": "طبع / PDF", "Client supprimé": "زبون محذوف",
     // fidélité
     "Personne / passer": "حتى واحد / دوز", "Employé ajouté ✓": "تزاد الخدام ✓", "Employé retiré": "تحيد الخدام", "Cette carte n’appartient pas à vos commerces.": "هاد الكارطة ماشي ديال المحلات ديالك.",
-    "Cet employé n’appartient pas à vos commerces.": "هاد الخدام ماشي من المحلات ديالك.", "Ce QR n’est pas une carte fidélité NFCWORK.": "هاد QR ماشي كارطة الوفاء ديال NFCWORK.",
+    "Cet employé n’appartient pas à vos commerces.": "هاد الخدام ماشي من المحلات ديالك.", "Ce QR n’est pas une carte fidélité NFC WORK.": "هاد QR ماشي كارطة الوفاء ديال NFC WORK.",
     "Caméra indisponible. Vous pouvez aussi scanner la carte avec l’appareil photo du téléphone.": "الكاميرا ما خدامةش. تقدر حتى تسكاني الكارطة بكاميرا التيليفون.",
     "Sur Mac : Imprimer → « Enregistrer au format PDF » pour l’imprimeur. Le même lien peut aussi être programmé dans une plaque NFC.": "فالماك: طبع ← « حفظ بصيغة PDF » باش تعطيه للمطبعة. ونفس الرابط تقدر تبرمجو فبلاكة NFC.",
     "Carte fidélité · scannez pour créer votre carte": "كارطة الوفاء · سكاني باش تصاوب الكارطة ديالك", "Aucun programme": "ما كاين حتى برنامج",
@@ -172,7 +172,7 @@
     "Qui donne le point à l’employé": "شكون كيعطي النقطة للخدام", "Prime du mois (affichée aux employés)": "بريم الشهر (كيبان للخدامة)", "Prix de l’abonnement (DH)": "ثمن الاشتراك (درهم)",
     "Période": "المدة", "Comment ça marche (affiché au client, une étape par ligne)": "كيفاش كيخدم (كيبان للزبون، مرحلة فكل سطر)", "Programme actif": "البرنامج مفعّل",
     "Vos modèles : ils pré-remplissent chaque nouveau programme. Touchez un métier pour le modifier.": "النماذج ديالك: كيعمّرو كل برنامج جديد. ضغط على مهنة باش تبدلها.",
-    "＋ Ajouter un métier": "＋ زيد مهنة", "Revenir aux modèles NFCWORK": "رجع للنماذج ديال NFCWORK", "Icône": "الأيقونة", "Nom du métier": "سمية المهنة", "Prix (DH)": "الثمن (درهم)",
+    "＋ Ajouter un métier": "＋ زيد مهنة", "Revenir aux modèles NFC WORK": "رجع للنماذج ديال NFC WORK", "Icône": "الأيقونة", "Nom du métier": "سمية المهنة", "Prix (DH)": "الثمن (درهم)",
     "Le client gagne des points par…": "الزبون كيربح النقط بـ…", "Points des employés activés par défaut": "نقط الخدامة مفعّلة من الأول",
     "💡 Idées de récompenses (une par ligne : « 10 cafés = 1 café offert » ou « 10 DH = 1 pt, 200 pts = -50 DH »)": "💡 أفكار المكافآت (وحدة فكل سطر: « 10 cafés = 1 café offert » ولا « 10 DH = 1 pt, 200 pts = -50 DH »)",
     "Le client": "الزبون", "Le commerçant": "التاجر", "Mensuel": "شهري", "Annuel": "سنوي"

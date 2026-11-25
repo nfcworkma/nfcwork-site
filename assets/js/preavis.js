@@ -1,10 +1,10 @@
-/* NFCWORK — préavis de coupure (abonnement impayé)
+/* NFC WORK — préavis de coupure (abonnement impayé)
    Entre l'échéance (« preavis ») et la date de coupure (« expire »), les pages publiques
    (carte fidélité, menu, avis Google…) affichent un avertissement avec le compte à rebours.
    NFCW_PREAVIS(preavis, expire) — dates AAAA-MM-JJ. Ne fait rien hors de cette période.
    Visible SEULEMENT par le patron (jamais par ses clients) :
      - téléphone du patron : marqué quand il se connecte à l'Espace / à la caisse, ou en ouvrant une fois un lien « ?patron=1 »
-     - l'admin NFCWORK (pour vérifier)
+     - l'admin NFC WORK (pour vérifier)
    NFCW_PREAVIS(preavis, expire, true) : affiché à coup sûr (caisse, Espace : écrans du commerçant). */
 (function () {
   "use strict";
@@ -42,11 +42,11 @@
     const d = document.createElement("div"); d.id = "nfcw-preavis";
     d.innerHTML = `<div class="bx" role="alertdialog" aria-modal="true"><div class="ic">⚠️</div>
       <h2>Service bientôt suspendu</h2>
-      <p>Ce service NFCWORK sera suspendu automatiquement dans :</p>
+      <p>Ce service NFC WORK sera suspendu automatiquement dans :</p>
       <div class="cd" id="nfcw-cd">--:--:--</div><div class="lb">heures · minutes · secondes</div>
-      <p><b>Responsable du commerce :</b> merci de contacter le fondateur NFCWORK pour éviter la coupure.</p>
-      <p class="ar">الخدمة غادي تتوقف أوتوماتيكياً. مول المحل خاصو يتواصل مع المؤسس ديال NFCWORK.</p>
-      <a href="https://wa.me/${TEL}?text=${encodeURIComponent("Bonjour, j’ai vu l’avis de suspension du service NFCWORK : " + location.href)}" target="_blank" rel="noopener">📲 Contacter le fondateur (WhatsApp)</a>
+      <p><b>Responsable du commerce :</b> merci de contacter le fondateur NFC WORK pour éviter la coupure.</p>
+      <p class="ar">الخدمة غادي تتوقف أوتوماتيكياً. مول المحل خاصو يتواصل مع المؤسس ديال NFC WORK.</p>
+      <a href="https://wa.me/${TEL}?text=${encodeURIComponent("Bonjour, j’ai vu l’avis de suspension du service NFC WORK : " + location.href)}" target="_blank" rel="noopener">📲 Contacter le fondateur (WhatsApp)</a>
       <button type="button" id="nfcw-ok">Continuer</button></div>`;
     const bar = document.createElement("div"); bar.id = "nfcw-bar";
     document.body.appendChild(d);
@@ -54,7 +54,7 @@
       const s = Math.max(0, Math.floor((fin - Date.now()) / 1000)), h = Math.floor(s / 3600), mn = Math.floor(s % 3600 / 60), sc = s % 60;
       const t = `${String(h).padStart(2, "0")}:${String(mn).padStart(2, "0")}:${String(sc).padStart(2, "0")}`;
       const c = document.getElementById("nfcw-cd"); if (c) c.textContent = t;
-      bar.textContent = `⚠️ Service suspendu dans ${h} h ${String(mn).padStart(2, "0")} min · Responsable : contactez NFCWORK`;
+      bar.textContent = `⚠️ Service suspendu dans ${h} h ${String(mn).padStart(2, "0")} min · Responsable : contactez NFC WORK`;
       if (s === 0) location.reload();
     };
     tick(); setInterval(tick, 1000);

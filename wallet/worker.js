@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — SERVEUR WALLET (Cloudflare Worker, gratuit)
+   NFC WORK — SERVEUR WALLET (Cloudflare Worker, gratuit)
    Les cartes fidélité dans Google Wallet (Apple Wallet : plus tard, même serveur).
 
    À coller dans Cloudflare → Workers → nfcwork-wallet → « Modifier le code ».
@@ -402,7 +402,7 @@ let ICONE = null;
 async function pngIcone() {
   if (ICONE) return ICONE;
   const r = await fetch(SITE + "/assets/img/icons/icon-512.png");
-  if (!r.ok) throw err("icône NFCWORK introuvable", 502);
+  if (!r.ok) throw err("icône NFC WORK introuvable", 502);
   return (ICONE = new Uint8Array(await r.arrayBuffer()));
 }
 
@@ -568,7 +568,7 @@ function passJson(env, c, p) {
         ...(p.annonce && p.annonce.texte ? [{ key: "annonce", label: "📣 " + String(p.nom || "Message").slice(0, 40), value: String(p.annonce.texte).slice(0, 160), changeMessage: "%@" }] : []),
         { key: "regle", label: "Récompense", value: `${obj} ${u} = ${p.recompense || "une récompense"}` },
         { key: "carte", label: "Ma carte", value: lien, attributedValue: `<a href="${lien}">Ouvrir ma carte</a>` },
-        { key: "nfcwork", label: "Carte fidélité digitale", value: "NFCWORK — nfcwork.ma" }
+        { key: "nfcwork", label: "Carte fidélité digitale", value: "NFC WORK — nfcwork.ma" }
       ]
     },
     barcodes: [{ format: "PKBarcodeFormatQR", message: lien, messageEncoding: "iso-8859-1" }],
@@ -582,7 +582,7 @@ async function construirePkpass(env, c, p) {
   const icone = await pngIcone(), logoP = await pngLogo(p);
   const pj = passJson(env, c, p);
   if (env.APPLE_WS && env.APPLE_AUTH) { pj.webServiceURL = String(env.APPLE_WS).replace(/\/+$/, ""); pj.authenticationToken = await jetonApple(env, pj.serialNumber); }   // mises à jour automatiques
-  // icône = celle des notifications sur l'iPhone : le logo du commerce (sinon NFCWORK)
+  // icône = celle des notifications sur l'iPhone : le logo du commerce (sinon NFC WORK)
   const ico = logoP || icone;
   const fichiers = [["pass.json", enc(pj)], ["icon.png", ico], ["icon@2x.png", ico], ["icon@3x.png", ico]];
   if (logoP) fichiers.push(["logo.png", logoP], ["logo@2x.png", logoP]);

@@ -1,4 +1,4 @@
-# Serveur Wallet NFCWORK : Cloudflare le déploie tout seul depuis GitHub (dossier « wallet »)
+# Serveur Wallet NFC WORK : Cloudflare le déploie tout seul depuis GitHub (dossier « wallet »)
 name = "nfcwork-wallet"
 main = "worker.js"
 compatibility_date = "2026-10-01"

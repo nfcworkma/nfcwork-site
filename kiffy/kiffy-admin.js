@@ -1,5 +1,5 @@
 /* =========================================================
-   KIFFY — espace NFC Work (admin seulement) · branché par kiffy.js (window.KiffyAdminModule)
+   KIFFY — espace NFC WORK (admin seulement) · branché par kiffy.js (window.KiffyAdminModule)
    Statistiques · clients de tous les commerces · abonnements · journal · notifications aux gérants
    Carnet des ventes · catalogue · devis / factures / reçus (PDF) · Mon entreprise
    Collections (règles Firestore : admin seulement) : kiffyJournal, kiffyVentes, kiffyProduits, kiffyDocs, kiffyCompteurs, kiffyEntreprise
@@ -47,7 +47,7 @@ window.KiffyAdminModule = function (K) {
   /* ================= PLUS ================= */
   function plus() {
     const F = K.faceAdmin;
-    ecran(`<div class="titre-page"><h1>Plus</h1><p>Espace NFC Work</p></div>
+    ecran(`<div class="titre-page"><h1>Plus</h1><p>Espace NFC WORK</p></div>
       <div class="page" style="gap:12px">
         <div class="carte menu"><div class="sect">GESTION</div>
           ${ligneOpt("#/admin/clients", "users", "Clients de tous les commerces", String(K.cartes.length || ""))}
@@ -68,7 +68,7 @@ window.KiffyAdminModule = function (K) {
       </div>`, "plus");
     $("#p-notif").onclick = () => notifierGerants();
     if ($("#p-face")) $("#p-face").onclick = async () => {
-      if (F.actif()) { if (await confirmer("Désactiver Face ID ?", "L’espace NFC Work s’ouvrira avec le code admin.", "Désactiver")) { F.desactiver(); plus(); } }
+      if (F.actif()) { if (await confirmer("Désactiver Face ID ?", "L’espace NFC WORK s’ouvrira avec le code admin.", "Désactiver")) { F.desactiver(); plus(); } }
       else if (await F.activer()) plus();
     };
     $("#p-code").onclick = async () => { if (await confirmer("Changer le code admin ?", "Vous allez choisir un nouveau code à 4 chiffres (secours de Face ID).", "Continuer")) K.nouveauCodeAdmin().catch(erreur); };
@@ -79,7 +79,7 @@ window.KiffyAdminModule = function (K) {
   function notifierGerants(email, titre0, texte0) {
     const f = feuille(`<h2>${email ? "Notifier le gérant" : "Notifier tous les gérants"}</h2>
       ${email ? `<p class="muted" style="margin:0;font-size:13.5px">${esc(email)}</p>` : `<p class="muted" style="margin:0;font-size:13.5px">Notification sur les téléphones des gérants qui ont l’app Kiffy.</p>`}
-      <label class="champ">Titre<input id="n-t" maxlength="60" value="${esc(titre0 || "NFC Work")}"></label>
+      <label class="champ">Titre<input id="n-t" maxlength="60" value="${esc(titre0 || "NFC WORK")}"></label>
       <label class="champ">Message<textarea id="n-x" rows="4" maxlength="240" placeholder="Nouveauté : …">${esc(texte0 || "")}</textarea></label>
       <p class="err" id="n-e"></p><button class="btn-noir moyen" id="n-go">${ic("send", 18)} Envoyer</button><button class="btn-clair" data-fermer style="padding:12px">Annuler</button>`);
     $("#n-go", f).onclick = async () => {
@@ -105,7 +105,7 @@ window.KiffyAdminModule = function (K) {
   }
   function rappel(p, du) {
     const imp = K.impayes(p.id), montant = imp.reduce((s, x) => s + (x.montant || 0), 0) || (du && du.montant) || 0;
-    const texte = `Bonjour, votre abonnement Kiffy (${imp.map(x => x.libelle || x.mois).join(", ") || "ce mois"}) de ${dh(montant)} est en attente de paiement. Merci de régulariser auprès de NFC Work.`;
+    const texte = `Bonjour, votre abonnement Kiffy (${imp.map(x => x.libelle || x.mois).join(", ") || "ce mois"}) de ${dh(montant)} est en attente de paiement. Merci de régulariser auprès de NFC WORK.`;
     const wa = telWa(p.telCommerce);
     const f = feuille(`<h2>Rappel · ${esc(p.nom)}</h2><div class="modele">${esc(texte)}</div>
       <button class="btn-noir moyen" id="r-app">${ic("bell", 18)} Notification dans l’app</button>
@@ -137,7 +137,7 @@ window.KiffyAdminModule = function (K) {
       const Ls = K.progs.filter(p => K.etat(p) === "impaye" && p.ownerEmail);
       if (!(await confirmer(`Rappeler ${Ls.length} commerce(s) ?`, "Une notification part sur le téléphone de chaque gérant concerné.", "Envoyer les rappels"))) return;
       let n = 0;
-      for (const p of Ls) { const imp = K.impayes(p.id), m = imp.reduce((s, x) => s + (x.montant || 0), 0); try { const r = await appel("kiffyNotifGerants", { titre: "Abonnement Kiffy", texte: `Bonjour, votre abonnement Kiffy (${imp.map(x => x.libelle || x.mois).join(", ")}) de ${dh(m)} est en attente de paiement. Merci de régulariser auprès de NFC Work.`, email: p.ownerEmail }); n += r.envoyes ? 1 : 0; } catch (e) {} }
+      for (const p of Ls) { const imp = K.impayes(p.id), m = imp.reduce((s, x) => s + (x.montant || 0), 0); try { const r = await appel("kiffyNotifGerants", { titre: "Abonnement Kiffy", texte: `Bonjour, votre abonnement Kiffy (${imp.map(x => x.libelle || x.mois).join(", ")}) de ${dh(m)} est en attente de paiement. Merci de régulariser auprès de NFC WORK.`, email: p.ownerEmail }); n += r.envoyes ? 1 : 0; } catch (e) {} }
       toast(`${n}/${Ls.length} rappel(s) reçus sur un téléphone`, true);
     };
   }
@@ -236,7 +236,7 @@ window.KiffyAdminModule = function (K) {
 
   /* ================= MON ENTREPRISE ================= */
   let E = null;
-  const ENT_DEF = { nom: "NFC Work", adresse: "", tel: K.WHATSAPP ? "+" + K.WHATSAPP : "", email: "nfcworkmacontact@gmail.com", site: "nfcwork.ma", ae: "", ifisc: "", ice: "", cin: "", rib: "", mention: "", validite: 30 };
+  const ENT_DEF = { nom: "NFC WORK", adresse: "", tel: K.WHATSAPP ? "+" + K.WHATSAPP : "", email: "nfcworkmacontact@gmail.com", site: "nfcwork.ma", ae: "", ifisc: "", ice: "", cin: "", rib: "", mention: "", validite: 30 };
   async function entrepriseDoc() { if (E) return E; try { const d = await db.doc("kiffyEntreprise/moi").get(); E = { ...ENT_DEF, ...(d.exists ? d.data() : {}) }; } catch (e) { E = { ...ENT_DEF }; } return E; }
   const fiscal = e => !!(e.ice || e.ifisc || e.ae);
   async function entreprise() {
@@ -244,7 +244,7 @@ window.KiffyAdminModule = function (K) {
     const ch = (k, l, ph, type) => `<label class="champ">${esc(l)}<input data-k="${k}" ${type ? `type="${type}"` : ""} value="${esc(e[k] || "")}" placeholder="${esc(ph || "")}" autocomplete="off"></label>`;
     ecran(`${haut("Mon entreprise", "#/admin/plus")}
       <div class="page" style="gap:12px">
-        <section class="section"><b>Sur les devis et factures</b>${ch("nom", "Nom", "NFC Work")}${ch("adresse", "Adresse", "Rue, ville")}<div class="grille2">${ch("tel", "Téléphone", "+212…", "tel")}${ch("email", "E-mail", "", "email")}</div>${ch("site", "Site", "nfcwork.ma")}
+        <section class="section"><b>Sur les devis et factures</b>${ch("nom", "Nom", "NFC WORK")}${ch("adresse", "Adresse", "Rue, ville")}<div class="grille2">${ch("tel", "Téléphone", "+212…", "tel")}${ch("email", "E-mail", "", "email")}</div>${ch("site", "Site", "nfcwork.ma")}
           <label class="champ">Validité des devis (jours)<input data-k="validite" type="number" inputmode="numeric" min="1" max="365" value="${esc(e.validite || 30)}"></label></section>
         <section class="section"><b>Identifiants fiscaux <span>(à remplir plus tard)</span></b>
           <div class="grille2">${ch("ae", "N° auto-entrepreneur")}${ch("ifisc", "IF")}</div><div class="grille2">${ch("ice", "ICE")}${ch("cin", "CIN")}</div>${ch("rib", "RIB")}
@@ -337,7 +337,7 @@ window.KiffyAdminModule = function (K) {
     $("#vm").onchange = e => { moisV = e.target.value; ventes(); };
     $("#vq").oninput = e => { rechV = e.target.value; const pos = e.target.selectionStart; ventes().then(() => { const r = $("#vq"); r.focus(); r.setSelectionRange(pos, pos); }); };
     $("#v-csv").onclick = () => K.csv([["Date", "Client", "Commerce", "Téléphone", "Ville", "Produits", "Total (DH)", "Payé (DH)", "Reste (DH)", "Statut", "Mode de paiement", "Notes"],
-      ...L.map(v => [v.date, v.client && v.client.nom, v.client && v.client.commerce, v.client && v.client.tel, v.client && v.client.ville, (v.lignes || []).map(l => `${l.qte}× ${l.produit} (${l.prix})`).join(" + "), v.total || 0, payeDe(v), resteDe(v), v.statut, v.mode || "", v.notes || ""])], `NFCWork-Ventes-${moisV || "tout"}-${auj()}.csv`);
+      ...L.map(v => [v.date, v.client && v.client.nom, v.client && v.client.commerce, v.client && v.client.tel, v.client && v.client.ville, (v.lignes || []).map(l => `${l.qte}× ${l.produit} (${l.prix})`).join(" + "), v.total || 0, payeDe(v), resteDe(v), v.statut, v.mode || "", v.notes || ""])], `NFC WORK-Ventes-${moisV || "tout"}-${auj()}.csv`);
   }
 
   // ajouter une vente en 20 secondes : client, produits, statut, paiement
@@ -504,7 +504,7 @@ window.KiffyAdminModule = function (K) {
   function ouvrirDoc(d, apres) {
     if (!d) return;
     const nom = { devis: "Devis", facture: "Facture", recu: "Reçu" }[d.type], fichierNom = `${d.numero}.pdf`, c = d.client || {}, wa = telWa(c.tel);
-    const texte = `Bonjour ${String(c.nom || "").split(" ")[0]}, voici ${d.type === "devis" ? "votre devis" : d.type === "facture" ? "votre facture" : "votre reçu"} ${d.numero} de ${dh(d.total)} · ${(d.entreprise && d.entreprise.nom) || "NFC Work"}.`;
+    const texte = `Bonjour ${String(c.nom || "").split(" ")[0]}, voici ${d.type === "devis" ? "votre devis" : d.type === "facture" ? "votre facture" : "votre reçu"} ${d.numero} de ${dh(d.total)} · ${(d.entreprise && d.entreprise.nom) || "NFC WORK"}.`;
     const f = feuille(`<h2>${esc(nom)} ${esc(d.numero)}</h2><p class="muted" style="margin:0;font-size:13.5px">${esc(c.nom || "")} · ${dh(d.total)} · ${esc(jour(d.date))}${d.statut === "annule" ? ` · <b class="danger">annulé</b>` : ""}</p>
       ${d.statut === "annule" ? `<div class="pause">Annulé${d.motifAnnulation ? " : " + esc(d.motifAnnulation) : ""}</div>` : ""}
       <button class="btn-noir moyen" id="dc-pdf">${ic("share", 18)} Partager le PDF (WhatsApp, mail…)</button>
@@ -537,10 +537,10 @@ window.KiffyAdminModule = function (K) {
       </div>`, "plus");
     $$("[data-f]").forEach(b => (b.onclick = () => { filtreD = b.dataset.f; docs(); }));
     $$("[data-d]").forEach(b => (b.onclick = () => ouvrirDoc(L.find(d => d.id === b.dataset.d), docs)));
-    $("#d-csv").onclick = () => K.csv([["Numéro", "Type", "Date", "Client", "Commerce", "Total (DH)", "Payé (DH)", "Statut", "Motif d’annulation"], ...V.map(d => [d.numero, nomType[d.type], d.date, (d.client || {}).nom, (d.client || {}).commerce, d.total, d.paye, d.statut, d.motifAnnulation || ""])], `NFCWork-Documents-${auj()}.csv`);
+    $("#d-csv").onclick = () => K.csv([["Numéro", "Type", "Date", "Client", "Commerce", "Total (DH)", "Payé (DH)", "Statut", "Motif d’annulation"], ...V.map(d => [d.numero, nomType[d.type], d.date, (d.client || {}).nom, (d.client || {}).commerce, d.total, d.paye, d.statut, d.motifAnnulation || ""])], `NFC WORK-Documents-${auj()}.csv`);
   }
 
-  // PDF au design Kiffy / NFC Work (A4, français)
+  // PDF au design Kiffy / NFC WORK (A4, français)
   let logoPdf = null;
   // logo réduit (500 px) sur fond blanc, en JPEG : un PDF léger (~30 Ko) à envoyer sur WhatsApp
   const imageData = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => { const w = Math.min(500, i.naturalWidth), h = Math.round(i.naturalHeight * w / i.naturalWidth), c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.drawImage(i, 0, 0, w, h); ok({ data: c.toDataURL("image/jpeg", 0.9), w, h }); }; i.onerror = ko; i.src = src; });
@@ -548,7 +548,10 @@ window.KiffyAdminModule = function (K) {
   async function pdf(d) {
     await K.chargerJs("vendor/jspdf.umd.min.js");
     if (!logoPdf) logoPdf = await imageData("../assets/img/logo-nfcwork-full.png").catch(() => null);
-    const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" }), e = d.entreprise || {}, c = d.client || {};
+    // règle de marque : toujours « NFC WORK » (même si « Mon entreprise » a été rempli autrement) ; nfcwork.ma et l'e-mail ne bougent pas
+    const marque = t => String(t || "").replace(/\bnfc[ -]?work\b(?!\.)/gi, "NFC WORK");
+    const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" }), e0 = d.entreprise || {}, c = d.client || {};
+    const e = { ...e0, nom: marque(e0.nom), mention: marque(e0.mention), adresse: marque(e0.adresse) };
     const V = [22, 193, 114], N = [10, 10, 10], G = [91, 102, 95], L = [230, 236, 232];
     const T = (t, x, y, o) => doc.text(latin(t), x, y, o);
     const titre = { devis: "DEVIS", facture: "FACTURE", recu: "REÇU" }[d.type];
@@ -594,7 +597,7 @@ window.KiffyAdminModule = function (K) {
     let yp = 278 - pied.length * 4.4;
     doc.setDrawColor(...L); doc.line(15, yp - 4, 195, yp - 4); doc.setFontSize(8.5); doc.setTextColor(...G);
     pied.forEach(l => { doc.text(doc.splitTextToSize(latin(l), 180), 105, yp, { align: "center" }); yp += 4.4; });
-    doc.setTextColor(...V); doc.setFont("helvetica", "bold"); T("Merci pour votre confiance · Kiffy par NFC Work", 105, 287, { align: "center" });
+    doc.setTextColor(...V); doc.setFont("helvetica", "bold"); T("Merci pour votre confiance · Kiffy par NFC WORK", 105, 287, { align: "center" });
     if (d.statut === "annule") { doc.setTextColor(192, 38, 45); doc.setFontSize(64); doc.text("ANNULÉ", 105, 160, { align: "center", angle: 30 }); }
     return doc.output("blob");
   }

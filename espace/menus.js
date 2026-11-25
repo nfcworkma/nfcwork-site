@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — ÉDITEUR DES MENUS DIGITAUX (admin seulement)
+   NFC WORK — ÉDITEUR DES MENUS DIGITAUX (admin seulement)
    Enregistrement dans Firestore, collection « settings » (lecture publique,
    écriture admin — règle déjà en place) :
      settings/menus          → liste des menus  { json: "[{slug, nom, formule, actif, maj}]" }
@@ -63,7 +63,7 @@
   /* ---------- ✏️ mode commerçant : il modifie seulement SES menus (accès donné dans sa fiche client) ---------- */
   let PROPRIO = false;
   async function modeProprio(u) {
-    const refuse = () => { app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Demandez à NFCWORK d’activer la modification de votre menu.</p><a class="btn" href="./">Retour à mon espace</a></div>`; };
+    const refuse = () => { app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Demandez à NFC WORK d’activer la modification de votre menu.</p><a class="btn" href="./">Retour à mon espace</a></div>`; };
     try {
       if (!u.emailVerified) { refuse(); return; }
       const s = await db.collection("clients").where("email", "==", (u.email || "").toLowerCase()).get();
@@ -98,7 +98,7 @@
     } catch (e) { console.error(e); liste = []; toast("Impossible de lire la liste des menus."); }
   }
   async function ecrireListe() {
-    if (PROPRIO) return;   // la liste générale reste gérée par NFCWORK
+    if (PROPRIO) return;   // la liste générale reste gérée par NFC WORK
     await db.doc("settings/menus").set({ json: JSON.stringify(liste), maj: NOW(), par: user.email });
   }
   function erreur(e) {
@@ -694,7 +694,7 @@
   });
 
   /* ---------- dupliquer un menu (même produits et photos, nouveau nom) ---------- */
-  /* ---------- 💾 / 📥 menu en fichier (.json avec ses photos) : sauvegarde, ou menu tout prêt préparé par NFCWORK ---------- */
+  /* ---------- 💾 / 📥 menu en fichier (.json avec ses photos) : sauvegarde, ou menu tout prêt préparé par NFC WORK ---------- */
   async function fichierOut() {
     if (dirty()) { toast("Enregistrez d’abord ce menu."); return; }
     const images = {};
@@ -726,7 +726,7 @@
   }
   async function importerMenu(P) {
     {
-      const c = P && P.menu; if (!c || !Array.isArray(c.categories)) { toast("Ce fichier n’est pas un menu NFCWORK."); return; }
+      const c = P && P.menu; if (!c || !Array.isArray(c.categories)) { toast("Ce fichier n’est pas un menu NFC WORK."); return; }
       const nom = prompt("Nom du commerce :", c.nom || ""); if (!nom || !nom.trim()) return;
       let s = slugify(prompt("Lien : nfcwork.ma/menu/…", slugify(nom)) || nom); if (!s) return;
       let remplace = false;
@@ -1027,7 +1027,7 @@
       const lien = t.match(/https?:\/\/\S+/i);
       if (lien && t.length < 300) t = lien[0];
       if (/go\.link|glovo\.page\.link|onelink|adj\.st/i.test(t)) {
-        err.innerHTML = "Ce lien vient du <b>partage de l’application</b> Glovo : il ouvre l’appli et ne contient pas le menu.<br>• Envoyez ce lien à l’assistant NFCWORK : il vous prépare le menu (vous tapez ensuite juste son nom ici).<br>• Ou cherchez le resto sur <b>glovoapp.com</b> dans le navigateur et collez le lien de la page.";
+        err.innerHTML = "Ce lien vient du <b>partage de l’application</b> Glovo : il ouvre l’appli et ne contient pas le menu.<br>• Envoyez ce lien à l’assistant NFC WORK : il vous prépare le menu (vous tapez ensuite juste son nom ici).<br>• Ou cherchez le resto sur <b>glovoapp.com</b> dans le navigateur et collez le lien de la page.";
         return;
       }
       if (!lu) {
@@ -1039,7 +1039,7 @@
           cats = await IM.lirePage(t);
           if (!cats) {
             go.disabled = false; go.textContent = "Lire le menu";
-            err.innerHTML = "La page n’a pas pu être lue automatiquement.<br>• Sur ordinateur : ouvrez le lien, sélectionnez tout (Ctrl+A / ⌘A), copiez et collez le texte ici.<br>• Ou envoyez le lien à l’assistant NFCWORK : il vous prépare un code à coller ici.";
+            err.innerHTML = "La page n’a pas pu être lue automatiquement.<br>• Sur ordinateur : ouvrez le lien, sélectionnez tout (Ctrl+A / ⌘A), copiez et collez le texte ici.<br>• Ou envoyez le lien à l’assistant NFC WORK : il vous prépare un code à coller ici.";
             return;
           }
         } else if (/^[a-z0-9-]{3,40}$/i.test(t)) {

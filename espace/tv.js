@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — MENUS TV (admin)
+   NFC WORK — MENUS TV (admin)
    On importe le PDF du menu (ou des photos) : chaque page devient une image,
    et un lien nfcwork.ma/tv/<nom> les fait défiler en boucle sur la TV, avec des transitions.
    Firestore, collection « settings » (lecture publique, écriture admin — règle déjà en place) :
@@ -59,7 +59,7 @@
   }
   function erreur(e) {
     console.error(e);
-    toast(e && e.code === "permission-denied" ? (PROPRIO ? "Pas encore autorisé : demandez à NFCWORK d’activer la modification." : "Refusé par Firebase : connectez-vous avec l’e-mail admin.") : "Échec. Vérifiez la connexion et réessayez.", true);
+    toast(e && e.code === "permission-denied" ? (PROPRIO ? "Pas encore autorisé : demandez à NFC WORK d’activer la modification." : "Refusé par Firebase : connectez-vous avec l’e-mail admin.") : "Échec. Vérifiez la connexion et réessayez.", true);
   }
 
   /* ---------- données ---------- */

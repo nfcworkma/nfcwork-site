@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — IMPORTER UN MENU (Glovo, Jumia, site du resto, texte copié, code NFCWORK)
+   NFC WORK — IMPORTER UN MENU (Glovo, Jumia, site du resto, texte copié, code NFC WORK)
    Lit un texte où chaque produit finit par son prix (« 45,00 MAD », « 45 DH »)
    et le transforme en catégories + produits pour l'éditeur de menus.
    ========================================================= */
@@ -44,7 +44,7 @@
     return cats.filter(c => c.items.length && !SAUTER.test(c.nom));
   }
 
-  // code préparé par NFCWORK : {"categories":[{"nom":"…","items":[{"nom":"…","desc":"…","prix":25}]}]}
+  // code préparé par NFC WORK : {"categories":[{"nom":"…","items":[{"nom":"…","desc":"…","prix":25}]}]}
   function lireCode(t) {
     try {
       const j = JSON.parse(t);
@@ -81,7 +81,7 @@
     return null;
   }
 
-  // menu préparé par NFCWORK et rangé sur le site : il suffit de taper son nom (ex. « lartisan »)
+  // menu préparé par NFC WORK et rangé sur le site : il suffit de taper son nom (ex. « lartisan »)
   async function lirePrepare(nom) {
     try {
       const r = await fetch("/menu/import/" + encodeURIComponent(nom) + ".json", { cache: "no-cache" });

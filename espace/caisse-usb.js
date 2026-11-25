@@ -1,4 +1,4 @@
-/* NFCWORK — dossier d'installation de la caisse, prêt pour un client (clé USB)
+/* NFC WORK — dossier d'installation de la caisse, prêt pour un client (clé USB)
    NFCW_CAISSE_USB.telecharger({ nom, slug }) → télécharge Caisse-<slug>.zip :
    Windows (double-clic, aucune question) + Mac + LISEZ-MOI, déjà réglés sur nfcwork.ma/espace/pos.html#m=<slug>. */
 (function () {
@@ -32,7 +32,7 @@
 
   function fichiers(nom, slug, ico, icns) {
     const url = "https://nfcwork.ma/espace/pos.html#m=" + slug, N = nom.replace(/[\\/:*?"<>|]/g, "").trim() || "Caisse";
-    const win = `# Caisse ${N} - installation automatique (NFCWORK)
+    const win = `# Caisse ${N} - installation automatique (NFC WORK)
 $ErrorActionPreference = 'Stop'
 $nom = '${ps(N)}'
 $url = '${ps(url)}'
@@ -60,7 +60,7 @@ Start-Sleep -Seconds 3
     const des = `@echo off\npowershell -NoProfile -ExecutionPolicy Bypass -Command "$w=New-Object -ComObject WScript.Shell; foreach($d in @([Environment]::GetFolderPath('Desktop'),[Environment]::GetFolderPath('Startup'))){ Get-ChildItem $d -Filter '*.lnk' -ErrorAction SilentlyContinue | Where-Object { $w.CreateShortcut($_.FullName).Arguments -like '*NFCWORK-Caisse*' } | Remove-Item -Force }; Write-Host 'Caisse retiree.'"\npause\n`;
     const M = sh(N) || "Caisse";
     const mac = `#!/bin/bash
-# Caisse ${M} - installation Mac (NFCWORK)
+# Caisse ${M} - installation Mac (NFC WORK)
 NOM='${M}'
 URL='${url}'
 PROFIL="$HOME/Library/Application Support/NFCWORK-Caisse"
@@ -72,7 +72,7 @@ osascript -e "tell application \\"System Events\\" to make login item at end wit
 echo "OK ! Application \\"$NOM\\" installee."; open "$APP"
 `;
     const lin = `#!/bin/bash
-# Caisse ${M} - installation Linux (NFCWORK)
+# Caisse ${M} - installation Linux (NFC WORK)
 URL='${url}'
 NAV="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || command -v microsoft-edge)"
 [ -z "$NAV" ] && { xdg-open "https://www.google.com/chrome/"; echo "Installez Google Chrome puis relancez."; exit 1; }
@@ -99,7 +99,7 @@ MAC
 Terminal : tapez  bash  + espace, glissez INSTALLER-MAC.command dans la fenetre, Entree.
 
 TABLETTE / CAISSE ANDROID (Sunmi, Imin, Samsung...) / iPad / TOUT AUTRE APPAREIL
-Ouvrez OUVRIR-LA-CAISSE.html (ou scannez le QR donne par NFCWORK),
+Ouvrez OUVRIR-LA-CAISSE.html (ou scannez le QR donne par NFC WORK),
 puis dans le navigateur : "Installer l'application" / "Ajouter a l'ecran d'accueil".
 iPad : bouton Partager > "Sur l'ecran d'accueil".
 
@@ -107,7 +107,7 @@ LINUX
 Terminal : bash INSTALLER-LINUX.sh
 
 La caisse s'ouvre seule au demarrage, imprime directement et continue sans internet.
-Aide NFCWORK : WhatsApp 06 20 66 60 27
+Aide NFC WORK : WhatsApp 06 20 66 60 27
 `;
     const D = "Caisse-" + slug + "/";
     return [

@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — ABONNEMENTS DES CLIENTS (admin seulement)
+   NFC WORK — ABONNEMENTS DES CLIENTS (admin seulement)
    Collection Firestore « abonnements » (lecture/écriture admin) :
      { client, tel, service: "menu"|"fid"|"autre", cible, libelle, prix, echeance: "AAAA-MM-JJ",
        auto, grace, actif, paiements: [{ date, mois, montant, mode }], createdAt }
@@ -51,7 +51,7 @@
   auth.onAuthStateChanged(async u => {
     user = u;
     if (!u) { renderLogin(); return; }
-    if ((u.email || "").toLowerCase() !== ADMIN) { app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Cette page est réservée à l’administrateur NFCWORK.</p><a class="btn" href="./">Retour à l’Espace</a></div>`; return; }
+    if ((u.email || "").toLowerCase() !== ADMIN) { app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Cette page est réservée à l’administrateur NFC WORK.</p><a class="btn" href="./">Retour à l’Espace</a></div>`; return; }
     await charger(); rendre();
     const hc = decodeURIComponent((location.hash.match(/client=([^&]+)/) || [])[1] || "");
     if (hc && /new=1/.test(location.hash) && !abos.some(a => norm(a.client) === norm(hc))) { formulaire(null); const i = document.getElementById("a-client"); if (i) i.value = hc; }
@@ -203,7 +203,7 @@
   function rappel(a) {
     let t = String(a.tel || "").replace(/\D/g, ""); if (t.startsWith("00")) t = t.slice(2); if (t.startsWith("0")) t = "212" + t.slice(1);
     const j = ecart(a.echeance);
-    const txt = `Bonjour ${a.client},\n\nVotre abonnement NFCWORK (${SERVICES[a.service]}${a.libelle ? " · " + a.libelle : ""}) ${j < 0 ? `est arrivé à échéance le ${fr(a.echeance)}` : `arrive à échéance le ${fr(a.echeance)}`} : ${(+a.prix || 0)} DH / mois.\n\nMerci de régler pour garder votre service actif.\n\nNFCWORK · nfcwork.ma`;
+    const txt = `Bonjour ${a.client},\n\nVotre abonnement NFC WORK (${SERVICES[a.service]}${a.libelle ? " · " + a.libelle : ""}) ${j < 0 ? `est arrivé à échéance le ${fr(a.echeance)}` : `arrive à échéance le ${fr(a.echeance)}`} : ${(+a.prix || 0)} DH / mois.\n\nMerci de régler pour garder votre service actif.\n\nNFC WORK · nfcwork.ma`;
     window.open(`https://wa.me/${t}?text=${encodeURIComponent(txt)}`, "_blank");
   }
 

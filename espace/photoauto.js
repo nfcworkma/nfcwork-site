@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — PHOTO AUTOMATIQUE pour les produits du menu
+   NFC WORK — PHOTO AUTOMATIQUE pour les produits du menu
    1) cherche d'abord dans la banque de photos (Unsplash, banque.js)
    2) pour un produit de marque (Coca-Cola, Poms, Sidi Ali…) : photo du vrai produit
       sur Open Food Facts (base libre, licence CC BY-SA) → enregistrée « o:<chemin> »

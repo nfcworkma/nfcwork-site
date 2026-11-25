@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — MENU DEPUIS UNE PHOTO
+   NFC WORK — MENU DEPUIS UNE PHOTO
    La photo du menu papier est lue dans le téléphone (Tesseract.js, sans serveur),
    puis transformée en catégories + produits + prix.
    Le texte lu est montré pour corriger avant d'importer.

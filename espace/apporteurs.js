@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — APPORTEURS (parrainage), admin
+   NFC WORK — APPORTEURS (parrainage), admin
    Chaque apporteur a un code et un lien : nfcwork.ma/?ref=CODE
    Le site garde le code et l'ajoute aux messages WhatsApp (« Code apporteur : CODE »).
    On note ici les clients qu'il a apportés et la commission (payée ou non).
@@ -22,7 +22,7 @@
 
   auth.onAuthStateChanged(async u => {
     if (!u) { login(); return; }
-    if ((u.email || "").toLowerCase() !== ADMIN) { app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Page réservée à l’administrateur NFCWORK.</p><a class="btn" href="./">Retour</a></div>`; return; }
+    if ((u.email || "").toLowerCase() !== ADMIN) { app.innerHTML = `<div class="empty"><h3>Accès réservé</h3><p>Page réservée à l’administrateur NFC WORK.</p><a class="btn" href="./">Retour</a></div>`; return; }
     try { const d = await db.doc("settings/apporteurs").get(); L = d.exists ? JSON.parse(d.data().json || "[]") : []; } catch (e) { L = []; }
     rendre();
   });
@@ -43,7 +43,7 @@
         <div class="row between"><b style="font-size:18px">${esc(a.nom)}</b><span class="pill pro">${esc(a.code)}</span></div>
         <div class="muted" style="font-size:13px">${esc(a.tel || "")} · commission ${esc(a.commission || 0)} DH par client</div>
         <div class="lien">${esc(lien(a).replace(/^https:\/\//, ""))}</div>
-        <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" data-copier="${i}">📋 Copier le lien</button>${waNum(a.tel) ? `<a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/${waNum(a.tel)}?text=${encodeURIComponent(`Salam ${a.nom} 👋 Voici ton lien NFCWORK : ${lien(a)}\nChaque commerce qui signe avec ce lien = ${a.commission || 0} DH pour toi 💰`)}">📲 Envoyer</a>` : ""}<button class="btn sm primary" data-client="${i}">＋ Client apporté</button><button class="btn sm ghost" data-suppr="${i}">🗑</button></div>
+        <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" data-copier="${i}">📋 Copier le lien</button>${waNum(a.tel) ? `<a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/${waNum(a.tel)}?text=${encodeURIComponent(`Salam ${a.nom} 👋 Voici ton lien NFC WORK : ${lien(a)}\nChaque commerce qui signe avec ce lien = ${a.commission || 0} DH pour toi 💰`)}">📲 Envoyer</a>` : ""}<button class="btn sm primary" data-client="${i}">＋ Client apporté</button><button class="btn sm ghost" data-suppr="${i}">🗑</button></div>
         ${(a.clients || []).map((c, j) => `<div class="cl"><span class="n"><b>${esc(c.nom)}</b> <small class="muted">${esc(c.date || "")}</small></span><b>${esc(c.montant || 0)} DH</b><button class="btn sm ${c.paye ? "ghost" : "primary"}" data-paye="${i}:${j}">${c.paye ? "✓ Payé" : "Marquer payé"}</button></div>`).join("")}
         ${du(a) ? `<div style="margin-top:8px;font-weight:700;color:#ffc542">À lui payer : ${du(a)} DH</div>` : ""}
       </div>`).join("")}</div>`

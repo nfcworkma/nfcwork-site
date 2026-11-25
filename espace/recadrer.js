@@ -1,4 +1,4 @@
-/* NFCWORK — recadrer le logo et la photo de couverture avant l'envoi
+/* NFC WORK — recadrer le logo et la photo de couverture avant l'envoi
    NFCW_RECADRER(fichier, "logo"|"cover") → Promise<{ blob, pos }> ou null si annulé
    - logo  : carré 600×600 vu dans le rond du menu (glisser, zoom, ✨ auto, couleur du fond)
    - cover : on choisit ce qui reste visible sur téléphone ET sur ordinateur (glisser, zoom)

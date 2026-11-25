@@ -169,7 +169,7 @@
   }
 
   function pied() {
-    return '<footer>Propulsé par <b style="color:var(--accent)">Ncommandiw</b> · une plateforme <a href="https://nfcwork.ma" target="_blank" rel="noopener">NFCWORK</a></footer>';
+    return '<footer>Propulsé par <b style="color:var(--accent)">Ncommandiw</b> · une plateforme <a href="https://nfcwork.ma" target="_blank" rel="noopener">NFC WORK</a></footer>';
   }
 
   charger();

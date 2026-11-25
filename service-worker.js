@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — SERVICE WORKER (application installable)
+   NFC WORK — SERVICE WORKER (application installable)
    - Pages HTML, CSS, JS : réseau d'abord (les mises à jour s'affichent),
      copie en cache si pas de connexion.
    - Images : cache, puis mise à jour en arrière-plan.

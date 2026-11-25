@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — MENU TV AUTOMATIQUE
+   NFC WORK — MENU TV AUTOMATIQUE
    Un menu de l'Espace → des écrans 1920 × 1080 (format exact de la TV, rien n'est coupé) :
    1 écran d'accueil, puis chaque catégorie séparée (Ftour, Crêpes, Boissons…),
    coupée en plusieurs écrans si elle a beaucoup de produits, puis un écran « Scannez le QR ».

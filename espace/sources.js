@@ -1,4 +1,4 @@
-/* NFCWORK — « Remplir depuis un client existant »
+/* NFC WORK — « Remplir depuis un client existant »
    Quand on crée un menu, une carte fidélité, un avis Google, une carte digitale, un Wi-Fi ou une page liens,
    on choisit le client : son nom, son logo, sa couleur, ses téléphones, Instagram, adresse, horaires
    et les liens de ses autres services sont déjà remplis. Il ne reste que ce qui manque.
@@ -23,7 +23,7 @@
     return L;
   }
 
-  // une image (id de photo NFCWORK, chemin du site, lien) → data:image/…
+  // une image (id de photo NFC WORK, chemin du site, lien) → data:image/…
   async function versData(db, id) {
     if (!id) return "";
     if (/^data:image\//.test(id)) return id;

@@ -1,4 +1,4 @@
-/* NFCWORK — compteur de visites (1 par appareil et par jour), lu dans l'Espace.
+/* NFC WORK — compteur de visites (1 par appareil et par jour), lu dans l'Espace.
    Firestore stats/<type>-<nom>-<AAAAMM>  { n }  — règle : seulement +1 à la fois (voir l'Espace). */
 window.NFCW_VUE = function (type, nom) {
   try {

@@ -140,7 +140,7 @@
     choisir();
   }
   function pasLie() {
-    app.innerHTML = '<div class="empty"><div><div class="em">✅</div><h2>Compte validé</h2><p>Ton commerce va être activé par NFCWORK très bientôt. Reviens dans un moment.</p><button class="btn primary" id="rr" style="max-width:240px;margin:16px auto 0">Actualiser</button><button class="btn g" id="out" style="max-width:240px;margin:8px auto 0">Se déconnecter</button></div></div>';
+    app.innerHTML = '<div class="empty"><div><div class="em">✅</div><h2>Compte validé</h2><p>Ton commerce va être activé par NFC WORK très bientôt. Reviens dans un moment.</p><button class="btn primary" id="rr" style="max-width:240px;margin:16px auto 0">Actualiser</button><button class="btn g" id="out" style="max-width:240px;margin:8px auto 0">Se déconnecter</button></div></div>';
     document.getElementById("rr").onclick = router;
     document.getElementById("out").onclick = () => auth.signOut();
   }

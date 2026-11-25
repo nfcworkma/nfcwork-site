@@ -1,5 +1,5 @@
 /* =========================================================
-   NFCWORK — Apple Wallet, phase 2 (Firebase Functions, Node 22)
+   NFC WORK — Apple Wallet, phase 2 (Firebase Functions, Node 22)
    Le Worker Cloudflare fabrique la carte (.pkpass). Ici :
    1) le « web service » Apple : les iPhones s'enregistrent pour recevoir les mises à jour d'une carte
    2) l'envoi des mises à jour (APNs, HTTP/2 + certificat Pass Type ID) :
@@ -209,7 +209,7 @@ exports.appleAnniversaires = onSchedule({ schedule: "0 9 * * *", timeZone: "Afri
 
 /* ---------- 6) 📱 Kiffy (app du commerçant, /kiffy/) ---------- */
 const { FieldValue, Timestamp } = require("firebase-admin/firestore");
-// La personne connectée doit être le gérant du commerce (e-mail vérifié = ownerEmail) ou l'admin NFC Work.
+// La personne connectée doit être le gérant du commerce (e-mail vérifié = ownerEmail) ou l'admin NFC WORK.
 async function kiffyCommerce(auth, pid) {
   if (!auth || !auth.token) throw new HttpsError("unauthenticated", "Connectez-vous d’abord.");
   const mail = String(auth.token.email || "").toLowerCase(), verifie = auth.token.email_verified === true;
@@ -275,18 +275,18 @@ exports.kiffyVisite = onCall({ region: REGION, maxInstances: 10 }, async req => 
 // admin : crée (ou retrouve) le compte du gérant ; l'app envoie ensuite l'e-mail « choisir le mot de passe »
 exports.kiffyAcces = onCall({ region: REGION, maxInstances: 3 }, async req => {
   const { p, estAdmin } = await kiffyCommerce(req.auth, (req.data || {}).pid);
-  if (!estAdmin) throw new HttpsError("permission-denied", "Réservé à NFC Work.");
+  if (!estAdmin) throw new HttpsError("permission-denied", "Réservé à NFC WORK.");
   const email = String(p.ownerEmail || "").trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpsError("invalid-argument", "E-mail du gérant invalide.");
   let u = null, cree = false;
   try { u = await admin.auth().getUserByEmail(email); } catch (e) { if (e.code !== "auth/user-not-found") throw e; }
   if (!u) { u = await admin.auth().createUser({ email, emailVerified: true, password: crypto.randomBytes(24).toString("base64url"), displayName: String(p.nom || "").slice(0, 60) }); cree = true; }
-  else if (!u.emailVerified) await admin.auth().updateUser(u.uid, { emailVerified: true });   // NFC Work a vérifié l'e-mail avec le commerçant
+  else if (!u.emailVerified) await admin.auth().updateUser(u.uid, { emailVerified: true });   // NFC WORK a vérifié l'e-mail avec le commerçant
   await journal({ role: "admin", qui: ADMIN, action: "acces", pid: (req.data || {}).pid, commerce: p.nom, detail: (cree ? "Compte créé · " : "") + "accès envoyé à " + email });
   return { ok: true, email, cree };
 });
 
-// réglages que le gérant peut changer lui-même : récompense, objectif, anniversaire. Tout le design de la carte est réservé à NFC Work.
+// réglages que le gérant peut changer lui-même : récompense, objectif, anniversaire. Tout le design de la carte est réservé à NFC WORK.
 const KIFFY_GERANT = ["recompense", "objectif", "cadeauAnniv", "annivMessage", "annivAuto"];
 const KIFFY_METIERS = /^(unie|barber|beaute|cafe|snack|resto|pizzeria|patisserie|glacier|vetement|pressing|hammam|sport|pharmacie|epicerie|telephone|gaming|billard|terrain|location|lavage|garage|autre)?$/;
 exports.kiffyReglages = onCall({ region: REGION, maxInstances: 5 }, async req => {
@@ -294,7 +294,7 @@ exports.kiffyReglages = onCall({ region: REGION, maxInstances: 5 }, async req =>
   const { ref, p, estAdmin } = await kiffyCommerce(req.auth, pid);
   const c = champs && typeof champs === "object" ? champs : {}, maj = {};
   const interdits = Object.keys(c).filter(k => !KIFFY_GERANT.includes(k));
-  if (!estAdmin && interdits.length) throw new HttpsError("permission-denied", "Contactez NFC Work pour modifier la carte (" + interdits.slice(0, 4).join(", ") + ").");
+  if (!estAdmin && interdits.length) throw new HttpsError("permission-denied", "Contactez NFC WORK pour modifier la carte (" + interdits.slice(0, 4).join(", ") + ").");
   const txt = (k, n) => { if (k in c) maj[k] = String(c[k] || "").trim().slice(0, n); };
   txt("recompense", 80); txt("unite", 30); txt("cadeauAnniv", 80); txt("annivMessage", 300); txt("lieuTexte", 80);
   if ("objectif" in c) { const o = parseInt(c.objectif, 10); if (!(o >= 1 && o <= 1000)) throw new HttpsError("invalid-argument", "Objectif invalide."); maj.objectif = o; }
@@ -312,13 +312,13 @@ exports.kiffyReglages = onCall({ region: REGION, maxInstances: 5 }, async req =>
 // admin : ajouter / retirer des points à la main, avec un motif (tracé dans la carte et le journal)
 exports.kiffyAjuster = onCall({ region: REGION, maxInstances: 5 }, async req => {
   if (!req.auth) throw new HttpsError("unauthenticated", "Connectez-vous d’abord.");
-  if (mailDe(req.auth) !== ADMIN || req.auth.token.email_verified !== true) throw new HttpsError("permission-denied", "Réservé à NFC Work.");
+  if (mailDe(req.auth) !== ADMIN || req.auth.token.email_verified !== true) throw new HttpsError("permission-denied", "Réservé à NFC WORK.");
   const { cid, n, motif } = req.data || {};
   if (!nettoyer(cid)) throw new HttpsError("invalid-argument", "Carte manquante.");
   const cref = db.doc("fidCartes/" + nettoyer(cid)), c0 = await cref.get();
   if (!c0.exists) throw new HttpsError("not-found", "Carte introuvable.");
   const { p, estAdmin } = await kiffyCommerce(req.auth, c0.data().pid);
-  if (!estAdmin) throw new HttpsError("permission-denied", "Réservé à NFC Work.");
+  if (!estAdmin) throw new HttpsError("permission-denied", "Réservé à NFC WORK.");
   const k = parseInt(n, 10), m = String(motif || "").trim().slice(0, 120);
   if (!k || Math.abs(k) > 1000) throw new HttpsError("invalid-argument", "Nombre de points invalide.");
   if (m.length < 3) throw new HttpsError("invalid-argument", "Indiquez le motif.");
@@ -326,7 +326,7 @@ exports.kiffyAjuster = onCall({ region: REGION, maxInstances: 5 }, async req => 
     const c = (await t.get(cref)).data(), pts = c.points || 0, tot = c.total || 0;
     if (pts + k < 0) throw new HttpsError("failed-precondition", `La carte n’a que ${pts} point(s).`);
     t.update(cref, { points: FieldValue.increment(k), total: FieldValue.increment(Math.max(-tot, k)),
-      hist: [{ a: "ajust", n: k, t: Date.now(), e: "NFC Work", eid: "", motif: m }, ...(Array.isArray(c.hist) ? c.hist : [])].slice(0, 15) });
+      hist: [{ a: "ajust", n: k, t: Date.now(), e: "NFC WORK", eid: "", motif: m }, ...(Array.isArray(c.hist) ? c.hist : [])].slice(0, 15) });
     return { ok: true, points: pts + k, nom: c.nom || "" };
   });
   await journal({ role: "admin", qui: mailDe(req.auth), action: "points", pid: c0.data().pid, commerce: p.nom, detail: `${r.nom} · ${k > 0 ? "+" : ""}${k} · ${m}` });
@@ -345,11 +345,11 @@ exports.kiffyAppareil = onCall({ region: REGION, maxInstances: 5 }, async req =>
   return { ok: true };
 });
 
-// suppression du compte depuis l'app (exigence Apple) : compte effacé tout de suite, commerce mis en pause pour NFC Work
+// suppression du compte depuis l'app (exigence Apple) : compte effacé tout de suite, commerce mis en pause pour NFC WORK
 exports.kiffySupprimerCompte = onCall({ region: REGION, maxInstances: 3 }, async req => {
   if (!req.auth || req.auth.token.email_verified !== true) throw new HttpsError("unauthenticated", "Connectez-vous d’abord.");
   const email = String(req.auth.token.email || "").toLowerCase();
-  if (email === ADMIN) throw new HttpsError("permission-denied", "Le compte NFC Work ne peut pas être supprimé ici.");
+  if (email === ADMIN) throw new HttpsError("permission-denied", "Le compte NFC WORK ne peut pas être supprimé ici.");
   const progs = await db.collection("fidProgrammes").where("ownerEmail", "==", email).get();
   for (const p of progs.docs) {
     await p.ref.update({ actif: false, suppressionDemandee: FieldValue.serverTimestamp() });
@@ -382,8 +382,8 @@ async function envoyerPush(docs, titre, corps, logo) {
 }
 // admin : notification à tous les gérants (ou à un seul, par e-mail) — rappel d'impayé, nouveauté…
 exports.kiffyNotifGerants = onCall({ region: REGION, maxInstances: 3 }, async req => {
-  if (!req.auth || req.auth.token.email_verified !== true || mailDe(req.auth) !== ADMIN) throw new HttpsError("permission-denied", "Réservé à NFC Work.");
-  const titre = String((req.data || {}).titre || "NFC Work").trim().slice(0, 60) || "NFC Work", texte = String((req.data || {}).texte || "").trim().slice(0, 240);
+  if (!req.auth || req.auth.token.email_verified !== true || mailDe(req.auth) !== ADMIN) throw new HttpsError("permission-denied", "Réservé à NFC WORK.");
+  const titre = String((req.data || {}).titre || "NFC WORK").trim().slice(0, 60) || "NFC WORK", texte = String((req.data || {}).texte || "").trim().slice(0, 240);
   const email = String((req.data || {}).email || "").trim().toLowerCase();
   if (!texte) throw new HttpsError("invalid-argument", "Écrivez le message.");
   const s = await db.collection("kiffyAppareils").get();

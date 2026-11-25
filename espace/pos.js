@@ -1,7 +1,7 @@
-/* NFCWORK — Caisse web (espace/pos.html#m=<slug>)
+/* NFC WORK — Caisse web (espace/pos.html#m=<slug>)
    Pensée pour être utilisée sans lire : grandes icônes, couleurs, photos des produits, billets, un seul gros bouton par étape. FR / عربي.
    Données :
-   - caisses/<slug>  { emails:[…], tables:12, employes:[{nom,pin}], ticket:{entete,pied,largeur} }  (réglé par NFCWORK dans « Menus »)
+   - caisses/<slug>  { emails:[…], tables:12, employes:[{nom,pin}], ticket:{entete,pied,largeur} }  (réglé par NFC WORK dans « Menus »)
    - commandes/<slug>/liste/<id>  { statut: nouvelle|cuisine|prete|payee|annulee, source: menu|caisse, num, cree, mode: place|emporter|livraison|chambre,
        table, nom, tel, adresse, pos, note, items:[{id,n,q,p}], total, frais, devise, employe, paiement, payeA }
    Robustesse : cache hors connexion (les ventes continuent sans internet), alerte rouge + son si internet coupé, écran toujours allumé. */
@@ -30,7 +30,7 @@
       histo: "Historique", histoTx: "Ventes, produits, serveurs", patron: "Code du patron", jour: "Aujourd’hui", hier: "Hier", j7: "7 jours", mois: "Ce mois", moisP: "Mois dernier",
       ca: "Chiffre d’affaires", tickets: "Tickets", moyen: "Ticket moyen", produits: "Produits vendus", serveurs: "Par serveur", parJour: "Par jour", liste: "Tous les tickets",
       qte: "Qté", montant: "Montant", annulees: "Annulées", rapport: "Imprimer le rapport", csv: "Télécharger (Excel)", chargement: "Chargement…", du: "Du", au: "au", voirP: "Voir",
-      gerer: "Gérer la caisse", equipe: "Serveurs et codes", ajouterS: "Ajouter un serveur", nbTables: "Nombre de tables", entete: "Adresse sur le ticket", contact: "Pour changer les codes, les prix ou les produits, contactez NFCWORK", pinErr: "Chaque code doit avoir 4 chiffres, différents" },
+      gerer: "Gérer la caisse", equipe: "Serveurs et codes", ajouterS: "Ajouter un serveur", nbTables: "Nombre de tables", entete: "Adresse sur le ticket", contact: "Pour changer les codes, les prix ou les produits, contactez NFC WORK", pinErr: "Chaque code doit avoir 4 chiffres, différents" },
     ar: { start: "بدا الكيسة", startTx: "الطلبات ديال المنيو كيوصلو هنا مباشرة.", who: "ورك على سميتك", code: "دخل الكود ديالك", wrong: "الكود غالط", hello: "مرحبا", what: "شنو بغيتي دير؟",
       place: "فالمحل", emporter: "ديها معاك", livraison: "توصيل", commandes: "الطلبات", tables: "الطوابل", libre: "خاوية", occ: "عامرين",
       nouvelle: "جديدة", cuisine: "فالكوزينة", prete: "واجدة", payee: "تخلصات", annulee: "تلغات", enroute: "فالطريق", livree: "توصلات", assigner: "عيّن ليفرور", livre: "توصل", lancer: "صيفط للكوزينة", lancerTout: "صيفط للكوزينة", pret: "واجدة",
@@ -45,7 +45,7 @@
       histo: "الحسابات", histoTx: "المبيعات، المنتوجات، السرفورات", patron: "الكود ديال مول المحل", jour: "اليوم", hier: "البارح", j7: "7 أيام", mois: "هاد الشهر", moisP: "الشهر اللي فات",
       ca: "المدخول", tickets: "التيكيات", moyen: "معدل التيكي", produits: "المنتوجات اللي تباعو", serveurs: "على حساب السرفور", parJour: "على حساب النهار", liste: "كاع التيكيات",
       qte: "العدد", montant: "المبلغ", annulees: "تلغاو", rapport: "طبع الحساب", csv: "تحميل (Excel)", chargement: "كيتشارجا…", du: "من", au: "حتى", voirP: "شوف",
-      gerer: "تسيير الكيسة", equipe: "السرفورات والكودات", ajouterS: "زيد سرفور", nbTables: "عدد الطوابل", entete: "العنوان فالتيكي", contact: "باش تبدل الكودات ولا الأثمنة ولا المنتوجات، تواصل مع NFCWORK", pinErr: "كل كود خاصو 4 أرقام، وما يتعاودش" }
+      gerer: "تسيير الكيسة", equipe: "السرفورات والكودات", ajouterS: "زيد سرفور", nbTables: "عدد الطوابل", entete: "العنوان فالتيكي", contact: "باش تبدل الكودات ولا الأثمنة ولا المنتوجات، تواصل مع NFC WORK", pinErr: "كل كود خاصو 4 أرقام، وما يتعاودش" }
   };
   const t = k => (W[LG] || W.fr)[k] || W.fr[k] || k;
   const setLang = () => { document.documentElement.lang = LG; document.documentElement.dir = LG === "ar" ? "rtl" : "ltr"; };
@@ -91,7 +91,7 @@
   const bip = () => ton([880, 1175, 1568]), bipPanne = () => ton([440, 330, 440, 330], .6);
   function alarme() {
     const n = ORD.filter(o => o.statut === "nouvelle").length;
-    document.title = n ? `(${n}) 🔔 Caisse` : "Caisse NFCWORK";
+    document.title = n ? `(${n}) 🔔 Caisse` : "Caisse NFC WORK";
     let a = document.querySelector(".alarm");
     if (n && employe) {
       if (!a) { a = document.createElement("button"); a.className = "alarm"; document.body.appendChild(a); a.onclick = () => go({ k: "ligne" }); }
@@ -148,7 +148,7 @@
   }
   const imgP = it => { const u = photoUrl(it.photo); return `<span class="pim">${it.photo ? `<img data-ph="${esc(it.photo)}" src="${esc(u)}" alt="" ${u ? "" : "hidden"} onerror="this.hidden=true">` : ""}<i>${esc(it.e || (tr(it.nom) || "?").trim().charAt(0).toUpperCase())}</i></span>`; };
 
-  /* ---------- 🎨 aux couleurs du commerce : son logo et sa couleur (menu), NFCWORK reste discret ---------- */
+  /* ---------- 🎨 aux couleurs du commerce : son logo et sa couleur (menu), NFC WORK reste discret ---------- */
   let LOGO = "";
   function logoUrl() {
     const id = C.logo || MENU.logo || "";
@@ -235,7 +235,7 @@
   });
   function login() {
     top.hidden = true;
-    app.innerHTML = `<div class="center"><form class="pinbox" id="lf"><div style="font-size:52px">🧾</div><h2 style="margin:6px 0">Caisse NFCWORK</h2>
+    app.innerHTML = `<div class="center"><form class="pinbox" id="lf"><div style="font-size:52px">🧾</div><h2 style="margin:6px 0">Caisse NFC WORK</h2>
       <p class="mut" style="margin:0 0 6px">Connectez la caisse une seule fois avec le compte du commerce.<br>كونيكطي الكيسة مرة وحدة بالحساب ديال المحل.</p>
       <label class="field">E-mail<input id="le" type="email" autocomplete="username" required></label>
       <label class="field">Mot de passe · المودباس<input id="lp" type="password" autocomplete="current-password" required></label>
@@ -249,7 +249,7 @@
   async function choisir() {
     let L = [];
     if (admin) { try { const d = await db.doc("settings/menus").get(); L = JSON.parse((d.data() || {}).json || "[]"); } catch (e) {} }
-    app.innerHTML = `<div class="center"><div class="pinbox"><h2>Quelle caisse ?</h2>${L.length ? `<div class="who" style="flex-direction:column">${L.map(m => `<button class="btn" data-s="${esc(m.slug)}">${esc(m.nom || m.slug)}</button>`).join("")}</div>` : `<p class="mut">Ouvrez le lien de la caisse donné par NFCWORK (il se termine par #m=…).</p>`}
+    app.innerHTML = `<div class="center"><div class="pinbox"><h2>Quelle caisse ?</h2>${L.length ? `<div class="who" style="flex-direction:column">${L.map(m => `<button class="btn" data-s="${esc(m.slug)}">${esc(m.nom || m.slug)}</button>`).join("")}</div>` : `<p class="mut">Ouvrez le lien de la caisse donné par NFC WORK (il se termine par #m=…).</p>`}
       <button class="btn sm" id="out" style="margin-top:10px">Changer de compte</button></div></div>`;
     app.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { slug = b.dataset.s; location.hash = "m=" + slug; demarrer(); });
     document.getElementById("out").onclick = () => auth.signOut();
@@ -266,7 +266,7 @@
       if (window.NFCW_PREAVIS && MENU.expire) NFCW_PREAVIS(MENU.preavis, MENU.expire, true);
     } catch (e) {
       console.error(e);
-      app.innerHTML = `<div class="center"><div class="pinbox"><div style="font-size:48px">🔒</div><h2>Accès refusé</h2><p class="mut">Ce compte (${esc(user.email)}) n’est pas autorisé sur cette caisse. Demandez à NFCWORK de l’ajouter.</p><button class="btn" id="out">Changer de compte</button></div></div>`;
+      app.innerHTML = `<div class="center"><div class="pinbox"><div style="font-size:48px">🔒</div><h2>Accès refusé</h2><p class="mut">Ce compte (${esc(user.email)}) n’est pas autorisé sur cette caisse. Demandez à NFC WORK de l’ajouter.</p><button class="btn" id="out">Changer de compte</button></div></div>`;
       document.getElementById("out").onclick = () => auth.signOut(); return;
     }
     ecouter();
@@ -607,7 +607,7 @@
     const ann = L.filter(o => o.statut === "annulee").length;
     document.getElementById("hz").innerHTML = `
       <div class="kpis"><div class="k1">💰<span>${t("ca")}</span><b>${fmt(ca)}</b></div><div>🧾<span>${t("tickets")}</span><b>${P.length}</b></div><div>➗<span>${t("moyen")}</span><b>${fmt(P.length ? ca / P.length : 0)}</b></div><div>💵<span>${t("especes")}</span><b>${fmt(esp)}</b></div><div>💳<span>${t("carte")}</span><b>${fmt(crt)}</b></div>${ann ? `<div>✖<span>${t("annulees")}</span><b>${ann}</b></div>` : ""}</div>
-      <div class="acts" style="margin:4px 0 14px"><button class="btn p" id="hp">🖨 ${t("rapport")}</button><button class="btn" id="hc">⬇️ ${t("csv")}</button><span class="sp2"></span>${C.autonome ? `<button class="btn" id="hg">⚙️ ${t("gerer")}</button>` : `<a class="btn sm" href="https://wa.me/212620666027?text=${encodeURIComponent("Bonjour NFCWORK, je voudrais une modification sur la caisse de " + (MENU.nom || slug))}" target="_blank" rel="noopener" title="${esc(t("contact"))}">💬 ${t("contact")}</a>`}</div>
+      <div class="acts" style="margin:4px 0 14px"><button class="btn p" id="hp">🖨 ${t("rapport")}</button><button class="btn" id="hc">⬇️ ${t("csv")}</button><span class="sp2"></span>${C.autonome ? `<button class="btn" id="hg">⚙️ ${t("gerer")}</button>` : `<a class="btn sm" href="https://wa.me/212620666027?text=${encodeURIComponent("Bonjour NFC WORK, je voudrais une modification sur la caisse de " + (MENU.nom || slug))}" target="_blank" rel="noopener" title="${esc(t("contact"))}">💬 ${t("contact")}</a>`}</div>
       <div class="hgrid">
         <div class="panel"><h2>🍽 ${t("produits")}</h2>${PR.length ? PR.map(p => `<div class="hb"><span class="hn">${esc(p.n)}</span><span class="bar"><i style="width:${Math.max(4, p.q / maxQ * 100)}%"></i></span><b class="hq">${p.q}</b><span class="hm">${fmt(p.m)}</span></div>`).join("") : `<div class="empty">${t("aucune")}</div>`}</div>
         <div style="display:grid;gap:16px;align-content:start">
@@ -630,7 +630,7 @@
     };
   }
 
-  /* ---------- ⚙️ le patron gère lui-même (seulement si NFCWORK l'a autorisé : caisses/<slug>.autonome) ---------- */
+  /* ---------- ⚙️ le patron gère lui-même (seulement si NFC WORK l'a autorisé : caisses/<slug>.autonome) ---------- */
   function gerer() {
     let E = (C.employes || []).map(e => ({ nom: e.nom, pin: String(e.pin) }));
     const d = document.createElement("div"); d.className = "modal";
@@ -710,7 +710,7 @@
       <label class="field">🧾 ${t("papier")}<select id="rl"><option value="80">80 mm</option><option value="58">58 mm</option></select></label>
       <label class="chk"><input type="checkbox" id="rb" ${LS.get("bon", true) ? "checked" : ""}> 🖨 ${t("bonAuto")}</label>
       <label class="chk"><input type="checkbox" id="ra" ${LS.get("auto", false) ? "checked" : ""}> 🖨 ${t("auto")}</label>
-      <p class="mut" style="font-size:13px">💡 Impression sans fenêtre : Google Chrome en mode « kiosk-printing » (NFCWORK le règle pour vous).</p>
+      <p class="mut" style="font-size:13px">💡 Impression sans fenêtre : Google Chrome en mode « kiosk-printing » (NFC WORK le règle pour vous).</p>
       <div class="acts"><button class="btn p" id="rok" style="flex:1">${t("sauver")}</button><button class="btn" id="rtest">🖨 ${t("ticketTest")}</button></div>
       <div class="acts" style="margin-top:14px"><button class="btn sm" id="rch">${t("changer")}</button><button class="btn bad sm" id="rout">${t("deco")}</button></div></div>`;
     document.body.appendChild(d);

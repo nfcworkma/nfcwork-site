@@ -1,9 +1,9 @@
 /* =========================================================
-   NFCWORK — CONFIGURATION
+   NFC WORK — CONFIGURATION
    Bdel hna l-ma3lomat dyalk (numéro, Instagram, livraison...)
    ========================================================= */
 const CONFIG = {
-  brand: "NFCWORK",
+  brand: "NFC WORK",
   // Numéro WhatsApp b format international (bla + w bla 0 f lowel)
   whatsapp: "212620666027",
   phoneDisplay: "+212 620 666 027",
