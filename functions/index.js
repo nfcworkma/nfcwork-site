@@ -135,6 +135,21 @@ exports.appleProgramme = onDocumentWritten({ document: "fidProgrammes/{pid}", re
   console.log("programme", ev.params.pid, "→", await pousser(regs), "iPhone(s)");
 });
 
+// admin : forcer la mise à jour des cartes Apple Wallet déjà installées (nouvelles icônes, nouveau design…)
+// → écrire kiffyAdmin/walletRafraichir { pid?: commerce, cid?: une carte, t } ; sans pid ni cid : toutes les cartes
+exports.walletRafraichir = onDocumentWritten({ document: "kiffyAdmin/walletRafraichir", region: REGION, secrets: [APPLE_CERT, APPLE_KEY] }, async ev => {
+  const d = ev.data.after.exists ? ev.data.after.data() : null; if (!d) return;
+  let regs = [];
+  if (d.cid) regs = (await db.collection("appleRegs").where("cid", "==", nettoyer(d.cid)).get()).docs;
+  else if (d.pid) {
+    const ids = (await db.collection("fidCartes").where("pid", "==", nettoyer(d.pid)).select().get()).docs.map(x => x.id);
+    for (let i = 0; i < ids.length; i += 30) regs.push(...(await db.collection("appleRegs").where("cid", "in", ids.slice(i, i + 30)).get()).docs);
+  } else regs = (await db.collection("appleRegs").get()).docs;
+  const n = await pousser(regs);
+  console.log("walletRafraichir", d.pid || d.cid || "tout", regs.length, "→", n);
+  await journal({ role: "admin", qui: ADMIN, action: "wallet", pid: d.pid || "", detail: `Cartes Apple Wallet mises à jour (${d.cid ? "une carte" : d.pid ? "un commerce" : "toutes"}) : ${regs.length} enregistrement(s), ${n} iPhone(s) prévenu(s)` });
+});
+
 /* ---------- 3) message du commerçant (« Aujourd'hui -20 % ») ---------- */
 // vérifie que la personne connectée est le commerçant de ce programme (ou l'admin)
 async function patron(req, res, pid) {

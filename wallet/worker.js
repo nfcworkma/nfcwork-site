@@ -398,6 +398,42 @@ async function pngLogo(p) {
   if (/^https:\/\/.+\.png(\?|$)/i.test(p.logo || "")) { const r = await fetch(p.logo); if (r.ok) return new Uint8Array(await r.arrayBuffer()); }
   return null;
 }
+// icône de la carte (= celle des notifications sur l'iPhone) : le logo du commerce aux tailles Apple, sur un carré plein
+// (logo transparent → posé sur la couleur de la carte, avec une marge ; logo opaque → il remplit le carré)
+async function iconeTaille(src, S, fond) {
+  const im = await pngPixels(src).catch(() => null); if (!im) return null;
+  const { w, h, bpp, px } = im;
+  let transparent = false; if (bpp === 4) for (let i = 3; i < px.length; i += 4 * 7) if (px[i] < 250) { transparent = true; break; }
+  const bg = transparent ? fond : [255, 255, 255], marge = transparent ? Math.round(S * 0.12) : 0, zone = S - 2 * marge;
+  const k = Math.min(zone / w, zone / h), lw = w * k, lh = h * k, x0 = (S - lw) / 2, y0 = (S - lh) / 2;
+  const out = new Uint8Array(S * S * 3);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    let r = 0, g = 0, b = 0, a = 0, n = 0;
+    // moyenne des pixels du logo couverts par ce pixel (réduction nette, sans crénelage)
+    const sx0 = (x - x0) / k, sx1 = (x + 1 - x0) / k, sy0 = (y - y0) / k, sy1 = (y + 1 - y0) / k;
+    for (let sy = Math.max(0, Math.floor(sy0)); sy < Math.min(h, Math.ceil(sy1)); sy++) for (let sx = Math.max(0, Math.floor(sx0)); sx < Math.min(w, Math.ceil(sx1)); sx++) {
+      const o = (sy * w + sx) * bpp, al = bpp === 4 ? px[o + 3] / 255 : 1;
+      r += px[o] * al; g += px[o + 1] * al; b += px[o + 2] * al; a += al; n++;
+    }
+    const d = (y * S + x) * 3, cov = n ? a / n : 0;
+    for (let c = 0; c < 3; c++) out[d + c] = Math.round((n && a ? [r, g, b][c] / a : 0) * cov + bg[c] * (1 - cov));
+  }
+  return pngEncode(S, S, out);
+}
+async function icones(p, logoP) {
+  const fond = rgb(couleur(p)), cache = typeof caches !== "undefined" ? caches.default : null, res = [];
+  for (const S of [29, 58, 87]) {
+    const cle = `https://cache.nfcwork.ma/icone/v1/${logoP ? propre(p.id, 60) + "/" + vLogo(p) : "nfcwork"}/${couleur(p).slice(1)}/${S}`;
+    let png = null;
+    if (cache) { const r = await cache.match(cle); if (r) png = new Uint8Array(await r.arrayBuffer()); }
+    if (!png) {
+      png = (logoP && await iconeTaille(logoP, S, fond)) || await iconeTaille(await pngIcone(), S, [255, 255, 255]);
+      if (png && cache) await cache.put(cle, new Response(png, { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=31536000" } })).catch(() => {});
+    }
+    res.push(png || logoP || await pngIcone());   // dernier recours : l'image d'origine
+  }
+  return res;
+}
 let ICONE = null;
 async function pngIcone() {
   if (ICONE) return ICONE;
@@ -415,8 +451,8 @@ async function pngEncode(W, H, rgbBuf) {
   const bloc = (type, data) => { const t = new TextEncoder().encode(type), td = cat(t, data); return cat(u32(data.length), td, u32(crc32(td))); };
   return cat(Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10), bloc("IHDR", cat(u32(W), u32(H), Uint8Array.of(8, 2, 0, 0, 0))), bloc("IDAT", z), bloc("IEND", new Uint8Array(0)));
 }
-// lit un PNG (8 bits, RGB ou RGBA, non entrelacé) → pixels RGB 750×246
-async function pngDecode(u8) {
+// lit un PNG (8 bits, RGB ou RGBA, non entrelacé) → { w, h, bpp, px }
+async function pngPixels(u8) {
   const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength); let i = 8, w = 0, h = 0, ct = 0; const idat = [];
   while (i < u8.length) {
     const len = dv.getUint32(i), type = String.fromCharCode(...u8.subarray(i + 4, i + 8)), data = u8.subarray(i + 8, i + 8 + len);
@@ -437,6 +473,12 @@ async function pngDecode(u8) {
       px[o + x] = v & 255;
     }
   }
+  return { w, h, bpp, px };
+}
+// photo du fond → pixels RGB 750×246
+async function pngDecode(u8) {
+  const im = await pngPixels(u8); if (!im) return null;
+  const { w, h, bpp, px } = im;
   const W = 750, H = 246, out = new Uint8Array(W * H * 3);                 // recadrage au centre si la taille diffère
   const k = Math.max(W / w, H / h), ox = (w - W / k) / 2, oy = (h - H / k) / 2;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -582,9 +624,9 @@ async function construirePkpass(env, c, p) {
   const icone = await pngIcone(), logoP = await pngLogo(p);
   const pj = passJson(env, c, p);
   if (env.APPLE_WS && env.APPLE_AUTH) { pj.webServiceURL = String(env.APPLE_WS).replace(/\/+$/, ""); pj.authenticationToken = await jetonApple(env, pj.serialNumber); }   // mises à jour automatiques
-  // icône = celle des notifications sur l'iPhone : le logo du commerce (sinon NFC WORK)
-  const ico = logoP || icone;
-  const fichiers = [["pass.json", enc(pj)], ["icon.png", ico], ["icon@2x.png", ico], ["icon@3x.png", ico]];
+  // icône = celle des notifications sur l'iPhone : le logo du commerce, en 29 / 58 / 87 px (NFC WORK seulement sans logo)
+  const [i1, i2, i3] = await icones(p, logoP);
+  const fichiers = [["pass.json", enc(pj)], ["icon.png", i1], ["icon@2x.png", i2], ["icon@3x.png", i3]];
   if (logoP) fichiers.push(["logo.png", logoP], ["logo@2x.png", logoP]);
   const bande = await bandeau(p, c);
   fichiers.push(["strip.png", bande], ["strip@2x.png", bande]);
