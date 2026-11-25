@@ -549,7 +549,7 @@ window.KiffyAdminModule = function (K) {
     await K.chargerJs("vendor/jspdf.umd.min.js");
     if (!logoPdf) logoPdf = await imageData("../assets/img/logo-nfcwork-full.png").catch(() => null);
     // règle de marque : toujours « NFC WORK » (même si « Mon entreprise » a été rempli autrement) ; nfcwork.ma et l'e-mail ne bougent pas
-    const marque = t => String(t || "").replace(/\bnfc[ -]?work\b(?!\.)/gi, "NFC WORK");
+    const marque = t => String(t || "").replace(/\bnfc[ -]?work\b(?!\.[a-z])/gi, "NFC WORK");
     const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" }), e0 = d.entreprise || {}, c = d.client || {};
     const e = { ...e0, nom: marque(e0.nom), mention: marque(e0.mention), adresse: marque(e0.adresse) };
     const V = [22, 193, 114], N = [10, 10, 10], G = [91, 102, 95], L = [230, 236, 232];
