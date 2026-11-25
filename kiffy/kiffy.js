@@ -17,6 +17,21 @@
   const WHATSAPP = typeof CONFIG !== "undefined" && CONFIG.whatsapp ? CONFIG.whatsapp : "";
   const NATIF = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 
+  /* écran fixe comme une app : pas de zoom à deux doigts (iOS ignore user-scalable=no dans Safari) ;
+     clavier ouvert → le champ actif est ramené dans la partie visible de #app (la page elle-même ne défile pas) */
+  ["gesturestart", "gesturechange", "gestureend"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+  document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  let clavierT = 0;
+  const montrerChamp = () => {
+    clearTimeout(clavierT);
+    clavierT = setTimeout(() => {
+      const a = document.activeElement;
+      if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== "color" && a.type !== "file") a.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 80);
+  };
+  window.addEventListener("resize", montrerChamp);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", montrerChamp);
+
   if (!window.FIREBASE_CONFIG || !window.firebase) { app.innerHTML = '<div class="vide">Configuration manquante.</div>'; return; }
   // tests en local : http://localhost:5500/kiffy/?emu → émulateurs Firebase (projet demo-kiffy, aucune vraie donnée)
   const EMU = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has("emu");
@@ -199,6 +214,8 @@
     if (!rafraichissement && scanActif) { scanActif(); scanActif = null; }
     const h = location.hash.replace(/^#\/?/, "") || "", [r, a] = h.split("/");
     document.body.classList.remove("sombre");
+    document.body.classList.toggle("vue-admin", !!vueAdmin);
+    if (!rafraichissement) app.scrollTop = 0;   // nouvel écran : on repart du haut
     if (!user) return ecranConnexion();
     if (estAdmin && !vueAdmin) {
       if (r === "voir" && a) { ouvrirCommerce(a, true); location.hash = "#/accueil"; return; }
@@ -393,7 +410,7 @@
     <a href="#/scanner" class="centre" aria-label="Scanner"><span>${S.scan(28)}</span></a>
     <a href="#/message" class="${actif === "message" ? "on" : ""}">${S.bulle(22, actif === "message" ? "#0A0A0A" : "#8A938E")}Messages</a>
     <a href="#/reglages" class="${actif === "reglages" ? "on" : ""}">${S.reglage(actif === "reglages" ? "#0A0A0A" : "#8A938E")}Réglages</a></nav>`;
-  const bandeauAdmin = () => vueAdmin ? `<div style="position:sticky;top:0;z-index:30;background:#0A0A0A;color:#fff;font-size:12.5px;font-weight:700;padding:8px 14px;display:flex;justify-content:space-between;align-items:center">Vue du gérant · ${esc(P.nom)}<button class="lien" id="quitte-vue" style="color:#16C172">Quitter</button></div>` : "";
+  const bandeauAdmin = () => vueAdmin ? `<div class="bandeau-admin"><span>Vue du gérant · ${esc(P.nom)}</span><button class="lien" id="quitte-vue" style="color:#16C172">Quitter</button></div>` : "";
   function brancherAdmin() { const q = $("#quitte-vue"); if (q) q.onclick = () => { const pid = vueAdmin; desabonner(); vueAdmin = ""; P = null; session = null; document.body.classList.remove("sombre"); aller("#/admin/c/" + encodeURIComponent(pid)); }; }
 
   /* ---------------- calculs ---------------- */
@@ -941,7 +958,7 @@
     const q = rechercheAdmin.trim().toLowerCase();
     const L = progsAdmin.filter(p => !q || String(p.nom).toLowerCase().includes(q) || String(p.ville || "").toLowerCase().includes(q)).sort((a, b) => ms(b.createdAt) - ms(a.createdAt));
     app.innerHTML = `<div class="ecran nav">
-      <div style="padding:var(--haut) 20px 6px;display:flex;justify-content:space-between;align-items:center"><div><div class="eyebrow">ESPACE NFC WORK</div><div style="font-size:26px;font-weight:800">Mes commerces</div></div><span style="font-family:var(--logo);font-weight:800;font-size:22px">kiffy</span></div>
+      <div class="haut-fixe" style="padding:var(--haut) 20px 6px;display:flex;justify-content:space-between;align-items:center"><div><div class="eyebrow">ESPACE NFC WORK</div><div style="font-size:26px;font-weight:800">Mes commerces</div></div><span style="font-family:var(--logo);font-weight:800;font-size:22px">kiffy</span></div>
       <div class="page" style="padding-top:8px;gap:12px">
         <div class="ca">${PRIX ? `<div class="t">Encaissé ce mois</div><div class="m">${encaisse.toLocaleString("fr-FR")} <span>DH</span></div>` : `<div class="t">Commerces</div><div class="m">${progsAdmin.length}</div>`}
           <div class="g"><div><b>${nAct}</b><span>Actifs</span></div><div><b>${nEss}</b><span>En essai</span></div>${PRIX ? `<div class="rouge"><b>${nImp}</b><span>Impayés</span></div>` : `<div><b>${progsAdmin.filter(p => p.actif === false).length}</b><span>En pause</span></div>`}</div></div>
