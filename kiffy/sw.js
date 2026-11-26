@@ -1,8 +1,8 @@
 /* Kiffy — service worker (portée /kiffy/) : l'app s'ouvre même avec un réseau faible.
    Toujours le réseau d'abord (les nouveautés arrivent tout de suite), la copie en cache si hors ligne.
    Firebase / Google / le Worker Wallet ne passent jamais par ce cache. */
-const CACHE = "kiffy-v8";
-const COQUE = ["./", "index.html", "kiffy.css?v=8", "kiffy-admin.js?v=8", "kiffy.js?v=8", "manifest.webmanifest", "icones/kiffy-192.png"];
+const CACHE = "kiffy-v9";
+const COQUE = ["./", "index.html", "kiffy.css?v=9", "kiffy-admin.js?v=9", "kiffy.js?v=9", "manifest.webmanifest", "icones/kiffy-192.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(COQUE.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));

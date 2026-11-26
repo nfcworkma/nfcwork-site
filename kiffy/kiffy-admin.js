@@ -54,7 +54,8 @@ window.KiffyAdminModule = function (K) {
           ${ligneOpt("#/admin/abonnements", "cash", "Abonnements", "")}
           ${ligneOpt("#/admin/plaques", "qrcode", "Plaques", "")}
           ${ligneOpt("#/admin/journal", "history", "Journal d’activité", "")}
-          <button class="opt" id="p-notif"><span class="ico">${ic("bell")}</span><span class="l">Notifier tous les gérants</span><span class="chev">${S.chev()}</span></button></div>
+          <button class="opt" id="p-notif"><span class="ico">${ic("bell")}</span><span class="l">Notifier tous les gérants</span><span class="chev">${S.chev()}</span></button>
+          <button class="opt" id="p-wallet"><span class="ico">${ic("refresh")}</span><span class="l">Mettre à jour les cartes Apple Wallet</span><span class="chev">${S.chev()}</span></button></div>
         <div class="carte menu"><div class="sect">VENTES</div>
           ${ligneOpt("#/admin/ventes", "receipt", "Carnet des ventes", "")}
           ${ligneOpt("#/admin/docs", "file-invoice", "Devis et factures", "")}
@@ -67,6 +68,11 @@ window.KiffyAdminModule = function (K) {
           <button class="opt" id="p-dx"><span class="ico">${ic("logout")}</span><span class="l danger" style="font-weight:700">Se déconnecter</span></button></div>
       </div>`, "plus");
     $("#p-notif").onclick = () => notifierGerants();
+    // nouveau design des cartes (tampons, photos) : la fonction walletRafraichir prévient tous les iPhones, qui rechargent leur carte
+    $("#p-wallet").onclick = async () => {
+      if (!(await confirmer("Mettre à jour toutes les cartes ?", "Chaque iPhone recharge sa carte Apple Wallet avec le design actuel (sans notification). Les cartes Google Wallet se mettent à jour à la prochaine visite.", "Mettre à jour"))) return;
+      try { await db.doc("kiffyAdmin/walletRafraichir").set({ t: FV.serverTimestamp() }); toast("Mise à jour envoyée aux iPhones (voir le Journal)"); } catch (e) { erreur(e); }
+    };
     if ($("#p-face")) $("#p-face").onclick = async () => {
       if (F.actif()) { if (await confirmer("Désactiver Face ID ?", "L’espace NFC WORK s’ouvrira avec le code admin.", "Désactiver")) { F.desactiver(); plus(); } }
       else if (await F.activer()) plus();
