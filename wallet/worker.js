@@ -32,6 +32,7 @@ const FS_KEY = "AIzaSyDFJGerneuM-Og0Hs9IKIcFqVbLlS9Yqjc";   // clé web publique
 const ADMIN = "nfcworkmacontact@gmail.com";
 const SITE = "https://nfcwork.ma";
 const WO = "https://walletobjects.googleapis.com/walletobjects/v1/";
+const ICI = "https://nfcwork-wallet.nfcworkmacontact.workers.dev";   // l'adresse de ce Worker (images de Google Wallet)
 
 export default {
   async fetch(req, env) {
@@ -43,6 +44,7 @@ export default {
       if (url.pathname === "/google/message" && req.method === "POST") return json(await message(req, env));
       if (url.pathname === "/google/notify" && req.method === "POST") return json(await notifier(req, env));
       if (url.pathname.startsWith("/logo/")) return await logo(url.pathname.slice(6));
+      if (url.pathname.startsWith("/strip/")) return await stripPng(url.pathname.slice(7));
       if (url.pathname === "/apple/pass") return await applePass(url, env);
       if (url.pathname === "/apple/etat") return json({ ok: true, pret: appleConfig(env, true) });
       return json({ ok: true, service: "nfcwork-wallet" });
@@ -149,6 +151,7 @@ const idClasse = (env, p) => `${env.ISSUER_ID}.fid-${propre(p.id, 60)}`;
 const idObjet = (env, c) => `${env.ISSUER_ID}.c-${propre(c.id)}`;
 // empreinte du logo : quand il change, l'adresse change → Google recharge l'image
 const vLogo = p => { const t = String(p.logoPng || p.logoData || p.logo || ""); let h = 5381; for (let i = 0; i < t.length; i += 7) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36); };
+const vStrip = (c, p) => { const t = [c.points || 0, p.objectif, p.type, couleur(p), vLogo(p), p.fondMetier, p.metier, p.maj, "v7"].join("|"); let h = 5381; for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36); };
 function classe(env, p, base) {
   return {
     id: idClasse(env, p),
@@ -169,6 +172,8 @@ function objet(env, c, p) {
     secondaryLoyaltyPoints: { label: "Objectif", balance: { string: pts >= obj ? "🎁 Récompense prête !" : `${pts} / ${obj}` } },
     barcode: { type: "QR_CODE", value: SITE + "/f/?c=" + c.id },
     hexBackgroundColor: couleur(p),
+    // la même bande de tampons que sur Apple Wallet (adresse versionnée : Google recharge l'image quand la carte change)
+    heroImage: { sourceUri: { uri: `${ICI}/strip/${propre(c.id)}?v=${vStrip(c, p)}` }, contentDescription: { defaultValue: { language: "fr-FR", value: `${Math.min(pts, obj)} / ${obj} ${u}` } } },
     textModulesData: [{ id: "recompense", header: "Récompense", body: `${obj} ${u} = ${p.recompense || "une récompense"}` }],
     linksModuleData: { uris: [{ id: "carte", uri: SITE + "/f/?c=" + c.id, description: "Ouvrir ma carte" }] }
   };
@@ -196,7 +201,7 @@ async function save(url, env) {
 async function sync(cid, env) {
   const { c, p } = await carteEtProg(cid);
   const o = objet(env, c, p);
-  const r = await wo(env, "PATCH", "loyaltyObject/" + encodeURIComponent(o.id), { loyaltyPoints: o.loyaltyPoints, secondaryLoyaltyPoints: o.secondaryLoyaltyPoints, accountName: o.accountName, textModulesData: o.textModulesData, hexBackgroundColor: o.hexBackgroundColor });
+  const r = await wo(env, "PATCH", "loyaltyObject/" + encodeURIComponent(o.id), { loyaltyPoints: o.loyaltyPoints, secondaryLoyaltyPoints: o.secondaryLoyaltyPoints, accountName: o.accountName, textModulesData: o.textModulesData, hexBackgroundColor: o.hexBackgroundColor, heroImage: o.heroImage });
   return { ok: r.status < 300, dansWallet: r.status !== 404 };
 }
 
@@ -289,6 +294,12 @@ async function anniversairesAuto(env) {
   }
   console.log("anniversaires:", cartes.length, "cartes,", envoyes, "notifiées");
   return envoyes;
+}
+
+/* ---------- la bande de tampons en image (Google Wallet : heroImage) ---------- */
+async function stripPng(cid) {
+  const { c, p } = await carteEtProg(cid);
+  return new Response(await bandeau(p, c), { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" } });
 }
 
 /* ---------- logo ---------- */
@@ -503,7 +514,49 @@ async function photoFond(p) {
   } catch (e) {}
   return null;
 }
-function dessiner(fond, obj, pts, tampons, photo) {
+// taille des tampons (la même pour le dessin et pour le logo qu'on y colle)
+const grille = (W, H, obj) => { const rangs = obj <= 5 ? 1 : 2, cols = Math.ceil(obj / rangs), cw = (W - 70) / cols, ch = (H - 26) / rangs; return { cols, cw, ch, r: Math.min(cw, ch) * 0.39 }; };
+const bordLogo = r => Math.max(2, Math.round(r * 0.09));   // le léger anneau blanc autour du logo
+// le logo du commerce pour les tampons validés : découpé en cercle de diamètre D, RGBA déjà posé sur son fond.
+// Réduit une seule fois par logo, couleur et taille, puis gardé dans le Cache API (le Worker ne redécode pas le PNG à chaque carte).
+async function logoTampon(p, logoP, D) {
+  if (!logoP) return null;
+  const cle = `https://cache.nfcwork.ma/tampon-logo/v1/${propre(p.id, 60)}/${vLogo(p)}/${couleur(p).slice(1)}/${D}`;
+  const cache = typeof caches !== "undefined" ? caches.default : null;
+  if (cache) { const r = await cache.match(cle); if (r) { const u = new Uint8Array(await r.arrayBuffer()); return u.length === D * D * 4 ? u : null; } }
+  const im = await pngPixels(logoP).catch(() => null); if (!im) return null;
+  const { w, h, bpp, px } = im, lum = o => 0.299 * px[o] + 0.587 * px[o + 1] + 0.114 * px[o + 2];
+  // logo transparent → posé en entier dans le cercle ; logo carré sur fond blanc → idem ; logo plein (couleur jusqu'aux bords) → il remplit le cercle
+  let transparent = false, clairs = 0, vus = 0, bordBlanc = 0, bords = 0;
+  for (let y = 0; y < h; y += 3) for (let x = 0; x < w; x += 3) {
+    const o = (y * w + x) * bpp, a = bpp === 4 ? px[o + 3] : 255;
+    if (a < 250) transparent = true;
+    if (a > 128) { vus++; if (lum(o) > 215) clairs++; }
+    if (x < 3 || y < 3 || x >= w - 3 || y >= h - 3) { bords++; if (a < 128 || lum(o) > 235) bordBlanc++; }
+  }
+  const entier = transparent || bordBlanc > bords * 0.8;
+  // logo blanc sur transparent : illisible sur du blanc → fond à la couleur de la carte
+  const bg = transparent && vus && clairs > vus * 0.6 ? rgb(couleur(p)) : [255, 255, 255];
+  // logo entier : dans le carré inscrit, ou plus grand s'il est allongé (ses coins restent dans le cercle), jamais plus de 90 % du tampon
+  const R = D / 2, k = entier ? Math.min(Math.max(D * 0.72 / Math.max(w, h), D * 0.96 / Math.hypot(w, h)), D * 0.9 / Math.max(w, h)) : Math.max(D / w, D / h);
+  const x0 = (D - w * k) / 2, y0 = (D - h * k) / 2, out = new Uint8Array(D * D * 4);
+  for (let y = 0; y < D; y++) for (let x = 0; x < D; x++) {
+    const d = (y * D + x) * 4, q = Math.hypot(x + 0.5 - R, y + 0.5 - R), m = Math.max(0, Math.min(1, R - q + 0.5));
+    if (!m) continue;
+    let r = 0, g = 0, b = 0, a = 0, n = 0;
+    const sx0 = (x - x0) / k, sx1 = (x + 1 - x0) / k, sy0 = (y - y0) / k, sy1 = (y + 1 - y0) / k;
+    for (let sy = Math.max(0, Math.floor(sy0)); sy < Math.min(h, Math.ceil(sy1)); sy++) for (let sx = Math.max(0, Math.floor(sx0)); sx < Math.min(w, Math.ceil(sx1)); sx++) {
+      const o = (sy * w + sx) * bpp, al = bpp === 4 ? px[o + 3] / 255 : 1;
+      r += px[o] * al; g += px[o + 1] * al; b += px[o + 2] * al; a += al; n++;
+    }
+    const cov = n ? a / n : 0;
+    for (let c = 0; c < 3; c++) out[d + c] = Math.round((a ? [r, g, b][c] / a : 0) * cov + bg[c] * (1 - cov));
+    out[d + 3] = Math.round(m * 255);
+  }
+  if (cache) await cache.put(cle, new Response(out, { headers: { "Content-Type": "application/octet-stream", "Cache-Control": "public, max-age=31536000" } })).catch(() => {});
+  return out;
+}
+function dessiner(fond, obj, pts, tampons, photo, logo) {
   const W = 750, H = 246, b = new Uint8Array(W * H * 3);
   const mix = (a, c, t) => a.map((v, i) => Math.round(v * (1 - t) + c[i] * t));
   const haut = mix(fond, [255, 255, 255], 0.06), bas = mix(fond, [0, 0, 0], 0.32);
@@ -548,13 +601,17 @@ function dessiner(fond, obj, pts, tampons, photo) {
   const encre = pale ? mix(fond, [0, 0, 0], 0.6) : blanc;                  // traits sur le fond (clair → foncé)
   const coche = clair(fond) ? mix(fond, [0, 0, 0], 0.45) : fond;                  // couleur dans les pastilles blanches
   if (tampons) {
-    const rangs = obj <= 5 ? 1 : 2, cols = Math.ceil(obj / rangs);
-    const cw = (W - 70) / cols, ch = (H - 26) / rangs, r = Math.min(cw, ch) * 0.39;
+    const { cols, cw, ch, r } = grille(W, H, obj);
+    const colle = (cx, cy) => {                                           // le logo rond (D×D, RGBA) au centre du tampon
+      const D = Math.round(Math.sqrt(logo.length / 4)), ox = Math.round(cx - D / 2), oy = Math.round(cy - D / 2);
+      for (let y = 0; y < D; y++) for (let x = 0; x < D; x++) { const s = (y * D + x) * 4; if (logo[s + 3]) px(ox + x, oy + y, [logo[s], logo[s + 1], logo[s + 2]], logo[s + 3] / 255); }
+    };
     for (let i = 0; i < obj; i++) {
       const cx = 35 + cw * (i % cols + 0.5), cy = 13 + ch * (Math.floor(i / cols) + 0.5), plein = i < pts, dernier = i === obj - 1;
       if (plein) {
         disque(cx, cy + 2, r, [0, 0, 0], 0.18); disque(cx, cy, r, blanc);
         if (dernier) cadeau(cx, cy, r, coche, blanc);
+        else if (logo) colle(cx, cy);                                     // logo du commerce dans un anneau blanc
         else trait(cx, cy, r, [[-0.36 * r, 0.02 * r], [-0.1 * r, 0.28 * r], [0.4 * r, -0.26 * r]], 0.17 * r, coche);
       } else {
         disque(cx, cy, r, encre, 0.08); anneau(cx, cy, r - 1.5, 3, encre, 0.8);
@@ -569,13 +626,17 @@ function dessiner(fond, obj, pts, tampons, photo) {
   }
   return { W, H, b };
 }
-async function bandeau(p, c) {
+async function bandeau(p, c, logoP) {
   const obj = Math.max(1, p.objectif || 10), pts = Math.min(obj, c.points || 0), tampons = p.type !== "montant" && obj <= 20;
   const f = await photoFond(p);
-  const cle = `https://cache.nfcwork.ma/strip/v6/${couleur(p).slice(1)}/${obj}/${pts}/${tampons ? 1 : 0}/${f ? f.id : "0"}${f && f.id[0] === "p" ? "/" + propre(p.id, 40) : ""}`;
+  if (logoP === undefined) logoP = await pngLogo(p);
+  const avecLogo = !!(logoP && tampons && pts > 0);
+  const cle = `https://cache.nfcwork.ma/strip/v7/${couleur(p).slice(1)}/${obj}/${pts}/${tampons ? 1 : 0}/${f ? f.id : "0"}${(f && f.id[0] === "p") || avecLogo ? "/" + propre(p.id, 40) : ""}/${avecLogo ? vLogo(p) : "0"}`;
   const cache = typeof caches !== "undefined" ? caches.default : null;
   if (cache) { const r = await cache.match(cle); if (r) return new Uint8Array(await r.arrayBuffer()); }
-  const { W, H, b } = dessiner(rgb(couleur(p)), obj, pts, tampons, f && f.px);
+  let logo = null;
+  if (avecLogo) { const { r } = grille(750, 246, obj); logo = await logoTampon(p, logoP, Math.round(2 * (r - bordLogo(r)))); }
+  const { W, H, b } = dessiner(rgb(couleur(p)), obj, pts, tampons, f && f.px, logo);
   const png = await pngEncode(W, H, b);
   if (cache) await cache.put(cle, new Response(png, { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=31536000" } })).catch(() => {});
   return png;
@@ -628,7 +689,7 @@ async function construirePkpass(env, c, p) {
   const [i1, i2, i3] = await icones(p, logoP);
   const fichiers = [["pass.json", enc(pj)], ["icon.png", i1], ["icon@2x.png", i2], ["icon@3x.png", i3]];
   if (logoP) fichiers.push(["logo.png", logoP], ["logo@2x.png", logoP]);
-  const bande = await bandeau(p, c);
+  const bande = await bandeau(p, c, logoP);
   fichiers.push(["strip.png", bande], ["strip@2x.png", bande]);
   const man = {};
   for (const [n, d] of fichiers) man[n] = [...new Uint8Array(await crypto.subtle.digest("SHA-1", d))].map(hex).join("");

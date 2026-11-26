@@ -138,6 +138,26 @@
   const objectif = p => Math.max(1, parseInt(p.objectif, 10) || 10);
   const logoSrc = p => /^data:image\//.test(p.logoData || "") ? p.logoData : /^https?:\/\//.test(p.logo || "") ? p.logo : "";
   const logoHTML = p => logoSrc(p) ? `<img src="${esc(logoSrc(p))}" alt="">` : esc(initiale(p.nom));
+  // logo rond des tampons validés, même règle que le Worker Wallet : logo transparent ou sur fond blanc → entier ;
+  // logo plein (couleur jusqu'aux bords) → il remplit le cercle ; logo blanc sur transparent → sur la couleur de la carte
+  const formesLogo = {};
+  const formeLogo = src => {
+    if (!src || formesLogo[src] !== undefined) return formesLogo[src] || "";
+    formesLogo[src] = "";
+    const im = new Image();
+    im.onload = () => { try {
+      const N = 48, cv = document.createElement("canvas"); cv.width = cv.height = N; const g = cv.getContext("2d"); g.drawImage(im, 0, 0, N, N);
+      const d = g.getImageData(0, 0, N, N).data; let tr = false, vus = 0, clairs = 0, bords = 0, blancs = 0;
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const o = (y * N + x) * 4, a = d[o + 3], l = 0.299 * d[o] + 0.587 * d[o + 1] + 0.114 * d[o + 2];
+        if (a < 250) tr = true; if (a > 128) { vus++; if (l > 215) clairs++; }
+        if (!x || !y || x === N - 1 || y === N - 1) { bords++; if (a < 128 || l > 235) blancs++; } }
+      formesLogo[src] = tr && vus && clairs > vus * 0.6 ? "sombre" : tr || blancs > bords * 0.8 ? "entier" : "plein";
+      document.querySelectorAll("i.lr").forEach(e => { const i = e.querySelector("img"); if (i && i.getAttribute("src") === src) e.className = "lr " + formesLogo[src]; });
+    } catch (e) { formesLogo[src] = "entier"; } };
+    im.onerror = () => (formesLogo[src] = "entier");
+    im.src = src; return "";
+  };
+  const logoTampon = (src, col) => `<i class="lr ${formeLogo(src) || "entier"}" style="--c:${esc(col || "#16C172")}"><img src="${esc(src)}" alt=""></i>`;
   const walletSync = cid => WALLET && !EMU && fetch(WALLET + "/google/sync?c=" + encodeURIComponent(cid), { mode: "no-cors" }).catch(() => {});
   const lienCarte = p => SITE + "/f/" + (p.court || p.id);
 
@@ -706,7 +726,7 @@
         <div class="carte-client" style="background:${esc(P.couleur || "#16C172")}">
           <svg width="358" height="200" viewBox="0 0 358 200" aria-hidden="true" style="position:absolute;right:-40px;top:-40px"><g fill="none" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="2"><circle cx="300" cy="40" r="60"/><circle cx="300" cy="40" r="100"/></g></svg>
           <div class="h" style="color:${clair(P.couleur) ? "#0A0A0A" : "#FFFFFF"}"><div><div class="k" style="color:inherit;opacity:.75">CLIENT</div><div class="n">${esc(emp ? prenom(c.nom) : c.nom)}</div>${emp ? "" : `<div class="d" style="color:inherit;opacity:.8">${esc(masque(c.tel))}${depuis ? " · client depuis " + esc(depuis) : ""}</div>`}</div><div class="mk">kiffy</div></div>
-          ${tamp ? `<div class="tampons">${Array.from({ length: obj }, (_, i) => i < Math.min(pts, obj) ? `<span class="plein" style="color:${esc(P.couleur || "#16C172")}">${S.coche(20, "currentColor")}</span>` : `<span class="vide">${i === obj - 1 ? S.cadeau(20, "#0A0A0A") : ""}</span>`).join("")}</div>`
+          ${tamp ? `<div class="tampons">${Array.from({ length: obj }, (_, i) => i < Math.min(pts, obj) ? `<span class="plein" style="color:${esc(P.couleur || "#16C172")}">${i === obj - 1 ? S.cadeau(20, "currentColor") : logoSrc(P) ? logoTampon(logoSrc(P), P.couleur) : S.coche(20, "currentColor")}</span>` : `<span class="vide">${i === obj - 1 ? S.cadeau(20, "#0A0A0A") : ""}</span>`).join("")}</div>`
             : `<div class="jauge"><i style="width:${Math.min(100, Math.round(pts / obj * 100))}%"></i></div><div style="position:relative;margin-top:8px;font-weight:800;font-size:20px">${pts} / ${obj} ${esc(u)}</div>`}
           <div class="reste">${S.cadeau(18, "#0A0A0A")} ${esc(P.recompense || "Une récompense")} · ${pts >= obj ? "prêt à offrir !" : `encore ${obj - pts} ${esc(u)}`}</div>
         </div>
@@ -1400,7 +1420,7 @@
       $("#ap").style.background = col;
       $("#ap").innerHTML = `<div class="h"><span class="lg">${s.logoData ? `<img src="${esc(s.logoData)}" alt="">` : esc(initiale(s.nom || "C"))}</span><span class="nm" style="color:${ink}">${esc(s.nom || "Nom du commerce")}</span><span class="u" style="color:${ink}">${esc(u.toUpperCase())}<span>${tamp ? plein : Math.round(obj * .7)} / ${obj}</span></span></div>
         <div class="bd" style="background:${col}">${fond ? `<img src="${esc(fond)}" alt="">` : ""}<div class="voile" style="background:${col};opacity:${fond ? .55 : 0}"></div>
-          <div class="tp">${tamp ? Array.from({ length: n }, (_, i) => { const full = i < plein, last = i === n - 1; return `<span style="background:${full ? "#FFFFFF" : "transparent"};border:${full ? 0 : "2px dashed " + (clair(col) ? "rgba(10,10,10,.45)" : "rgba(255,255,255,.75)")};color:${clair(col) && !full ? "#0A0A0A" : col}">${last ? S.cadeau(14, clair(col) ? "#0A0A0A" : "#FFFFFF") : full ? S.coche(14, col) : ""}</span>`; }).join("") : `<div style="grid-column:1/-1;height:12px;border-radius:6px;background:rgba(255,255,255,.4);position:relative"><i style="position:absolute;left:0;top:0;bottom:0;width:70%;background:#fff;border-radius:6px"></i></div>`}</div></div>
+          <div class="tp">${tamp ? Array.from({ length: n }, (_, i) => { const full = i < plein, last = i === n - 1; return `<span style="background:${full ? "#FFFFFF" : "transparent"};border:${full ? 0 : "2px dashed " + (clair(col) ? "rgba(10,10,10,.45)" : "rgba(255,255,255,.75)")};color:${clair(col) && !full ? "#0A0A0A" : col}">${last ? S.cadeau(14, full ? col : clair(col) ? "#0A0A0A" : "#FFFFFF") : full ? (s.logoData ? logoTampon(s.logoData, col) : S.coche(14, col)) : ""}</span>`; }).join("") : `<div style="grid-column:1/-1;height:12px;border-radius:6px;background:rgba(255,255,255,.4);position:relative"><i style="position:absolute;left:0;top:0;bottom:0;width:70%;background:#fff;border-radius:6px"></i></div>`}</div></div>
         <div class="bas" style="color:${ink}"><span><small>RÉCOMPENSE</small><b>${esc(s.rec || "—")}</b></span><span style="text-align:right"><small>IL VOUS MANQUE</small><b>${tamp ? obj - plein : obj - Math.round(obj * .7)} ${esc(u)}</b></span></div>`;
       $$("#mt [data-m]").forEach(b => b.classList.toggle("on", b.dataset.m === s.metier));
       $$("#cl [data-c]").forEach(b => b.classList.toggle("on", b.dataset.c.toLowerCase() === col.toLowerCase()));

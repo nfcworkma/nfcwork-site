@@ -107,6 +107,26 @@
   const logoSrc = p => /^data:image\//.test(p.logoData || "") ? p.logoData : /^https?:\/\//.test(p.logo || "") ? p.logo : "";
   const brand = p => `<div class="brand">${logoSrc(p) ? `<img class="lg" src="${esc(logoSrc(p))}" alt="">` : `<div class="ini">${esc((p.nom || "?").trim()[0].toUpperCase())}</div>`}
     <div><b>${esc(p.nom || "Commerce")}</b><small>Carte fidélité</small></div></div>`;
+  // logo rond des tampons validés, même règle que le Worker Wallet : logo transparent ou sur fond blanc → entier ;
+  // logo plein (couleur jusqu'aux bords) → il remplit le cercle ; logo blanc sur transparent → sur la couleur de la carte
+  const formesLogo = {};
+  const formeLogo = src => {
+    if (!src || formesLogo[src] !== undefined) return formesLogo[src] || "";
+    formesLogo[src] = "";
+    const im = new Image();
+    im.onload = () => { try {
+      const N = 48, cv = document.createElement("canvas"); cv.width = cv.height = N; const g = cv.getContext("2d"); g.drawImage(im, 0, 0, N, N);
+      const d = g.getImageData(0, 0, N, N).data; let tr = false, vus = 0, clairs = 0, bords = 0, blancs = 0;
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const o = (y * N + x) * 4, a = d[o + 3], l = 0.299 * d[o] + 0.587 * d[o + 1] + 0.114 * d[o + 2];
+        if (a < 250) tr = true; if (a > 128) { vus++; if (l > 215) clairs++; }
+        if (!x || !y || x === N - 1 || y === N - 1) { bords++; if (a < 128 || l > 235) blancs++; } }
+      formesLogo[src] = tr && vus && clairs > vus * 0.6 ? "sombre" : tr || blancs > bords * 0.8 ? "entier" : "plein";
+      document.querySelectorAll("i.lr").forEach(e => { const i = e.querySelector("img"); if (i && i.getAttribute("src") === src) e.className = "lr " + formesLogo[src]; });
+    } catch (e) { formesLogo[src] = "entier"; } };
+    im.onerror = () => (formesLogo[src] = "entier");
+    im.src = src; return "";
+  };
+  const tamponPlein = (p, i, obj) => i === obj - 1 ? "🎁" : logoSrc(p) ? `<i class="lr ${formeLogo(logoSrc(p)) || "entier"}"><img src="${esc(logoSrc(p))}" alt=""></i>` : "✓";
   const pied = `<div class="foot">Carte fidélité par <a href="${SITE}" target="_blank" rel="noopener"><b>NFC WORK</b></a></div>`;
   // abonnement NFC WORK : programme coupé à la main (actif:false) ou date de coupure dépassée (expire)
   const jourLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
@@ -131,7 +151,7 @@
       ${pret ? `<div class="msg win">🎁 Bravo ! Votre récompense est prête : ${esc(p.recompense)}. Montrez cette carte à la caisse.</div>` : ""}
       <section class="card" aria-label="Carte fidélité">
         <div class="top"><div><div class="lbl">Membre</div><div class="who">${esc(c.nom)}</div></div><div class="lbl">${esc(p.nom)}</div></div>
-        ${tampons ? `<div class="stamps">${Array.from({ length: obj }, (_, i) => `<div class="stamp${i < pts ? " on" : ""}${nouveau && i === pts - 1 ? " new" : ""}">${i < pts ? "★" : i === obj - 1 ? "🎁" : ""}</div>`).join("")}</div>`
+        ${tampons ? `<div class="stamps">${Array.from({ length: obj }, (_, i) => `<div class="stamp${i < pts ? " on" : ""}${nouveau && i === pts - 1 ? " new" : ""}">${i < pts ? tamponPlein(p, i, obj) : i === obj - 1 ? "🎁" : ""}</div>`).join("")}</div>`
           : `<div class="big">${pts} <small>/ ${obj} ${unite(p)}</small></div><div class="bar"><i style="width:${Math.min(100, pts / obj * 100)}%"></i></div>`}
         <div class="reward">🎁 <b>${esc(p.recompense)}</b> · ${pret ? "prête !" : `encore ${reste} ${unite(p)}`}${c.recompenses ? ` · déjà ${c.recompenses} gagnée${c.recompenses > 1 ? "s" : ""}` : ""}</div>
       </section>
