@@ -82,34 +82,48 @@
   };
 
   /* ---------------- métiers, couleurs ---------------- */
-  // les 22 métiers de l'Espace (mêmes clés, mêmes récompenses) ; photo = assets/wallet/fond-<clé>.png
+  // les métiers (mêmes clés que l'Espace pour les anciens) ; photo = assets/wallet/fond-<clé>.png, vignette = assets/wallet/vignettes/fond-<clé>.jpg
   const M = (nom, rec, u, idees, type, ico) => ({ nom, rec, u, idees, type: type || "visites", ico });
   const METIERS = {
-    barber: M("Barber", "La 9e coupe offerte", "coupes", ["1 barbe offerte", "1 soin du visage offert"]),
-    beaute: M("Beauté", "1 brushing offert", "visites", ["La 6e manucure offerte", "1 soin capillaire offert"]),
-    cafe: M("Café", "1 café offert", "cafés", ["1 boisson au choix offerte", "1 viennoiserie offerte"]),
+    cafe: M("Café", "Le 10e café offert", "cafés", ["1 boisson au choix offerte", "1 viennoiserie offerte"]),
+    the: M("Salon de thé", "Le 10e thé offert", "thés", ["1 pâtisserie offerte", "1 théière offerte"]),
     snack: M("Snack", "1 sandwich offert", "commandes", ["1 menu offert", "1 boisson offerte"]),
-    resto: M("Restaurant", "-50 DH sur l’addition", "repas", ["1 dessert offert", "1 boisson offerte"]),
+    fastfood: M("Fast-food", "Le 8e menu offert", "menus", ["1 portion de frites offerte", "1 boisson offerte"]),
     pizzeria: M("Pizzeria", "La 9e pizza offerte", "pizzas", ["1 boisson 1 L offerte", "1 pizza familiale offerte"]),
-    patisserie: M("Pâtisserie", "1 gâteau offert", "visites", ["1 viennoiserie offerte", "-20 % sur une commande de fête"]),
-    glacier: M("Glacier / Jus", "1 glace offerte", "commandes", ["1 jus offert", "La 7e crêpe offerte"]),
-    vetement: M("Vêtements", "-20 % sur le prochain achat", "achats", ["1 accessoire offert", "Bon d’achat de 50 DH"]),
-    pressing: M("Pressing", "5 pièces nettoyées offertes", "visites", ["1 couette nettoyée offerte", "1 costume nettoyé offert"], "", "wash-machine"),
+    resto: M("Restaurant", "-50 DH sur l’addition", "repas", ["1 dessert offert", "1 boisson offerte"]),
+    patisserie: M("Boulangerie / Pâtisserie", "1 gâteau offert", "visites", ["1 viennoiserie offerte", "-20 % sur une commande de fête"]),
+    glacier: M("Glacier", "1 glace offerte", "commandes", ["La 7e crêpe offerte", "1 coupe 3 boules offerte"]),
+    jus: M("Jus / Smoothies", "Le 10e jus offert", "jus", ["1 smoothie offert", "1 salade de fruits offerte"]),
+    epicerie: M("Épicerie / Supérette", "Bon d’achat de 25 DH", "achats", ["1 article surprise offert", "-10 % sur le prochain panier"]),
+    boucherie: M("Boucherie", "1 kg de viande hachée offert", "achats", ["500 g de merguez offerts", "-10 % sur la prochaine commande"]),
+    lavage: M("Lavage auto", "Le 6e lavage offert", "lavages", ["1 lavage intérieur complet offert", "1 polissage offert"]),
+    garage: M("Garage / Vidange", "La 5e vidange à -50 %", "vidanges", ["1 contrôle offert", "1 lavage offert"]),
+    barber: M("Barbier", "La 9e coupe offerte", "coupes", ["1 barbe offerte", "1 soin du visage offert"]),
+    coiffure: M("Salon de coiffure", "Le 8e brushing offert", "visites", ["1 soin capillaire offert", "-30 % sur une coloration"]),
+    beaute: M("Institut de beauté", "1 soin du visage offert", "visites", ["1 brushing offert", "1 épilation offerte"]),
+    ongles: M("Onglerie", "La 6e manucure offerte", "visites", ["1 pose de vernis offerte", "1 nail art offert"]),
     hammam: M("Hammam / Spa", "La 7e séance offerte", "séances", ["1 gommage offert", "1 massage offert"]),
     sport: M("Salle de sport", "Le 4e mois à -50 %", "mois", ["1 mois offert", "1 tenue de sport offerte"]),
-    pharmacie: M("Parapharmacie", "Bon d’achat de 30 DH", "achats", ["1 produit de soin offert"], "", "pill"),
-    epicerie: M("Épicerie", "Bon d’achat de 25 DH", "achats", ["1 article surprise offert"], "", "shopping-cart"),
-    telephone: M("Téléphonie", "1 protection d’écran offerte", "achats", ["-30 % sur la 4e réparation", "1 câble ou chargeur offert"]),
-    gaming: M("Gaming", "2 heures offertes", "heures", ["1 boisson offerte", "1 tournoi gratuit"]),
+    pressing: M("Pressing", "5 pièces nettoyées offertes", "visites", ["1 couette nettoyée offerte", "1 costume nettoyé offert"]),
+    gaming: M("Salle de jeux / PlayStation", "2 heures offertes", "heures", ["1 boisson offerte", "1 tournoi gratuit"]),
     billard: M("Billard", "1 partie offerte", "parties", ["1 heure offerte", "1 boisson offerte"]),
-    terrain: M("Terrain / Padel", "Le 11e match offert", "matchs", ["1 heure offerte", "Boissons offertes pour l’équipe"]),
+    terrain: M("Terrain de foot / Padel", "Le 11e match offert", "matchs", ["1 heure offerte", "Boissons offertes pour l’équipe"]),
+    cyber: M("Cyber / Impression", "50 impressions offertes", "visites", ["1 heure d’internet offerte", "1 reliure offerte"]),
+    pharmacie: M("Pharmacie / Parapharmacie", "Bon d’achat de 30 DH", "achats", ["1 produit de soin offert", "-15 % sur la parapharmacie"]),
+    opticien: M("Opticien", "-30 % sur la prochaine paire", "achats", ["1 contrôle de la vue offert", "1 étui et un nettoyage offerts"]),
+    vetement: M("Vêtements", "-20 % sur le prochain achat", "achats", ["1 accessoire offert", "Bon d’achat de 50 DH"]),
+    chaussures: M("Chaussures", "-20 % sur la prochaine paire", "achats", ["1 entretien offert", "Bon d’achat de 50 DH"]),
+    parfumerie: M("Parfumerie", "1 parfum 30 ml offert", "achats", ["-20 % sur le prochain achat", "1 coffret découverte offert"]),
+    telephone: M("Téléphonie / Accessoires", "1 protection d’écran offerte", "achats", ["-30 % sur la 4e réparation", "1 câble ou chargeur offert"]),
+    librairie: M("Librairie", "Bon d’achat de 50 DH", "achats", ["1 livre offert", "-15 % sur la rentrée scolaire"]),
+    fleuriste: M("Fleuriste", "1 bouquet offert", "achats", ["-20 % sur le prochain bouquet", "Livraison offerte"]),
+    veterinaire: M("Clinique vétérinaire", "1 consultation offerte", "visites", ["1 toilettage offert", "-50 % sur un vaccin"]),
     location: M("Location", "La 6e location à -50 %", "locations", ["1 jour offert", "1 nuit offerte"]),
-    lavage: M("Lavage auto", "Le 6e lavage offert", "lavages", ["1 lavage intérieur complet offert", "1 polissage offert"]),
-    garage: M("Garage", "La 5e vidange à -50 %", "vidanges", ["1 contrôle offert", "1 lavage offert"]),
     autre: M("Autre", "Une surprise offerte", "visites", ["-10 % sur la prochaine visite", "Cadeau surprise"], "", "sparkles")
   };
   const AVEC_PHOTO = k => k && !METIERS[k].ico;
   const photoMetier = k => AVEC_PHOTO(k) ? `../assets/wallet/fond-${k}.png` : "";
+  const vignetteMetier = k => AVEC_PHOTO(k) ? `../assets/wallet/vignettes/fond-${k}.jpg` : "";
   const nomMetier = k => (METIERS[k] || METIERS.autre).nom;
   const COULEURS = ["#16C172", "#0A0A0A", "#1C5FD4", "#0EA5E9", "#7C3AED", "#C026D3", "#DB2777", "#E11D48", "#C8453D", "#EA580C", "#F59E0B", "#EAB308", "#84CC16", "#0F766E", "#14532D", "#7A2048", "#78350F", "#64748B"];
   const clair = hex => { const h = String(hex || "#16C172").replace("#", ""); const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16); return 0.299 * r + 0.587 * g + 0.114 * b > 170; };
@@ -948,12 +962,21 @@
     };
   }
   // photo du commerce → 750×246 PNG (le Worker Wallet la lit sans librairie)
+  // photo personnalisée : recadrée au centre en 1125 × 369 (JPEG < 1 Mo, la version HD) + 750 × 246 en PNG (lu par le Worker Wallet) ;
+  // les deux tiennent dans un seul document Firestore (< 1 Mo)
   function lireFond(fichier) {
     return new Promise((ok, ko) => {
       const url = URL.createObjectURL(fichier), img = new Image();
       img.onload = () => {
-        const dessine = flou => { const c = document.createElement("canvas"); c.width = 750; c.height = 246; const g = c.getContext("2d"); const k = Math.max(750 / img.naturalWidth, 246 / img.naturalHeight), w = img.naturalWidth * k, h = img.naturalHeight * k; g.filter = `blur(${flou}px)`; g.drawImage(img, (750 - w) / 2, (246 - h) / 2, w, h); return c.toDataURL("image/png"); };
-        let d = dessine(0.6); if (d.length > 900000) d = dessine(1.6); URL.revokeObjectURL(url); d.length > 1000000 ? ko(new Error("trop lourde")) : ok(d);
+        const toile = (W, H, src, flou) => { const c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d"), sw = src.naturalWidth || src.width, sh = src.naturalHeight || src.height;
+          const k = Math.max(W / sw, H / sh), w = sw * k, h = sh * k; g.imageSmoothingQuality = "high"; if (flou) g.filter = `blur(${flou}px)`; g.drawImage(src, (W - w) / 2, (H - h) / 2, w, h); return c; };
+        const hd = toile(1125, 369, img);
+        let q = 0.86, jpg = hd.toDataURL("image/jpeg", q);
+        while (jpg.length > 280000 && q > 0.45) { q -= 0.08; jpg = hd.toDataURL("image/jpeg", q); }
+        let png = "";
+        for (const flou of [0.6, 1.6, 3]) { png = toile(750, 246, hd, flou).toDataURL("image/png"); if (png.length <= 700000) break; }
+        URL.revokeObjectURL(url);
+        png.length + jpg.length > 1000000 ? ko(new Error("trop lourde")) : ok({ png, jpg });
       };
       img.onerror = () => { URL.revokeObjectURL(url); ko(new Error("illisible")); };
       img.src = url;
@@ -1371,10 +1394,11 @@
     let ex = null;
     if (pid) { pid = decodeURIComponent(pid); const d = await db.doc("fidProgrammes/" + pid).get().catch(() => null); ex = d && d.exists ? { id: d.id, ...d.data() } : null; if (!ex) return aller("#/admin"); }
     const k0 = ex ? ex.kiffy || {} : {};
+    const fd0 = ex ? await db.doc("fidFonds/" + ex.id).get().catch(() => null) : null, fp0 = fd0 && fd0.exists ? fd0.data() : null;
     const s = {
       nom: ex ? ex.nom || "" : "", ville: ex ? ex.ville || "" : "", tel: ex ? ex.telCommerce || "" : "", email: ex ? ex.ownerEmail || "" : "",
       metier: ex && METIERS[ex.metier] ? ex.metier : "cafe", couleur: ex ? ex.couleur || "#16C172" : "#16C172", logoData: ex ? ex.logoData || "" : "", logoPng: ex ? ex.logoPng || "" : "", couleurLogo: "",
-      fond: ex ? ex.fondMetier || "" : "", fondPerso: null, type: ex && ex.type === "montant" ? "montant" : "visites", objectif: ex ? objectif(ex) : 10, rec: ex ? ex.recompense || "" : "", unite: ex ? ex.unite || "" : "",
+      fond: ex ? ex.fondMetier || "" : "", fondPerso: fp0 && fp0.png ? { png: fp0.png, jpg: fp0.jpg || "", deja: true } : null, type: ex && ex.type === "montant" ? "montant" : "visites", objectif: ex ? objectif(ex) : 10, rec: ex ? ex.recompense || "" : "", unite: ex ? ex.unite || "" : "",
       on: { wallet: k0.wallet !== false, anniv: ex ? ex.annivAuto !== false : true, relance: k0.relance !== false, avis: ex ? !!ex.lienAvis : false, employes: ex ? !!ex.employes : true, proche: ex ? !!(ex.lieux && ex.lieux.length) : true, promo: k0.promo !== false, essai: ex ? !!ex.essai : false },
       lienAvis: ex ? ex.lienAvis || "" : "", lieux: ex && Array.isArray(ex.lieux) ? ex.lieux : [], formule: k0.formule || "standard"
     };
@@ -1383,8 +1407,8 @@
     const OBJ = { visites: [5, 6, 8, 10, 12, 15], montant: [50, 100, 150, 200, 300, 500] };
     const OPTS = [["wallet", "device-mobile", "Apple Wallet et Google Wallet", "La carte dans le téléphone du client"], ["anniv", "cake", "Anniversaires automatiques", "Message + cadeau le jour J"], ["relance", "zzz", "Relance des absents", "Après 30 jours sans visite"], ["avis", "star", "Avis Google = +1 point", "Plus d’avis pour le commerce"], ["employes", "users", "Mode employé (codes PIN)", "Les employés scannent, c’est tout"], ["proche", "map-pin", "Carte à l’approche (iPhone)", "S’affiche près du commerce"], ["promo", "speakerphone", "Messages promo", "Offres envoyées à tous les clients"], ["essai", "gift", "Essai gratuit 7 jours", "Avant le premier paiement"]];
     const recs = () => [...new Set([METIERS[s.metier].rec, ...METIERS[s.metier].idees, "1 boisson offerte", "-20 % sur la visite", "Une surprise offerte", s.rec].filter(Boolean))].slice(0, 6);
-    const photos = () => [["", "Photo du métier", photoMetier(s.metier)], ...["cafe", "gaming", "terrain", "resto"].filter(k => k !== s.metier).slice(0, 4).map(k => [k, nomMetier(k), photoMetier(k)]), ["unie", "Couleur unie", ""]];
-    const srcFond = () => s.fondPerso || (s.fond === "unie" ? "" : photoMetier(s.fond || s.metier));
+    const photos = () => [["", "Photo du métier", vignetteMetier(s.metier)], ...["cafe", "gaming", "terrain", "resto"].filter(k => k !== s.metier).slice(0, 4).map(k => [k, nomMetier(k), vignetteMetier(k)]), ["unie", "Couleur unie", ""]];
+    const srcFond = () => (s.fondPerso && (s.fondPerso.jpg || s.fondPerso.png)) || (s.fond === "unie" ? "" : photoMetier(s.fond || s.metier));
 
     app.innerHTML = `<div class="ecran" style="padding-bottom:40px">
       <div class="creer-haut"><div style="display:flex;align-items:center;gap:12px"><a class="retour" href="${ex ? "#/admin/c/" + esc(ex.id) : "#/admin"}" aria-label="Retour">${S.retour()}</a><span class="t" style="font-size:16px;font-weight:700">${ex ? "Modifier la carte" : "Nouveau commerce"}</span><span style="margin-left:auto;font-size:12px;font-weight:700;color:#0E8A51">Aperçu en direct</span></div><div class="apercu" id="ap"></div></div>
@@ -1393,11 +1417,12 @@
           <div style="display:flex;gap:12px;align-items:center"><label class="logo-btn" id="lg" style="display:flex;align-items:center;justify-content:center;cursor:pointer">${s.logoData ? `<img src="${esc(s.logoData)}" alt="">` : "+ Logo"}<input type="file" accept="image/*" id="lg-f" hidden></label><label class="champ" style="flex:1">Nom<input id="c-nom" maxlength="60" value="${esc(s.nom)}" placeholder="Café des Amis"></label></div>
           <div class="grille2"><label class="champ">Ville<input id="c-ville" maxlength="40" value="${esc(s.ville)}" placeholder="Kénitra"></label><label class="champ">Téléphone<input id="c-tel" type="tel" maxlength="20" value="${esc(s.tel)}" placeholder="06…"></label></div>
           <label class="champ">E-mail du gérant<input id="c-mail" type="email" autocapitalize="off" value="${esc(s.email)}" placeholder="gerant@commerce.ma"></label></section>
-        <section class="section"><b>2 · Métier <span>(photo et récompense proposées)</span></b><div class="grille3" id="mt">${Object.entries(METIERS).map(([k, m]) => `<button class="metier" data-m="${k}">${AVEC_PHOTO(k) ? `<img src="${photoMetier(k)}" alt="" loading="lazy">` : `<span class="sans" style="display:flex;align-items:center;justify-content:center">${ic(m.ico, 20)}</span>`}${esc(m.nom)}</button>`).join("")}</div></section>
+        <section class="section"><b>2 · Métier <span>(photo et récompense proposées)</span></b><div class="grille3" id="mt">${Object.entries(METIERS).map(([k, m]) => `<button class="metier" data-m="${k}">${AVEC_PHOTO(k) ? `<img src="${vignetteMetier(k)}" alt="" loading="lazy">` : `<span class="sans" style="display:flex;align-items:center;justify-content:center">${ic(m.ico, 20)}</span>`}${esc(m.nom)}</button>`).join("")}</div></section>
         <section class="section"><b>3 · Couleur de la carte</b><div class="couleurs" id="cl">${COULEURS.map(x => `<button data-c="${x}" style="background:${x}" aria-label="Couleur ${x}"></button>`).join("")}</div>
           <div style="display:flex;gap:8px"><button class="btn-clair" id="cl-logo">${ic("palette", 16)} Couleur du logo</button><button class="btn-clair" id="cl-code">${ic("hash", 16)} Code couleur</button></div></section>
         <section class="section"><b>4 · Photo derrière les tampons</b><div class="grille3" id="ph"></div>
-          <label class="pointille" style="cursor:pointer">${ic("camera", 18)} Photo du commerce (la meilleure option)<input type="file" accept="image/*" id="ph-f" hidden></label></section>
+          <label class="pointille" style="cursor:pointer">${ic("camera", 18)} Photo personnalisée (remplace la photo du métier)<input type="file" accept="image/*" id="ph-f" hidden></label>
+          <small class="muted" style="font-size:12px;margin-top:-4px">Idéal : 1125 × 369 px, sujet au centre, sans texte. La photo est recadrée au centre et compressée automatiquement.</small></section>
         <section class="section"><b>5 · Le programme</b>
           <div class="seg"><button data-t="visites">Tampons (visites)</button><button data-t="montant">Points (montant)</button></div>
           <div style="font-size:13px;font-weight:700">Objectif <span class="muted" style="font-weight:500" id="obj-aide"></span></div><div class="choix" id="ob"></div>
@@ -1424,7 +1449,7 @@
         <div class="bas" style="color:${ink}"><span><small>RÉCOMPENSE</small><b>${esc(s.rec || "—")}</b></span><span style="text-align:right"><small>IL VOUS MANQUE</small><b>${tamp ? obj - plein : obj - Math.round(obj * .7)} ${esc(u)}</b></span></div>`;
       $$("#mt [data-m]").forEach(b => b.classList.toggle("on", b.dataset.m === s.metier));
       $$("#cl [data-c]").forEach(b => b.classList.toggle("on", b.dataset.c.toLowerCase() === col.toLowerCase()));
-      $("#ph").innerHTML = photos().map(([k, l, src]) => `<button class="photo-choix${!s.fondPerso && s.fond === k ? " on" : ""}" data-p="${k}">${src ? `<img src="${esc(src)}" alt="">` : ""}<span>${esc(l)}</span></button>`).join("") + (s.fondPerso ? `<button class="photo-choix on" data-p="perso"><img src="${esc(s.fondPerso)}" alt=""><span>Photo du commerce</span></button>` : "");
+      $("#ph").innerHTML = photos().map(([k, l, src]) => `<button class="photo-choix${!s.fondPerso && s.fond === k ? " on" : ""}" data-p="${k}">${src ? `<img src="${esc(src)}" alt="">` : ""}<span>${esc(l)}</span></button>`).join("") + (s.fondPerso ? `<button class="photo-choix on" data-p="perso"><img src="${esc(s.fondPerso.jpg || s.fondPerso.png)}" alt=""><span>Photo personnalisée</span></button>` : "");
       $$("#ph [data-p]").forEach(b => (b.onclick = () => { if (b.dataset.p === "perso") return; s.fond = b.dataset.p; s.fondPerso = null; dessine(); }));
       $$(".seg [data-t]").forEach(b => b.classList.toggle("on", b.dataset.t === s.type));
       $$(".seg [data-f]").forEach(b => b.classList.toggle("on", b.dataset.f === s.formule));
@@ -1492,8 +1517,9 @@
           Object.assign(data, { modeClient: "commercant", delaiH: 3, modeEmploye: "visite", actif: true, cadeauAnniv: "", annivMessage: "", createdAt: FV.serverTimestamp() });
         }
         await db.doc("fidProgrammes/" + id).set(data, { merge: true });
-        if (s.fondPerso) await db.doc("fidFonds/" + id).set({ png: s.fondPerso, maj: Date.now(), ownerEmail: email });
-        else if (ex) await db.doc("fidFonds/" + id).delete().catch(() => {});
+        if (s.fondPerso && !s.fondPerso.deja) await db.doc("fidFonds/" + id).set({ png: s.fondPerso.png, jpg: s.fondPerso.jpg, maj: Date.now(), ownerEmail: email });
+        else if (s.fondPerso) { if (String((fp0 || {}).ownerEmail || "").toLowerCase() !== email) await db.doc("fidFonds/" + id).update({ ownerEmail: email }); }
+        else if (fp0) await db.doc("fidFonds/" + id).delete().catch(() => {});   // seulement si on a choisi une autre photo à la place
         if (ex && String(ex.ownerEmail || "").toLowerCase() !== email) {   // nouvel e-mail : cartes et employés suivent (comme l'Espace)
           for (const col of ["fidCartes", "fidEmployes"]) { const q = await db.collection(col).where("pid", "==", id).get(); for (const d of q.docs) await d.ref.update({ ownerEmail: email }); }
         }

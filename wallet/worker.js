@@ -499,7 +499,8 @@ async function pngDecode(u8) {
   return out;
 }
 // le fond derrière les tampons : la photo du commerce, sinon celle de son métier
-const FONDS = { gaming: "gaming", cafe: "cafe", billard: "billard", terrain: "terrain", resto: "resto", snack: "snack", pizzeria: "pizzeria", barber: "barber", beaute: "beaute", hammam: "hammam", sport: "sport", lavage: "lavage", patisserie: "patisserie", glacier: "glacier", vetement: "vetement", location: "location", telephone: "telephone", garage: "garage" };   // vraies photos Unsplash (assets/wallet/CREDITS.md)
+const FONDS = Object.fromEntries(("cafe the snack fastfood pizzeria resto patisserie glacier jus epicerie boucherie lavage garage barber coiffure beaute ongles hammam sport pressing " +
+  "gaming billard terrain cyber pharmacie opticien vetement chaussures parfumerie telephone librairie fleuriste veterinaire location").split(" ").map(k => [k, k]));   // vraies photos Unsplash / Pexels (assets/wallet/CREDITS.md)
 async function photoFond(p) {
   try {
     const f = await lire("fidFonds/" + propre(p.id, 60)).catch(() => null);
